@@ -454,120 +454,253 @@ Ya cubierto por A16 (`TOPE_HORAS_EXTRA_BONO`, editable por el Administrador). Si
 ---
 ---
 
-# BLOQUE B — PENDIENTE DE DECIDIR (el equipo debe resolverlo)
+## A24. NUEVA Historia — Sistema de Notificaciones por Rol (Épica 5)
+
+**Descripción:**
+> Como usuario de la plataforma (cualquier rol), quiero recibir notificaciones relevantes para mis responsabilidades y poder filtrarlas o marcarlas como leídas, para estar al tanto de las acciones que requieren mi atención sin revisar manualmente cada sección.
+
+**Criterios de Aceptación:**
+
+Eventos que generan notificación por rol:
+
+*Para el Project Manager:*
+- Una asignación propuesta por el RM sobre uno de sus proyectos está pendiente de su aprobación.
+- Un colaborador ha solicitado incorporarse a uno de sus proyectos (pendiente de su aprobación).
+- El RM aprueba o rechaza uno de sus proyectos enviados a revisión.
+- Una tarea que el PM asignó ha sido marcada como "Listo para revisar" por el colaborador.
+
+*Para el Resource Manager:*
+- Una asignación propuesta por un PM está pendiente de su aprobación.
+- Un colaborador ha solicitado incorporarse a un proyecto (pendiente de su aprobación).
+- Un colaborador ha subido un nuevo certificado pendiente de revisión.
+
+*Para el Colaborador:*
+- Una solicitud de incorporación a un proyecto fue aprobada o rechazada.
+- Una tarea asignada fue confirmada (a tiempo) o devuelta con comentario por el PM.
+- Un certificado fue aprobado o rechazado por el RM.
+- Ha sido inscrito en un curso por el RM.
+
+*Para el Administrador:*
+- No se definen notificaciones automáticas por ahora; el Admin monitorea el log de auditoría.
+
+*Comportamiento general:*
+- El ícono de campanita en el navbar muestra el número de notificaciones no leídas.
+- El usuario puede marcar una notificación como leída individualmente o marcar todas como leídas.
+- El usuario puede filtrar las notificaciones por tipo según su rol.
+- Hacer clic en una notificación redirige directamente a la sección relevante del sistema.
+
+**DoR:** Lista completa de eventos por rol definida · Tabla `notificacion` existe en el schema · Las historias generadoras de notificaciones están completadas o en desarrollo avanzado · Historia estimada.
+
+**DoD:** Los eventos definidos generan notificaciones para los roles correctos · El contador de no leídas funciona · Los filtros por tipo funcionan por rol · El clic redirige a la sección correcta · Se probaron los eventos de cada rol.
+
+**Estimación:** 8 puntos
+
+**Subtareas:**
+- Implementar el servicio de creación de notificaciones (método reutilizable: `notificacionService.crear(usuarioId, tipo, mensaje, enlace)`).
+- Integrar el servicio en los flujos de asignaciones (propuesta, aprobación, rechazo).
+- Integrar el servicio en el flujo de certificados (subida, aprobación, rechazo).
+- Integrar el servicio en el flujo de tareas (marcado como listo, confirmación, devolución).
+- Integrar el servicio en el flujo de proyectos (aprobación/rechazo por RM, solicitud de incorporación de colaborador).
+- Implementar el contador de no leídas en el navbar.
+- Implementar la vista del centro de notificaciones con filtros por tipo y opción de marcar como leída.
+- Implementar el clic en notificación → redirección a la sección relevante.
+
+---
+
+## A25. NUEVA Historia — Gestión del catálogo de cursos y capacitaciones (Admin, Épica 5)
+
+**Descripción:**
+> Como Administrador, quiero registrar, editar y desactivar cursos y capacitaciones disponibles en la organización, para que el Resource Manager pueda asignarlos a colaboradores y los colaboradores puedan solicitarlos.
+
+**Criterios de Aceptación:**
+- El Administrador puede crear un curso indicando: nombre, descripción, duración en horas y categoría (técnico, habilidades blandas, certificación, etc.).
+- El Administrador puede editar la información de un curso existente.
+- El Administrador puede desactivar un curso; el curso deja de aparecer como disponible para nuevas inscripciones pero no se elimina.
+- Los cursos activos son visibles para el RM y los colaboradores.
+
+**DoR:** Los campos de un curso están definidos · Tablas `curso` y `colaborador_curso` existen en el schema · Historia estimada.
+
+**DoD:** El Admin puede crear, editar y desactivar cursos · Los cursos desactivados no aparecen para inscripción · Se probaron creación, edición y desactivación.
+
+**Estimación:** 5 puntos
+
+**Subtareas:**
+- Implementar la entidad Curso (nombre, descripción, duración, categoría, activo).
+- Implementar el CRUD de cursos en el panel de Administrador.
+- Implementar la vista del catálogo de cursos activos (accesible para RM y Colaboradores).
+
+---
+
+## A26. NUEVA Historia — Colaborador solicita inscripción a un curso (Épica 5)
+
+**Descripción:**
+> Como colaborador, quiero explorar el catálogo de cursos disponibles y solicitar inscribirme en uno que me interese, para desarrollar mis habilidades profesionales dentro de la organización.
+
+**Criterios de Aceptación:**
+- El colaborador puede ver el catálogo de cursos activos con nombre, descripción, duración y categoría.
+- El colaborador puede enviar una solicitud de inscripción a cualquier curso activo.
+- La solicitud queda en estado "Pendiente" hasta que el RM la gestione.
+- El colaborador puede ver el estado de sus solicitudes: Pendiente, Aprobada o Rechazada.
+- El sistema impide enviar una solicitud duplicada al mismo curso si ya hay una pendiente o una inscripción activa.
+
+**DoR:** La Historia A25 está completada · Historia estimada.
+
+**DoD:** El colaborador puede solicitar inscripción a un curso · No hay solicitudes duplicadas · El colaborador ve el estado actualizado · Se probó el flujo completo.
+
+**Estimación:** 3 puntos
+
+**Subtareas:**
+- Implementar la vista del catálogo de cursos activos para el colaborador.
+- Implementar el envío de solicitud de inscripción.
+- Implementar la validación de solicitudes duplicadas.
+- Implementar la vista de "Mis solicitudes de curso" con estado actualizado.
+
+---
+
+## A27. NUEVA Historia — RM gestiona inscripciones a cursos (Épica 5)
+
+**Descripción:**
+> Como Resource Manager, quiero asignar cursos directamente a colaboradores que no están cumpliendo sus horas de trabajo, y gestionar las solicitudes de inscripción enviadas por los colaboradores, para apoyar su desarrollo y mejorar su rendimiento.
+
+**Criterios de Aceptación:**
+- El RM puede ver todas las solicitudes de inscripción a cursos pendientes de revisión de la organización.
+- El RM puede aprobar o rechazar una solicitud, indicando motivo si rechaza.
+- El RM puede asignar directamente un curso a un colaborador sin que el colaborador lo haya solicitado (por ejemplo, cuando no está cumpliendo sus horas de trabajo).
+- El colaborador recibe una notificación cuando el RM le asigna o inscribe en un curso (ver A24).
+
+**DoR:** Las Historias A25 y A26 están completadas · La Historia A24 (Notificaciones) está en desarrollo o completada · Historia estimada.
+
+**DoD:** El RM ve y gestiona solicitudes pendientes · El RM puede inscribir directamente a un colaborador · El colaborador recibe notificación · Se probaron los tres flujos: aprobación, rechazo e inscripción directa.
+
+**Estimación:** 5 puntos
+
+**Subtareas:**
+- Implementar la bandeja de solicitudes de inscripción pendientes para el RM.
+- Implementar la aprobación de solicitud con notificación al colaborador.
+- Implementar el rechazo de solicitud con motivo y notificación al colaborador.
+- Implementar la inscripción directa de un colaborador a un curso por parte del RM.
+
+---
+---
+
+# BLOQUE B — DECISIONES TOMADAS
+
+
 
 1. **Historia "Gestión de disponibilidad" (Épica 3):** falta definir si se mide en horas/semana, %, o estados con nombre.
-ES POR HORAS
+✅ RESUELTO: ES POR HORAS (horas/semana).
+
 2. **Etiquetas RF08 (Administración) y RF09 (Reportes y Dashboard):** trazabilidad frente a los RF01-07 de la profesora. Opcional.
 
 3. **Campo "prioridad" (Alta/Media/Baja) en Proyecto:** para que el RM arbitre con datos reales. Opcional.
-SE AGREGARA EL CAMPO DE PRIORIDAD PARA LOS PROYECTOS, el PM tendra una opcion en que nivel estara el proyecto de prioridad y el motivo. Luego el RM sera el que lo revise y confirmar/rechazar. Tambien el PM puede cancelar su proyecto antes de que el RM pueda tomar una decision.
-APARTE:
-Proyecto tendra una tabla de estados: En revisión, Rechazado, Activo, En espera, Cancelado, Finalizado.
+✅ RESUELTO: SE AGREGA EL CAMPO DE PRIORIDAD PARA LOS PROYECTOS. El PM marca la prioridad (Alta/Media/Baja) y justifica al crear el proyecto. El RM revisa y confirma/rechaza el proyecto. El PM puede cancelar su proyecto mientras está en estado "En revisión" antes de que el RM decida.
+Estados del proyecto: En revisión → Activo | Rechazado → En espera | Cancelado | Finalizado.
 
 4. **Historia formal de "Notificaciones del sistema":** hoy solo existe como vista de UI en el mockup del Admin, no como historia con criterios propios.
-Todos los roles tienen que tener sus notificaciones, y que las notificaciones tengan sus filtros dependiendo de cada rol
+✅ RESUELTO: Se crea historia formal con criterios propios. Todos los roles tienen notificaciones con filtros según su rol. Ver A24.
 
-5. **Seguimiento a la responsabilidad de PM/RM cuando un colaborador no llega a sus 160 horas:** si debe generar algún reporte o alerta, y para quién. *(pendiente propio del documento de Horas y Pagos)*
-Puede entrar como apoyo a otros proyectos. Y sobre los cursos/certificados, CURSOS Y CAPACITACIONES CREADAS POR ADMIN. AUN POR CONFIRMAR
-6. **Si el tope de horas extra (bono) es único por colaborador, o puede variar según proyecto o rol.** *(pendiente propio del documento de Horas y Pagos)*
-POR COLABORADOR
-7. **Cómo se maneja un colaborador que trabaja solo parte del mes** (ingresa o sale a mitad de mes) — la meta de 160 horas no debería aplicarse completa en ese caso. *(pendiente propio del documento de Horas y Pagos)*
-SI LO BOTAN A MITAD DE MES SE LE CONTABILIZA LAS HORAS TRABAJADAS, PERO SEGUN EL MOTIVO SE LE PENALIZARA (POR EJEMPLO, SI FUE POR MAL DESEMPEÑO SE LE PENALIZARA Y SI FUE PORQUE EL PROYECTO SE CANCELO NO SE LE PENALIZARA)
+5. **Seguimiento a la responsabilidad de PM/RM cuando un colaborador no llega a sus 160 horas:** si debe generar algún reporte o alerta, y para quién.
+✅ RESUELTO: El RM puede incluir al colaborador en otro proyecto como apoyo, o asignarle cursos de capacitación. Los cursos los registra el Administrador. El colaborador también puede solicitar inscribirse a cursos. Ver A25, A26 y A27.
 
----
-COSAS DEFINIDAS
-PM: En su solicitud de proyecto, el PM debe marcar la prioridad (Alta/Media/Baja) y justificar para que el RM lo evalue.
-En caso de que el colaborador no se esté cumpliendo las horas de trabajo, el RM cuenta con las opciones de incluir al colaborador en otro proyectos como apoyo o asginarle cursos.
-El colaborador también puede solicitar de participar en cursos.
-El colaborador y RM deben contar con una sección que les peermita revisar los cursos disponibles.
-Ela dminsitrador se encarga de registrar los cursos
----
+6. **Si el tope de horas extra (bono) es único por colaborador, o puede variar según proyecto o rol.**
+✅ RESUELTO: El tope de horas extra pagables es POR COLABORADOR (no varía por proyecto ni por rol).
 
-# BLOQUE C — DUDAS NUEVAS / A REPLANTEAR
+7. **Cómo se maneja un colaborador que trabaja solo parte del mes.**
+✅ RESUELTO: Si es removido a mitad de mes, se le contabilizan las horas trabajadas hasta ese momento. Se aplica penalización según el motivo: si fue por m# BLOQUE C — DUDAS RESUELTAS
 
-*Encontradas al revisar todo el flujo en conjunto. No son errores del equipo — son consecuencias de ir cerrando decisiones por partes. Ninguna bloquea el Entregable 1, pero conviene que las vean antes de programar.*
+*Todas las preguntas de este bloque han sido respondidas por el equipo. Se registra la decisión tomada para cada una.*
 
 **C1. Dependencia circular entre A5 (Gestión de usuarios) y A6 (Activación de cuenta).**
-Puse en el DoR de A5 que "A6 debe estar completada", pero A6 depende de que exista un usuario creado (A5) para poder activarlo. En la práctica no es un problema real — solo significa que Mili (dueña de A6) y yo (A5) tenemos que coordinar y desarrollarlas casi en paralelo — pero como está redactado ahora mismo parece una dependencia imposible de resolver en el papel. Recomiendo aclarar esto en ambas historias con una nota tipo "se desarrollan de forma coordinada", no como bloqueo estricto.
-Simplemente cambiar la palabra en el DoR de ambas historias: en vez de decir "la otra historia debe estar completada" (que suena a bloqueo total), poner algo como:
-
-"Esta historia se desarrolla de forma coordinada con [la otra], ya que ambas dependen de la misma tabla de usuario/token."
+✅ RESUELTO: Ambas historias se desarrollan en paralelo y de forma coordinada — no existe un bloqueo estricto entre ellas. El equipo que desarrolle A6 debe coordinar con el equipo que desarrolle A5 el contrato del endpoint de activación (qué datos espera recibir) antes de comenzar a programar.
+División de responsabilidades: A6 es dueña de toda la lógica de activación y reenvío de enlace (genera el token, lo invalida al usarse, genera uno nuevo al reenviar). A5 solo implementa el botón en la UI del Admin que llama al endpoint de reenvío.
 
 **C2. "Reenviar el enlace de activación" está duplicado en dos historias.**
-Aparece como subtarea en A5 (Gestión de usuarios) y como criterio/DoD en A6 (Activación de cuenta). Deberían decidir quién es el dueño real: mi propuesta es que A6 dueña la lógica (generar un nuevo enlace, invalidar el anterior) y A5 solo tiene el botón en la UI que la dispara — pero convendría que ustedes lo dejen explícito para que no se programe dos veces por separado.
-Ok, me parece bien esa decision.
+✅ RESUELTO: La Historia A6 (Activación de cuenta) es dueña de la lógica completa de reenvío (generar nuevo token, invalidar el anterior). La Historia A5 (Gestión de usuarios) solo implementa el botón en la interfaz del Admin que dispara esa lógica. No se programa dos veces.
 
 **C3. ¿La activación de cuenta debería quedar en el log de auditoría (Historia 5.4)?**
-Ahora mismo audito "creación de usuario" pero no el momento en que ese usuario efectivamente activa su cuenta. Podría ser útil para que el Admin sepa quién todavía no ha activado su invitación. Sugerencia: agregar "activación de cuenta completada" a la lista de acciones auditadas.
-Ok, hay que agregar eso.
+✅ RESUELTO: Sí. Se agrega "activación de cuenta completada" como una acción auditada en la Historia 5.4. Esto permite al Admin saber quién todavía no ha activado su invitación.
 
-**C4. ¿El colaborador puede editar su propio correo desde su perfil (Historia de perfil, A1)?**
-No quedó explícito. Mi recomendación: que el correo sea de solo lectura para el colaborador (solo el Admin puede cambiarlo), ya que es el identificador de login y de las notificaciones — cambiarlo libremente podría causar problemas de acceso. Falta que el equipo lo confirme.
-Si, que sea solo de lectura.
+**C4. ¿El colaborador puede editar su propio correo desde su perfil?**
+✅ RESUELTO: No. El correo es de solo lectura para el colaborador. Solo el Administrador puede cambiarlo, ya que es el identificador de login y receptor de notificaciones del sistema.
 
-**C5. Falta el mockup de la pantalla de activación y del correo de activación.**
-La Historia A10 (mockups) no incluye una pantalla para "el usuario pone su nombre y contraseña tras hacer clic en el link" ni el diseño del correo que se envía. Es una pantalla nueva que nadie tiene asignada todavía dentro de la Historia de Mockups — probablemente le toque a Mili por ser parte de Épica 2, pero hay que decidirlo.
+**C5. Falta el mockup de la pantalla de activación de cuenta.**
+✅ RESUELTO: Se agrega como subtarea dentro de la Historia A10 (Mockups, Épica 1). Lo realiza el integrante que tenga disponibilidad al momento de ejecutar los mockups.
 
 **C6. Validación de duplicados en la carga masiva (A5): ¿contra qué se compara?**
-Ya lo dejé más claro en el texto de A5 (duplicados dentro del archivo Y contra usuarios ya existentes), pero quiero que quede explícito que lo confirmen — es fácil programar solo la validación "dentro del archivo" y olvidar cruzarlo contra la base de datos real.
+✅ CONFIRMADO: La validación es doble — se detectan correos duplicados dentro del archivo cargado Y se cruzan contra los correos de usuarios ya existentes en la base de datos. Ambas validaciones son obligatorias.
 
-**C7. Confidencialidad del sueldo — ¿quién puede ver `sueldo_base` y `pago_total` de un colaborador?**
-El documento de Horas y Pagos no lo especifica. Mi recomendación: **solo el propio colaborador y el Administrador** — ni el PM ni el RM deberían verlo, ya que gestionan asignaciones y tareas, no compensación. Falta que el equipo lo confirme y se agregue como regla de acceso explícita en la Historia 9.3.
+**C7. ¿Quién puede ver el sueldo base y el pago mensual de un colaborador?**
+✅ RESUELTO: Solo el propio colaborador y el Administrador. Ni el PM ni el RM tienen acceso al sueldo base ni al pago total calculado. Esta regla debe implementarse como restricción de acceso explícita en la Historia 9.3.
 
-**C8. ¿El sistema de Horas y Pagos aplica solo a Colaboradores, o también a PM/RM/Admin?**
-El documento siempre dice "colaborador". Asumí que es exclusivo de ese rol — si un PM o RM también recibiera bono por horas trabajadas, el modelo cambiaría bastante (¿quién les asigna tareas a ellos?). Recomiendo confirmarlo explícitamente con el equipo.
+**C8. ¿El sistema de Horas y Pagos aplica solo a Colaboradores?**
+✅ RESUELTO: Sí, aplica exclusivamente al rol Colaborador. PM, RM y Administrador no participan en el sistema de tareas ni en el cálculo de nómina.
 
-**C9. Tres conceptos distintos de "qué tan ocupado está" un colaborador — no confundirlos.**
-Ahora coexisten: **disponibilidad** (Épica 3, autodeclarada, pendiente B1), **carga** (asignaciones activas / límite, Épica 4-5-6) y **horas trabajadas** (Épica 9, para el sueldo). No hace falta unificarlos — cada uno responde a una pregunta distinta — pero si definen "disponibilidad" en horas/semana (B1), dejen claro que es una cifra distinta de las horas de tareas de la Épica 9, para que no se mezclen sin querer en el modelo de datos.
+**C9. Tres conceptos de ocupación del colaborador — no confundirlos.**
+✅ ACLARADO (no es un cambio, es una advertencia de diseño para el equipo):
+- **Disponibilidad** (Épica 3): horas/semana que el colaborador declara tener libre. Dato autodeclarado.
+- **Carga** (Épica 4/5/6): número de asignaciones activas sobre el límite configurado. Dato calculado automáticamente.
+- **Horas trabajadas** (Épica 9): suma de horas estimadas de tareas asignadas en el mes. Dato para el cálculo de nómina.
+Son tres métricas distintas que no se mezclan entre sí en el modelo de datos.
 
-**C10. Auditoría de cambios de configuración (Historia 5.4) — nunca estuvo incluida.**
-Repasando el log de auditoría completo, noté que "cambios en los parámetros de configuración del sistema" **nunca formó parte** de las acciones auditadas — ni el límite de asignaciones original, ni ahora el nuevo tope de horas extra (A16). Cambiar ese tope afecta directamente cuánto se le paga a la gente, así que sugiero agregar esta categoría al log de auditoría, más allá del sistema de horas.
+**C10. Auditoría de cambios de configuración del sistema — nunca estuvo incluida.**
+✅ RESUELTO: Sí se audita. Se agrega "cambio en parámetros de configuración del sistema" (incluyendo MAX_ASIGNACIONES_POR_COLABORADOR y TOPE_HORAS_EXTRA_BONO) como acción auditada en la Historia 5.4.
 
-**C11. ¿Quién marca una tarea como "entregada" — el PM, o el colaborador la marca y el PM solo valida?**
-El documento no lo aclara. En la Historia 9.1 asumí que el PM la marca directamente, pero en la práctica suele ser el colaborador quien sabe cuándo terminó. Vale la pena que el equipo lo confirme, porque cambia de quién es la acción en la interfaz.
+**C11. ¿Quién marca una tarea como "entregada"?**
+✅ RESUELTO: Flujo en dos pasos:
+1. El **colaborador** marca la tarea como "Listo para revisar" cuando considera que terminó.
+2. El **PM** revisa y puede **confirmar** la entrega (queda como "Entregada a tiempo" o "Entregada tardía") o **devolver** la tarea con un comentario (vuelve a estado "En revisión").
+La fecha de confirmación del PM es la que determina si fue a tiempo o tardía. Esto sube la estimación de H9.1 de 8 a **10 puntos**.
 
-**C12. ¿Qué pasa con las horas ya contabilizadas de una tarea si la asignación del colaborador al proyecto se rechaza o finaliza antes de que la tarea se entregue?**
-Caso borde: un PM asigna una tarea, y luego la asignación al proyecto se da de baja por algún motivo. ¿La tarea y sus horas ya contabilizadas se mantienen o se anulan? No está definido en ninguno de los dos documentos.
+**C12. ¿Qué pasa con las horas de una tarea si la asignación se cancela antes de la entrega?**
+✅ RESUELTO: Las horas ya contabilizadas se **mantienen**. Si una tarea fue asignada, el tiempo comprometido en ese mes ya fue registrado y no se anula retroactivamente, independientemente de lo que ocurra con la asignación posterior.
 
-**C13. "Tiempo controlado por actividades" — interpreté que las horas se controlan a través de las tareas (Historia 9.1), no con un registro libre de tiempo.**
-Confirmen si es correcto, o si en realidad quieren algo más granular, como que el colaborador marque inicio/fin de cada actividad (un cronómetro real), en vez de solo horas estimadas por tarea.
+**C13. ¿Las horas se controlan por tareas (estimadas) o por registro libre de tiempo (cronómetro)?**
+✅ CONFIRMADO: Las horas se controlan a través de las **tareas con horas estimadas** asignadas por el PM. No existe un cronómetro ni registro libre de tiempo. Las horas estimadas de la tarea son las que se contabilizan.
 
-**C14. Nivel de experiencia (Junior/Senior) — ¿lo asigna el RM (como lo integré, junto con la revisión de certificados), o se autodeclara el colaborador?**
-Y algo más importante: ¿afecta algo automático del sistema (por ejemplo el valor_hora o el sueldo_base en la Épica 9), o es solo informativo / para filtrar candidatos en el AI Talent Matching?
+**C14. ¿El nivel Junior/Senior del colaborador afecta el sueldo u otro cálculo automático?**
+✅ RESUELTO: Es **solo informativo**. No afecta el valor_hora, el sueldo_base ni ningún cálculo automático de la Épica 9. Sirve únicamente para filtros de búsqueda del RM y para el AI Talent Matching.
 
-**C15. Presupuesto de proyecto (A20) — ¿se valida contra los pagos reales generados por los colaboradores asignados a ese proyecto (Épica 9), o es un número puramente informativo que el RM declara sin ningún control automático?**
-Si more adelante quieren que el sistema avise cuando un proyecto se pasa de presupuesto, esa validación no está contemplada todavía.
+**C15. ¿El presupuesto del proyecto se valida contra los pagos reales de la Épica 9?**
+✅ RESUELTO: Por ahora es **solo informativo**. El RM declara un presupuesto que queda registrado en el proyecto, pero el sistema no lo valida automáticamente contra los pagos calculados en la Épica 9. Esta validación puede agregarse en una fase futura.
 
-**C16. Desasignar colaborador (A18) — ¿requiere aprobación del RM, igual que asignar, o el PM puede hacerlo directamente?**
-Lo dejé como acción unilateral del PM (el riesgo de "liberar" a alguien es distinto al de "consumir" un recurso escaso), pero conviene que el equipo lo confirme explícitamente.
+**C16. ¿Quién puede desasignar directamente a un colaborador de un proyecto?**
+✅ RESUELTO: Tanto el **PM como el RM** pueden desasignar directamente a un colaborador sin necesidad de aprobación del otro rol. El historial de participación del colaborador se conserva en ambos casos.
 
-**C17. Revisión de certificados (A23) — si el RM rechaza un certificado, ¿qué pasa con él?**
-¿Se elimina, o queda visible con la marca "rechazado"? ¿Se notifica al colaborador (conectaría con la Historia de Notificaciones, todavía pendiente en el Bloque B)?
+**C17. Si el RM rechaza un certificado, ¿qué pasa con él?**
+✅ RESUELTO: El certificado rechazado **no se elimina**. Queda visible en el perfil del colaborador con el estado "Rechazado" y el motivo indicado por el RM. El colaborador puede ver el motivo para corregirlo. Si quiere volver a intentarlo, debe subir un certificado nuevo.
 
-**C18. Reportes de horas y presupuesto (A21/A22) — ¿deben poder exportarse (PDF/Excel), o basta con verlos en pantalla como los dashboards ya existentes (6.1/6.2)?**
-La palabra "reporte" a veces implica un documento descargable, distinto de un dashboard interactivo — vale la pena que lo aclaren para no subestimar el esfuerzo de estas 2 historias.
+**C18. ¿Los reportes de horas y presupuesto (A21/A22) son exportables?**
+✅ RESUELTO: Sí. Los reportes pueden exportarse a **PDF y Excel**. Esto sube la estimación de A21 y A22 de 5 a **8 puntos** cada uno.lguien es distinto al de "consumir" un recurso escaso), pero conviene que el equipo lo confirme explícitamente.
 
 ---
 
 # Resumen de cambios de estimación (Story Points)
 
-| Historia | Antes | Ahora |
-|---|---|---|
-| Gestión de asignaciones de colaboradores (A4) | 8 | 13 |
-| Gestión de publicaciones del foro (A7) | 8 | 13 |
-| Gestión de respuestas y soluciones del foro (A8) | 8 | 10 |
-| Gestión de usuarios (A5) | 8 | 13 |
-| Consulta de proyectos y asignaciones (A2, nueva) | — | 3 |
-| Colaborador solicita incorporarse (A3, nueva) | — | 5 |
-| Activación de cuenta (A6, nueva) | — | 8 |
-| Dashboards PM/RM (A14) | 8 c/u | 8-10 c/u |
-| **Épica 9 — Gestión de tareas (9.1)** | — | 8 |
-| **Épica 9 — Consolidado de horas (9.2)** | — | 5 |
-| **Épica 9 — Cálculo de sueldo y bono (9.3)** | — | 8 |
-| **Asignación de presupuesto al proyecto (A20, nueva)** | — | 5 |
-| **Reporte de horas por proyecto — PM (A21, nueva)** | — | 5 |
-| **Reporte de presupuesto y horas — RM (A22, nueva)** | — | 5 |
-| **Revisión de certificados y nivel de experiencia (A23, nueva)** | — | 8 |
+| Historia | Antes | Ahora | Motivo del cambio |
+|---|---|---|---|
+| Gestión de asignaciones de colaboradores (A4) | 8 | **13** | Triple origen + doble aprobación condicional |
+| Gestión de publicaciones del foro (A7) | 8 | **13** | Votos + ordenamiento + control de acceso por rol |
+| Gestión de respuestas y soluciones del foro (A8) | 8 | **10** | Votos en respuestas + ordenamiento |
+| Gestión de usuarios (A5) | 8 | **13** | Carga masiva + activación + sueldo_base |
+| Consulta de proyectos y asignaciones del colaborador (A2, nueva) | — | **3** | Vista de solo lectura |
+| Colaborador solicita incorporarse a un proyecto (A3, nueva) | — | **5** | Flujo de solicitud + validaciones |
+| Activación de cuenta (A6, nueva) | — | **8** | Token + correo + formulario + expiración |
+| Dashboards PM/RM — contador aprobaciones pendientes (A14) | 8 c/u | **8-10 c/u** | Contador de aprobaciones pendientes |
+| **Épica 9 — Gestión de tareas (9.1)** | — | **10** | Flujo 2 pasos: colaborador marca → PM valida (C11) |
+| **Épica 9 — Consolidado de horas (9.2)** | — | **5** | Cálculo mensual + desglose |
+| **Épica 9 — Cálculo de sueldo y bono (9.3)** | — | **8** | Fórmula con tope + snapshot nómina |
+| **Asignación de presupuesto al proyecto (A20, nueva)** | — | **5** | Campo presupuesto + edición solo RM |
+| **Reporte de horas por proyecto — PM (A21, nueva)** | — | **8** | Vista + filtros + exportación PDF/Excel (C18) |
+| **Reporte de presupuesto y horas — RM (A22, nueva)** | — | **8** | Vista + filtros + exportación PDF/Excel (C18) |
+| **Revisión de certificados y nivel de experiencia (A23, nueva)** | — | **8** | Bandeja RM + aprobación/rechazo + nivel Junior/Senior |
+| **Sistema de Notificaciones (A24, nueva)** | — | **8** | Servicio central + integración con todos los flujos |
+| **Gestión del catálogo de cursos — Admin (A25, nueva)** | — | **5** | CRUD de cursos |
+| **Colaborador solicita inscripción a curso (A26, nueva)** | — | **3** | Catálogo + solicitud + estado |
+| **RM gestiona inscripciones a cursos (A27, nueva)** | — | **5** | Bandeja + aprobación/rechazo + asignación directa |
 
-**Incremento neto aproximado: +81 puntos** al backlog total. La Épica 9 + las historias A20-A23 agregan **44 puntos** entre todas — es un bloque de trabajo grande, probablemente valga la pena tratarlo como su propia fase dentro del cronograma, no meterlo de golpe en un solo entregable.
+**Incremento neto total desde el documento original: +125 puntos aproximadamente.**
+- Épica 9 (H9.1, H9.2, H9.3): +21 SP
+- Nuevas historias A2, A3, A6, A20, A21, A22, A23, A24, A25, A26, A27: +64 SP
+- Subidas de estimación en historias existentes (A4, A5, A7, A8, A9.1, A21, A22): +40 SP
+
+**Total estimado del backlog completo: ~350 SP**

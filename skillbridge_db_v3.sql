@@ -281,7 +281,8 @@ CREATE TABLE colaborador_habilidad (
         CHECK (
             estado_validacion IN (
                 'PENDIENTE',
-                'VALIDADA'
+                'VALIDADA',
+                'RECHAZADA'   -- C17: el RM puede rechazar el certificado asociado
             )
         )
 ) ENGINE=InnoDB;
@@ -498,6 +499,10 @@ CREATE TABLE asignacion (
 
     origen              VARCHAR(30) NOT NULL, -- 'PROPUESTA_PM' | 'PROPUESTA_RM' | 'SOLICITADA_COLABORADOR'
 
+    -- A3/A26: mensaje opcional del colaborador al postularse a un proyecto.
+    -- NULL cuando el origen es PROPUESTA_PM o PROPUESTA_RM.
+    mensaje_solicitud   VARCHAR(500) NULL,
+
     estado              VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE',
 
     aprobado_por_pm     BOOLEAN NOT NULL DEFAULT FALSE,
@@ -575,17 +580,20 @@ CREATE TABLE asignacion (
 --
 -- El PM asigna actividades a colaboradores con asignación ACTIVA.
 --
--- Flujo:
+-- Flujo de estados (C11 — decisión del equipo):
 --
 -- PENDIENTE
---    ↓
+--    ↓  (colaborador inicia el trabajo)
 -- EN_PROGRESO
---    ↓
--- EN_REVISION
---    ↓
--- COMPLETADA
+--    ↓  (colaborador marca "listo para revisar")
+-- EN_REVISION  ← aquí se registra fecha_marcado_revision para saber si fue a tiempo
+--    ↓  (PM confirma la entrega)
+-- COMPLETADA   ← estado_entrega queda A_TIEMPO o TARDIA
 --
--- Las horas_estimadas cuentan como horas cumplidas únicamente cuando
+-- Si el PM devuelve la actividad:
+-- EN_REVISION → EN_PROGRESO (veces_devuelta++)
+--
+-- Las horas_estimadas cuentan como horas cumplidas cuando
 -- la actividad está COMPLETADA.
 -- =====================================================================
 
@@ -606,7 +614,24 @@ CREATE TABLE actividad (
 
     fecha_limite        DATE NOT NULL,
 
+    -- Gestión del flujo de 2 pasos (C11):
+
+    -- Fecha en que el colaborador marcó EN_REVISION (clic en "Listo para revisar").
+    -- Es la referencia para determinar si la entrega fue a tiempo (vs. fecha_limite).
+    fecha_marcado_revision DATETIME NULL,
+
+    -- Fecha en que el PM confirmó la entrega (queda COMPLETADA).
     fecha_entrega       DATETIME NULL,
+
+    -- NULL mientras no está COMPLETADA. Se llena cuando el PM confirma.
+    -- A_TIEMPO si fecha_marcado_revision <= fecha_limite, TARDIA si no.
+    estado_entrega      VARCHAR(10) NULL,
+
+    -- Cuántas veces el PM devolvió la actividad al colaborador para correcciones.
+    veces_devuelta      INT NOT NULL DEFAULT 0,
+
+    -- Último comentario del PM al devolver la actividad (para orientar al colaborador).
+    comentario_devolucion VARCHAR(300) NULL,
 
     estado              VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
 
@@ -635,6 +660,12 @@ CREATE TABLE actividad (
                 'EN_REVISION',
                 'COMPLETADA'
             )
+        ),
+
+    CONSTRAINT chk_actividad_entrega
+        CHECK (
+            estado_entrega IS NULL OR
+            estado_entrega IN ('A_TIEMPO', 'TARDIA')
         )
 ) ENGINE=InnoDB;
 
@@ -653,6 +684,8 @@ CREATE TABLE curso (
     nombre          VARCHAR(150) NOT NULL,
 
     descripcion     VARCHAR(500) NULL,
+
+    categoria       VARCHAR(50) NULL, -- 'TECNICO', 'HABILIDADES_BLANDAS', 'CERTIFICACION', 'OTRO'
 
     horas           DECIMAL(6,2) NOT NULL,
 
@@ -818,6 +851,8 @@ CREATE TABLE nomina_mensual (
     horas_cumplidas         DECIMAL(7,2) NOT NULL DEFAULT 0,
 
     horas_faltantes         DECIMAL(7,2) NOT NULL DEFAULT 0,
+
+    horas_extra_pagadas     DECIMAL(6,2) NOT NULL DEFAULT 0,
 
     sueldo_base_aplicado    DECIMAL(10,2) NOT NULL,
 
@@ -1261,6 +1296,10 @@ CREATE TABLE log_auditoria (
     entidad_id      BIGINT NULL,
 
     detalle         VARCHAR(500) NULL,
+
+    valor_anterior  VARCHAR(255) NULL,
+
+    valor_nuevo     VARCHAR(255) NULL,
 
     fecha_hora      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

@@ -490,15 +490,21 @@ Ela dminsitrador se encarga de registrar los cursos
 
 **C1. Dependencia circular entre A5 (Gestión de usuarios) y A6 (Activación de cuenta).**
 Puse en el DoR de A5 que "A6 debe estar completada", pero A6 depende de que exista un usuario creado (A5) para poder activarlo. En la práctica no es un problema real — solo significa que Mili (dueña de A6) y yo (A5) tenemos que coordinar y desarrollarlas casi en paralelo — pero como está redactado ahora mismo parece una dependencia imposible de resolver en el papel. Recomiendo aclarar esto en ambas historias con una nota tipo "se desarrollan de forma coordinada", no como bloqueo estricto.
+Simplemente cambiar la palabra en el DoR de ambas historias: en vez de decir "la otra historia debe estar completada" (que suena a bloqueo total), poner algo como:
+
+"Esta historia se desarrolla de forma coordinada con [la otra], ya que ambas dependen de la misma tabla de usuario/token."
 
 **C2. "Reenviar el enlace de activación" está duplicado en dos historias.**
 Aparece como subtarea en A5 (Gestión de usuarios) y como criterio/DoD en A6 (Activación de cuenta). Deberían decidir quién es el dueño real: mi propuesta es que A6 dueña la lógica (generar un nuevo enlace, invalidar el anterior) y A5 solo tiene el botón en la UI que la dispara — pero convendría que ustedes lo dejen explícito para que no se programe dos veces por separado.
+Ok, me parece bien esa decision.
 
 **C3. ¿La activación de cuenta debería quedar en el log de auditoría (Historia 5.4)?**
 Ahora mismo audito "creación de usuario" pero no el momento en que ese usuario efectivamente activa su cuenta. Podría ser útil para que el Admin sepa quién todavía no ha activado su invitación. Sugerencia: agregar "activación de cuenta completada" a la lista de acciones auditadas.
+Ok, hay que agregar eso.
 
 **C4. ¿El colaborador puede editar su propio correo desde su perfil (Historia de perfil, A1)?**
 No quedó explícito. Mi recomendación: que el correo sea de solo lectura para el colaborador (solo el Admin puede cambiarlo), ya que es el identificador de login y de las notificaciones — cambiarlo libremente podría causar problemas de acceso. Falta que el equipo lo confirme.
+Si, que sea solo de lectura.
 
 **C5. Falta el mockup de la pantalla de activación y del correo de activación.**
 La Historia A10 (mockups) no incluye una pantalla para "el usuario pone su nombre y contraseña tras hacer clic en el link" ni el diseño del correo que se envía. Es una pantalla nueva que nadie tiene asignada todavía dentro de la Historia de Mockups — probablemente le toque a Mili por ser parte de Épica 2, pero hay que decidirlo.

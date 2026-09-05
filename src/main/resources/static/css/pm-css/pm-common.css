@@ -1,6 +1,6 @@
 /* =========================================================
    SKILLBRIDGE AI
-   ESTILOS COMPARTIDOS - RESOURCE MANAGER
+   ESTILOS COMPARTIDOS - PROJECT MANAGER
    ========================================================= */
 
 html,
@@ -10,7 +10,13 @@ body {
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background: #f3f6fa;
+}
+
+img,
+svg {
+  max-width: 100%;
 }
 
 .app-shell {
@@ -18,8 +24,11 @@ body {
 }
 
 .page-wrap {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
-  padding: 28px 24px 42px;
+  padding: 28px clamp(16px, 3vw, 48px) 42px;
 }
 
 .breadcrumb-wrap {
@@ -75,18 +84,12 @@ body {
   gap: 1rem;
   padding: 14px 18px;
   border-bottom: 0;
-  color: #ffffff;
-  background:
-    linear-gradient(
-      145deg,
-      #24547d 0%,
-      #2565a5 48%,
-      #2b78c5 100%
-    );
+  color: #fff;
+  background: linear-gradient(145deg, #24547d 0%, #2565a5 48%, #2b78c5 100%);
 }
 
 .section-header .card-title {
-  color: #ffffff;
+  color: #fff;
   font-weight: 700;
 }
 
@@ -117,6 +120,116 @@ body {
   gap: 1.15rem;
 }
 
+.metric-card {
+  min-height: 108px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.metric-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+.metric-label {
+  color: #64748b;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+}
+
+.metric-number {
+  margin-top: .1rem;
+  color: #182433;
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.metric-number-budget,
+.metric-money {
+  font-size: 1.25rem;
+}
+
+.card-body,
+.section-header > *,
+.page-head > * {
+  min-width: 0;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+}
+
+.info-note-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  color: #2565a5;
+  background: #e8f1fb;
+  font-weight: 700;
+}
+
+.pm-modal .modal-content {
+  overflow: hidden;
+  border: 1px solid rgba(36, 84, 125, .2);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(17, 31, 49, .32);
+}
+
+.pm-modal .modal-header {
+  padding: 1rem 1.2rem;
+  color: #ffffff;
+  background: linear-gradient(145deg, #24547d 0%, #2565a5 48%, #2b78c5 100%);
+  border-bottom: 0;
+}
+
+.pm-modal .modal-header .modal-title,
+.pm-modal .modal-header .text-secondary {
+  color: #ffffff !important;
+}
+
+.pm-modal .modal-header .text-secondary {
+  opacity: .74;
+}
+
+.pm-modal .modal-header .btn-close {
+  filter: brightness(0) invert(1);
+  opacity: .82;
+}
+
+.pm-modal .modal-body {
+  padding: 1.2rem;
+  background: #ffffff;
+}
+
+.pm-modal .modal-footer {
+  padding: .9rem 1.2rem;
+  background: #f8fafc;
+  border-top-color: #e5eaf0;
+}
+
+.modal-backdrop.show {
+  opacity: .64;
+}
+
 .pagination-wrap {
   min-height: 58px;
   display: flex;
@@ -125,7 +238,7 @@ body {
   gap: 1rem;
   padding: 12px 18px;
   border-top: 1px solid #edf0f4;
-  background: #ffffff;
+  background: #fff;
 }
 
 .pagination .page-link {
@@ -140,13 +253,21 @@ body {
   margin-top: 1.35rem;
 }
 
+.empty-state {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: #768395;
+}
+
 @media (max-width: 767px) {
   .page-wrap {
-    padding: 20px 14px 32px;
+    padding-top: 20px;
+    padding-bottom: 32px;
   }
 
   .page-head.page-head-stack-mobile {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .page-head.page-head-button-mobile .btn,
@@ -165,5 +286,9 @@ body {
 
   .pagination {
     justify-content: center;
+  }
+
+  .action-bar {
+    flex-direction: column-reverse;
   }
 }

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Crear Proyecto</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-crear-proyecto.css" th:href="@{/css/pm-css/pm-crear-proyecto.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+</head>
+<body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('crear-proyecto')}">    <div class="container-xl">
+      <a href="pm-proyectos.html" class="brand">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal PM">
+      <a href="pm-proyectos.html">Mis Proyectos</a>
+      <a href="pm-crear-proyecto.html" class="active">Crear Proyecto</a>
+      <a href="pm-foro.html">Foro</a>
+      <a href="pm-chat.html">Chat</a>
+      <a href="pm-asistente-ia.html">Asistente IA</a>
+      <a href="pm-reporte-proyecto.html">Reportes</a>
+    </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">AV</span>
+        <div class="user-meta"><div class="fw-semibold">Abdon Vallejo</div><div class="small">Project Manager</div></div>
+      </div>
+    </div></header>
+<main class="page-wrap">
+<div class="breadcrumb-wrap"><a href="pm-proyectos.html" class="breadcrumb-link">Mis Proyectos</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Crear Proyecto</span></div>
+<div class="page-head"><div><h1 class="page-title">Crear Nuevo Proyecto</h1><div class="text-secondary">El proyecto quedará en revisión del Resource Manager antes de activarse.</div></div></div>
+<form>
+<div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Información general</h3><div class="section-description">Define alcance, fechas y prioridad.</div></div></div>
+<div class="card-body form-section"><div class="row g-4">
+<div class="col-lg-8"><label class="form-label">Nombre del proyecto</label><input class="form-control" placeholder="Ej. Sistema de Inventario V2"></div>
+<div class="col-lg-4"><label class="form-label">Prioridad</label><select class="form-select"><option>Seleccionar</option><option>Alta</option><option>Media</option><option>Baja</option></select></div>
+<div class="col-12"><label class="form-label">Descripción</label><textarea class="form-control" rows="3" placeholder="Describe los objetivos y alcance del proyecto"></textarea></div>
+<div class="col-lg-4"><label class="form-label">Fecha de inicio</label><input type="date" class="form-control"></div>
+<div class="col-lg-4"><label class="form-label">Fecha de fin estimada</label><input type="date" class="form-control"></div>
+<div class="col-lg-4"><label class="form-label">Estado inicial</label><input class="form-control" value="En revisión" disabled><div class="form-hint">El RM debe aprobarlo para pasar a Activo.</div></div>
+<div class="col-12"><label class="form-label">Justificación de prioridad</label><textarea class="form-control" rows="2" placeholder="Explica por qué el proyecto tiene esta prioridad"></textarea></div>
+</div></div></div>
+
+<div class="row row-cards mb-4">
+<div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3><div class="section-description">Información para que el RM encuentre colaboradores.</div></div></div><div class="card-body form-section">
+<div class="mb-3"><label class="form-label">N.º de colaboradores requeridos</label><input type="number" min="1" class="form-control" value="1"></div>
+<div class="mb-3"><label class="form-label">Tecnologías utilizadas</label><input class="form-control" placeholder="Java, Spring Boot, MySQL"></div>
+<div class="mb-3"><label class="form-label">Habilidades requeridas</label><input class="form-control" placeholder="Java avanzado, AWS, Docker"></div>
+<div><label class="form-label">Colaboradores preferidos (opcional)</label><input class="form-control" placeholder="Buscar colaborador por nombre o habilidad"><div class="form-hint">El RM puede considerarlos, pero la asignación sigue el flujo normal.</div></div>
+</div></div></div>
+<div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Contexto para Resource Manager</h3><div class="section-description">Añade restricciones o información adicional.</div></div></div><div class="card-body form-section">
+<div class="mb-3"><label class="form-label">Horas semanales esperadas por colaborador</label><input type="number" min="1" max="40" class="form-control" value="16"><div class="form-hint">Horas propuestas de asignación; no son disponibilidad ni carga.</div></div>
+<div><label class="form-label">Notas para el Resource Manager (opcional)</label><textarea class="form-control" rows="6" placeholder="Requisitos especiales, urgencia o experiencia deseada"></textarea></div>
+</div></div></div>
+</div>
+
+<div class="workflow-note"><span class="workflow-icon">i</span><div><div class="fw-semibold">Flujo de creación</div><div class="small text-secondary">PM crea → En revisión → RM aprueba o rechaza. Mientras esté En revisión, el PM puede cancelarlo.</div></div></div>
+<div class="action-bar"><a href="pm-proyectos.html" class="btn btn-outline-secondary">Cancelar</a><button type="button" class="btn btn-primary">Crear y enviar a revisión</button></div>
+</form>
+</main></div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+</body></html>

@@ -19,7 +19,7 @@ Este archivo contiene el fragmento HTML de la topbar. Recibe el parámetro `acti
 Ruta:
 
 ```text
-src/main/resources/static/css/rm/rm-topbar.css
+src/main/resources/static/css/rm-css/rm-topbar.css
 ```
 
 Este archivo contiene exclusivamente los estilos compartidos de la topbar. Es la única fuente de estilos para las siguientes clases:
@@ -47,6 +47,8 @@ proyectos
 colaboradores
 asignaciones
 talent-matching
+foros
+reportes
 ```
 
 Ejemplo para el dashboard:
@@ -71,19 +73,36 @@ Cada vista debe cargar primero Tabler, después los estilos comunes del RM, lueg
       th:href="@{/tabler/css/tabler.min.css}">
 
 <link rel="stylesheet"
-      href="../../static/css/rm/rm-common.css"
-      th:href="@{/css/rm/rm-common.css}">
+      href="../../static/css/rm-css/rm-common.css"
+      th:href="@{/css/rm-css/rm-common.css}">
 
 <link rel="stylesheet"
-      href="../../static/css/rm/nombre-de-la-vista.css"
-      th:href="@{/css/rm/nombre-de-la-vista.css}">
+      href="../../static/css/rm-css/nombre-de-la-vista.css"
+      th:href="@{/css/rm-css/nombre-de-la-vista.css}">
 
 <link rel="stylesheet"
-      href="../../static/css/rm/rm-topbar.css"
-      th:href="@{/css/rm/rm-topbar.css}">
+      href="../../static/css/rm-css/rm-topbar.css"
+      th:href="@{/css/rm-css/rm-topbar.css}">
 ```
 
-Las referencias relativas bajo `../../static/css/rm/` corresponden a vistas ubicadas en `templates/rm/`. Si una vista se encuentra en otra profundidad de carpetas, se debe ajustar únicamente el atributo `href`. Las expresiones `th:href` conservan la ruta `/css/rm/`.
+Las referencias relativas bajo `../../static/css/rm-css/` corresponden a vistas ubicadas en `templates/rm/`. Si una vista se encuentra en otra profundidad de carpetas, se debe ajustar únicamente el atributo `href`. Las expresiones `th:href` conservan la ruta `/css/rm-css/`.
+
+## JavaScript de las vistas RM
+
+Todos los scripts del rol se encuentran en:
+
+```text
+src/main/resources/static/js/rm-js/
+```
+
+Las vistas deben conservar las dos referencias:
+
+```html
+<script src="../../static/js/rm-js/nombre-del-script.js"
+        th:src="@{/js/rm-js/nombre-del-script.js}"></script>
+```
+
+Los scripts compartidos `rm-navigation.js` y `rm-modal-behavior.js` también se cargan desde esta carpeta.
 
 ## Configuración de Thymeleaf
 
@@ -178,14 +197,25 @@ Esta regla hace que el fondo de la topbar ocupe todo el ancho de la ventana, mie
 7. Incluir el fallback mientras las páginas necesiten funcionar como archivos HTML directos.
 8. Colocar `class="active"` correctamente dentro del fallback.
 9. Mantener la codificación UTF-8 para conservar correctamente textos y acentos.
-10. No inventar rutas de navegación: los enlaces continúan usando `href="#"` hasta que existan controladores y rutas definitivas.
+10. Usar las rutas centralizadas en `RmViewController` y conservar la referencia relativa al HTML para la previsualización directa.
 
 ## Estado actual de la navegación
 
-Los enlaces de la topbar todavía usan:
+Las vistas RM ya cuentan con rutas Spring MVC definidas en:
 
-```html
-href="#"
+```text
+src/main/java/com/pucp/skillb_ia/controller/RmViewController.java
 ```
 
-Esto se debe a que el proyecto aún no tiene controladores ni rutas definitivas para estas vistas. Cuando se implementen, se deberán actualizar los enlaces del fragmento compartido, preferiblemente usando `th:href`.
+Los enlaces deben conservar ambos destinos:
+
+```html
+<a href="rm-proyectos.html"
+   th:href="@{/rm/proyectos}">
+  Proyectos
+</a>
+```
+
+- `href` permite navegar al abrir los mockups directamente.
+- `th:href` utiliza la ruta del controlador cuando la aplicación se ejecuta con Spring Boot.
+- Los enlaces creados dinámicamente desde JavaScript usan `static/js/rm-js/rm-navigation.js` para elegir automáticamente el destino correcto según el modo de ejecución.

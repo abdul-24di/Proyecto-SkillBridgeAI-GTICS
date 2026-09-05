@@ -15,18 +15,18 @@
 
   <!-- Estilos compartidos RM -->
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-common.css"
-        th:href="@{/css/rm/rm-common.css}">
+        href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
 
   <!-- Estilos específicos de la vista -->
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-perfil-colaborador.css"
-        th:href="@{/css/rm/rm-perfil-colaborador.css}">
+        href="../../static/css/rm-css/rm-perfil-colaborador.css"
+        th:href="@{/css/rm-css/rm-perfil-colaborador.css}">
 
   <!-- Topbar RM compartida -->
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-topbar.css"
-        th:href="@{/css/rm/rm-topbar.css}">
+        href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
 </head>
 
 <body>
@@ -39,14 +39,16 @@
     <!-- Fallback para previsualización directa sin Thymeleaf -->
     <div class="container-xl">
 
-      <a href="#" class="brand">SkillBridge AI</a>
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
 
       <nav class="main-nav" aria-label="Navegación principal">
-        <a href="#">Dashboard</a>
-        <a href="#">Proyectos</a>
-        <a href="#" class="active">Colaboradores</a>
-        <a href="#">Asignaciones</a>
-        <a href="#">Talent Matching</a>
+        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
+        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
+        <a href="rm-colaboradores.html" class="active" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
+        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
+        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
+        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
       </nav>
 
       <div class="user-area">
@@ -91,8 +93,8 @@
     <nav class="breadcrumb-wrap"
          aria-label="Migas de pan">
 
-      <a href="#"
-         class="breadcrumb-link">
+      <a href="rm-colaboradores.html"
+         class="breadcrumb-link" th:href="@{/rm/colaboradores}">
         Colaboradores
       </a>
 
@@ -165,8 +167,8 @@
 
             <div class="d-flex flex-wrap gap-2 header-actions">
 
-              <a href="#"
-                 class="btn btn-outline-secondary">
+              <a href="rm-asignaciones-colaborador.html"
+                 class="btn btn-outline-secondary" th:href="@{/rm/colaboradores/asignaciones}">
                 Ver asignaciones
               </a>
 
@@ -175,8 +177,8 @@
                 Actualizar nivel
               </a>
 
-              <a href="#"
-                 class="btn btn-primary">
+              <a href="rm-proponer-asignacion.html"
+                 class="btn btn-primary" th:href="@{/rm/proyectos/proponer-asignacion}">
                 Proponer asignación
               </a>
 
@@ -598,8 +600,8 @@
               </div>
             </div>
 
-            <a href="#"
-               class="btn btn-sm btn-light">
+            <a href="rm-historial-validaciones.html"
+               class="btn btn-sm btn-light" th:href="@{/rm/colaboradores/historial-validaciones}">
               Ver historial
             </a>
 
@@ -747,8 +749,8 @@
               </div>
             </div>
 
-            <a href="#"
-               class="btn btn-sm btn-light">
+            <a href="rm-historial-validaciones.html"
+               class="btn btn-sm btn-light" th:href="@{/rm/colaboradores/historial-validaciones}">
               Ver historial
             </a>
 
@@ -778,7 +780,9 @@
                 <td>AWS</td>
                 <td><span class="badge bg-yellow-lt">Pendiente</span></td>
                 <td class="text-end">
-                  <a href="#" class="btn btn-primary btn-sm">Revisar</a>
+                  <a href="rm-revision-certificado.html"
+                     class="btn btn-primary btn-sm"
+                     th:href="@{/rm/colaboradores/certificados/revision}">Revisar</a>
                 </td>
               </tr>
 
@@ -790,7 +794,9 @@
                 <td>Spring Boot</td>
                 <td><span class="badge bg-yellow-lt">Pendiente</span></td>
                 <td class="text-end">
-                  <a href="#" class="btn btn-primary btn-sm">Revisar</a>
+                  <a href="rm-revision-certificado.html"
+                     class="btn btn-primary btn-sm"
+                     th:href="@{/rm/colaboradores/certificados/revision}">Revisar</a>
                 </td>
               </tr>
 

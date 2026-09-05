@@ -15,18 +15,18 @@
 
   <!-- Estilos compartidos RM -->
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-common.css"
-        th:href="@{/css/rm/rm-common.css}">
+        href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
 
   <!-- Estilos específicos de la vista -->
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-proyectos.css"
-        th:href="@{/css/rm/rm-proyectos.css}">
+        href="../../static/css/rm-css/rm-proyectos.css"
+        th:href="@{/css/rm-css/rm-proyectos.css}">
 
   <!-- Topbar RM compartida -->
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-topbar.css"
-        th:href="@{/css/rm/rm-topbar.css}">
+        href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
 </head>
 
 <body>
@@ -39,14 +39,16 @@
     <!-- Fallback para previsualización directa sin Thymeleaf -->
     <div class="container-xl">
 
-      <a href="#" class="brand">SkillBridge AI</a>
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
 
       <nav class="main-nav" aria-label="Navegación principal">
-        <a href="#">Dashboard</a>
-        <a href="#" class="active">Proyectos</a>
-        <a href="#">Colaboradores</a>
-        <a href="#">Asignaciones</a>
-        <a href="#">Talent Matching</a>
+        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
+        <a href="rm-proyectos.html" class="active" th:href="@{/rm/proyectos}">Proyectos</a>
+        <a href="rm-colaboradores.html" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
+        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
+        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
+        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
       </nav>
 
       <div class="user-area">
@@ -112,8 +114,8 @@
         </div>
       </div>
 
-      <a href="#"
-         class="btn btn-primary">
+      <a href="rm-asignaciones.html"
+         class="btn btn-primary" th:href="@{/rm/asignaciones}">
         Ver asignaciones pendientes
       </a>
 
@@ -469,8 +471,11 @@
 </script>
 
 <!-- Lógica temporal de filtros/paginación -->
-<script src="../../static/js/rm-proyectos.js"
-        th:src="@{/js/rm-proyectos.js}">
+<script src="../../static/js/rm-js/rm-navigation.js"
+        th:src="@{/js/rm-js/rm-navigation.js}">
+</script>
+<script src="../../static/js/rm-js/rm-proyectos.js"
+        th:src="@{/js/rm-js/rm-proyectos.js}">
 </script>
 
 </body>

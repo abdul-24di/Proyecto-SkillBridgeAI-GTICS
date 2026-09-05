@@ -1,0 +1,3 @@
+const collaboratorSelect=document.getElementById("collaboratorSelect"),courseSelect=document.getElementById("courseSelect"),summaryCollaborator=document.getElementById("summaryCollaborator"),summaryCourse=document.getElementById("summaryCourse");
+function update(){summaryCollaborator.textContent=collaboratorSelect.value||"Sin seleccionar";summaryCourse.textContent=courseSelect.value||"Sin seleccionar";}
+collaboratorSelect.addEventListener("change",update);courseSelect.addEventListener("change",update);update();

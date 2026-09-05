@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Asignar curso</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-asignar-curso.css" th:href="@{/css/rm-css/rm-asignar-curso.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+<body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}">
+    <div class="container-xl">
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a><a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a><a href="rm-colaboradores.html" class="active" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a><a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a><a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a><a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
+      </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">AR</span>
+        <div class="user-meta"><div class="fw-semibold">Abraham Ramirez</div><div class="small">Resource Manager</div></div>
+      </div>
+    </div>
+</header>
+<main class="page-wrap">
+<div class="breadcrumb-wrap"><a href="rm-colaboradores.html" class="breadcrumb-link" th:href="@{/rm/colaboradores}">Colaboradores</a><span class="breadcrumb-separator">›</span><a href="rm-cursos.html" class="breadcrumb-link" th:href="@{/rm/cursos}">Cursos</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Asignar curso</span></div>
+<div class="page-head page-head-stack-mobile page-head-button-mobile"><div><h1 class="page-title">Asignar curso a colaborador</h1><div class="text-secondary">Inscribe directamente a un colaborador en un curso activo.</div></div><a href="rm-cursos.html" class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Cancelar</a></div>
+
+<div class="row row-cards mb-4">
+<div class="col-lg-7"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Datos de la inscripción</h3><div class="section-description">Selecciona el colaborador, curso y registra el motivo de la asignación.</div></div></div>
+<div class="card-body form-panel">
+<div class="mb-3"><label class="form-label" for="collaboratorSelect">Colaborador</label><select id="collaboratorSelect" class="form-select"><option value="">Seleccionar colaborador</option><option value="Carlos Mendoza">Carlos Mendoza</option><option value="Lucía Paredes">Lucía Paredes</option><option value="Renato Silva">Renato Silva</option></select></div>
+<div class="mb-3"><label class="form-label" for="courseSelect">Curso activo</label><select id="courseSelect" class="form-select"><option value="">Seleccionar curso</option><option value="AWS Cloud Practitioner">AWS Cloud Practitioner</option><option value="Spring Boot avanzado">Spring Boot avanzado</option><option value="Comunicación efectiva">Comunicación efectiva</option></select></div>
+<div><label class="form-label" for="reasonInput">Motivo</label><textarea id="reasonInput" class="form-control" rows="4" placeholder="Ej. El colaborador presenta déficit de horas y se recomienda fortalecer competencias cloud."></textarea><div class="form-hint">Registra un motivo claro para mantener trazabilidad de la asignación directa.</div></div>
+</div></div></div>
+
+<div class="col-lg-5"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Contexto del colaborador</h3><div class="section-description">Información que puede apoyar la decisión del RM.</div></div></div>
+<div class="card-body context-panel">
+<div class="d-flex align-items-start gap-3"><span class="avatar context-avatar bg-blue-lt text-blue">CM</span><div><h3 class="mb-1">Carlos Mendoza</h3><div class="text-secondary">Backend Developer · Senior</div></div></div>
+<div class="context-grid mt-4"><div><div class="info-label">Horas del mes</div><div class="info-value">132 h</div></div><div><div class="info-label">Meta mensual</div><div class="info-value">160 h</div></div><div><div class="info-label">Disponibilidad</div><div class="info-value">16 h/sem</div></div><div><div class="info-label">Carga</div><div class="info-value">2 / 3 asignaciones</div></div></div>
+<div class="context-note mt-4"><div class="fw-semibold mb-1">Conceptos separados</div><div class="small text-secondary">Las 132 h corresponden a horas trabajadas por tareas del mes. La disponibilidad y la carga son métricas distintas.</div></div>
+</div></div></div>
+</div>
+
+<div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Resumen de la asignación</h3><div class="section-description">La inscripción directa no requiere solicitud previa del colaborador.</div></div></div>
+<div class="card-body summary-panel"><div class="summary-grid"><div><div class="info-label">Colaborador</div><div class="info-value" id="summaryCollaborator">Sin seleccionar</div></div><div><div class="info-label">Curso</div><div class="info-value" id="summaryCourse">Sin seleccionar</div></div><div><div class="info-label">Estado inicial</div><div class="info-value"><span class="badge bg-green-lt">Inscrito</span></div></div></div>
+<div class="assignment-note mt-3"><span class="info-note-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg></span><div class="small text-secondary">Al confirmar, el colaborador queda inscrito directamente. La notificación se manejará luego mediante la vista compartida de notificaciones para todos los roles.</div></div>
+<div class="action-bar"><a href="rm-cursos.html" class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Cancelar</a><button type="button" class="btn btn-primary">Confirmar inscripción</button></div>
+</div></div>
+</main></div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/rm-js/rm-asignar-curso.js" th:src="@{/js/rm-js/rm-asignar-curso.js}"></script>
+</body></html>

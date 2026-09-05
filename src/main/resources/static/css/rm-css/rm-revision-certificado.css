@@ -1,0 +1,111 @@
+/* =========================================================
+   REVISIÓN DE CERTIFICADO - RESOURCE MANAGER
+   ========================================================= */
+
+.review-body,
+.decision-body {
+  padding: 1rem 1.15rem;
+}
+
+.document-preview {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5eaf0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.document-icon {
+  width: 54px;
+  height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: #e8f1fb;
+  color: #2565a5;
+}
+
+.document-name {
+  color: #253144;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.info-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.evidence-note,
+.decision-summary {
+  padding: .9rem 1rem;
+  border: 1px solid #dfe9f6;
+  border-radius: 9px;
+  background: #f8fbff;
+}
+
+.profile-avatar {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  font-size: 1rem;
+}
+
+.skill-badge {
+  margin: .12rem .22rem .12rem 0;
+}
+
+.context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .9rem 1rem;
+}
+
+.level-readonly {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .5rem .65rem;
+  border: 1px solid #e5eaf0;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.decision-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (max-width: 991px) {
+  .info-grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .document-preview {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .document-preview .btn {
+    width: 100%;
+  }
+
+  .info-grid-three,
+  .context-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .decision-summary,
+  .level-readonly {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

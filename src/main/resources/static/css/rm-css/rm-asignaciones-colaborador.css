@@ -1,0 +1,147 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   ASIGNACIONES DEL COLABORADOR - RESOURCE MANAGER
+   ========================================================= */
+
+.collaborator-strip .card-body {
+  padding: 1rem 1.15rem;
+}
+
+.collaborator-strip-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.collaborator-avatar {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  font-size: 1rem;
+}
+
+.collaborator-skill {
+  margin: .08rem .18rem .08rem 0;
+}
+
+.collaborator-capacity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 1rem;
+  min-width: 330px;
+}
+
+.collaborator-capacity > div {
+  padding-left: 1rem;
+  border-left: 1px solid #e5eaf0;
+}
+
+.collaborator-metric {
+  min-height: 104px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.assignments-panel {
+  overflow: hidden;
+}
+
+.collaborator-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid #e6e9ef;
+  background: #ffffff;
+  scrollbar-width: none;
+}
+
+.collaborator-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.collaborator-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .82rem 1.1rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #667085;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.collaborator-tabs button.active {
+  border-bottom-color: #206bc4;
+  background: #f8fbff;
+  color: #206bc4;
+}
+
+.collaborator-tab-count {
+  min-width: 22px;
+  padding: .08rem .38rem;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #5d6978;
+  font-size: .7rem;
+  text-align: center;
+}
+
+.collaborator-tabs button.active .collaborator-tab-count {
+  background: #dfeeff;
+  color: #206bc4;
+}
+
+.assignments-panel .table > :not(caption) > * > * {
+  vertical-align: middle;
+}
+
+.assignments-panel .table thead th {
+  color: #4f5d6b;
+  background: #f7f9fc;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.assignment-action-group {
+  display: inline-flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+.assignments-note {
+  padding: .8rem .9rem;
+  border: 1px solid #dfe9f6;
+  border-radius: .65rem;
+  background: #f8fbff;
+  color: #5d6978;
+  font-size: .82rem;
+}
+
+@media (max-width: 991px) {
+  .collaborator-strip-layout {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .collaborator-capacity {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .collaborator-capacity {
+    grid-template-columns: 1fr;
+  }
+
+  .collaborator-capacity > div {
+    padding: .65rem 0 0;
+    border-top: 1px solid #e5eaf0;
+    border-left: 0;
+  }
+}

@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Certificados pendientes</title>
+
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
+
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-certificados-pendientes.css"
+        th:href="@{/css/rm-css/rm-certificados-pendientes.css}">
+
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}">
+
+    <div class="container-xl">
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
+        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
+        <a href="rm-colaboradores.html" class="active" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
+        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
+        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
+        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
+      </nav>
+
+      <div class="user-area">
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20" height="20"
+               viewBox="0 0 24 24"
+               fill="none" stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+      </div>
+    </div>
+
+  </header>
+
+  <main class="page-wrap">
+
+    <div class="breadcrumb-wrap">
+      <a href="rm-colaboradores.html" class="breadcrumb-link" th:href="@{/rm/colaboradores}">Colaboradores</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="text-secondary">Certificados pendientes</span>
+    </div>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <h1 class="page-title">Certificados pendientes</h1>
+        <div class="text-secondary">
+          Revisa las acreditaciones enviadas por los colaboradores antes de incorporarlas a sus perfiles.
+        </div>
+      </div>
+
+      <a href="rm-colaboradores.html" class="btn btn-outline-secondary" th:href="@{/rm/colaboradores}">Volver a colaboradores</a>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-label">Pendientes</div>
+              <div class="metric-number" id="metricPending">0</div>
+              <div class="small text-secondary">Por revisar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-label">Colaboradores</div>
+              <div class="metric-number" id="metricPeople">0</div>
+              <div class="small text-secondary">Con pendientes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16v16H4z"/>
+                <path d="M8 9h8M8 13h5"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-label">Habilidades afectadas</div>
+              <div class="metric-number" id="metricSkills">0</div>
+              <div class="small text-secondary">Distintas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-label">Revisados hoy</div>
+              <div class="metric-number">5</div>
+              <div class="small text-secondary">Actividad del RM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Bandeja de revisión</h3>
+          <div class="section-description">
+            Los certificados solo cuentan para el perfil y Talent Matching después de ser aprobados por el RM.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body filters-panel border-bottom">
+        <div class="row g-3 align-items-end">
+
+          <div class="col-xl-4 col-md-6">
+            <label for="searchInput" class="form-label">Buscar</label>
+            <input id="searchInput"
+                   class="form-control"
+                   placeholder="Colaborador, certificado o habilidad">
+          </div>
+
+          <div class="col-xl-3 col-md-6">
+            <label for="skillFilter" class="form-label">Habilidad</label>
+            <select id="skillFilter" class="form-select">
+              <option value="all">Todas</option>
+              <option value="Java">Java</option>
+              <option value="Spring Boot">Spring Boot</option>
+              <option value="AWS">AWS</option>
+              <option value="Docker">Docker</option>
+              <option value="Kubernetes">Kubernetes</option>
+              <option value="Python">Python</option>
+            </select>
+          </div>
+
+          <div class="col-xl-3 col-md-6">
+            <label for="typeFilter" class="form-label">Tipo</label>
+            <select id="typeFilter" class="form-select">
+              <option value="all">Todos</option>
+              <option value="Certificación técnica">Certificación técnica</option>
+              <option value="Curso especializado">Curso especializado</option>
+              <option value="Diploma">Diploma</option>
+            </select>
+          </div>
+
+          <div class="col-xl-2 col-md-6 d-grid">
+            <button id="clearFilters"
+                    type="button"
+                    class="btn btn-outline-secondary">
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+          <tr>
+            <th>Colaborador</th>
+            <th>Documento</th>
+            <th>Habilidad</th>
+            <th>Nivel declarado</th>
+            <th>Fecha de subida</th>
+            <th>Estado</th>
+            <th class="text-end">Acción</th>
+          </tr>
+          </thead>
+          <tbody id="certificateBody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination-wrap">
+        <div id="paginationInfo" class="text-secondary small"></div>
+        <ul id="pagination" class="pagination pagination-sm m-0"></ul>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+<script src="../../static/js/rm-js/rm-navigation.js"
+        th:src="@{/js/rm-js/rm-navigation.js}">
+</script>
+
+<script src="../../static/js/rm-js/rm-certificados-pendientes.js"
+        th:src="@{/js/rm-js/rm-certificados-pendientes.js}">
+</script>
+
+</body>
+</html>

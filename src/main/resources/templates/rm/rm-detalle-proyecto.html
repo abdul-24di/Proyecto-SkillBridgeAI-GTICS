@@ -11,16 +11,16 @@
 
   <!-- Estilos compartidos RM -->
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-common.css"
-        th:href="@{/css/rm/rm-common.css}">
+        href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
 
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-detalle-proyecto.css"
-        th:href="@{/css/rm/rm-detalle-proyecto.css}">
+        href="../../static/css/rm-css/rm-detalle-proyecto.css"
+        th:href="@{/css/rm-css/rm-detalle-proyecto.css}">
 
   <link rel="stylesheet"
-        href="../../static/css/rm/rm-topbar.css"
-        th:href="@{/css/rm/rm-topbar.css}">
+        href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
 </head>
 
 <body>
@@ -29,14 +29,16 @@
   <header class="topbar"
           th:replace="~{fragments/rm-topbar :: topbar('proyectos')}">
     <div class="container-xl">
-      <a href="#" class="brand">SkillBridge AI</a>
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
 
       <nav class="main-nav" aria-label="Navegación principal">
-        <a href="#">Dashboard</a>
-        <a href="#" class="active">Proyectos</a>
-        <a href="#">Colaboradores</a>
-        <a href="#">Asignaciones</a>
-        <a href="#">Talent Matching</a>
+        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
+        <a href="rm-proyectos.html" class="active" th:href="@{/rm/proyectos}">Proyectos</a>
+        <a href="rm-colaboradores.html" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
+        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
+        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
+        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
       </nav>
 
       <div class="user-area">
@@ -63,7 +65,7 @@
   <main class="page-wrap">
 
     <nav class="breadcrumb-wrap" aria-label="Migas de pan">
-      <a href="#" class="breadcrumb-link">Proyectos</a>
+      <a href="rm-proyectos.html" class="breadcrumb-link" th:href="@{/rm/proyectos}">Proyectos</a>
       <span class="breadcrumb-separator">›</span>
       <span class="text-secondary">Clínica AI</span>
     </nav>
@@ -99,9 +101,9 @@
 
           <div class="col-lg-auto">
             <div class="d-flex flex-wrap gap-2 header-actions">
-              <a href="#" class="btn btn-primary">Buscar colaborador</a>
-              <a href="#" class="btn btn-outline-primary">Talent Matching</a>
-              <a href="#" class="btn btn-outline-secondary">Ver asignaciones</a>
+              <a href="rm-buscar-colaboradores-proyecto.html" class="btn btn-primary" th:href="@{/rm/proyectos/buscar-colaboradores}">Buscar colaborador</a>
+              <a href="rm-talent-matching.html" class="btn btn-outline-primary" th:href="@{/rm/talent-matching}">Talent Matching</a>
+              <a href="rm-asignaciones.html" class="btn btn-outline-secondary" th:href="@{/rm/asignaciones}">Ver asignaciones</a>
             </div>
           </div>
 
@@ -226,7 +228,10 @@
             <div class="info-label">Presupuesto asignado</div>
             <div class="project-budget-line">
               <div class="info-value">S/ 40,000</div>
-              <button type="button" class="btn btn-outline-primary btn-sm">
+              <button type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      data-bs-toggle="modal"
+                      data-bs-target="#editProjectBudgetModal">
                 Editar presupuesto
               </button>
             </div>
@@ -266,7 +271,7 @@
               </div>
             </div>
 
-            <a href="#" class="btn btn-sm btn-light">Gestionar asignaciones</a>
+            <a href="rm-asignaciones.html" class="btn btn-sm btn-light" th:href="@{/rm/asignaciones}">Gestionar asignaciones</a>
           </div>
 
           <div class="table-responsive">
@@ -298,7 +303,7 @@
                 <td><span class="badge bg-yellow-lt">2 / 3 asignaciones</span></td>
                 <td><span class="fw-semibold text-success">16 h / semana</span></td>
                 <td class="text-end">
-                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                  <a href="rm-perfil-colaborador.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil}">Ver</a>
                 </td>
               </tr>
 
@@ -317,7 +322,7 @@
                 <td><span class="badge bg-green-lt">1 / 3 asignaciones</span></td>
                 <td><span class="fw-semibold text-success">24 h / semana</span></td>
                 <td class="text-end">
-                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                  <a href="rm-perfil-colaborador.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil}">Ver</a>
                 </td>
               </tr>
 
@@ -336,7 +341,7 @@
                 <td><span class="badge bg-yellow-lt">2 / 3 asignaciones</span></td>
                 <td><span class="fw-semibold text-success">12 h / semana</span></td>
                 <td class="text-end">
-                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                  <a href="rm-perfil-colaborador.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil}">Ver</a>
                 </td>
               </tr>
 
@@ -355,7 +360,7 @@
                 <td><span class="badge bg-green-lt">1 / 3 asignaciones</span></td>
                 <td><span class="fw-semibold text-success">20 h / semana</span></td>
                 <td class="text-end">
-                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                  <a href="rm-perfil-colaborador.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil}">Ver</a>
                 </td>
               </tr>
 
@@ -374,7 +379,7 @@
                 <td><span class="badge bg-green-lt">1 / 3 asignaciones</span></td>
                 <td><span class="fw-semibold text-success">24 h / semana</span></td>
                 <td class="text-end">
-                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                  <a href="rm-perfil-colaborador.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil}">Ver</a>
                 </td>
               </tr>
 
@@ -393,7 +398,7 @@
                 <td><span class="badge bg-yellow-lt">2 / 3 asignaciones</span></td>
                 <td><span class="fw-semibold text-success">12 h / semana</span></td>
                 <td class="text-end">
-                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                  <a href="rm-perfil-colaborador.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil}">Ver</a>
                 </td>
               </tr>
               </tbody>
@@ -498,7 +503,7 @@
           </div>
         </div>
 
-        <a href="#" class="btn btn-sm btn-light">Ver todas</a>
+        <a href="rm-asignaciones.html" class="btn btn-sm btn-light" th:href="@{/rm/asignaciones}">Ver todas</a>
       </div>
 
       <div class="table-responsive">
@@ -525,7 +530,7 @@
             </td>
             <td><span class="badge bg-yellow-lt">Pendiente RM</span></td>
             <td class="text-end">
-              <a href="#" class="btn btn-primary btn-sm">Revisar</a>
+              <a href="rm-revision-asignacion.html" class="btn btn-primary btn-sm" th:href="@{/rm/asignaciones/revision}">Revisar</a>
             </td>
           </tr>
 
@@ -540,7 +545,7 @@
             </td>
             <td><span class="badge bg-azure-lt">En aprobación</span></td>
             <td class="text-end">
-              <a href="#" class="btn btn-primary btn-sm">Revisar</a>
+              <a href="rm-revision-postulacion.html" class="btn btn-primary btn-sm" th:href="@{/rm/asignaciones/revision-postulacion}">Revisar</a>
             </td>
           </tr>
 
@@ -555,7 +560,7 @@
             </td>
             <td><span class="badge bg-blue-lt">Pendiente PM</span></td>
             <td class="text-end">
-              <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+              <a href="rm-detalle-asignacion-pendiente-pm.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/pendiente-pm}">Ver</a>
             </td>
           </tr>
           </tbody>
@@ -564,6 +569,52 @@
     </div>
 
   </main>
+</div>
+
+<div class="modal modal-blur fade rm-modal"
+     id="editProjectBudgetModal"
+     tabindex="-1"
+     aria-labelledby="editProjectBudgetModalTitle"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editProjectBudgetModalTitle">Editar presupuesto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="rm-modal-context mb-3">
+          <div>
+            <div class="info-label">Proyecto</div>
+            <div class="info-value">Clínica AI</div>
+          </div>
+          <div>
+            <div class="info-label">Presupuesto actual</div>
+            <div class="info-value">S/ 40,000</div>
+          </div>
+        </div>
+
+        <label for="newProjectBudget" class="form-label">Nuevo presupuesto (S/)</label>
+        <input id="newProjectBudget"
+               type="number"
+               class="form-control"
+               min="0"
+               step="100"
+               value="40000"
+               inputmode="numeric">
+
+        <div class="form-hint mt-2">
+          Este dato es informativo. No representa costos de colaboradores, presupuesto consumido ni saldo restante.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Guardar presupuesto</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js"

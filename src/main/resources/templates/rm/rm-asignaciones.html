@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Asignaciones RM</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-common.css"
+        th:href="@{/css/rm/rm-common.css}">
+
+  <!-- Estilos específicos de la vista -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-asignaciones.css"
+        th:href="@{/css/rm/rm-asignaciones.css}">
+
+  <!-- Topbar RM compartida -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-topbar.css"
+        th:href="@{/css/rm/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR COMPARTIDA -->
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}">
+
+    <!-- Fallback para previsualización directa sin Thymeleaf -->
+    <div class="container-xl">
+
+      <a href="#" class="brand">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#">Dashboard</a>
+        <a href="#">Proyectos</a>
+        <a href="#">Colaboradores</a>
+        <a href="#" class="active">Asignaciones</a>
+        <a href="#">Talent Matching</a>
+      </nav>
+
+      <div class="user-area">
+
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="page-wrap">
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-wrap"
+         aria-label="Migas de pan">
+      <span class="text-secondary">
+        Asignaciones
+      </span>
+    </nav>
+
+
+    <!-- HEADER -->
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+
+      <div>
+        <h1 class="page-title">
+          Asignaciones
+        </h1>
+
+        <div class="text-secondary">
+          Gestiona propuestas pendientes, solicitudes de colaboradores,
+          asignaciones activas e historial de participación.
+        </div>
+      </div>
+
+      <a href="#"
+         class="btn btn-primary">
+        + Proponer asignación
+      </a>
+
+    </div>
+
+
+    <!-- SUMMARY -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Pendientes de RM
+              </div>
+
+              <div class="summary-number"
+                   id="metricPendingRM">
+                0
+              </div>
+
+              <div class="small text-secondary">
+                Requieren tu decisión
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Pendientes de PM
+              </div>
+
+              <div class="summary-number"
+                   id="metricPendingPM">
+                0
+              </div>
+
+              <div class="small text-secondary">
+                Esperando aprobación
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+                <path d="M19 8v6"/>
+                <path d="M16 11h6"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Solicitudes colaborador
+              </div>
+
+              <div class="summary-number"
+                   id="metricCollaboratorRequests">
+                0
+              </div>
+
+              <div class="small text-secondary">
+                Aún en aprobación
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Asignaciones activas
+              </div>
+
+              <div class="summary-number"
+                   id="metricActive">
+                0
+              </div>
+
+              <div class="small text-secondary">
+                Actualmente vigentes
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- GESTIÓN -->
+    <div class="card assignments-card">
+
+      <div class="card-header section-header">
+
+        <div>
+          <h3 class="card-title mb-1">
+            Gestión de asignaciones
+          </h3>
+
+          <div class="section-description">
+            Consulta el origen de cada movimiento, aprobaciones requeridas,
+            horas semanales y estado actual.
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- TABS -->
+      <div class="assignment-tabs"
+           role="tablist"
+           aria-label="Tipos de asignaciones">
+
+        <button type="button"
+                class="active"
+                data-tab="pending">
+          Pendientes
+          <span id="tabPendingCount"
+                class="tab-count">
+            0
+          </span>
+        </button>
+
+        <button type="button"
+                data-tab="active">
+          Activas
+          <span id="tabActiveCount"
+                class="tab-count">
+            0
+          </span>
+        </button>
+
+        <button type="button"
+                data-tab="history">
+          Historial
+          <span id="tabHistoryCount"
+                class="tab-count">
+            0
+          </span>
+        </button>
+
+      </div>
+
+
+      <!-- FILTERS -->
+      <div class="filters-wrap">
+
+        <div class="row g-3 align-items-end">
+
+          <div class="col-xl-4 col-md-6">
+
+            <label for="searchInput"
+                   class="form-label">
+              Buscar
+            </label>
+
+            <input id="searchInput"
+                   class="form-control"
+                   placeholder="Colaborador o proyecto">
+
+          </div>
+
+
+          <div class="col-xl-3 col-md-6">
+
+            <label for="originFilter"
+                   class="form-label">
+              Origen
+            </label>
+
+            <select id="originFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todos
+              </option>
+
+              <option value="PM">
+                Project Manager
+              </option>
+
+              <option value="RM">
+                Resource Manager
+              </option>
+
+              <option value="Colaborador">
+                Colaborador
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-3 col-md-6">
+
+            <label for="statusFilter"
+                   class="form-label">
+              Estado
+            </label>
+
+            <select id="statusFilter"
+                    class="form-select">
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-2 col-md-6 d-grid">
+
+            <button id="clearFilters"
+                    type="button"
+                    class="btn btn-outline-secondary">
+              Limpiar filtros
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="filters-note mt-3">
+
+          <span class="filters-note-icon">
+            i
+          </span>
+
+          <div class="small text-secondary">
+            PM propone → aprueba RM. RM propone → aprueba PM.
+            Si el colaborador solicita incorporarse, deben aprobar RM y PM.
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- TABLE -->
+      <div class="table-responsive">
+
+        <table class="table table-vcenter card-table mb-0">
+
+          <thead>
+          <tr>
+            <th>Colaborador</th>
+            <th>Proyecto</th>
+            <th>Origen</th>
+            <th>Horas/sem</th>
+            <th>Aprobaciones</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th class="text-end">Acción</th>
+          </tr>
+          </thead>
+
+          <tbody id="assignmentBody">
+          </tbody>
+
+        </table>
+
+      </div>
+
+
+      <!-- PAGINATION -->
+      <div class="pagination-wrap">
+
+        <div id="paginationInfo"
+             class="text-secondary small">
+        </div>
+
+        <ul id="pagination"
+            class="pagination pagination-sm m-0">
+        </ul>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+<script src="../../static/js/rm-asignaciones.js"
+        th:src="@{/js/rm-asignaciones.js}">
+</script>
+
+</body>
+</html>

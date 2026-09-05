@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Iniciar sesión | SkillBridge AI</title>
+
+    <link rel="stylesheet"
+          href="../../static/tabler/css/tabler.min.css"
+          th:href="@{/tabler/css/tabler.min.css}">
+
+    <link rel="stylesheet"
+          href="../../static/css/login.css"
+          th:href="@{/css/login.css}">
+
+</head>
+
+<body class="login-page login-split-page">
+
+
+<div class="login-split">
+
+    <!-- ===================================================
+         PARTE IZQUIERDA
+         =================================================== -->
+
+    <section class="login-brand">
+
+        <div class="login-brand-inner">
+
+            <div class="skillbridge-logo skillbridge-logo-white mb-4">
+                SB
+            </div>
+
+
+            <div class="login-brand-badge">
+                SKILLBRIDGE AI
+            </div>
+
+
+            <h1 class="login-brand-title">
+                Conectamos talento con oportunidades.
+            </h1>
+
+
+            <p class="login-brand-description">
+
+                Centraliza la gestión de colaboradores,
+                proyectos, habilidades y asignaciones en
+                una única plataforma inteligente.
+
+            </p>
+
+
+            <div class="login-benefits">
+
+
+                <div class="login-benefit">
+
+                    <div class="login-benefit-check">
+                        ✓
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Gestión de colaboradores
+                        </strong>
+
+                        <span>
+                            Consulta habilidades, experiencia
+                            y disponibilidad.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="login-benefit">
+
+                    <div class="login-benefit-check">
+                        ✓
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            Gestión de proyectos
+                        </strong>
+
+                        <span>
+                            Organiza equipos y administra
+                            asignaciones.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="login-benefit">
+
+                    <div class="login-benefit-check">
+                        ✓
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            AI Talent Matching
+                        </strong>
+
+                        <span>
+                            Encuentra los candidatos más adecuados
+                            para cada proyecto.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+        <div class="login-brand-footer">
+            SkillBridge AI · Plataforma interna
+        </div>
+
+    </section>
+
+
+    <!-- ===================================================
+         PARTE DERECHA
+         =================================================== -->
+
+    <section class="login-access">
+
+        <div class="login-access-container">
+
+
+            <div class="login-mobile-brand">
+
+                <div class="skillbridge-logo skillbridge-logo-small">
+                    SB
+                </div>
+
+                <strong>
+                    SkillBridge AI
+                </strong>
+
+            </div>
+
+
+            <div class="mb-4">
+
+                <h2 class="login-access-title">
+                    Iniciar sesión
+                </h2>
+
+                <p class="text-secondary">
+                    Ingresa con tu cuenta corporativa para continuar.
+                </p>
+
+            </div>
+
+
+            <div class="alert alert-danger"
+                 th:if="${param.error}">
+                Correo o contraseña incorrectos.
+            </div>
+
+
+            <div class="alert alert-success"
+                 th:if="${param.logout}">
+                Has cerrado sesión correctamente.
+            </div>
+
+
+            <form th:action="@{/login}"
+                  action="/login"
+                  method="post">
+
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+                        Correo institucional
+                    </label>
+
+                    <input type="email"
+                           class="form-control form-control-lg"
+                           name="username"
+                           placeholder="nombre@empresa.com"
+                           autocomplete="email"
+                           required>
+
+                </div>
+
+
+                <div class="mb-3">
+
+                    <div class="d-flex justify-content-between">
+
+                        <label class="form-label">
+                            Contraseña
+                        </label>
+
+                        <a href="#">
+                            ¿Olvidaste tu contraseña?
+                        </a>
+
+                    </div>
+
+
+                    <input type="password"
+                           class="form-control form-control-lg"
+                           name="password"
+                           placeholder="Ingresa tu contraseña"
+                           autocomplete="current-password"
+                           required>
+
+                </div>
+
+
+                <div class="mb-4">
+
+                    <label class="form-check">
+
+                        <input type="checkbox"
+                               class="form-check-input"
+                               name="remember-me">
+
+                        <span class="form-check-label">
+                            Mantener sesión iniciada
+                        </span>
+
+                    </label>
+
+                </div>
+
+
+                <button type="submit"
+                        class="btn btn-primary btn-lg w-100">
+
+                    Iniciar sesión
+
+                </button>
+
+            </form>
+
+
+            <div class="login-support">
+
+                <span>
+                    ¿Problemas para ingresar?
+                </span>
+
+                <a href="#">
+                    Contactar al administrador
+                </a>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+</body>
+</html>

@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Buscar colaboradores para proyecto</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-common.css"
+        th:href="@{/css/rm/rm-common.css}">
+
+  <!-- Estilos específicos de la vista -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-buscar-colaboradores-proyecto.css"
+        th:href="@{/css/rm/rm-buscar-colaboradores-proyecto.css}">
+
+  <!-- Topbar RM compartida -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-topbar.css"
+        th:href="@{/css/rm/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR COMPARTIDA -->
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('proyectos')}">
+
+    <!-- Fallback para previsualización directa sin Thymeleaf -->
+    <div class="container-xl">
+
+      <a href="#" class="brand">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#">Dashboard</a>
+        <a href="#" class="active">Proyectos</a>
+        <a href="#">Colaboradores</a>
+        <a href="#">Asignaciones</a>
+        <a href="#">Talent Matching</a>
+      </nav>
+
+      <div class="user-area">
+
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="page-wrap">
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-wrap"
+         aria-label="Migas de pan">
+
+      <a href="#"
+         class="breadcrumb-link">
+        Proyectos
+      </a>
+
+      <span class="breadcrumb-separator">›</span>
+
+      <a href="#"
+         class="breadcrumb-link">
+        Clínica AI
+      </a>
+
+      <span class="breadcrumb-separator">›</span>
+
+      <span class="text-secondary">
+        Buscar colaboradores
+      </span>
+
+    </nav>
+
+
+    <!-- PAGE HEADER -->
+    <div class="page-head page-head-button-mobile">
+
+      <div>
+        <h1 class="page-title">
+          Buscar colaboradores para Clínica AI
+        </h1>
+
+        <div class="text-secondary">
+          Encuentra talento compatible y genera una propuesta de asignación
+          que deberá ser aprobada por el Project Manager.
+        </div>
+      </div>
+
+      <a href="#"
+         class="btn btn-outline-primary">
+        Usar Talent Matching
+      </a>
+
+    </div>
+
+
+    <!-- RESUMEN DEL PROYECTO -->
+    <div class="card section-card project-summary mb-4">
+
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">
+            Contexto del proyecto
+          </h3>
+
+          <div class="section-description">
+            Información que el RM debe considerar antes de proponer un colaborador.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        <div class="project-summary-layout">
+
+          <div>
+            <div class="fw-bold fs-3">
+              Clínica AI
+            </div>
+
+            <div class="text-secondary small mt-1">
+              Project Manager:
+              <span class="fw-semibold text-body">
+                Juan Pérez
+              </span>
+            </div>
+          </div>
+
+
+          <div class="summary-grid">
+
+            <div class="summary-item">
+              <div class="summary-label">
+                Estado
+              </div>
+
+              <div class="mt-1">
+                <span class="badge bg-green-lt">
+                  Activo
+                </span>
+              </div>
+            </div>
+
+
+            <div class="summary-item">
+              <div class="summary-label">
+                Prioridad
+              </div>
+
+              <div class="mt-1">
+                <span class="badge bg-red-lt text-red">
+                  Alta
+                </span>
+              </div>
+            </div>
+
+
+            <div class="summary-item">
+              <div class="summary-label">
+                Equipo
+              </div>
+
+              <div class="summary-value">
+                4 / 6 integrantes
+              </div>
+            </div>
+
+
+            <div class="summary-item">
+              <div class="summary-label">
+                Vacantes
+              </div>
+
+              <div class="summary-value">
+                2
+              </div>
+            </div>
+
+
+            <div class="summary-item">
+              <div class="summary-label">
+                Presupuesto asignado
+              </div>
+
+              <div class="summary-value">
+                S/ 40,000
+              </div>
+            </div>
+
+
+            <div class="summary-item summary-skills">
+              <div class="summary-label">
+                Habilidades faltantes
+              </div>
+
+              <div class="mt-1">
+                <span class="badge bg-yellow-lt skill-badge">
+                  Kubernetes
+                </span>
+
+                <span class="badge bg-yellow-lt skill-badge">
+                  Python
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- FILTROS -->
+    <div class="card section-card mb-4">
+
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">
+            Filtros de búsqueda
+          </h3>
+
+          <div class="section-description">
+            Filtra por habilidades, disponibilidad declarada, carga de asignaciones
+            y nivel de experiencia.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        <div class="row g-3 align-items-end">
+
+          <div class="col-xl-3 col-md-6">
+
+            <label for="searchInput"
+                   class="form-label">
+              Buscar colaborador
+            </label>
+
+            <input id="searchInput"
+                   class="form-control"
+                   placeholder="Nombre, cargo o habilidad">
+
+          </div>
+
+
+          <div class="col-xl-2 col-md-6">
+
+            <label for="skillFilter"
+                   class="form-label">
+              Habilidad
+            </label>
+
+            <select id="skillFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todas
+              </option>
+
+              <option value="Kubernetes">Kubernetes</option>
+              <option value="Python">Python</option>
+              <option value="Java">Java</option>
+              <option value="AWS">AWS</option>
+              <option value="Docker">Docker</option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-2 col-md-6">
+
+            <label for="availabilityFilter"
+                   class="form-label">
+              Disponibilidad
+            </label>
+
+            <select id="availabilityFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todas
+              </option>
+
+              <option value="24">
+                24 h/sem o más
+              </option>
+
+              <option value="16">
+                16 h/sem o más
+              </option>
+
+              <option value="8">
+                8 h/sem o más
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-2 col-md-6">
+
+            <label for="loadFilter"
+                   class="form-label">
+              Carga
+            </label>
+
+            <select id="loadFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todas
+              </option>
+
+              <option value="0">
+                0 asignaciones
+              </option>
+
+              <option value="1">
+                1 asignación
+              </option>
+
+              <option value="2">
+                2 asignaciones
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-2 col-md-6">
+
+            <label for="experienceFilter"
+                   class="form-label">
+              Nivel
+            </label>
+
+            <select id="experienceFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todos
+              </option>
+
+              <option value="Junior">
+                Junior
+              </option>
+
+              <option value="Senior">
+                Senior
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-1 col-md-6 d-grid">
+
+            <button id="clearFilters"
+                    type="button"
+                    class="btn btn-outline-secondary">
+              Limpiar
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="filters-note mt-3">
+
+          <span class="filters-note-icon">
+            i
+          </span>
+
+          <div class="small text-secondary">
+            La disponibilidad se expresa en horas por semana declaradas por el colaborador.
+            La carga corresponde al número de asignaciones activas y no debe confundirse
+            con las horas trabajadas por tareas.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- RESULTADOS -->
+    <div class="results-head">
+
+      <div>
+        <h2 class="h3 mb-1">
+          Colaboradores disponibles
+        </h2>
+
+        <div class="text-secondary small">
+          Resultados compatibles con las necesidades actuales del proyecto.
+        </div>
+      </div>
+
+      <div class="text-secondary small">
+        Las propuestas creadas por el RM quedan pendientes de aprobación del PM.
+      </div>
+
+    </div>
+
+
+    <!-- CANDIDATOS -->
+    <div id="candidateGrid"
+         class="row row-cards">
+    </div>
+
+
+    <!-- PAGINACIÓN -->
+    <div class="pagination-wrap">
+
+      <div id="paginationInfo"
+           class="text-secondary small">
+      </div>
+
+      <ul id="pagination"
+          class="pagination pagination-sm m-0">
+      </ul>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+<script src="../../static/js/rm-buscar-colaboradores-proyecto.js"
+        th:src="@{/js/rm-buscar-colaboradores-proyecto.js}">
+</script>
+
+</body>
+</html>

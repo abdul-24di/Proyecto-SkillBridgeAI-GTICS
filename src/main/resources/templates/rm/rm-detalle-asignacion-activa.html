@@ -1,0 +1,964 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Detalle de asignación activa</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-common.css"
+        th:href="@{/css/rm/rm-common.css}">
+
+  <!-- Estilos específicos de la vista -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-detalle-asignacion-activa.css"
+        th:href="@{/css/rm/rm-detalle-asignacion-activa.css}">
+
+  <!-- Topbar RM compartida -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-topbar.css"
+        th:href="@{/css/rm/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR COMPARTIDA -->
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}">
+
+    <!-- Fallback para previsualización directa sin Thymeleaf -->
+    <div class="container-xl">
+
+      <a href="#" class="brand">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#">Dashboard</a>
+        <a href="#">Proyectos</a>
+        <a href="#">Colaboradores</a>
+        <a href="#" class="active">Asignaciones</a>
+        <a href="#">Talent Matching</a>
+      </nav>
+
+      <div class="user-area">
+
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="page-wrap">
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-wrap"
+         aria-label="Migas de pan">
+
+      <a href="#"
+         class="breadcrumb-link">
+        Asignaciones
+      </a>
+
+      <span class="breadcrumb-separator">›</span>
+
+      <span class="text-secondary">
+        ASG-018
+      </span>
+
+    </nav>
+
+
+    <!-- HEADER -->
+    <div class="page-head">
+
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+
+          <h1 class="page-title mb-0">
+            Detalle de asignación activa
+          </h1>
+
+          <span class="badge bg-green-lt">
+            Activa
+          </span>
+
+        </div>
+
+        <div class="text-secondary mt-2">
+          Asignación #ASG-018 · Activa desde el 15 Ago 2026
+        </div>
+      </div>
+
+
+      <div class="d-flex gap-2 flex-wrap page-actions">
+
+        <a href="#"
+           class="btn btn-outline-secondary">
+          Volver a asignaciones
+        </a>
+
+        <button type="button"
+                class="btn btn-outline-danger">
+          Finalizar asignación
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <!-- SUMMARY -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="22"
+                   height="22"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M4 4h6l2 2h8v14H4z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Proyecto
+              </div>
+
+              <div class="summary-number summary-text">
+                Clínica AI
+              </div>
+
+              <div class="small text-secondary">
+                PM Juan Pérez
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="22"
+                   height="22"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5"/>
+                <path d="M12 12l3 2"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Horas de esta asignación
+              </div>
+
+              <div class="summary-number">
+                16 h
+              </div>
+
+              <div class="small text-secondary">
+                Por semana
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="22"
+                   height="22"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M4 4h6l2 2h8v14H4z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Carga actual
+              </div>
+
+              <div class="summary-number">
+                2 / 3
+              </div>
+
+              <div class="small text-secondary">
+                Asignaciones activas
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="22"
+                   height="22"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Disponibilidad declarada
+              </div>
+
+              <div class="summary-number">
+                16 h
+              </div>
+
+              <div class="small text-secondary">
+                Libres por semana
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ASIGNACIÓN + COLABORADOR -->
+    <div class="row row-cards mb-4">
+
+      <!-- INFORMACIÓN DE ASIGNACIÓN -->
+      <div class="col-lg-7">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Información de la asignación
+              </h3>
+
+              <div class="section-description">
+                Datos acordados para la participación activa del colaborador.
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="card-body compact-body">
+
+            <div class="info-grid info-grid-three">
+
+              <div>
+                <div class="info-label">
+                  Proyecto
+                </div>
+
+                <div class="info-value">
+                  Clínica AI
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Project Manager
+                </div>
+
+                <div class="info-value">
+                  Juan Pérez
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Estado
+                </div>
+
+                <div class="mt-1">
+                  <span class="badge bg-green-lt">
+                    Activa
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Rol en el proyecto
+                </div>
+
+                <div class="info-value">
+                  DevOps Engineer
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Horas semanales
+                </div>
+
+                <div class="info-value">
+                  16 h / semana
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Origen
+                </div>
+
+                <div class="info-value">
+                  Propuesta del RM
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Fecha de inicio
+                </div>
+
+                <div class="info-value">
+                  15 Ago 2026
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Fin estimado
+                </div>
+
+                <div class="info-value">
+                  15 Dic 2026
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Presupuesto del proyecto
+                </div>
+
+                <div class="info-value">
+                  S/ 40,000
+                </div>
+              </div>
+
+            </div>
+
+
+            <div class="justification-box mt-3">
+
+              <div class="info-label mb-2">
+                Justificación registrada
+              </div>
+
+              <div class="text-secondary">
+                Daniel cubre Kubernetes y Docker, cuenta con experiencia en infraestructura cloud
+                y dispone de horas suficientes para la participación propuesta.
+              </div>
+
+            </div>
+
+
+            <div class="mt-3">
+
+              <a href="#"
+                 class="btn btn-outline-primary btn-sm">
+                Ver proyecto
+              </a>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- COLABORADOR -->
+      <div class="col-lg-5">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Colaborador
+              </h3>
+
+              <div class="section-description">
+                Perfil y capacidad actual.
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="card-body compact-body">
+
+            <div class="d-flex align-items-start gap-3">
+
+              <span class="avatar profile-avatar bg-blue-lt text-blue">
+                DA
+              </span>
+
+              <div class="flex-fill">
+
+                <div class="d-flex justify-content-between gap-2 align-items-start flex-wrap">
+
+                  <div>
+                    <h3 class="mb-1">
+                      Daniel Acosta
+                    </h3>
+
+                    <div class="text-secondary">
+                      DevOps Engineer
+                    </div>
+                  </div>
+
+                  <span class="badge bg-secondary-lt">
+                    Senior
+                  </span>
+
+                </div>
+
+
+                <div class="mt-2">
+                  <span class="badge bg-blue-lt skill-badge">Kubernetes</span>
+                  <span class="badge bg-blue-lt skill-badge">Docker</span>
+                  <span class="badge bg-blue-lt skill-badge">AWS</span>
+                  <span class="badge bg-blue-lt skill-badge">CI/CD</span>
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="status-grid mt-3">
+
+              <div class="status-row">
+
+                <div>
+                  <div class="info-label">
+                    Carga actual
+                  </div>
+
+                  <div class="info-value">
+                    2 / 3 asignaciones
+                  </div>
+                </div>
+
+                <span class="badge bg-yellow-lt">
+                  Capacidad parcial
+                </span>
+
+              </div>
+
+
+              <div class="status-row">
+
+                <div>
+                  <div class="info-label">
+                    Disponibilidad declarada
+                  </div>
+
+                  <div class="info-value text-success">
+                    16 h / semana
+                  </div>
+                </div>
+
+                <span class="badge bg-green-lt">
+                  Disponible
+                </span>
+
+              </div>
+
+
+              <div class="status-row">
+
+                <div>
+                  <div class="info-label">
+                    Experiencia
+                  </div>
+
+                  <div class="info-value">
+                    4 años
+                  </div>
+                </div>
+
+                <div>
+                  <div class="info-label">
+                    Certificados aprobados
+                  </div>
+
+                  <div class="info-value">
+                    4
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="mt-3">
+
+              <a href="#"
+                 class="btn btn-outline-primary btn-sm">
+                Ver perfil completo
+              </a>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- DISTRIBUCIÓN -->
+    <div class="card section-card mb-4">
+
+      <div class="card-header section-header">
+
+        <div>
+          <h3 class="card-title mb-1">
+            Participación en proyectos activos
+          </h3>
+
+          <div class="section-description">
+            Un colaborador puede participar en más de un proyecto. La carga se controla por número
+            de asignaciones activas y las horas semanales se muestran por separado.
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="card-body compact-body">
+
+        <div class="allocation-grid">
+
+          <div class="allocation-card allocation-current">
+
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+
+              <div>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+
+                  <div class="allocation-title">
+                    Clínica AI
+                  </div>
+
+                  <span class="badge bg-green-lt">
+                    Asignación actual
+                  </span>
+
+                </div>
+
+                <div class="small text-secondary mt-1">
+                  DevOps Engineer · PM Juan Pérez
+                </div>
+              </div>
+
+
+              <div class="text-end">
+                <div class="info-label">
+                  Horas semanales
+                </div>
+
+                <div class="allocation-hours">
+                  16 h
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="allocation-card">
+
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+
+              <div>
+                <div class="allocation-title">
+                  ERP Cloud
+                </div>
+
+                <div class="small text-secondary mt-1">
+                  Cloud Support Engineer · PM María Ruiz
+                </div>
+              </div>
+
+
+              <div class="text-end">
+                <div class="info-label">
+                  Horas semanales
+                </div>
+
+                <div class="allocation-hours">
+                  8 h
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="weekly-summary mt-3">
+
+          <div>
+
+            <div class="fw-semibold">
+              Resumen semanal
+            </div>
+
+            <div class="small text-secondary">
+              16 h Clínica AI + 8 h ERP Cloud
+            </div>
+
+          </div>
+
+
+          <div class="weekly-metrics">
+
+            <div>
+              <div class="info-label">
+                Horas comprometidas
+              </div>
+
+              <div class="weekly-value">
+                24 / 40 h
+              </div>
+            </div>
+
+            <div>
+              <div class="info-label">
+                Disponibilidad declarada
+              </div>
+
+              <div class="weekly-value text-success">
+                16 h
+              </div>
+            </div>
+
+            <div>
+              <div class="info-label">
+                Carga
+              </div>
+
+              <div class="weekly-value">
+                2 / 3
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- APROBACIÓN + FINALIZACIÓN -->
+    <div class="row row-cards">
+
+      <!-- HISTORIAL -->
+      <div class="col-lg-7">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Historial de aprobación
+              </h3>
+
+              <div class="section-description">
+                Trazabilidad del flujo que activó la asignación.
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="card-body compact-body">
+
+            <div class="approval-step">
+
+              <span class="approval-dot bg-azure-lt text-azure">
+                1
+              </span>
+
+              <div>
+                <div class="fw-semibold">
+                  Propuesta creada por Resource Manager
+                </div>
+
+                <div class="small text-secondary">
+                  Abraham Ramirez · 12 Ago 2026 · 10:18
+                </div>
+              </div>
+
+            </div>
+
+
+            <div class="approval-step">
+
+              <span class="approval-dot bg-green-lt text-green">
+                ✓
+              </span>
+
+              <div>
+                <div class="fw-semibold">
+                  Aprobada por Project Manager
+                </div>
+
+                <div class="small text-secondary">
+                  Juan Pérez · 13 Ago 2026 · 16:42
+                </div>
+              </div>
+
+            </div>
+
+
+            <div class="approval-step">
+
+              <span class="approval-dot bg-green-lt text-green">
+                ✓
+              </span>
+
+              <div>
+                <div class="fw-semibold">
+                  Asignación activada
+                </div>
+
+                <div class="small text-secondary">
+                  15 Ago 2026
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- FINALIZACIÓN -->
+      <div class="col-lg-5">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Finalización de la asignación
+              </h3>
+
+              <div class="section-description">
+                Acción disponible para el Resource Manager.
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="card-body compact-body">
+
+            <div class="termination-note">
+
+              <span class="termination-icon">
+                !
+              </span>
+
+              <div>
+                <div class="fw-semibold mb-1">
+                  Finalizar conserva el historial
+                </div>
+
+                <div class="small text-secondary">
+                  El RM puede finalizar directamente una asignación activa sin requerir
+                  una nueva aprobación del PM. La participación queda registrada en el historial
+                  y deja de contar como asignación activa.
+                </div>
+              </div>
+
+            </div>
+
+
+            <div class="termination-details mt-3">
+
+              <div>
+                <div class="info-label">
+                  Estado actual
+                </div>
+
+                <div class="mt-1">
+                  <span class="badge bg-green-lt">
+                    Activa
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Si se finaliza
+                </div>
+
+                <div class="mt-1">
+                  <span class="badge bg-secondary-lt">
+                    Finalizada
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+
+            <button type="button"
+                    class="btn btn-outline-danger w-100 mt-3">
+              Finalizar asignación
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- FOOTER ACTIONS -->
+    <div class="action-bar">
+
+      <a href="#"
+         class="btn btn-outline-secondary">
+        Volver
+      </a>
+
+      <a href="#"
+         class="btn btn-outline-primary">
+        Ver perfil del colaborador
+      </a>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+</body>
+</html>

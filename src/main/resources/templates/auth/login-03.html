@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Acceso | SkillBridge AI</title>
+
+    <link rel="stylesheet"
+          href="../../static/tabler/css/tabler.min.css"
+          th:href="@{/tabler/css/tabler.min.css}">
+
+    <link rel="stylesheet"
+          href="../../static/css/login.css"
+          th:href="@{/css/login.css}">
+
+</head>
+
+
+<body class="login-page login-modern-page">
+
+
+<div class="modern-background">
+
+
+    <!-- HEADER -->
+    <header class="modern-header">
+
+        <div class="modern-brand">
+
+            <div class="skillbridge-logo skillbridge-logo-small">
+                SB
+            </div>
+
+            <div>
+
+                <strong>
+                    SkillBridge AI
+                </strong>
+
+                <span>
+                    Portal corporativo
+                </span>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <!-- CONTENIDO -->
+
+    <main class="modern-main">
+
+
+        <!-- PRESENTACIÓN -->
+        <section class="modern-intro">
+
+            <div class="modern-eyebrow">
+                TALENTO · PROYECTOS · INTELIGENCIA ARTIFICIAL
+            </div>
+
+
+            <h1>
+                El talento correcto para cada proyecto.
+            </h1>
+
+
+            <p>
+
+                Gestiona colaboradores, proyectos,
+                habilidades y asignaciones desde una
+                plataforma diseñada para conectar las
+                necesidades de cada proyecto con las
+                capacidades de tu organización.
+
+            </p>
+
+
+            <div class="modern-features">
+
+
+                <div class="modern-feature">
+
+                    <strong>
+                        360°
+                    </strong>
+
+                    <span>
+                        Visión del talento
+                    </span>
+
+                </div>
+
+
+                <div class="modern-feature">
+
+                    <strong>
+                        AI
+                    </strong>
+
+                    <span>
+                        Talent Matching
+                    </span>
+
+                </div>
+
+
+                <div class="modern-feature">
+
+                    <strong>
+                        1
+                    </strong>
+
+                    <span>
+                        Plataforma centralizada
+                    </span>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <!-- LOGIN -->
+        <section class="modern-login-wrapper">
+
+
+            <div class="card modern-login-card">
+
+
+                <div class="card-body">
+
+
+                    <span class="badge bg-primary-lt mb-3">
+                        Acceso interno
+                    </span>
+
+
+                    <h2 class="h1 mb-2">
+                        Bienvenido
+                    </h2>
+
+
+                    <p class="text-secondary mb-4">
+                        Ingresa tus credenciales para continuar.
+                    </p>
+
+
+                    <div class="alert alert-danger"
+                         th:if="${param.error}">
+                        Correo o contraseña incorrectos.
+                    </div>
+
+
+                    <div class="alert alert-success"
+                         th:if="${param.logout}">
+                        Has cerrado sesión correctamente.
+                    </div>
+
+
+                    <form th:action="@{/login}"
+                          action="/login"
+                          method="post">
+
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Correo institucional
+                            </label>
+
+                            <input type="email"
+                                   class="form-control form-control-lg"
+                                   name="username"
+                                   placeholder="nombre@empresa.com"
+                                   autocomplete="email"
+                                   required>
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+                                Contraseña
+                            </label>
+
+                            <input type="password"
+                                   class="form-control form-control-lg"
+                                   name="password"
+                                   placeholder="Ingresa tu contraseña"
+                                   autocomplete="current-password"
+                                   required>
+
+                        </div>
+
+
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+
+
+                            <label class="form-check mb-0">
+
+                                <input type="checkbox"
+                                       class="form-check-input"
+                                       name="remember-me">
+
+                                <span class="form-check-label">
+                                    Recordarme
+                                </span>
+
+                            </label>
+
+
+                            <a href="#">
+                                Recuperar contraseña
+                            </a>
+
+
+                        </div>
+
+
+                        <button type="submit"
+                                class="btn btn-primary btn-lg w-100">
+
+                            Acceder a SkillBridge AI
+
+                        </button>
+
+
+                    </form>
+
+
+                    <div class="modern-security">
+
+                        Acceso exclusivo para usuarios autorizados.
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+
+</body>
+</html>

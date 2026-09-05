@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Dashboard RM</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-common.css"
+        th:href="@{/css/rm/rm-common.css}">
+
+  <!-- Estilos propios -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-dashboard.css"
+        th:href="@{/css/rm/rm-dashboard.css}">
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-topbar.css"
+        th:href="@{/css/rm/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR -->
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('dashboard')}">
+    <!-- Fallback para previsualización sin Thymeleaf -->
+    <div class="container-xl">
+      <a href="#" class="brand">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#" class="active">Dashboard</a>
+        <a href="#">Proyectos</a>
+        <a href="#">Colaboradores</a>
+        <a href="#">Asignaciones</a>
+        <a href="#">Talent Matching</a>
+      </nav>
+
+      <div class="user-area">
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <main class="page-wrap">
+
+    <!-- PAGE HEADER -->
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+
+      <div>
+        <h1 class="page-title">
+          Dashboard de Resource Manager
+        </h1>
+
+        <div class="text-secondary">
+          Resumen de asignaciones, postulaciones, solicitudes de colaboradores
+          y proyectos que requieren atención.
+        </div>
+      </div>
+
+      <a href="#" class="btn btn-primary">
+        Ver asignaciones pendientes
+      </a>
+
+    </div>
+
+
+    <!-- SUMMARY CARDS -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Aprobaciones pendientes del RM
+              </div>
+
+              <div class="summary-number">
+                4
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Requieren tu revisión y decisión.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Esperando aprobación del PM
+              </div>
+
+              <div class="summary-number">
+                6
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Propuestas ya aprobadas por el RM.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+                <path d="M19 8v6M16 11h6"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Postulaciones de colaboradores
+              </div>
+
+              <div class="summary-number">
+                7
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Solicitudes de participación por revisar.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M4 4h6l2 2h8v14H4z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Proyectos con vacantes
+              </div>
+
+              <div class="summary-number">
+                5
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Equipos que todavía necesitan personal.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Proyectos en revisión
+              </div>
+
+              <div class="summary-number">
+                2
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Pendientes de evaluación inicial.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ACCIONES PENDIENTES -->
+    <div class="card section-card mb-4">
+
+      <div class="card-header section-header">
+
+        <div>
+          <h3 class="card-title mb-1">
+            Acciones pendientes
+          </h3>
+
+          <div class="section-description">
+            Asignaciones propuestas y postulaciones que requieren seguimiento
+            o una decisión del Resource Manager.
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="table-responsive">
+
+        <table class="table table-vcenter card-table">
+
+          <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Proyecto</th>
+            <th>Colaborador</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th class="text-end">Acción</th>
+          </tr>
+          </thead>
+
+          <tbody>
+
+          <tr>
+            <td>Asignación propuesta</td>
+            <td class="fw-semibold">Clínica AI</td>
+            <td>Carlos Mendoza</td>
+            <td>
+              <span class="badge bg-yellow-lt">
+                Pendiente RM
+              </span>
+            </td>
+            <td>25 Ago 2026</td>
+            <td class="text-end">
+              <a href="#" class="btn btn-primary btn-sm">
+                Revisar
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td>Postulación</td>
+            <td class="fw-semibold">ERP Cloud</td>
+            <td>Ana Torres</td>
+            <td>
+              <span class="badge bg-azure-lt">
+                Pendiente revisión
+              </span>
+            </td>
+            <td>25 Ago 2026</td>
+            <td class="text-end">
+              <a href="#" class="btn btn-primary btn-sm">
+                Revisar
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td>Asignación propuesta</td>
+            <td class="fw-semibold">DataHub</td>
+            <td>Luis Ramos</td>
+            <td>
+              <span class="badge bg-blue-lt">
+                Pendiente PM
+              </span>
+            </td>
+            <td>24 Ago 2026</td>
+            <td class="text-end">
+              <a href="#" class="btn btn-outline-secondary btn-sm">
+                Ver
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td>Postulación</td>
+            <td class="fw-semibold">Plataforma Retail</td>
+            <td>Sofía Torres</td>
+            <td>
+              <span class="badge bg-azure-lt">
+                Pendiente revisión
+              </span>
+            </td>
+            <td>24 Ago 2026</td>
+            <td class="text-end">
+              <a href="#" class="btn btn-primary btn-sm">
+                Revisar
+              </a>
+            </td>
+          </tr>
+
+          </tbody>
+        </table>
+
+      </div>
+
+
+      <div class="card-footer table-footer">
+
+        <div class="text-secondary small">
+          Mostrando 1–4 de 12 acciones pendientes
+        </div>
+
+        <ul class="pagination pagination-sm m-0">
+
+          <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1">
+              Anterior
+            </a>
+          </li>
+
+          <li class="page-item active">
+            <a class="page-link" href="#">1</a>
+          </li>
+
+          <li class="page-item">
+            <a class="page-link" href="#">2</a>
+          </li>
+
+          <li class="page-item">
+            <a class="page-link" href="#">3</a>
+          </li>
+
+          <li class="page-item">
+            <a class="page-link" href="#">
+              Siguiente
+            </a>
+          </li>
+
+        </ul>
+
+      </div>
+
+    </div>
+
+
+    <!-- SOLICITUDES DE COLABORADORES -->
+    <div class="card section-card mb-4">
+
+      <div class="card-header section-header">
+
+        <div>
+          <h3 class="card-title mb-1">
+            Solicitudes de colaboradores
+          </h3>
+
+          <div class="section-description">
+            Requerimientos de personal enviados por Project Managers
+            que deben ser gestionados por el Resource Manager.
+          </div>
+        </div>
+
+        <a href="#" class="btn btn-sm btn-light section-action">
+          Ver todas las solicitudes
+        </a>
+
+      </div>
+
+
+      <div class="table-responsive">
+
+        <table class="table table-vcenter card-table">
+
+          <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Project Manager</th>
+            <th>Solicitados</th>
+            <th>Habilidades requeridas</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th class="text-end">Acción</th>
+          </tr>
+          </thead>
+
+          <tbody>
+
+          <tr>
+
+            <td class="fw-semibold">
+              Sistema de Inventario
+            </td>
+
+            <td>
+              Carlos Méndez
+            </td>
+
+            <td>
+              <span class="badge bg-blue-lt">
+                2 colaboradores
+              </span>
+            </td>
+
+            <td>
+              <span class="badge bg-secondary-lt">Java</span>
+              <span class="badge bg-secondary-lt">Spring Boot</span>
+              <span class="badge bg-secondary-lt">Docker</span>
+              <span class="text-secondary small">+3</span>
+            </td>
+
+            <td>
+              <span class="badge bg-yellow-lt">
+                Pendiente
+              </span>
+            </td>
+
+            <td>
+              25 Ago 2026
+            </td>
+
+            <td class="text-end">
+              <a href="#" class="btn btn-primary btn-sm">
+                Atender
+              </a>
+            </td>
+
+          </tr>
+
+
+          <tr>
+
+            <td class="fw-semibold">
+              Portal de Clientes
+            </td>
+
+            <td>
+              Marco Ruiz
+            </td>
+
+            <td>
+              <span class="badge bg-blue-lt">
+                3 colaboradores
+              </span>
+            </td>
+
+            <td>
+              <span class="badge bg-secondary-lt">React</span>
+              <span class="badge bg-secondary-lt">UX/UI</span>
+              <span class="badge bg-secondary-lt">Node.js</span>
+            </td>
+
+            <td>
+              <span class="badge bg-blue-lt">
+                En atención
+              </span>
+            </td>
+
+            <td>
+              24 Ago 2026
+            </td>
+
+            <td class="text-end">
+              <a href="#" class="btn btn-outline-primary btn-sm">
+                Continuar
+              </a>
+            </td>
+
+          </tr>
+
+
+          <tr>
+
+            <td class="fw-semibold">
+              ERP Cloud
+            </td>
+
+            <td>
+              María Ruiz
+            </td>
+
+            <td>
+              <span class="badge bg-blue-lt">
+                1 colaborador
+              </span>
+            </td>
+
+            <td>
+              <span class="badge bg-secondary-lt">AWS</span>
+              <span class="badge bg-secondary-lt">Kubernetes</span>
+            </td>
+
+            <td>
+              <span class="badge bg-green-lt">
+                Atendida
+              </span>
+            </td>
+
+            <td>
+              22 Ago 2026
+            </td>
+
+            <td class="text-end">
+              <a href="#" class="btn btn-outline-secondary btn-sm">
+                Ver
+              </a>
+            </td>
+
+          </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+
+      <div class="card-footer table-footer">
+
+        <div class="text-secondary small">
+          Mostrando 1–3 de 9 solicitudes
+        </div>
+
+        <ul class="pagination pagination-sm m-0">
+
+          <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1">
+              Anterior
+            </a>
+          </li>
+
+          <li class="page-item active">
+            <a class="page-link" href="#">1</a>
+          </li>
+
+          <li class="page-item">
+            <a class="page-link" href="#">2</a>
+          </li>
+
+          <li class="page-item">
+            <a class="page-link" href="#">3</a>
+          </li>
+
+          <li class="page-item">
+            <a class="page-link" href="#">
+              Siguiente
+            </a>
+          </li>
+
+        </ul>
+
+      </div>
+
+    </div>
+
+
+    <!-- PROYECTOS + ATENCIÓN -->
+    <div class="row row-cards">
+
+      <div class="col-lg-9">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+
+              <h3 class="card-title mb-1">
+                Proyectos que requieren atención
+              </h3>
+
+              <div class="section-description">
+                Proyectos con vacantes, asignaciones pendientes o prioridad alta
+                que requieren seguimiento del RM.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="table-responsive">
+
+            <table class="table table-vcenter card-table">
+
+              <thead>
+
+              <tr>
+                <th>Proyecto</th>
+                <th>Estado</th>
+                <th>Project Manager</th>
+                <th>Equipo</th>
+                <th>Vacantes</th>
+                <th>Prioridad</th>
+                <th>Pendientes</th>
+                <th class="text-end">Acción</th>
+              </tr>
+
+              </thead>
+
+              <tbody>
+
+              <tr>
+
+                <td class="fw-semibold">
+                  Clínica AI
+                </td>
+
+                <td>
+                  <span class="badge bg-yellow-lt text-yellow">En revisión</span>
+                </td>
+
+                <td>
+                  Juan Pérez
+                </td>
+
+                <td>
+                  4 / 6
+                </td>
+
+                <td>
+                  <span class="badge bg-yellow-lt">
+                    2
+                  </span>
+                </td>
+
+                <td>
+                  <span class="badge bg-red-lt text-red">Alta</span>
+                </td>
+
+                <td>
+                  3
+                </td>
+
+                <td class="text-end">
+
+                  <a href="#"
+                     class="btn btn-outline-primary btn-sm">
+
+                    Ver proyecto
+
+                  </a>
+
+                </td>
+
+              </tr>
+
+
+              <tr>
+
+                <td class="fw-semibold">
+                  ERP Cloud
+                </td>
+
+                <td>
+                  <span class="badge bg-green-lt text-green">Activo</span>
+                </td>
+
+                <td>
+                  María Ruiz
+                </td>
+
+                <td>
+                  3 / 5
+                </td>
+
+                <td>
+                  <span class="badge bg-yellow-lt">
+                    2
+                  </span>
+                </td>
+
+                <td>
+                  <span class="badge bg-yellow-lt text-yellow">Media</span>
+                </td>
+
+                <td>
+                  1
+                </td>
+
+                <td class="text-end">
+
+                  <a href="#"
+                     class="btn btn-outline-primary btn-sm">
+
+                    Ver proyecto
+
+                  </a>
+
+                </td>
+
+              </tr>
+
+
+              <tr>
+
+                <td class="fw-semibold">
+                  DataHub
+                </td>
+
+                <td>
+                  <span class="badge bg-orange-lt text-orange">En espera</span>
+                </td>
+
+                <td>
+                  Pedro Castro
+                </td>
+
+                <td>
+                  5 / 6
+                </td>
+
+                <td>
+                  <span class="badge bg-green-lt">
+                    1
+                  </span>
+                </td>
+
+                <td>
+                  <span class="badge bg-blue-lt text-blue">Baja</span>
+                </td>
+
+                <td>
+                  2
+                </td>
+
+                <td class="text-end">
+
+                  <a href="#"
+                     class="btn btn-outline-primary btn-sm">
+
+                    Ver proyecto
+
+                  </a>
+
+                </td>
+
+              </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+
+          <div class="card-footer table-footer">
+
+            <div class="text-secondary small">
+              Mostrando 1–3 de 8 proyectos
+            </div>
+
+            <ul class="pagination pagination-sm m-0">
+
+              <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1">
+                  Anterior
+                </a>
+              </li>
+
+              <li class="page-item active">
+                <a class="page-link" href="#">1</a>
+              </li>
+
+              <li class="page-item">
+                <a class="page-link" href="#">2</a>
+              </li>
+
+              <li class="page-item">
+                <a class="page-link" href="#">3</a>
+              </li>
+
+              <li class="page-item">
+                <a class="page-link" href="#">
+                  Siguiente
+                </a>
+              </li>
+
+            </ul>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- REQUIEREN ATENCIÓN -->
+      <div class="col-lg-3">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+
+              <h3 class="card-title mb-1">
+                Requieren atención
+              </h3>
+
+              <div class="section-description">
+                Prioridades operativas que pueden afectar
+                asignaciones, vacantes o tiempos del proyecto.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="card-body">
+
+            <div class="attention-item border-danger">
+
+              <span class="badge bg-red-lt mb-2">
+                Prioridad alta
+              </span>
+
+              <div class="fw-semibold">
+                Clínica AI
+              </div>
+
+              <div class="text-secondary small">
+                Tiene 2 vacantes y 3 asignaciones pendientes.
+              </div>
+
+            </div>
+
+
+            <div class="attention-item border-info">
+
+              <span class="badge bg-info-lt mb-2">
+                Vacantes
+              </span>
+
+              <div class="fw-semibold">
+                Clínica AI
+              </div>
+
+              <div class="text-secondary small">
+                Todavía tiene 2 vacantes por cubrir.
+              </div>
+
+            </div>
+
+
+            <div class="attention-item border-warning">
+
+              <span class="badge bg-yellow-lt mb-2">
+                Seguimiento
+              </span>
+
+              <div class="fw-semibold">
+                Postulaciones atrasadas
+              </div>
+
+              <div class="text-secondary small">
+                3 llevan más de 48 horas pendientes.
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+</body>
+</html>

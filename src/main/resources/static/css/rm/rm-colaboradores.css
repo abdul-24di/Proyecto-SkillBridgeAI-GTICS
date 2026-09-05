@@ -1,0 +1,207 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   COLABORADORES - RESOURCE MANAGER
+   ========================================================= */
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.page-wrap {
+  max-width: 1320px;
+}
+
+.breadcrumb-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin-bottom: 16px;
+  font-size: .86rem;
+}
+
+/* =========================================================
+   SUMMARY
+   ========================================================= */
+
+.summary-card {
+  min-height: 116px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.summary-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+.summary-label {
+  color: #64748b;
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+}
+
+.summary-number {
+  margin-top: .15rem;
+  color: #182433;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+/* =========================================================
+   DIRECTORY SECTION
+   ========================================================= */
+
+.directory-section {
+  overflow: hidden;
+  border: 1px solid #e1e5eb;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.directory-body {
+  background: #f8fafc;
+}
+
+/* =========================================================
+   FILTER NOTE
+   ========================================================= */
+
+.filters-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  padding-top: 1rem;
+  border-top: 1px solid #edf0f4;
+}
+
+.filters-note-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #eef4fb;
+  color: #2565a5;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+/* =========================================================
+   COLLABORATOR CARDS
+   ========================================================= */
+
+.collab-card {
+  height: 100%;
+  border: 1px solid #e1e5eb;
+  box-shadow: 0 2px 7px rgba(24, 36, 51, .035);
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease;
+}
+
+.collab-card:hover {
+  transform: translateY(-2px);
+  border-color: #cfdae8;
+  box-shadow: 0 7px 18px rgba(24, 36, 51, .07);
+}
+
+.collab-name {
+  margin: 0;
+  color: #182433;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.skill-badge {
+  margin: .12rem .22rem .12rem 0;
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .8rem 1rem;
+  margin-top: 1rem;
+  padding-top: .9rem;
+  border-top: 1px solid #edf0f4;
+}
+
+.meta-label {
+  color: #8a94a6;
+  font-size: .69rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.meta-value {
+  margin-top: .08rem;
+  color: #374151;
+  font-size: .88rem;
+  font-weight: 700;
+}
+
+.certificate-line {
+  margin-top: .9rem;
+  padding: .75rem .85rem;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-top: 1rem;
+  padding-top: .85rem;
+  border-top: 1px solid #edf0f4;
+}
+
+.empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #667085;
+}
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 991px) {
+  .page-head {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 767px) {
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .card-actions .btn {
+    width: 100%;
+  }
+
+}

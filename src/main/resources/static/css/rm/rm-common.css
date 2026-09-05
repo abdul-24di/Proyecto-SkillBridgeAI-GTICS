@@ -1,0 +1,169 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   ESTILOS COMPARTIDOS - RESOURCE MANAGER
+   ========================================================= */
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f3f6fa;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.page-wrap {
+  margin: 0 auto;
+  padding: 28px 24px 42px;
+}
+
+.breadcrumb-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .55rem;
+  margin-bottom: 16px;
+  font-size: .86rem;
+}
+
+.breadcrumb-link {
+  color: var(--tblr-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-separator {
+  color: #9aa5b2;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 22px;
+}
+
+.page-title {
+  margin: 0 0 .25rem;
+  color: #182433;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -.4px;
+}
+
+.section-card {
+  overflow: hidden;
+  border: 1px solid #e1e5eb;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.section-header {
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 14px 18px;
+  border-bottom: 0;
+  color: #ffffff;
+  background:
+    linear-gradient(
+      145deg,
+      #24547d 0%,
+      #2565a5 48%,
+      #2b78c5 100%
+    );
+}
+
+.section-header .card-title {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.section-description {
+  max-width: 850px;
+  color: rgba(255, 255, 255, .74);
+  font-size: .8rem;
+  line-height: 1.45;
+}
+
+.info-label {
+  color: #8a94a6;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.info-value {
+  margin-top: .15rem;
+  color: #303846;
+  font-weight: 700;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.15rem;
+}
+
+.pagination-wrap {
+  min-height: 58px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 12px 18px;
+  border-top: 1px solid #edf0f4;
+  background: #ffffff;
+}
+
+.pagination .page-link {
+  min-width: 34px;
+  text-align: center;
+}
+
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: .75rem;
+  margin-top: 1.35rem;
+}
+
+@media (max-width: 767px) {
+  .page-wrap {
+    padding: 20px 14px 32px;
+  }
+
+  .page-head.page-head-stack-mobile {
+    flex-direction: column;
+  }
+
+  .page-head.page-head-button-mobile .btn,
+  .action-bar .btn {
+    width: 100%;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
+}

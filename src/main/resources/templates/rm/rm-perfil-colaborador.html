@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Perfil de colaborador</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-common.css"
+        th:href="@{/css/rm/rm-common.css}">
+
+  <!-- Estilos específicos de la vista -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-perfil-colaborador.css"
+        th:href="@{/css/rm/rm-perfil-colaborador.css}">
+
+  <!-- Topbar RM compartida -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-topbar.css"
+        th:href="@{/css/rm/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR COMPARTIDA -->
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}">
+
+    <!-- Fallback para previsualización directa sin Thymeleaf -->
+    <div class="container-xl">
+
+      <a href="#" class="brand">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#">Dashboard</a>
+        <a href="#">Proyectos</a>
+        <a href="#" class="active">Colaboradores</a>
+        <a href="#">Asignaciones</a>
+        <a href="#">Talent Matching</a>
+      </nav>
+
+      <div class="user-area">
+
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="page-wrap">
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-wrap"
+         aria-label="Migas de pan">
+
+      <a href="#"
+         class="breadcrumb-link">
+        Colaboradores
+      </a>
+
+      <span class="breadcrumb-separator">›</span>
+
+      <span class="text-secondary">
+        Carlos Mendoza
+      </span>
+
+    </nav>
+
+
+    <!-- PROFILE HEADER -->
+    <div class="card section-card profile-header mb-4">
+
+      <div class="card-body">
+
+        <div class="row g-3 align-items-start">
+
+          <div class="col-lg">
+
+            <div class="d-flex align-items-start gap-3">
+
+              <span class="avatar profile-avatar bg-blue-lt text-blue">
+                CM
+              </span>
+
+              <div class="flex-fill">
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+
+                  <h1 class="profile-name mb-0">
+                    Carlos Mendoza
+                  </h1>
+
+                  <span class="badge bg-secondary-lt">
+                    Senior
+                  </span>
+
+                  <span class="badge bg-green-lt">
+                    16 h/sem disponibles
+                  </span>
+
+                </div>
+
+                <div class="text-secondary mt-1">
+                  Backend Developer
+                </div>
+
+                <div class="mt-2">
+                  <span class="badge bg-blue-lt skill-badge">Java</span>
+                  <span class="badge bg-blue-lt skill-badge">Spring Boot</span>
+                  <span class="badge bg-blue-lt skill-badge">AWS</span>
+                  <span class="badge bg-blue-lt skill-badge">Docker</span>
+                  <span class="badge bg-blue-lt skill-badge">Microservicios</span>
+                </div>
+
+                <div class="small text-secondary mt-2">
+                  Perfil profesional consultado por el Resource Manager.
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="col-lg-auto">
+
+            <div class="d-flex flex-wrap gap-2 header-actions">
+
+              <a href="#"
+                 class="btn btn-outline-secondary">
+                Ver asignaciones
+              </a>
+
+              <a href="#"
+                 class="btn btn-outline-primary">
+                Actualizar nivel
+              </a>
+
+              <a href="#"
+                 class="btn btn-primary">
+                Proponer asignación
+              </a>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- SUMMARY -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="22"
+                   height="22"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Disponibilidad
+              </div>
+
+              <div class="summary-number">
+                16 h
+              </div>
+
+              <div class="small text-secondary">
+                Libres por semana
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="22"
+                   height="22"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M4 4h6l2 2h8v14H4z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Carga actual
+              </div>
+
+              <div class="summary-number">
+                2 / 3
+              </div>
+
+              <div class="small text-secondary">
+                Asignaciones activas
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="22"
+                   height="22"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M7 12l5 5 9-9"/>
+                <path d="M5 5h14v14H5z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Certificados aprobados
+              </div>
+
+              <div class="summary-number">
+                4
+              </div>
+
+              <div class="small text-secondary">
+                Validados por RM
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-red-lt text-red">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="22"
+                   height="22"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Pendientes de revisión
+              </div>
+
+              <div class="summary-number">
+                2
+              </div>
+
+              <div class="small text-secondary">
+                Certificados por validar
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- INFORMACIÓN + ESTADO -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-lg-8">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Información profesional
+              </h3>
+
+              <div class="section-description">
+                Datos del perfil utilizados para búsqueda, asignaciones y Talent Matching.
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="card-body compact-card-body">
+
+            <div class="info-grid info-grid-three">
+
+              <div>
+                <div class="info-label">Correo</div>
+                <div class="info-value">carlos.mendoza@skillbridge.ai</div>
+              </div>
+
+              <div>
+                <div class="info-label">Área</div>
+                <div class="info-value">Backend Engineering</div>
+              </div>
+
+              <div>
+                <div class="info-label">Experiencia</div>
+                <div class="info-value">6 años</div>
+              </div>
+
+              <div>
+                <div class="info-label">Nivel general</div>
+                <div class="info-value">Senior</div>
+              </div>
+
+              <div>
+                <div class="info-label">Disponibilidad declarada</div>
+                <div class="info-value text-success">16 h / semana</div>
+              </div>
+
+              <div>
+                <div class="info-label">Ubicación</div>
+                <div class="info-value">Lima, Perú</div>
+              </div>
+
+            </div>
+
+
+            <div class="profile-summary mt-3">
+
+              <div class="info-label mb-2">
+                Resumen profesional
+              </div>
+
+              <div class="text-secondary">
+                Desarrollador backend con experiencia en diseño de APIs, arquitectura de microservicios,
+                integración cloud y despliegue de soluciones empresariales con Java y Spring Boot.
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-lg-4">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Estado de asignación
+              </h3>
+
+              <div class="section-description">
+                Capacidad actual del colaborador.
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="card-body compact-card-body">
+
+            <div class="status-grid">
+
+              <div class="status-row">
+                <div>
+                  <div class="info-label">Carga</div>
+                  <div class="info-value">2 / 3 asignaciones</div>
+                </div>
+                <span class="badge bg-yellow-lt">Capacidad parcial</span>
+              </div>
+
+              <div class="status-row">
+                <div>
+                  <div class="info-label">Disponibilidad</div>
+                  <div class="info-value">16 h / semana</div>
+                </div>
+                <span class="badge bg-green-lt">Disponible</span>
+              </div>
+
+              <div class="status-row">
+                <div>
+                  <div class="info-label">Proyectos actuales</div>
+                  <div class="info-value">Clínica AI, ERP Cloud</div>
+                </div>
+              </div>
+
+              <div class="status-row">
+                <div>
+                  <div class="info-label">Última actualización</div>
+                  <div class="info-value">25 Ago 2026</div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- HABILIDADES + ASIGNACIONES -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-lg-6">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Habilidades validadas
+              </h3>
+
+              <div class="section-description">
+                Competencias visibles para búsquedas y recomendaciones.
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="card-body p-0">
+
+            <div class="skill-row">
+              <div>
+                <div class="fw-semibold">Java</div>
+                <div class="small text-secondary">Backend</div>
+              </div>
+              <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-blue-lt">Avanzado</span>
+                <span class="badge bg-green-lt">Validado</span>
+              </div>
+            </div>
+
+            <div class="skill-row">
+              <div>
+                <div class="fw-semibold">Spring Boot</div>
+                <div class="small text-secondary">Backend</div>
+              </div>
+              <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-blue-lt">Avanzado</span>
+                <span class="badge bg-green-lt">Validado</span>
+              </div>
+            </div>
+
+            <div class="skill-row">
+              <div>
+                <div class="fw-semibold">AWS</div>
+                <div class="small text-secondary">Cloud</div>
+              </div>
+              <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-blue-lt">Intermedio</span>
+                <span class="badge bg-green-lt">Validado</span>
+              </div>
+            </div>
+
+            <div class="skill-row">
+              <div>
+                <div class="fw-semibold">Docker</div>
+                <div class="small text-secondary">DevOps</div>
+              </div>
+              <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-blue-lt">Intermedio</span>
+                <span class="badge bg-green-lt">Validado</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-lg-6">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Asignaciones actuales
+              </h3>
+
+              <div class="section-description">
+                Participación activa del colaborador en proyectos.
+              </div>
+            </div>
+
+            <a href="#"
+               class="btn btn-sm btn-light">
+              Ver historial
+            </a>
+
+          </div>
+
+
+          <div class="table-responsive">
+
+            <table class="table table-vcenter card-table compact-table mb-0">
+
+              <thead>
+              <tr>
+                <th>Proyecto</th>
+                <th>Rol</th>
+                <th>Horas/sem</th>
+                <th>Estado</th>
+              </tr>
+              </thead>
+
+              <tbody>
+
+              <tr>
+                <td class="fw-semibold">Clínica AI</td>
+                <td>Backend Developer</td>
+                <td>16 h</td>
+                <td><span class="badge bg-green-lt">Activa</span></td>
+              </tr>
+
+              <tr>
+                <td class="fw-semibold">ERP Cloud</td>
+                <td>Backend Developer</td>
+                <td>8 h</td>
+                <td><span class="badge bg-green-lt">Activa</span></td>
+              </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+
+          <div class="card-body compact-card-body border-top">
+
+            <div class="small text-secondary">
+              Las horas semanales comprometidas corresponden a la dedicación de las asignaciones
+              y no a las horas trabajadas por tareas.
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- HISTORIAL + CERTIFICADOS -->
+    <div class="row row-cards">
+
+      <div class="col-lg-5">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Historial profesional
+              </h3>
+
+              <div class="section-description">
+                Experiencia laboral registrada.
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="card-body p-0">
+
+            <div class="timeline-item">
+              <div class="fw-semibold">
+                Senior Backend Developer — SkillBridge AI
+              </div>
+
+              <div class="small text-secondary">
+                2024 - Actualidad
+              </div>
+
+              <div class="small text-secondary mt-1">
+                APIs empresariales, servicios cloud y soporte a proyectos multiplataforma.
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="fw-semibold">
+                Backend Developer — Digital Core Solutions
+              </div>
+
+              <div class="small text-secondary">
+                2021 - 2024
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Microservicios y procesos de integración con Java y Spring.
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="fw-semibold">
+                Software Developer — Innova Tech
+              </div>
+
+              <div class="small text-secondary">
+                2019 - 2021
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Desarrollo y mantenimiento de módulos internos.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="col-lg-7">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Certificados y acreditaciones
+              </h3>
+
+              <div class="section-description">
+                Revisa documentos pendientes y consulta los ya validados o rechazados.
+              </div>
+            </div>
+
+            <a href="#"
+               class="btn btn-sm btn-light">
+              Ver historial
+            </a>
+
+          </div>
+
+
+          <div class="table-responsive">
+
+            <table class="table table-vcenter card-table compact-table mb-0">
+
+              <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Habilidad</th>
+                <th>Estado</th>
+                <th class="text-end">Acción</th>
+              </tr>
+              </thead>
+
+              <tbody>
+
+              <tr>
+                <td>
+                  <div class="fw-semibold">AWS Certified Developer.pdf</div>
+                  <div class="small text-secondary">24 Ago 2026</div>
+                </td>
+                <td>AWS</td>
+                <td><span class="badge bg-yellow-lt">Pendiente</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-primary btn-sm">Revisar</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="fw-semibold">Spring Boot Avanzado.pdf</div>
+                  <div class="small text-secondary">23 Ago 2026</div>
+                </td>
+                <td>Spring Boot</td>
+                <td><span class="badge bg-yellow-lt">Pendiente</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-primary btn-sm">Revisar</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="fw-semibold">Oracle Java Professional.pdf</div>
+                  <div class="small text-secondary">18 Ago 2026</div>
+                </td>
+                <td>Java</td>
+                <td><span class="badge bg-green-lt">Aprobado</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="fw-semibold">Kubernetes Basics.pdf</div>
+                  <div class="small text-secondary">10 Ago 2026</div>
+                </td>
+                <td>Kubernetes</td>
+                <td><span class="badge bg-red-lt">Rechazado</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver motivo</a>
+                </td>
+              </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+
+          <div class="certificate-note">
+
+            <span class="certificate-note-icon">
+              i
+            </span>
+
+            <div class="small text-secondary">
+              Los certificados rechazados no se eliminan. Permanecen visibles para el colaborador
+              junto con el motivo del rechazo; para intentarlo nuevamente debe subir un documento nuevo.
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Detalle de Proyecto RM</title>
+
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-common.css"
+        th:href="@{/css/rm/rm-common.css}">
+
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-detalle-proyecto.css"
+        th:href="@{/css/rm/rm-detalle-proyecto.css}">
+
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-topbar.css"
+        th:href="@{/css/rm/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('proyectos')}">
+    <div class="container-xl">
+      <a href="#" class="brand">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#">Dashboard</a>
+        <a href="#" class="active">Proyectos</a>
+        <a href="#">Colaboradores</a>
+        <a href="#">Asignaciones</a>
+        <a href="#">Talent Matching</a>
+      </nav>
+
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <a href="#" class="breadcrumb-link">Proyectos</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="text-secondary">Clínica AI</span>
+    </nav>
+
+    <div class="card section-card project-header-card mb-4">
+      <div class="card-body">
+        <div class="row g-4 align-items-start">
+
+          <div class="col-lg">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <h1 class="project-page-title mb-0">Clínica AI</h1>
+              <span class="badge bg-green-lt">Activo</span>
+              <span class="badge bg-red-lt text-red">Prioridad alta</span>
+            </div>
+
+            <p class="text-secondary project-description mt-2 mb-2">
+              Plataforma para gestión clínica, integración de información hospitalaria
+              y analítica de datos para apoyar decisiones operativas.
+            </p>
+
+            <div>
+              <span class="badge bg-blue-lt skill-badge">Java</span>
+              <span class="badge bg-blue-lt skill-badge">Spring Boot</span>
+              <span class="badge bg-blue-lt skill-badge">AWS</span>
+              <span class="badge bg-blue-lt skill-badge">Docker</span>
+            </div>
+
+            <div class="project-owner mt-3">
+              Project Manager:
+              <span class="fw-semibold text-body">Juan Pérez</span>
+            </div>
+          </div>
+
+          <div class="col-lg-auto">
+            <div class="d-flex flex-wrap gap-2 header-actions">
+              <a href="#" class="btn btn-primary">Buscar colaborador</a>
+              <a href="#" class="btn btn-outline-primary">Talent Matching</a>
+              <a href="#" class="btn btn-outline-secondary">Ver asignaciones</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+                <path d="M17 11a4 4 0 1 0 0-8"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-label">Equipo</div>
+              <div class="metric-number">6 / 6</div>
+              <div class="small text-secondary">Equipo completo</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-label">Habilidades cubiertas</div>
+              <div class="metric-number">4 / 6</div>
+              <div class="small text-secondary">2 habilidades faltantes</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-label">Pendientes de RM</div>
+              <div class="metric-number">2</div>
+              <div class="small text-secondary">Requieren tu aprobación</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1v22"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+            <div>
+              <div class="metric-label">Presupuesto asignado</div>
+              <div class="metric-number metric-number-budget">S/ 40,000</div>
+              <div class="small text-secondary">Gestionado por el RM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Información general del proyecto</h3>
+          <div class="section-description">
+            Datos principales, prioridad y presupuesto registrado para el proyecto.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="project-info-grid">
+          <div>
+            <div class="info-label">Project Manager</div>
+            <div class="info-value">Juan Pérez</div>
+          </div>
+
+          <div>
+            <div class="info-label">Estado</div>
+            <div class="mt-1"><span class="badge bg-green-lt">Activo</span></div>
+          </div>
+
+          <div>
+            <div class="info-label">Prioridad</div>
+            <div class="mt-1"><span class="badge bg-red-lt text-red">Alta</span></div>
+          </div>
+
+          <div>
+            <div class="info-label">Presupuesto asignado</div>
+            <div class="project-budget-line">
+              <div class="info-value">S/ 40,000</div>
+              <button type="button" class="btn btn-outline-primary btn-sm">
+                Editar presupuesto
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div class="info-label">Fecha de inicio</div>
+            <div class="info-value">01 Sep 2026</div>
+          </div>
+
+          <div>
+            <div class="info-label">Fin estimado</div>
+            <div class="info-value">15 Dic 2026</div>
+          </div>
+        </div>
+
+        <div class="priority-justification mt-4">
+          <div class="info-label mb-2">Justificación de prioridad</div>
+          <div class="priority-message">
+            El proyecto requiere completar su equipo antes de la siguiente fase de integración
+            hospitalaria, por lo que el PM lo ha marcado con prioridad alta.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+
+      <div class="col-lg-8">
+        <div class="card section-card team-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Equipo del proyecto</h3>
+              <div class="section-description">
+                Colaboradores con asignaciones activas, su carga actual y disponibilidad declarada.
+              </div>
+            </div>
+
+            <a href="#" class="btn btn-sm btn-light">Gestionar asignaciones</a>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table mb-0">
+              <thead>
+              <tr>
+                <th>Colaborador</th>
+                <th>Cargo</th>
+                <th>Habilidades</th>
+                <th>Carga</th>
+                <th>Disponibilidad</th>
+                <th class="text-end">Acción</th>
+              </tr>
+              </thead>
+
+              <tbody>
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar team-avatar bg-blue text-white">AT</span>
+                    <span class="fw-semibold">Ana Torres</span>
+                  </div>
+                </td>
+                <td>Backend Developer</td>
+                <td>
+                  <span class="badge bg-blue-lt">Java</span>
+                  <span class="badge bg-blue-lt">Spring Boot</span>
+                </td>
+                <td><span class="badge bg-yellow-lt">2 / 3 asignaciones</span></td>
+                <td><span class="fw-semibold text-success">16 h / semana</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar team-avatar bg-cyan text-white">LP</span>
+                    <span class="fw-semibold">Luis Paredes</span>
+                  </div>
+                </td>
+                <td>Frontend Developer</td>
+                <td>
+                  <span class="badge bg-blue-lt">React</span>
+                  <span class="badge bg-blue-lt">JavaScript</span>
+                </td>
+                <td><span class="badge bg-green-lt">1 / 3 asignaciones</span></td>
+                <td><span class="fw-semibold text-success">24 h / semana</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar team-avatar bg-purple text-white">MR</span>
+                    <span class="fw-semibold">María Ruiz</span>
+                  </div>
+                </td>
+                <td>DevOps Engineer</td>
+                <td>
+                  <span class="badge bg-blue-lt">Docker</span>
+                  <span class="badge bg-blue-lt">AWS</span>
+                </td>
+                <td><span class="badge bg-yellow-lt">2 / 3 asignaciones</span></td>
+                <td><span class="fw-semibold text-success">12 h / semana</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar team-avatar bg-green text-white">PD</span>
+                    <span class="fw-semibold">Pedro Díaz</span>
+                  </div>
+                </td>
+                <td>QA Engineer</td>
+                <td>
+                  <span class="badge bg-blue-lt">Java</span>
+                  <span class="badge bg-blue-lt">MySQL</span>
+                </td>
+                <td><span class="badge bg-green-lt">1 / 3 asignaciones</span></td>
+                <td><span class="fw-semibold text-success">20 h / semana</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar team-avatar bg-orange text-white">EV</span>
+                    <span class="fw-semibold">Elena Vargas</span>
+                  </div>
+                </td>
+                <td>Data Analyst</td>
+                <td>
+                  <span class="badge bg-blue-lt">Python</span>
+                  <span class="badge bg-blue-lt">SQL</span>
+                </td>
+                <td><span class="badge bg-green-lt">1 / 3 asignaciones</span></td>
+                <td><span class="fw-semibold text-success">24 h / semana</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="avatar team-avatar bg-indigo text-white">DC</span>
+                    <span class="fw-semibold">Diego Campos</span>
+                  </div>
+                </td>
+                <td>Cloud Engineer</td>
+                <td>
+                  <span class="badge bg-blue-lt">AWS</span>
+                  <span class="badge bg-blue-lt">Kubernetes</span>
+                </td>
+                <td><span class="badge bg-yellow-lt">2 / 3 asignaciones</span></td>
+                <td><span class="fw-semibold text-success">12 h / semana</span></td>
+                <td class="text-end">
+                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+                </td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pagination-wrap">
+            <div class="text-secondary small">
+              Mostrando 1–6 de 6 colaboradores
+            </div>
+
+            <ul class="pagination pagination-sm m-0"
+                aria-label="Paginación del equipo del proyecto">
+              <li class="page-item disabled">
+                <a class="page-link" href="#" tabindex="-1">Anterior</a>
+              </li>
+
+              <li class="page-item active">
+                <a class="page-link" href="#">1</a>
+              </li>
+
+              <li class="page-item disabled">
+                <a class="page-link" href="#">Siguiente</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Requerimientos de talento</h3>
+              <div class="section-description">
+                Habilidades requeridas y cobertura actual del equipo.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body p-0">
+            <div class="requirement-row p-3 d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">Java</div>
+                <div class="small text-secondary">Nivel avanzado</div>
+              </div>
+              <span class="badge bg-green-lt">Cubierto</span>
+            </div>
+
+            <div class="requirement-row p-3 d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">Spring Boot</div>
+                <div class="small text-secondary">Nivel avanzado</div>
+              </div>
+              <span class="badge bg-green-lt">Cubierto</span>
+            </div>
+
+            <div class="requirement-row p-3 d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">AWS</div>
+                <div class="small text-secondary">Nivel intermedio</div>
+              </div>
+              <span class="badge bg-green-lt">Cubierto</span>
+            </div>
+
+            <div class="requirement-row p-3 d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">Docker</div>
+                <div class="small text-secondary">Nivel intermedio</div>
+              </div>
+              <span class="badge bg-green-lt">Cubierto</span>
+            </div>
+
+            <div class="requirement-row p-3 d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">Kubernetes</div>
+                <div class="small text-secondary">Nivel intermedio</div>
+              </div>
+              <span class="badge bg-yellow-lt">Faltante</span>
+            </div>
+
+            <div class="requirement-row p-3 d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">Python</div>
+                <div class="small text-secondary">Nivel intermedio</div>
+              </div>
+              <span class="badge bg-yellow-lt">Faltante</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Solicitudes y postulaciones</h3>
+          <div class="section-description">
+            Propuestas y solicitudes relacionadas con el proyecto que todavía no han
+            completado su flujo de aprobación.
+          </div>
+        </div>
+
+        <a href="#" class="btn btn-sm btn-light">Ver todas</a>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+          <tr>
+            <th>Colaborador</th>
+            <th>Origen</th>
+            <th>Aprobaciones</th>
+            <th>Estado</th>
+            <th class="text-end">Acción</th>
+          </tr>
+          </thead>
+
+          <tbody>
+          <tr>
+            <td class="fw-semibold">Carlos Mendoza</td>
+            <td>Propuesta del PM</td>
+            <td>
+              <div class="approval-mini">
+                <span class="badge bg-green-lt">PM</span>
+                <span class="badge bg-yellow-lt">RM</span>
+              </div>
+            </td>
+            <td><span class="badge bg-yellow-lt">Pendiente RM</span></td>
+            <td class="text-end">
+              <a href="#" class="btn btn-primary btn-sm">Revisar</a>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="fw-semibold">Sofía Torres</td>
+            <td>Solicitud del colaborador</td>
+            <td>
+              <div class="approval-mini">
+                <span class="badge bg-secondary-lt">PM</span>
+                <span class="badge bg-yellow-lt">RM</span>
+              </div>
+            </td>
+            <td><span class="badge bg-azure-lt">En aprobación</span></td>
+            <td class="text-end">
+              <a href="#" class="btn btn-primary btn-sm">Revisar</a>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="fw-semibold">Luis Ramos</td>
+            <td>Propuesta del RM</td>
+            <td>
+              <div class="approval-mini">
+                <span class="badge bg-blue-lt">PM</span>
+                <span class="badge bg-green-lt">RM</span>
+              </div>
+            </td>
+            <td><span class="badge bg-blue-lt">Pendiente PM</span></td>
+            <td class="text-end">
+              <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+</body>
+</html>

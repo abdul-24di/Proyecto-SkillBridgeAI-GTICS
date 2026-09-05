@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Detalle de asignación pendiente PM</title>
+
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-common.css"
+        th:href="@{/css/rm/rm-common.css}">
+
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-detalle-asignacion-pendiente-pm.css"
+        th:href="@{/css/rm/rm-detalle-asignacion-pendiente-pm.css}">
+
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-topbar.css"
+        th:href="@{/css/rm/rm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}">
+
+    <div class="container-xl">
+      <a href="#" class="brand">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#">Dashboard</a>
+        <a href="#">Proyectos</a>
+        <a href="#">Colaboradores</a>
+        <a href="#" class="active">Asignaciones</a>
+        <a href="#">Talent Matching</a>
+      </nav>
+
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <div class="page-head page-head-stack-mobile">
+      <div>
+        <a href="#" class="text-secondary text-decoration-none small">
+          ← Volver a asignaciones
+        </a>
+
+        <h1 class="page-title mt-2">
+          Detalle de propuesta de asignación
+        </h1>
+
+        <div class="text-secondary">
+          Solicitud #ASG-031 · Propuesta iniciada por Resource Manager
+        </div>
+      </div>
+
+      <span class="badge bg-blue-lt fs-6 status-badge">
+        Pendiente de aprobación del PM
+      </span>
+    </div>
+
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Estado de la propuesta</h3>
+          <div class="section-description">
+            La propuesta fue iniciada por el Resource Manager y necesita la aprobación del Project Manager para activarse.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="approval-flow">
+
+          <div class="approval-step">
+            <span class="approval-dot bg-green-lt text-green">✓</span>
+            <div>
+              <div class="fw-semibold">Resource Manager</div>
+              <div class="text-secondary small">Propuesta creada por Abraham Ramirez</div>
+              <div class="text-secondary small">04 Sep 2026 · 14:32</div>
+            </div>
+          </div>
+
+          <div class="approval-current">
+            <div class="text-secondary small mb-1">Estado actual</div>
+            <span class="badge bg-blue-lt fs-6">Esperando al PM</span>
+          </div>
+
+          <div class="approval-step">
+            <span class="approval-dot bg-blue-lt text-blue">…</span>
+            <div>
+              <div class="fw-semibold">Project Manager</div>
+              <div class="text-secondary small">Pedro Castro</div>
+              <div class="text-secondary small">Pendiente de aprobación</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="row row-cards">
+
+      <div class="col-lg-6">
+
+        <div class="card section-card mb-4">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Proyecto</h3>
+              <div class="section-description">
+                Información del proyecto para el que se propuso al colaborador.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="d-flex justify-content-between gap-3 align-items-start">
+              <div>
+                <h3 class="mb-1">DataHub</h3>
+                <div class="text-secondary">
+                  Plataforma de integración y procesamiento centralizado de datos empresariales.
+                </div>
+              </div>
+
+              <span class="badge bg-green-lt">Activo</span>
+            </div>
+
+            <div class="info-grid mt-4">
+              <div>
+                <div class="label-small">Project Manager</div>
+                <div class="value-strong">Pedro Castro</div>
+              </div>
+
+              <div>
+                <div class="label-small">Equipo actual</div>
+                <div class="value-strong">5 / 6 integrantes</div>
+              </div>
+
+              <div>
+                <div class="label-small">Vacantes</div>
+                <div class="value-strong">1</div>
+              </div>
+
+              <div>
+                <div class="label-small">Presupuesto asignado</div>
+                <div class="value-strong">S/ 42,000</div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <a href="#" class="btn btn-outline-primary btn-sm">Ver proyecto</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card mb-4">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Colaborador propuesto</h3>
+              <div class="section-description">
+                Perfil profesional y disponibilidad semanal del colaborador considerado para la asignación.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+
+            <div class="d-flex align-items-center gap-3 mb-4">
+              <span class="avatar avatar-lg bg-indigo-lt text-indigo">LR</span>
+
+              <div>
+                <h3 class="mb-1">Luis Ramos</h3>
+                <div class="text-secondary">Cloud Engineer</div>
+
+                <div class="mt-2">
+                  <span class="badge bg-blue-lt skill-badge">AWS</span>
+                  <span class="badge bg-blue-lt skill-badge">Docker</span>
+                  <span class="badge bg-blue-lt skill-badge">Kubernetes</span>
+                  <span class="badge bg-blue-lt skill-badge">Terraform</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="info-grid">
+              <div>
+                <div class="label-small">Experiencia</div>
+                <div class="value-strong">7 años</div>
+              </div>
+
+              <div>
+                <div class="label-small">Nivel de experiencia</div>
+                <div class="value-strong">Senior</div>
+              </div>
+
+              <div>
+                <div class="label-small">Carga actual</div>
+                <div class="value-strong">2 / 3 asignaciones</div>
+              </div>
+
+              <div>
+                <div class="label-small">Disponibilidad declarada</div>
+                <div class="value-strong text-success">20 h / semana</div>
+              </div>
+
+              <div>
+                <div class="label-small">Horas semanales comprometidas</div>
+                <div class="value-strong">20 / 40 h</div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <a href="#" class="btn btn-outline-primary btn-sm">Ver perfil completo</a>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Validación de capacidad</h3>
+              <div class="section-description">
+                Comprobación del límite máximo de 40 horas semanales.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="capacity-result capacity-ok">
+              <div class="capacity-icon">✓</div>
+
+              <div>
+                <div class="fw-semibold">Dentro del límite permitido</div>
+                <div class="small text-secondary mt-1">
+                  Si el PM aprueba la propuesta, Luis Ramos quedará con 36 horas semanales comprometidas.
+                </div>
+              </div>
+            </div>
+
+            <div class="small text-secondary mt-3">
+              Las horas semanales representan la dedicación comprometida planificada para esta asignación.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="col-lg-6">
+
+        <div class="card section-card mb-4">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Datos de la propuesta</h3>
+              <div class="section-description">
+                Condiciones definidas por el Resource Manager al proponer la asignación.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="proposal-details-grid">
+              <div class="detail-row">
+                <div class="label-small">Creada por</div>
+                <div class="value-strong">Abraham Ramirez</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="label-small">Fecha de propuesta</div>
+                <div class="value-strong">04 Sep 2026 · 14:32</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="label-small">Rol propuesto</div>
+                <div class="value-strong">Cloud Engineer</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="label-small">Horas semanales de esta propuesta</div>
+                <div class="value-strong text-primary">16 h / semana</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="label-small">Inicio previsto</div>
+                <div class="value-strong">07 Sep 2026</div>
+              </div>
+
+              <div class="detail-row">
+                <div class="label-small">Fin previsto</div>
+                <div class="value-strong">15 Dic 2026</div>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <div class="label-small">Justificación</div>
+              <div class="proposal-note">
+                Se propone incorporar a Luis Ramos para cubrir la necesidad de infraestructura cloud
+                y automatización de despliegues durante la siguiente fase de DataHub.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Impacto en la disponibilidad</h3>
+              <div class="section-description">
+                Horas comprometidas y carga de asignaciones resultantes si el Project Manager aprueba.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+
+            <div class="workload-summary">
+              <div class="workload-metric">
+                <span class="workload-label">Horas comprometidas actuales</span>
+                <strong>20 h</strong>
+              </div>
+
+              <div class="workload-symbol">+</div>
+
+              <div class="workload-metric">
+                <span class="workload-label">Horas de la propuesta</span>
+                <strong class="text-primary">16 h</strong>
+              </div>
+
+              <div class="workload-symbol">=</div>
+
+              <div class="workload-metric">
+                <span class="workload-label">Total comprometido</span>
+                <strong>36 / 40 h</strong>
+              </div>
+            </div>
+
+            <div class="assignment-load-impact">
+              <span class="workload-label">Carga de asignaciones</span>
+              <div class="assignment-load-values">
+                <strong>2 / 3</strong>
+                <span aria-hidden="true">→</span>
+                <strong class="text-primary">3 / 3 asignaciones</strong>
+              </div>
+            </div>
+
+            <div class="mt-4">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-secondary">Uso de capacidad semanal</span>
+                <span class="fw-semibold">36 / 40 h</span>
+              </div>
+
+              <div class="progress workload-progress">
+                <div class="progress-bar bg-blue progress-90"></div>
+              </div>
+
+              <div class="d-flex justify-content-between mt-2">
+                <span class="small text-secondary">90% comprometido</span>
+                <span class="small text-success fw-semibold">4 h disponibles</span>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="label-small mb-2">Distribución semanal</div>
+
+            <div class="assignment-hours">
+              <div class="assignment-hours-row">
+                <div>
+                  <div class="fw-semibold">ERP Cloud</div>
+                  <div class="small text-secondary">Cloud Support</div>
+                </div>
+                <strong>12 h</strong>
+              </div>
+
+              <div class="assignment-hours-row">
+                <div>
+                  <div class="fw-semibold">Plataforma Retail</div>
+                  <div class="small text-secondary">DevOps Engineer</div>
+                </div>
+                <strong>8 h</strong>
+              </div>
+
+              <div class="assignment-hours-row proposed-hours-row">
+                <div>
+                  <div class="fw-semibold">DataHub</div>
+                  <div class="small text-secondary">Propuesta pendiente</div>
+                </div>
+                <strong class="text-primary">+16 h</strong>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="action-bar">
+      <a href="#" class="btn btn-outline-secondary">Volver</a>
+      <a href="#" class="btn btn-outline-primary">Ver proyecto</a>
+    </div>
+
+  </main>
+
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+</body>
+</html>

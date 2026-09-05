@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Detalle de solicitud de colaboradores</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-common.css"
+        th:href="@{/css/rm/rm-common.css}">
+
+  <!-- Estilos específicos de la vista -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-detalle-solicitud-colaboradores.css"
+        th:href="@{/css/rm/rm-detalle-solicitud-colaboradores.css}">
+
+  <!-- Topbar RM compartida -->
+  <link rel="stylesheet"
+        href="../../static/css/rm/rm-topbar.css"
+        th:href="@{/css/rm/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR COMPARTIDA -->
+  <header class="topbar"
+          th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}">
+
+    <!-- Fallback para previsualización directa sin Thymeleaf -->
+    <div class="container-xl">
+
+      <a href="#" class="brand">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="#">Dashboard</a>
+        <a href="#">Proyectos</a>
+        <a href="#">Colaboradores</a>
+        <a href="#" class="active">Asignaciones</a>
+        <a href="#">Talent Matching</a>
+      </nav>
+
+      <div class="user-area">
+
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="page-wrap">
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-wrap"
+         aria-label="Migas de pan">
+
+      <a href="#"
+         class="breadcrumb-link">
+        Asignaciones
+      </a>
+
+      <span class="breadcrumb-separator">
+        ›
+      </span>
+
+      <a href="#"
+         class="breadcrumb-link">
+        Solicitudes de colaboradores
+      </a>
+
+      <span class="breadcrumb-separator">
+        ›
+      </span>
+
+      <span class="text-secondary">
+        SOL-042
+      </span>
+
+    </nav>
+
+
+    <!-- PAGE HEADER -->
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+
+      <div>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h1 class="page-title mb-0">
+            Solicitud de colaboradores
+          </h1>
+
+          <span class="badge bg-yellow-lt fs-6">
+            Pendiente
+          </span>
+        </div>
+
+        <div class="text-secondary mt-2">
+          Solicitud #SOL-042 · Enviada el 04 Sep 2026 por Carlos Méndez
+        </div>
+
+      </div>
+
+      <a href="#"
+         class="btn btn-outline-secondary">
+        Ver proyecto
+      </a>
+
+    </div>
+
+
+    <!-- RESUMEN DEL PROYECTO -->
+    <div class="card section-card mb-4">
+
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">
+            Proyecto solicitante
+          </h3>
+
+          <div class="section-description">
+            Proyecto desde el que el Project Manager generó el requerimiento de personal.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        <div class="row g-4 align-items-start">
+
+          <div class="col-lg">
+
+            <h2 class="mb-2">
+              Sistema de Inventario
+            </h2>
+
+            <div class="text-secondary project-description">
+              Sistema integral de gestión de inventario con seguimiento en tiempo real,
+              alertas automáticas y reportes analíticos.
+            </div>
+
+          </div>
+
+
+          <div class="col-lg-auto">
+
+            <div class="project-meta">
+
+              <div>
+                <div class="info-label">
+                  Project Manager
+                </div>
+
+                <div class="info-value">
+                  Carlos Méndez
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Estado del proyecto
+                </div>
+
+                <div class="mt-1">
+                  <span class="badge bg-green-lt">
+                    Activo
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Prioridad
+                </div>
+
+                <div class="mt-1">
+                  <span class="badge bg-red-lt text-red">
+                    Alta
+                  </span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div class="row row-cards mb-4 request-layout">
+
+      <!-- REQUERIMIENTO -->
+      <div class="col-lg-6">
+
+        <div class="card section-card request-card">
+
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">
+                Requerimiento del Project Manager
+              </h3>
+
+              <div class="section-description">
+                Información enviada por el PM para que el Resource Manager identifique
+                colaboradores adecuados para el proyecto.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body request-card-body">
+
+            <div class="request-number">
+
+              <div class="info-label">
+                Número de colaboradores solicitados
+              </div>
+
+              <div class="request-number-value">
+                2
+              </div>
+
+            </div>
+
+
+            <div class="mt-4">
+
+              <div class="info-label mb-2">
+                Habilidades requeridas
+              </div>
+
+              <div>
+                <span class="badge bg-blue-lt skill-chip">Java</span>
+                <span class="badge bg-blue-lt skill-chip">Spring Boot</span>
+                <span class="badge bg-blue-lt skill-chip">React</span>
+                <span class="badge bg-blue-lt skill-chip">MySQL</span>
+                <span class="badge bg-blue-lt skill-chip">Docker</span>
+                <span class="badge bg-blue-lt skill-chip">AWS</span>
+              </div>
+
+            </div>
+
+
+            <div class="mt-4">
+
+              <div class="info-label mb-2">
+                Perfiles requeridos
+              </div>
+
+              <div class="requested-profile-list">
+
+                <div class="requested-profile">
+                  <div>
+                    <div class="fw-semibold">
+                      Perfil 1 · DevOps / Backend
+                    </div>
+
+                    <div class="small text-secondary">
+                      Prioridad en Docker, AWS y despliegue de servicios.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="requested-profile">
+                  <div>
+                    <div class="fw-semibold">
+                      Perfil 2 · Backend Developer
+                    </div>
+
+                    <div class="small text-secondary">
+                      Experiencia en Java, Spring Boot y MySQL.
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="alert alert-info mt-4 mb-0 request-hours-note">
+              Las horas semanales de cada colaborador se definirán al momento de crear
+              la propuesta de asignación. Cada colaborador puede tener como máximo
+              40 horas semanales comprometidas entre todas sus asignaciones.
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- SITUACIÓN DEL PROYECTO -->
+      <div class="col-lg-6">
+
+        <div class="card section-card mb-4">
+
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">
+                Situación actual del proyecto
+              </h3>
+
+              <div class="section-description">
+                Capacidad del equipo y datos generales que ayudan al RM a atender el requerimiento.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+
+            <div class="info-grid">
+
+              <div>
+                <div class="info-label">
+                  Equipo actual
+                </div>
+
+                <div class="info-value info-value-large">
+                  5 / 8
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Vacantes actuales
+                </div>
+
+                <div class="info-value info-value-large">
+                  3
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Presupuesto asignado
+                </div>
+
+                <div class="info-value">
+                  S/ 52,000
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Colaboradores solicitados
+                </div>
+
+                <div class="info-value">
+                  2
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Inicio
+                </div>
+
+                <div class="info-value">
+                  01 Ago 2026
+                </div>
+              </div>
+
+              <div>
+                <div class="info-label">
+                  Fin estimado
+                </div>
+
+                <div class="info-value">
+                  15 Dic 2026
+                </div>
+              </div>
+
+            </div>
+
+
+            <div class="capacity-check mt-4">
+
+              <div class="capacity-check-icon">
+                ✓
+              </div>
+
+              <div>
+                <div class="fw-semibold">
+                  La solicitud puede ser atendida
+                </div>
+
+                <div class="small text-secondary mt-1">
+                  El proyecto tiene 3 vacantes y la solicitud requiere 2 colaboradores.
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="card section-card">
+
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">
+                Mensaje del Project Manager
+              </h3>
+
+              <div class="section-description">
+                Indicaciones adicionales para priorizar la búsqueda de colaboradores.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="message-box">
+              Necesito alguien con experiencia en Docker con prioridad para el despliegue
+              de la próxima semana. Para el segundo perfil se puede priorizar experiencia
+              backend con Java y Spring Boot.
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ATENDER SOLICITUD -->
+    <div class="card section-card">
+
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">
+            Atender solicitud
+          </h3>
+
+          <div class="section-description">
+            Elige el método para encontrar candidatos. Al iniciar la búsqueda,
+            la solicitud puede pasar al estado “En atención”.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        <div class="row g-3">
+
+          <!-- BÚSQUEDA MANUAL -->
+          <div class="col-md-6">
+
+            <div class="action-choice">
+
+              <div class="d-flex gap-3 align-items-start">
+
+                <div class="summary-icon bg-blue-lt text-blue">
+
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       width="23"
+                       height="23"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linecap="round"
+                       stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="7"/>
+                    <path d="m20 20-3.5-3.5"/>
+                  </svg>
+
+                </div>
+
+                <div class="flex-fill">
+
+                  <h3 class="mb-1">
+                    Buscar colaboradores
+                  </h3>
+
+                  <div class="text-secondary mb-3">
+                    Filtra manualmente por habilidades, disponibilidad semanal,
+                    cantidad de asignaciones, nivel de experiencia y certificados validados.
+                  </div>
+
+                  <a href="#"
+                     class="btn btn-primary">
+                    Buscar manualmente
+                  </a>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- TALENT MATCHING -->
+          <div class="col-md-6">
+
+            <div class="action-choice">
+
+              <div class="d-flex gap-3 align-items-start">
+
+                <div class="summary-icon bg-azure-lt text-azure">
+
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       width="23"
+                       height="23"
+                       viewBox="0 0 24 24"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="2"
+                       stroke-linecap="round"
+                       stroke-linejoin="round">
+                    <path d="M12 3a4 4 0 0 0-4 4v1a4 4 0 0 0-2 7.5A4 4 0 0 0 10 21h2"/>
+                    <path d="M12 3a4 4 0 0 1 4 4v1a4 4 0 0 1 2 7.5A4 4 0 0 1 14 21h-2"/>
+                    <path d="M12 7v10"/>
+                    <path d="M9 10h3"/>
+                    <path d="M12 14h3"/>
+                  </svg>
+
+                </div>
+
+                <div class="flex-fill">
+
+                  <h3 class="mb-1">
+                    Usar Talent Matching
+                  </h3>
+
+                  <div class="text-secondary mb-3">
+                    Obtén recomendaciones considerando habilidades requeridas,
+                    habilidades faltantes, disponibilidad semanal, cantidad de asignaciones,
+                    experiencia y certificaciones validadas.
+                  </div>
+
+                  <a href="#"
+                     class="btn btn-outline-primary">
+                    Abrir Talent Matching
+                  </a>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="process-note mt-4">
+
+          <div class="process-note-icon">
+            i
+          </div>
+
+          <div class="small text-secondary">
+            Atender esta solicitud no asigna directamente a ningún colaborador.
+            El RM deberá crear las propuestas correspondientes y estas seguirán
+            el flujo de aprobación definido para las asignaciones.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+</body>
+</html>

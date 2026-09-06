@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Detalle de Proyecto</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-detalle-proyecto.css" th:href="@{/css/col-css/col-detalle-proyecto.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-foro.css" th:href="@{/css/col-css/col-foro.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('proyectos')}">
+        <div class="container-xl">
+            <a href="col-dashboard.html" class="brand">SkillBridge AI</a>
+            <nav class="main-nav" aria-label="Navegación principal">
+                <a href="col-dashboard.html">Dashboard</a>
+                <a href="col-proyectos.html" class="active">Mis proyectos</a>
+                <a href="col-foros.html">Foros</a>
+                <a href="col-asistente.html">Asistente</a>
+                <a href="col-perfil.html">Perfil Profesional</a>
+                <a href="col-explorar.html">Explorar</a>
+            </nav>
+            <div class="user-area">
+                <a href="col-configuraciones.html" class="settings-link" aria-label="Configuraciones">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
+                    <span class="settings-text">Configuraciones</span>
+                </a>
+                <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+                    <span class="badge bg-red notification-dot"></span>
+                </a>
+                <span class="avatar avatar-sm user-avatar">PK</span>
+                <div class="user-meta"><div class="fw-semibold">Paweł Kuna</div><div class="small">Colaborador</div></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-wrap">
+
+        <div class="breadcrumb-wrap">
+            <a href="col-proyectos.html" class="breadcrumb-link" th:href="@{/colaborador/proyectos}">Mis proyectos</a>
+            <span class="breadcrumb-separator">›</span>
+            <span class="text-secondary">Proyecto A</span>
+        </div>
+
+        <div class="project-hero card section-card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h1 class="page-title mb-0">Proyecto A</h1>
+                            <span class="badge bg-green-lt">Proyecto activo</span>
+                        </div>
+                        <div class="text-secondary mt-2">Project Manager: María López</div>
+                    </div>
+                    <div class="text-secondary d-flex align-items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M19 8v6M16 11h6"/></svg>
+                        8 integrantes
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs project-tabs mb-4" id="projectTabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-resumen" type="button">Resumen</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-integrantes" type="button">Integrantes</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-actividades" type="button">Actividades</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-documentos" type="button">Documentos</button></li>
+            <li class="nav-item"><button class="nav-link" id="tabForoBtn" data-bs-toggle="tab" data-bs-target="#tab-foro" type="button">Foro</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-chat" type="button">Chat</button></li>
+        </ul>
+
+        <div class="tab-content">
+
+            <!-- ===== RESUMEN ===== -->
+            <div class="tab-pane fade show active" id="tab-resumen" role="tabpanel">
+                <div class="row row-cards">
+                    <div class="col-lg-4">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header"><h3 class="card-title mb-1">Mi participación</h3></div>
+                            <div class="card-body text-center">
+                                <span class="avatar avatar-xl mb-3 member-avatar">PK</span>
+                                <div class="fw-semibold">Backend Developer</div>
+                                <div class="text-secondary small mb-3">Tu rol en este proyecto</div>
+                                <div class="info-label mb-1">Habilidades</div>
+                                <div>
+                                    <span class="badge bg-blue-lt me-1 mb-1">Java</span>
+                                    <span class="badge bg-blue-lt me-1 mb-1">Spring Boot</span>
+                                    <span class="badge bg-blue-lt mb-1">MySQL</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header"><h3 class="card-title mb-1">Descripción del proyecto</h3></div>
+                            <div class="card-body">
+                                <p class="text-secondary small">Plataforma interna de gestión de inventario con alertas, trazabilidad y reportes operativos para las distintas sedes.</p>
+                                <div class="info-grid">
+                                    <div><div class="info-label">Project Manager</div><div class="info-value">María López</div></div>
+                                    <div><div class="info-label">Integrantes</div><div class="info-value">8</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header"><h3 class="card-title mb-1">Progreso del proyecto</h3></div>
+                            <div class="card-body text-center">
+                                <div class="info-grid mb-3 text-start">
+                                    <div><div class="info-label">Inicio</div><div class="info-value">01 Jun 2026</div></div>
+                                    <div><div class="info-label">Fin estimado</div><div class="info-value">20 Dic 2026</div></div>
+                                </div>
+                                <div class="progress-ring mx-auto" style="--value:78">
+                                    <div class="progress-ring-value">78%<small>Completado</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== INTEGRANTES ===== -->
+            <div class="tab-pane fade" id="tab-integrantes" role="tabpanel">
+                <div class="card section-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                            <div><h3 class="card-title mb-0">Integrantes del proyecto</h3><div class="text-secondary small">4 personas</div></div>
+                            <input type="text" id="memberSearch" class="form-control" style="max-width:260px" placeholder="Buscar colaborador...">
+                        </div>
+                        <div class="row row-cards" id="memberGrid">
+                            <div class="col-sm-6 col-lg-3 member-grid-item" data-member-name="Paweł Kuna" data-member-role="Backend Developer Colaborador">
+                                <div class="card member-card h-100"><div class="card-body">
+                                    <span class="avatar avatar-xl mb-2 member-avatar">PK</span>
+                                    <div class="fw-semibold">Paweł Kuna</div>
+                                    <div class="text-secondary small">Backend Developer</div>
+                                    <span class="badge bg-blue-lt mt-2">Colaborador</span>
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-3" data-bs-toggle="modal" data-bs-target="#memberProfileModal" data-col-profile-id="pawel">Ver Perfil</button>
+                                </div></div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3 member-grid-item" data-member-name="Jeffie Lewzey" data-member-role="Full Stack Project Manager">
+                                <div class="card member-card h-100"><div class="card-body">
+                                    <span class="avatar avatar-xl mb-2 member-avatar">JL</span>
+                                    <div class="fw-semibold">Jeffie Lewzey</div>
+                                    <div class="text-secondary small">Full Stack</div>
+                                    <div class="fw-semibold text-green mt-2">Project Manager</div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-3" data-bs-toggle="modal" data-bs-target="#memberProfileModal" data-col-profile-id="jeffie">Ver Perfil</button>
+                                </div></div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3 member-grid-item" data-member-name="Mallory Hulme" data-member-role="Frontend Developer Colaborador">
+                                <div class="card member-card h-100"><div class="card-body">
+                                    <span class="avatar avatar-xl mb-2 member-avatar">MH</span>
+                                    <div class="fw-semibold">Mallory Hulme</div>
+                                    <div class="text-secondary small">Frontend Developer</div>
+                                    <span class="badge bg-blue-lt mt-2">Colaborador</span>
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-3" data-bs-toggle="modal" data-bs-target="#memberProfileModal" data-col-profile-id="mallory">Ver Perfil</button>
+                                </div></div>
+                            </div>
+                            <div class="col-sm-6 col-lg-3 member-grid-item" data-member-name="Dunn Slane" data-member-role="UI/UX Designer Colaborador">
+                                <div class="card member-card h-100"><div class="card-body">
+                                    <span class="avatar avatar-xl mb-2 member-avatar">DS</span>
+                                    <div class="fw-semibold">Dunn Slane</div>
+                                    <div class="text-secondary small">UI/UX Designer</div>
+                                    <span class="badge bg-blue-lt mt-2">Colaborador</span>
+                                    <button type="button" class="btn btn-outline-primary btn-sm w-100 mt-3" data-bs-toggle="modal" data-bs-target="#memberProfileModal" data-col-profile-id="dunn">Ver Perfil</button>
+                                </div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ACTIVIDADES ===== -->
+            <div class="tab-pane fade" id="tab-actividades" role="tabpanel">
+                <div class="card section-card">
+                    <div class="card-header section-header">
+                        <div><h3 class="card-title mb-1">Actividades</h3><div class="section-description">Haz clic en una actividad para ver el detalle. Si es tuya y aún no la enviaste a revisión, podrás adjuntar evidencia.</div></div>
+                    </div>
+                    <div class="card-body activity-filters">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-5"><label class="form-label">Buscar</label><input id="activitySearch" class="form-control" placeholder="Buscar actividad..."></div>
+                            <div class="col-md-3">
+                                <label class="form-label">Estado</label>
+                                <select id="activityStatusFilter" class="form-select">
+                                    <option value="all">Todos</option><option>Pendiente</option><option>En progreso</option><option>En revisión</option><option>Completa</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Asignado</label>
+                                <select id="activityAssignedFilter" class="form-select">
+                                    <option value="all">Todos</option><option>Tú</option><option>Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table mb-0" id="activityTable">
+                            <thead><tr><th>Actividad</th><th>Asignado</th><th>Prioridad</th><th>Estado</th><th></th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== DOCUMENTOS ===== -->
+            <div class="tab-pane fade" id="tab-documentos" role="tabpanel">
+                <div class="card section-card">
+                    <div class="card-header section-header">
+                        <div><h3 class="card-title mb-1">Documentos</h3><div class="section-description">Archivos compartidos del proyecto.</div></div>
+                        <button type="button" class="btn btn-sm btn-light section-action" data-bs-toggle="modal" data-bs-target="#uploadDocModal">+ Subir archivo</button>
+                    </div>
+                    <div class="card-body document-filters">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8"><label class="form-label">Buscar</label><input id="docSearch" class="form-control" placeholder="Buscar documento..."></div>
+                            <div class="col-md-4">
+                                <label class="form-label">Categoría</label>
+                                <select id="docCategoryFilter" class="form-select">
+                                    <option value="all">Todos</option><option>PDF</option><option>Excel</option><option>Diseño</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table mb-0" id="docTable">
+                            <thead><tr><th>Nombre</th><th>Tipo</th><th>Subido por</th><th>Fecha</th><th class="text-end">Acción</th></tr></thead>
+                            <tbody>
+                            <tr data-doc-type="PDF">
+                                <td class="fw-semibold">Requerimientos.pdf</td><td>PDF</td><td>Paweł</td><td>02 Jun 2026</td>
+                                <td class="text-end"><a href="#" class="btn btn-icon btn-sm btn-outline-secondary" aria-label="Descargar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 11l5 5 5-5"/><path d="M12 4v12"/></svg></a></td>
+                            </tr>
+                            <tr data-doc-type="Excel">
+                                <td class="fw-semibold">Cronograma.xlsx</td><td>Excel</td><td>Juan</td><td>05 Jun 2026</td>
+                                <td class="text-end"><a href="#" class="btn btn-icon btn-sm btn-outline-secondary" aria-label="Descargar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 11l5 5 5-5"/><path d="M12 4v12"/></svg></a></td>
+                            </tr>
+                            <tr data-doc-type="PDF">
+                                <td class="fw-semibold">Manual técnico.pdf</td><td>PDF</td><td>Pedro</td><td>10 Jun 2026</td>
+                                <td class="text-end"><a href="#" class="btn btn-icon btn-sm btn-outline-secondary" aria-label="Descargar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 11l5 5 5-5"/><path d="M12 4v12"/></svg></a></td>
+                            </tr>
+                            <tr data-doc-type="Diseño">
+                                <td class="fw-semibold">Mockup_v2.fig</td><td>Diseño</td><td>Juan</td><td>15 Jun 2026</td>
+                                <td class="text-end"><a href="#" class="btn btn-icon btn-sm btn-outline-secondary" aria-label="Descargar"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M7 11l5 5 5-5"/><path d="M12 4v12"/></svg></a></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== FORO ===== -->
+            <div class="tab-pane fade" id="tab-foro" role="tabpanel">
+                <div class="card section-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-1">
+                            <div><h3 class="card-title mb-1">Foro del proyecto A</h3><div class="text-secondary small">Espacio para compartir dudas, ideas y conocimientos.</div></div>
+                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newPostModal">+ Nueva publicación</button>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 my-3">
+                            <div class="input-icon" style="max-width:320px">
+                                <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
+                                <input type="text" class="form-control" id="projectForumSearch" placeholder="Buscar publicaciones...">
+                            </div>
+                            <div class="d-flex gap-2">
+                                <select class="form-select form-select-sm"><option>Todas</option><option>Mis publicaciones</option><option>Publicaciones de otros</option></select>
+                                <select class="form-select form-select-sm"><option>Más recientes</option><option>Más respuestas</option></select>
+                            </div>
+                        </div>
+                        <div id="projectForumList">
+                            <div class="forum-post-card">
+                                <div class="forum-post-title">¿Cómo implementaremos la autenticación?</div>
+                                <div class="forum-post-meta">Paweł Kuna · hace 2 horas</div>
+                                <div class="forum-post-tags"><span class="badge bg-blue-lt me-1">#Seguridad</span><span class="badge bg-blue-lt me-1">#Backend</span><span class="badge bg-blue-lt">#Autenticación</span></div>
+                                <div class="forum-post-replies">5 respuestas</div>
+                            </div>
+                            <div class="forum-post-card">
+                                <div class="forum-post-title">Recomendaciones para la estructura de la BD</div>
+                                <div class="forum-post-meta">Juan Pérez · hace 5 horas</div>
+                                <div class="forum-post-tags"><span class="badge bg-blue-lt me-1">#BaseDeDatos</span><span class="badge bg-blue-lt">#Arquitectura</span></div>
+                                <div class="forum-post-replies">3 respuestas</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== CHAT ===== -->
+            <div class="tab-pane fade" id="tab-chat" role="tabpanel">
+                <div class="card section-card chat-card">
+                    <div class="card-body p-0">
+                        <div class="chat-layout">
+                            <aside class="chat-sidebar">
+                                <div class="chat-sidebar-search"><input type="text" class="form-control form-control-sm" placeholder="Buscar..."></div>
+                                <div class="chat-contact-list">
+                                    <button type="button" class="chat-contact active"><span class="avatar avatar-sm member-avatar">PK</span><span>Paweł Kuna</span></button>
+                                    <button type="button" class="chat-contact"><span class="avatar avatar-sm member-avatar">JL</span><span>Jeffie Lewzey</span></button>
+                                    <button type="button" class="chat-contact"><span class="avatar avatar-sm member-avatar">MH</span><span>Mallory Hulme</span></button>
+                                    <button type="button" class="chat-contact"><span class="avatar avatar-sm member-avatar">DS</span><span>Dunn Slane</span></button>
+                                    <button type="button" class="chat-contact"><span class="avatar avatar-sm member-avatar">G</span><div><div>General</div><div class="text-secondary small">8 integrantes</div></div></button>
+                                </div>
+                            </aside>
+                            <section class="chat-panel">
+                                <div class="chat-panel-header">Chat del proyecto A</div>
+                                <div class="chat-messages" id="chatMessages">
+                                    <div class="chat-msg chat-msg-own"><div class="chat-bubble"><div class="chat-bubble-author">Paweł Kuna<span class="chat-bubble-time">09:32</span></div>Hola, ¿ya revisaron el documento?</div></div>
+                                    <div class="chat-msg"><div class="chat-bubble"><div class="chat-bubble-author">Mallory Hulme<span class="chat-bubble-time">09:34</span></div>Sí, lo acabo de revisar</div></div>
+                                    <div class="chat-msg"><div class="chat-bubble"><div class="chat-bubble-author">Dunn Slane<span class="chat-bubble-time">09:34</span></div>Estoy en eso</div></div>
+                                </div>
+                                <div class="chat-input-row">
+                                    <input type="text" class="form-control" id="chatInput" placeholder="Escribe un mensaje...">
+                                    <button type="button" class="btn btn-primary btn-icon" id="chatSendBtn" aria-label="Enviar"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg></button>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="action-bar">
+            <a href="col-proyectos.html" class="btn btn-outline-secondary" th:href="@{/colaborador/proyectos}">Volver a Mis Proyectos</a>
+        </div>
+
+    </main>
+</div>
+
+<!-- MODAL: PERFIL DE INTEGRANTE -->
+<div class="modal modal-blur fade col-modal" id="memberProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="memberModalName">—</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                <div class="text-secondary" id="memberModalRoleSeniority">—</div>
+                <div class="availability-pill">
+                    <span class="availability-dot bg-green" id="memberModalAvailabilityDot"></span>
+                    <span id="memberModalAvailabilityLabel">Disponible</span>
+                    <span class="text-secondary small ms-1" id="memberModalAvailabilityText"></span>
+                </div>
+            </div>
+            <hr>
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="info-label mb-1">Sobre</div>
+                    <p class="small text-secondary" id="memberModalBio"></p>
+                    <div class="info-label mb-1">Experiencia</div>
+                    <ul class="small text-secondary ps-3" id="memberModalExperience"></ul>
+                    <div class="info-label mb-1 mt-3">Proyectos destacados</div>
+                    <ul class="small text-secondary ps-3" id="memberModalHighlights"></ul>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-label mb-1">Habilidades</div>
+                    <div class="mb-3" id="memberModalSkills"></div>
+                    <div class="info-label mb-1">Educación</div>
+                    <div class="small text-secondary" id="memberModalEducation"></div>
+                </div>
+            </div>
+            <hr>
+            <div class="info-label mb-2">En este proyecto</div>
+            <div class="info-grid">
+                <div><div class="info-label">Rol</div><div class="info-value" id="memberModalInRol"></div></div>
+                <div><div class="info-label">Especialidad</div><div class="info-value" id="memberModalInEspecialidad"></div></div>
+                <div><div class="info-label">Incorporación</div><div class="info-value" id="memberModalInIncorporacion"></div></div>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cerrar</button></div>
+    </div></div>
+</div>
+
+<!-- MODAL: DETALLE / EDICIÓN DE ACTIVIDAD -->
+<div class="modal modal-blur fade col-modal" id="activityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="activityModalTitle">—</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body">
+            <div id="activityReturnedAlert" class="alert alert-warning d-none">
+                <div class="fw-semibold">Esta actividad fue devuelta por el PM</div>
+                <div class="small" id="activityReturnedText"></div>
+            </div>
+            <div class="info-grid mb-3">
+                <div><div class="info-label">Estado</div><div class="info-value"><span class="badge" id="activityModalEstado"></span></div></div>
+                <div><div class="info-label">Prioridad</div><div class="info-value"><span class="badge" id="activityModalPrioridad"></span></div></div>
+                <div><div class="info-label">Asignado a</div><div class="info-value" id="activityModalAsignado"></div></div>
+                <div><div class="info-label">Fecha límite</div><div class="info-value" id="activityModalFecha"></div></div>
+            </div>
+            <div class="info-label mb-1">Descripción</div>
+            <p class="text-secondary small" id="activityModalDescripcion"></p>
+
+            <div id="activityReadonlyBlock">
+                <div class="info-label mb-1">Evidencias</div>
+                <div class="mb-3" id="activityModalEvidenciasReadonly"></div>
+                <div class="info-label mb-1">Comentarios</div>
+                <p class="text-secondary small" id="activityModalComentarioReadonly"></p>
+                <div class="alert alert-info small mb-0" id="activityInReviewNotice" style="display:none">Tu actividad está en revisión por el Project Manager.</div>
+            </div>
+
+            <div id="activityEditableBlock" style="display:none">
+                <div class="mb-3">
+                    <label class="form-label">Evidencias</label>
+                    <div id="activityModalEvidenciasEditable" class="mb-2"></div>
+                    <input type="file" class="form-control" id="activityEvidenceInput">
+                    <div class="form-hint">Adjunta capturas, documentos o enlaces que respalden tu avance.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Comentarios</label>
+                    <textarea class="form-control" id="activityCommentInput" rows="3" placeholder="Describe tu avance o deja una nota para el PM..."></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" id="activityFooterReadonly"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cerrar</button></div>
+        <div class="modal-footer" id="activityFooterEdit" style="display:none">
+            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-outline-primary" type="button" id="activitySaveDraftBtn">Guardar borrador</button>
+            <button class="btn btn-primary" type="button" id="activitySubmitReviewBtn">Enviar a revisión</button>
+        </div>
+    </div></div>
+</div>
+
+<!-- MODAL: SUBIR ARCHIVO -->
+<div class="modal modal-blur fade col-modal" id="uploadDocModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Subir archivo</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body">
+            <label class="form-label">Archivo</label>
+            <input type="file" class="form-control mb-3">
+            <label class="form-label">Categoría</label>
+            <select class="form-select"><option>PDF</option><option>Excel</option><option>Diseño</option><option>Otro</option></select>
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="button" data-bs-dismiss="modal">Subir</button></div>
+    </div></div>
+</div>
+
+<!-- MODAL: NUEVA PUBLICACIÓN (dentro de un proyecto) -->
+<div class="modal modal-blur fade col-modal" id="newPostModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Nueva publicación</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body">
+            <label class="form-label">Título *</label>
+            <input type="text" class="form-control mb-3" placeholder="Introduce un título">
+            <label class="form-label">Contenido *</label>
+            <textarea class="form-control mb-3" rows="3"></textarea>
+            <label class="form-label">Tags</label>
+            <input type="text" class="form-control mb-3" placeholder="Escribe un tag...">
+            <button type="button" class="btn btn-link btn-sm p-0">📎 Adjuntar archivo</button>
+        </div>
+        <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="button" data-bs-dismiss="modal">Publicar</button></div>
+    </div></div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+<script src="../../static/js/col-js/col-detalle-proyecto.js" th:src="@{/js/col-js/col-detalle-proyecto.js}"></script>
+</body>
+</html>

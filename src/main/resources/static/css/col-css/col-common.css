@@ -1,0 +1,254 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   ESTILOS COMPARTIDOS - COLABORADOR
+   ========================================================= */
+
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    overflow-x: hidden;
+    background: #f3f6fa;
+}
+
+img,
+svg {
+    max-width: 100%;
+}
+
+.app-shell {
+    min-height: 100vh;
+}
+
+.page-wrap {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    margin: 0 auto;
+    padding: 28px clamp(16px, 3vw, 48px) 42px;
+}
+
+.breadcrumb-wrap {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .55rem;
+    margin-bottom: 16px;
+    font-size: .86rem;
+}
+
+.breadcrumb-link {
+    color: var(--tblr-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    color: #9aa5b2;
+}
+
+.page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 22px;
+}
+
+.page-title {
+    margin: 0 0 .25rem;
+    color: #182433;
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -.4px;
+}
+
+.section-card {
+    overflow: hidden;
+    border: 1px solid #e1e5eb;
+    box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.section-header {
+    min-height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 14px 18px;
+    border-bottom: 0;
+    color: #fff;
+    background: linear-gradient(145deg, #24547d 0%, #2565a5 48%, #2b78c5 100%);
+}
+
+.section-header .card-title {
+    color: #fff;
+    font-weight: 700;
+}
+
+.section-description {
+    max-width: 850px;
+    color: rgba(255, 255, 255, .74);
+    font-size: .8rem;
+    line-height: 1.45;
+}
+
+.info-label {
+    color: #8a94a6;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .035em;
+    text-transform: uppercase;
+}
+
+.info-value {
+    margin-top: .15rem;
+    color: #303846;
+    font-weight: 700;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.15rem;
+}
+
+.metric-card {
+    min-height: 108px;
+    border: 1px solid #e3e7ee;
+    box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.metric-label {
+    color: #64748b;
+    font-size: .72rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: .025em;
+    text-transform: uppercase;
+}
+
+.metric-number {
+    margin-top: .1rem;
+    color: #182433;
+    font-size: 1.55rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.card-body,
+.section-header > *,
+.page-head > * {
+    min-width: 0;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.col-modal .modal-content {
+    overflow: hidden;
+    border: 1px solid rgba(36, 84, 125, .2);
+    border-radius: 12px;
+    box-shadow: 0 24px 70px rgba(17, 31, 49, .32);
+}
+
+.col-modal .modal-header {
+    padding: 1rem 1.2rem;
+    color: #ffffff;
+    background: linear-gradient(145deg, #24547d 0%, #2565a5 48%, #2b78c5 100%);
+    border-bottom: 0;
+}
+
+.col-modal .modal-header .modal-title,
+.col-modal .modal-header .text-secondary {
+    color: #ffffff !important;
+}
+
+.col-modal .modal-header .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: .82;
+}
+
+.col-modal .modal-body {
+    padding: 1.2rem;
+    background: #ffffff;
+}
+
+.col-modal .modal-footer {
+    padding: .9rem 1.2rem;
+    background: #f8fafc;
+    border-top-color: #e5eaf0;
+}
+
+.modal-backdrop.show {
+    opacity: .64;
+}
+
+.empty-state {
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: #768395;
+}
+
+/* Anillo de progreso reutilizable (dashboard + resumen de proyecto) */
+.progress-ring {
+    --value: 0;
+    width: 96px;
+    height: 96px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: conic-gradient(var(--tblr-primary) calc(var(--value) * 1%), #e6ecf3 0);
+}
+
+.progress-ring::before {
+    content: "";
+    position: absolute;
+    inset: 9px;
+    background: #fff;
+    border-radius: 50%;
+}
+
+.progress-ring-value {
+    position: relative;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #182433;
+    text-align: center;
+}
+
+.progress-ring-value small {
+    display: block;
+    margin-top: 2px;
+    font-size: .6rem;
+    font-weight: 700;
+    color: #8a94a6;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+
+@media (max-width: 767px) {
+    .page-wrap {
+        padding-top: 20px;
+        padding-bottom: 32px;
+    }
+
+    .page-head.page-head-stack-mobile {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+}

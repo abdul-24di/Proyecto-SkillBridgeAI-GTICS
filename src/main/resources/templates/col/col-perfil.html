@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Perfil Profesional</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-perfil.css" th:href="@{/css/col-css/col-perfil.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('perfil')}">
+        <div class="container-xl">
+            <a href="col-dashboard.html" class="brand">SkillBridge AI</a>
+            <nav class="main-nav" aria-label="Navegación principal">
+                <a href="col-dashboard.html">Dashboard</a>
+                <a href="col-proyectos.html">Mis proyectos</a>
+                <a href="col-foros.html">Foros</a>
+                <a href="col-asistente.html">Asistente</a>
+                <a href="col-perfil.html" class="active">Perfil Profesional</a>
+                <a href="col-explorar.html">Explorar</a>
+            </nav>
+            <div class="user-area">
+                <span class="avatar avatar-sm user-avatar">PK</span>
+                <div class="user-meta">
+                    <div class="fw-semibold">Paweł Kuna</div>
+                    <div class="small">Colaborador</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-wrap">
+
+        <div class="page-head page-head-stack-mobile">
+            <div>
+                <h1 class="page-title">Perfil Profesional</h1>
+                <div class="text-secondary">Gestiona la información que otros colaboradores y responsables pueden consultar sobre tu experiencia y habilidades.</div>
+            </div>
+        </div>
+
+        <!-- HERO: datos básicos + progreso de perfil -->
+        <div class="card section-card profile-hero mb-4">
+            <div class="card-body profile-hero-body">
+
+                <div class="profile-hero-main">
+                    <div class="profile-photo-wrap">
+                        <img id="profilePhotoImg" class="profile-photo d-none" alt="Foto de perfil">
+                        <div id="profilePhotoPlaceholder" class="profile-photo profile-photo-placeholder">PK</div>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <h2 class="profile-name mb-0" id="profileName">Paweł Kuna</h2>
+                            <span class="badge bg-secondary-lt" id="profileLevelBadge">Junior</span>
+                        </div>
+                        <div class="profile-role" id="profileRole">Backend Developer</div>
+                        <div class="profile-status-row mt-2">
+                            <span class="status-dot" id="profileStatusDot"></span>
+                            <span class="fw-semibold" id="profileStatusText">Disponible</span>
+                            <span class="text-secondary">· <span id="profileHoursText">20 horas/semana disponibles</span></span>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#editProfileModal">✎ Editar perfil</button>
+                    </div>
+                </div>
+
+                <div class="profile-hero-progress">
+                    <div class="progress-ring" id="profileProgressRing" style="--value:80">
+                        <div class="progress-ring-value" id="profileProgressValue">80%<small>Completado</small></div>
+                    </div>
+                    <div class="completion-hint">
+                        <div class="info-label mb-1">Te falta completar</div>
+                        <ul class="completion-checklist" id="completionChecklist"></ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SOBRE MÍ + HABILIDADES -->
+        <div class="row row-cards mb-4 g-3">
+            <div class="col-lg-6">
+                <div class="card section-card h-100">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Sobre mí</h3>
+                            <div class="section-description">Una breve descripción de tu perfil profesional.</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#editAboutModal">Editar</button>
+                    </div>
+                    <div class="card-body">
+                        <p class="profile-about-text mb-0" id="aboutText"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card section-card h-100">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Habilidades</h3>
+                            <div class="section-description">Visibles para el Resource Manager y el Talent Matching.</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addSkillModal">+ Agregar habilidad</button>
+                    </div>
+                    <div class="card-body p-0" id="skillsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- EXPERIENCIA + EDUCACIÓN -->
+        <div class="row row-cards mb-4 g-3">
+            <div class="col-lg-6">
+                <div class="card section-card h-100">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Experiencia profesional</h3>
+                            <div class="section-description">Historial laboral fuera de SkillBridge AI.</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addExperienceModal">+ Agregar</button>
+                    </div>
+                    <div class="card-body p-0" id="experienceList"></div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card section-card h-100">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Educación</h3>
+                            <div class="section-description">Formación académica registrada.</div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addEducationModal">+ Agregar formación</button>
+                    </div>
+                    <div class="card-body p-0" id="educationList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORIAL DE PROYECTOS -->
+        <div class="card section-card">
+            <div class="card-header section-header">
+                <div>
+                    <h3 class="card-title mb-1">Historial de proyectos</h3>
+                    <div class="section-description">Participación registrada en proyectos de la organización. Vista de solo lectura.</div>
+                </div>
+            </div>
+            <div class="card-body p-0" id="projectHistoryList"></div>
+        </div>
+
+    </main>
+</div>
+
+<!-- MODAL: EDITAR PERFIL -->
+<div class="modal modal-blur fade col-modal" id="editProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">✎ Editar perfil profesional</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="info-label mb-2">Información básica</div>
+
+                <div class="mb-3">
+                    <label class="form-label">Foto de perfil</label>
+                    <div class="photo-upload-row">
+                        <img id="editPhotoPreviewImg" class="photo-upload-preview d-none" alt="Vista previa">
+                        <div id="editPhotoPreviewPlaceholder" class="photo-upload-preview">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+                        </div>
+                        <div>
+                            <input type="file" id="editPhotoInput" class="form-control form-control-sm" accept="image/*">
+                            <div class="form-hint">Formatos JPG o PNG, máximo 2MB.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nombre</label>
+                    <input type="text" id="editNameInput" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Cargo / puesto</label>
+                    <input type="text" id="editRoleInput" class="form-control">
+                </div>
+
+                <hr>
+
+                <div class="info-label mb-2">Disponibilidad</div>
+                <div class="mb-2">
+                    <label class="form-label">Horas disponibles por semana</label>
+                    <input type="number" id="editHoursInput" min="0" max="60" class="form-control" style="max-width: 160px;">
+                </div>
+                <div class="availability-note" id="availabilityPreviewNote"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" type="button" id="saveProfileBtn" data-bs-dismiss="modal">Guardar cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: EDITAR SOBRE MÍ -->
+<div class="modal modal-blur fade col-modal" id="editAboutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar "Sobre mí"</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Descripción</label>
+                <textarea id="editAboutInput" class="form-control" rows="5" placeholder="Cuéntale a la organización sobre tu experiencia, intereses y lo que te apasiona como profesional..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" type="button" id="saveAboutBtn" data-bs-dismiss="modal">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: AGREGAR HABILIDAD -->
+<div class="modal modal-blur fade col-modal" id="addSkillModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar habilidad</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Habilidad <span class="text-red">*</span></label>
+                    <input type="text" id="skillNameInput" class="form-control" placeholder="Ingresa nombre de habilidad...">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nivel <span class="text-red">*</span></label>
+                    <select id="skillLevelInput" class="form-select">
+                        <option value="" selected disabled>Seleccionar nivel</option>
+                        <option value="Básico">Básico</option>
+                        <option value="Intermedio">Intermedio</option>
+                        <option value="Avanzado">Avanzado</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Evidencia</label>
+                    <input type="file" id="skillEvidenceInput" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                    <div class="form-hint">Adjuntar una certificación es opcional, pero acelera la validación del Resource Manager.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" type="button" id="saveSkillBtn" data-bs-dismiss="modal">Agregar habilidad</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: AGREGAR EXPERIENCIA -->
+<div class="modal modal-blur fade col-modal" id="addExperienceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar experiencia profesional</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Empresa</label>
+                        <input type="text" id="expCompanyInput" class="form-control" placeholder="Ej. SkillBridge AI">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Cargo</label>
+                        <input type="text" id="expRoleInput" class="form-control" placeholder="Ej. Backend Developer">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Descripción <span class="text-red">*</span></label>
+                        <textarea id="expDescInput" class="form-control" rows="3" placeholder="Describe tus responsabilidades y logros..."></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha de inicio</label>
+                        <input type="month" id="expStartInput" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha de fin</label>
+                        <input type="month" id="expEndInput" class="form-control">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" id="expCurrentInput">
+                            <span class="form-check-label">Trabajo actualmente aquí</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" type="button" id="saveExperienceBtn" data-bs-dismiss="modal">Agregar experiencia</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: AGREGAR FORMACIÓN -->
+<div class="modal modal-blur fade col-modal" id="addEducationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar formación académica</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Institución</label>
+                        <input type="text" id="eduInstitutionInput" class="form-control" placeholder="Ej. Universidad X">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Título / carrera</label>
+                        <input type="text" id="eduDegreeInput" class="form-control" placeholder="Ej. Ingeniería de Software">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha de inicio</label>
+                        <input type="month" id="eduStartInput" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Fecha de fin</label>
+                        <input type="month" id="eduEndInput" class="form-control">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" id="eduCurrentInput">
+                            <span class="form-check-label">Actualmente en curso</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" type="button" id="saveEducationBtn" data-bs-dismiss="modal">Agregar formación</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-perfil.js" th:src="@{/js/col-js/col-perfil.js}"></script>
+<script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+</body>
+</html>

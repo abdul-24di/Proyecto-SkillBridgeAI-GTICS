@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Explorar</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-detalle-proyecto.css" th:href="@{/css/col-css/col-detalle-proyecto.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-explorar.css" th:href="@{/css/col-css/col-explorar.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('explorar')}">
+        <div class="container-xl">
+            <a href="col-dashboard.html" class="brand">SkillBridge AI</a>
+            <nav class="main-nav" aria-label="Navegación principal">
+                <a href="col-dashboard.html">Dashboard</a>
+                <a href="col-proyectos.html">Mis proyectos</a>
+                <a href="col-foros.html">Foros</a>
+                <a href="col-asistente.html">Asistente</a>
+                <a href="col-perfil.html">Perfil Profesional</a>
+                <a href="col-explorar.html" class="active">Explorar</a>
+            </nav>
+            <div class="user-area">
+                <a href="col-configuraciones.html" class="settings-link" aria-label="Configuraciones">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span class="settings-text">Configuraciones</span>
+                </a>
+                <div class="notification-wrap">
+                    <button type="button" class="notification-link position-relative" id="notifBellBtn" aria-label="Notificaciones">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+                        <span class="badge bg-red notification-dot" id="notifDot"></span>
+                    </button>
+                    <div class="notification-panel" id="notifPanel">
+                        <div class="notification-panel-header">
+                            <span>Notificaciones</span>
+                            <button type="button" class="notification-panel-close" id="notifCloseBtn" aria-label="Cerrar">&times;</button>
+                        </div>
+                        <div class="notification-panel-list"></div>
+                        <div class="notification-panel-footer">
+                            <button type="button" class="btn btn-link btn-sm p-0" id="notifMarkAllBtn">Marcar todas como leídas</button>
+                        </div>
+                    </div>
+                </div>
+                <span class="avatar avatar-sm user-avatar">PK</span>
+                <div class="user-meta"><div class="fw-semibold">Paweł Kuna</div><div class="small">Colaborador</div></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-wrap">
+
+        <div class="page-head page-head-stack-mobile">
+            <div>
+                <h1 class="page-title">Explorar</h1>
+                <div class="text-secondary">Descubre proyectos, colaboradores y cursos de la organización.</div>
+            </div>
+        </div>
+
+        <ul class="explore-tabs list-unstyled mb-0">
+            <li><button type="button" class="explore-tab active" data-panel="panelProyectos">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                Proyectos
+            </button></li>
+            <li><button type="button" class="explore-tab" data-panel="panelColaboradores">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M19 8v6M16 11h6"/></svg>
+                Colaboradores
+            </button></li>
+            <li><button type="button" class="explore-tab" data-panel="panelCursos">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 9L12 5 2 9l10 4 10-4v6"/><path d="M6 10.6V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.4"/></svg>
+                Cursos
+            </button></li>
+        </ul>
+
+        <!-- ===== PANEL PROYECTOS ===== -->
+        <div class="explore-panel" id="panelProyectos">
+            <div class="card section-card mb-4">
+                <div class="explore-filters">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label">Buscar</label>
+                            <div class="input-icon">
+                                <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
+                                <input type="text" id="projectSearch" class="form-control" placeholder="Buscar proyecto...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Estado</label>
+                            <select id="projectStatusFilter" class="form-select">
+                                <option value="all">Todos</option>
+                                <option>En planificación</option>
+                                <option>Activo</option>
+                                <option>Pausado</option>
+                                <option>Completado</option>
+                                <option>Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Postulaciones</label>
+                            <select id="projectApplicationsFilter" class="form-select">
+                                <option value="all">Todas</option>
+                                <option>Abiertas</option>
+                                <option>Cerradas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="projectAccordion"></div>
+        </div>
+
+        <!-- ===== PANEL COLABORADORES ===== -->
+        <div class="explore-panel d-none" id="panelColaboradores">
+
+            <div class="collab-list-view" id="collabListView">
+                <div class="card section-card mb-4">
+                    <div class="explore-filters">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label class="form-label">Buscar</label>
+                                <div class="input-icon">
+                                    <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
+                                    <input type="text" id="collabSearch" class="form-control" placeholder="Buscar por nombre, cargo o habilidad...">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Nivel</label>
+                                <select id="collabLevelFilter" class="form-select">
+                                    <option value="all">Todos</option>
+                                    <option>Básico</option>
+                                    <option>Intermedio</option>
+                                    <option>Avanzado</option>
+                                    <option>Experto</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="collabList"></div>
+            </div>
+
+            <div class="collab-profile-detail" id="collabProfileDetail">
+                <button type="button" class="btn btn-link btn-sm px-0 mb-3" id="backToCollabList">&larr; Volver a colaboradores</button>
+                <div class="card section-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                            <div>
+                                <h4 class="mb-0" id="collabProfileName">—</h4>
+                                <div class="text-secondary" id="collabProfileRole">—</div>
+                            </div>
+                            <div class="availability-pill">
+                                <span class="availability-dot bg-green" id="collabProfileAvailabilityDot"></span>
+                                <span id="collabProfileAvailabilityLabel"></span>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="info-label mb-1">Sobre</div>
+                                <p class="small text-secondary" id="collabProfileBio"></p>
+                                <div class="info-label mb-1">Experiencia</div>
+                                <ul class="small text-secondary ps-3" id="collabProfileExperience"></ul>
+                                <div class="info-label mb-1 mt-3">Proyectos destacados</div>
+                                <ul class="small text-secondary ps-3" id="collabProfileHighlights"></ul>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label mb-1">Habilidades</div>
+                                <div class="mb-3" id="collabProfileSkills"></div>
+                                <div class="info-label mb-1">Educación</div>
+                                <div class="small text-secondary" id="collabProfileEducation"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== PANEL CURSOS ===== -->
+        <div class="explore-panel d-none" id="panelCursos">
+            <div class="card section-card mb-4">
+                <div class="explore-filters">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-8">
+                            <label class="form-label">Buscar</label>
+                            <div class="input-icon">
+                                <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
+                                <input type="text" id="courseSearch" class="form-control" placeholder="Buscar curso...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Categoría</label>
+                            <select id="courseCategoryFilter" class="form-select">
+                                <option value="all">Todas</option>
+                                <option>Técnico</option>
+                                <option>Habilidades blandas</option>
+                                <option>Certificación</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="courseList"></div>
+        </div>
+
+    </main>
+</div>
+
+<!-- MODAL: POSTULACIÓN A PROYECTO -->
+<div class="modal modal-blur fade col-modal" id="applyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="applyModalTitle">Postulación</h5>
+            <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+            <label class="form-label">Perfil al que deseas postularte</label>
+            <select id="applyPerfilSelect" class="form-select mb-3"></select>
+
+            <label class="form-label">Habilidades relevantes para este proyecto</label>
+            <div id="applySkillsWrap" class="d-flex flex-wrap gap-2 mb-3"></div>
+
+            <label class="form-label">¿Por qué te interesa participar?</label>
+            <textarea id="applyMessageInput" class="form-control" rows="4" placeholder="Escribe tu respuesta..."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+            <button class="btn btn-primary" type="button" id="applySubmitBtn">Postularme</button>
+        </div>
+    </div></div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+<script src="../../static/js/col-js/col-explorar.js" th:src="@{/js/col-js/col-explorar.js}"></script>
+</body>
+</html>

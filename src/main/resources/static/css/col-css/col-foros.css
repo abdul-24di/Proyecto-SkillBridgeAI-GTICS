@@ -4,13 +4,6 @@
     background: transparent;
 }
 
-.scope-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    margin-right: .35rem;
-    border-radius: 50%;
-}
 
 .forum-toolbar {
     display: flex;
@@ -347,4 +340,34 @@
     color: #97a2b2;
     font-size: .87rem;
     text-align: center;
+}
+/* ---------------------------------------------------------
+   TABS COMUNIDAD / MIS PROYECTOS (mismo estilo que Explorar)
+   --------------------------------------------------------- */
+
+.explore-tabs {
+    display: flex;
+    gap: 1.5rem;
+    border-bottom: 1px solid #e5eaf0;
+    margin-bottom: 1.1rem;
+    padding: 0;
+}
+
+.explore-tab {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem 0 .8rem;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-weight: 700;
+    font-size: .92rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.explore-tab.active {
+    color: var(--tblr-primary);
+    border-bottom-color: var(--tblr-primary);
 }

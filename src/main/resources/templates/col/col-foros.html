@@ -81,14 +81,16 @@
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPostModal">+ Nueva publicación</button>
         </div>
 
-        <div class="filter-tabs forum-scope-tabs">
-            <button type="button" class="filter-tab active" data-scope="comunidad">
-                <span class="scope-dot bg-blue"></span> Comunidad
-            </button>
-            <button type="button" class="filter-tab" data-scope="proyectos">
-                <span class="scope-dot bg-yellow"></span> Mis proyectos
-            </button>
-        </div>
+        <ul class="explore-tabs list-unstyled mb-0">
+            <li><button type="button" class="explore-tab active" data-scope="comunidad">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/></svg>
+                Comunidad
+            </button></li>
+            <li><button type="button" class="explore-tab" data-scope="proyectos">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                Mis proyectos
+            </button></li>
+        </ul>
 
         <!-- VISTA: COMUNIDAD -->
         <section id="comunidadView">

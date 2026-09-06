@@ -74,7 +74,6 @@ function renderCompletion() {
     const checks = [
         { done: !!profile.fotoUrl, label: "Agrega una foto de perfil" },
         { done: profile.about.trim().length > 0, label: "Agrega una descripción" },
-        { done: profile.experience.length > 0, label: "Registra una experiencia" },
         { done: profile.skills.length > 0, label: "Agrega una habilidad" },
         { done: profile.education.length > 0, label: "Registra tu formación académica" }
     ];
@@ -190,28 +189,14 @@ function renderAll() {
     renderProjectHistory();
 }
 
-// ---------------- MODAL: Editar perfil ----------------
+// ---------------- MODAL: Editar perfil (solo foto) ----------------
 const editProfileModal = document.getElementById("editProfileModal");
-const editNameInput = document.getElementById("editNameInput");
-const editRoleInput = document.getElementById("editRoleInput");
-const editHoursInput = document.getElementById("editHoursInput");
 const editPhotoInput = document.getElementById("editPhotoInput");
 const editPhotoPreviewImg = document.getElementById("editPhotoPreviewImg");
 const editPhotoPreviewPlaceholder = document.getElementById("editPhotoPreviewPlaceholder");
-const availabilityPreviewNote = document.getElementById("availabilityPreviewNote");
 let pendingPhotoUrl = null;
 
-function updateAvailabilityNote() {
-    const horas = Number(editHoursInput.value) || 0;
-    availabilityPreviewNote.textContent = horas > 0
-        ? `🟢 Con ${horas} horas/semana quedarás marcado como "Disponible".`
-        : `⚪ Con 0 horas/semana quedarás marcado como "No disponible".`;
-}
-
 editProfileModal.addEventListener("show.bs.modal", () => {
-    editNameInput.value = profile.nombre;
-    editRoleInput.value = profile.cargo;
-    editHoursInput.value = profile.horas;
     pendingPhotoUrl = profile.fotoUrl;
 
     if (profile.fotoUrl) {
@@ -223,10 +208,7 @@ editProfileModal.addEventListener("show.bs.modal", () => {
         editPhotoPreviewPlaceholder.classList.remove("d-none");
     }
     editPhotoInput.value = "";
-    updateAvailabilityNote();
 });
-
-editHoursInput.addEventListener("input", updateAvailabilityNote);
 
 editPhotoInput.addEventListener("change", () => {
     const file = editPhotoInput.files?.[0];
@@ -238,14 +220,10 @@ editPhotoInput.addEventListener("change", () => {
 });
 
 document.getElementById("saveProfileBtn").addEventListener("click", () => {
-    profile.nombre = editNameInput.value.trim() || profile.nombre;
-    profile.cargo = editRoleInput.value.trim() || profile.cargo;
-    profile.horas = Math.max(0, Number(editHoursInput.value) || 0);
     profile.fotoUrl = pendingPhotoUrl;
     renderHero();
     renderCompletion();
 });
-
 // ---------------- MODAL: Editar sobre mí ----------------
 const editAboutModal = document.getElementById("editAboutModal");
 const editAboutInput = document.getElementById("editAboutInput");
@@ -287,36 +265,6 @@ document.getElementById("saveSkillBtn").addEventListener("click", () => {
     renderCompletion();
 });
 
-// ---------------- MODAL: Agregar experiencia ----------------
-const addExperienceModal = document.getElementById("addExperienceModal");
-const expCompanyInput = document.getElementById("expCompanyInput");
-const expRoleInput = document.getElementById("expRoleInput");
-const expDescInput = document.getElementById("expDescInput");
-const expStartInput = document.getElementById("expStartInput");
-const expEndInput = document.getElementById("expEndInput");
-const expCurrentInput = document.getElementById("expCurrentInput");
-
-addExperienceModal.addEventListener("show.bs.modal", () => {
-    [expCompanyInput, expRoleInput, expDescInput, expStartInput, expEndInput].forEach(el => el.value = "");
-    expCurrentInput.checked = false;
-});
-
-document.getElementById("saveExperienceBtn").addEventListener("click", () => {
-    const descripcion = expDescInput.value.trim();
-    if (!descripcion) return;
-
-    profile.experience.unshift({
-        id: Date.now(),
-        empresa: expCompanyInput.value.trim(),
-        cargo: expRoleInput.value.trim() || "Colaborador",
-        descripcion,
-        inicio: expStartInput.value,
-        fin: expEndInput.value,
-        actual: expCurrentInput.checked
-    });
-    renderExperience();
-    renderCompletion();
-});
 
 // ---------------- MODAL: Agregar formación ----------------
 const addEducationModal = document.getElementById("addEducationModal");

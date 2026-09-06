@@ -374,6 +374,10 @@ scopeButtons.forEach(btn => btn.addEventListener("click", () => {
     views[btn.dataset.scope].classList.remove("d-none");
 }));
 
+
+
 bindVotes(document.querySelector("main.page-wrap"));
 renderComunidad();
 renderProjectForums();
+
+

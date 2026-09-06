@@ -1,0 +1,84 @@
+.account-section {
+    padding: 1.5rem 1.75rem;
+}
+
+.account-section + .account-section {
+    border-top: 1px solid #edf0f4;
+}
+
+.account-section-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: 1.4rem;
+    color: #182433;
+    font-weight: 700;
+    font-size: 1.05rem;
+}
+
+.account-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding: .85rem 0;
+}
+
+.account-row + .account-row {
+    border-top: 1px solid #f3f6fa;
+}
+
+.account-row-label {
+    color: #64748b;
+    font-size: .88rem;
+}
+
+.account-row-value {
+    color: #182433;
+    font-weight: 600;
+    text-align: right;
+}
+
+.account-row-value.mono {
+    letter-spacing: .12em;
+}
+
+.account-link-btn {
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: var(--tblr-primary);
+    font-weight: 600;
+    font-size: .85rem;
+    cursor: pointer;
+}
+
+.account-link-btn:hover {
+    text-decoration: underline;
+}
+
+.account-danger-link {
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: #d63939;
+    font-weight: 600;
+    font-size: .9rem;
+    cursor: pointer;
+}
+
+.account-danger-link:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 575px) {
+    .account-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .account-row-value {
+        text-align: left;
+    }
+}

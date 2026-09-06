@@ -38,5 +38,5 @@ document.getElementById("savePasswordBtn")?.addEventListener("click", () => {
 });
 
 document.getElementById("logoutBtn")?.addEventListener("click", () => {
-    window.location.href = "../auth/login-01.html";
+    window.location.href = "../auth/login.html";
 });

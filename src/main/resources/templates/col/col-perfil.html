@@ -24,13 +24,6 @@
                 <a href="col-explorar.html">Explorar</a>
             </nav>
             <div class="user-area">
-                <a href="col-configuraciones.html" class="settings-link" aria-label="Configuraciones">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    <span class="settings-text">Configuraciones</span>
-                </a>
                 <div class="notification-wrap">
                     <button type="button" class="notification-link position-relative" id="notifBellBtn" aria-label="Notificaciones">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -71,12 +64,33 @@
 
     <main class="page-wrap">
 
-        <div class="page-head page-head-stack-mobile">
-            <div>
-                <h1 class="page-title">Perfil Profesional</h1>
-                <div class="text-secondary">Gestiona la información que otros colaboradores y responsables pueden consultar sobre tu experiencia y habilidades.</div>
+                <div class="page-header mb-4">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h2 class="page-title">Mi Perfil</h2>
+                    <div class="text-secondary mt-1">Gestiona tu perfil profesional y tu cuenta</div>
+                </div>
             </div>
         </div>
+
+        <ul class="nav nav-pills mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" data-bs-toggle="tab" href="#tab-profesional" aria-selected="true" role="tab">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1" /><path d="M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M17 10h2a2 2 0 0 1 2 2v1" /><path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M3 13v-1a2 2 0 0 1 2 -2h2" /></svg>
+                    Perfil Profesional
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" data-bs-toggle="tab" href="#tab-cuenta" aria-selected="false" role="tab" tabindex="-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 -.94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c.996 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>
+                    Ajustes de Cuenta
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- TAB 1: PROFESIONAL -->
+            <div class="tab-pane active show" id="tab-profesional" role="tabpanel">
 
         <!-- HERO: datos básicos + progreso de perfil -->
         <div class="card section-card profile-hero mb-4">
@@ -98,7 +112,7 @@
                             <span class="fw-semibold" id="profileStatusText">Disponible</span>
                             <span class="text-secondary">· <span id="profileHoursText">20 horas/semana disponibles</span></span>
                         </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#editProfileModal">✎ Editar perfil</button>
+                        
                     </div>
                 </div>
 
@@ -186,55 +200,87 @@
             <div class="card-body p-0" id="projectHistoryList"></div>
         </div>
 
-    </main>
-</div>
-
-<!-- MODAL: EDITAR PERFIL -->
-<div class="modal modal-blur fade col-modal" id="editProfileModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">✎ Editar perfil profesional</h5>
-                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-
-            <div class="modal-body">
-                <div class="mb-1">
-                    <label class="form-label">Foto de perfil</label>
-                    <div class="photo-upload-row">
-                        <img id="editPhotoPreviewImg" class="photo-upload-preview d-none" alt="Vista previa">
-                        <div id="editPhotoPreviewPlaceholder" class="photo-upload-preview">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>
+            
+            <!-- TAB 2: CUENTA -->
+            <div class="tab-pane" id="tab-cuenta" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4 col-lg-3 mb-4">
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <span class="avatar avatar-xl mb-4 rounded" style="font-size: 1.5rem;">PK</span>
+                                <h3 class="m-0 mb-1">Paweł Kuna</h3>
+                                <div class="text-secondary mb-4">Colaborador</div>
+                                
+                                
+                            </div>
                         </div>
-                        <div>
-                            <input type="file" id="editPhotoInput" class="form-control form-control-sm" accept="image/*">
-                            <div class="form-hint">Formatos JPG o PNG, máximo 2MB.</div>
+                    </div>
+                    
+                    <div class="col-md-8 col-lg-9">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Datos Personales y de Acceso</h3>
+                            </div>
+                            <div class="card-body">
+                                <form action="#" method="post">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Nombres</label>
+                                            <input type="text" class="form-control" name="nombres" value="Paweł" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Apellidos</label>
+                                            <input type="text" class="form-control" name="apellidos" value="Kuna" required>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label class="form-label">Correo electrónico</label>
+                                            <input type="email" class="form-control" name="correo" value="colaborador@empresa.com" required>
+                                        </div>
+                                        
+                                                                                <div class="col-12 mt-4">
+                                            <h4 class="form-label">Perfil Profesional</h4>
+                                            <div class="hr-text mt-0 mb-3">Información visible para PMs y RMs</div>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label class="form-label">Foto de perfil</label>
+                                            <input type="file" id="editPhotoInput" class="form-control" accept="image/png, image/jpeg">
+                                            <div class="form-hint">Formatos JPG o PNG, máximo 2MB.</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cargo / puesto</label>
+                                            <input type="text" id="editRoleInput" class="form-control" name="cargo" value="Backend Developer">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Horas disponibles por semana</label>
+                                            <input type="number" id="editHoursInput" min="0" max="60" class="form-control" name="horas" value="20">
+                                        </div>
+                                        
+                                        <div class="col-12 mt-4">
+                                            <h4 class="form-label">Seguridad</h4>
+                                            <div class="hr-text mt-0 mb-3">Cambiar contraseña</div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <label class="form-label">Nueva Contraseña</label>
+                                            <input type="password" class="form-control" name="password" placeholder="Dejar en blanco para no cambiar">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Confirmar Contraseña</label>
+                                            <input type="password" class="form-control" name="password_confirm" placeholder="Repite la nueva contraseña">
+                                        </div>
+                                    </div>
+                                    <div class="mt-5 d-flex justify-content-end gap-2">
+                                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="text-secondary small mt-3">Tu nombre, cargo y disponibilidad los administra el Resource Manager o se actualizan desde otras secciones de tu perfil.</div>
-            </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Cargo / puesto</label>
-                    <input type="text" id="editRoleInput" class="form-control">
-                </div>
-
-                <hr>
-
-                <div class="info-label mb-2">Disponibilidad</div>
-                <div class="mb-2">
-                    <label class="form-label">Horas disponibles por semana</label>
-                    <input type="number" id="editHoursInput" min="0" max="60" class="form-control" style="max-width: 160px;">
-                </div>
-                <div class="availability-note" id="availabilityPreviewNote"></div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" type="button" id="saveProfileBtn" data-bs-dismiss="modal">Guardar cambios</button>
             </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <!-- MODAL: EDITAR SOBRE MÍ -->

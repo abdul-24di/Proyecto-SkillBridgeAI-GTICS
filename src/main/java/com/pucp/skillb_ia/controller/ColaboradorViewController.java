@@ -48,10 +48,5 @@ public class ColaboradorViewController {
         return "col/col-explorar";
     }
 
-    @GetMapping({"/configuraciones", "/col-configuraciones.html"})
-    public String settings() {
-        return "col/col-configuraciones";
-    }
-
 
 }

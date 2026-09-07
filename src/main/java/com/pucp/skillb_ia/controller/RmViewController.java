@@ -152,4 +152,8 @@ public class RmViewController {
     public String collaboratorHours() {
         return "rm/rm-horas-colaboradores";
     }
+    @GetMapping("/perfil")
+    public String perfil() {
+        return "rm/rm-perfil";
+    }
 }

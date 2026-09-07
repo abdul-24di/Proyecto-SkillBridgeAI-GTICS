@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Usuarios</title>
+
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-usuarios.css" th:href="@{/css/admin-css/admin-usuarios.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('usuarios')}">
+    <div class="container-xl">
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
+        <a href="admin-usuarios.html" class="active" th:href="@{/admin/usuarios}">Usuarios</a>
+        <a href="admin-habilidades.html" th:href="@{/admin/habilidades}">Habilidades</a>
+        <a href="admin-configuracion.html" th:href="@{/admin/configuracion}">Configuración</a>
+        <a href="admin-auditoria.html" th:href="@{/admin/auditoria}">Auditoría</a>
+      </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">SA</span>
+        <div class="user-meta">
+          <div class="fw-semibold">Sofía Alarcón</div>
+          <div class="small">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <span class="text-secondary">Usuarios</span>
+    </nav>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <h1 class="page-title">Gestión de Usuarios</h1>
+        <div class="text-secondary">
+          Crea cuentas asignando correo y rol. El nombre y la contraseña los define cada usuario al activar su cuenta.
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+          Carga masiva
+        </button>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newUserModal">
+          Nuevo usuario
+        </button>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Usuarios totales</div>
+              <div class="summary-number">42</div>
+              <div class="small text-secondary">En toda la organización.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Pendientes de activación</div>
+              <div class="summary-number">5</div>
+              <div class="small text-secondary">Aún no ingresan a la plataforma.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Activos</div>
+              <div class="summary-number">35</div>
+              <div class="small text-secondary">Con acceso habilitado.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-red-lt text-red">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Inactivos</div>
+              <div class="summary-number">2</div>
+              <div class="small text-secondary">Acceso deshabilitado.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIRECTORIO -->
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Directorio de usuarios</h3>
+          <div class="section-description">Administra roles, activación y estado de acceso de toda la organización.</div>
+        </div>
+      </div>
+
+      <div class="card-body border-bottom">
+        <div class="row g-3 align-items-end">
+          <div class="col-xl-4 col-md-6">
+            <label for="userSearch" class="form-label">Buscar usuario</label>
+            <input id="userSearch" class="form-control" type="text" placeholder="Nombre o correo">
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="userRoleFilter" class="form-label">Rol</label>
+            <select id="userRoleFilter" class="form-select">
+              <option value="all">Todos</option>
+              <option>Administrador</option>
+              <option>Resource Manager</option>
+              <option>Project Manager</option>
+              <option>Colaborador</option>
+            </select>
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="userStatusFilter" class="form-label">Estado</label>
+            <select id="userStatusFilter" class="form-select">
+              <option value="all">Todos</option>
+              <option>Activo</option>
+              <option>Pendiente de activación</option>
+              <option>Inactivo</option>
+            </select>
+          </div>
+          <div class="col-xl-2 d-grid">
+            <button type="button" class="btn btn-outline-secondary">Limpiar filtros</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Correo</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Creado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="d-flex align-items-center gap-2">
+                <span class="avatar avatar-sm bg-blue-lt text-blue">SA</span>
+                <span class="fw-semibold">Sofía Alarcón</span>
+              </td>
+              <td>sofia.alarcon@skillbridge.com</td>
+              <td><span class="badge bg-azure-lt text-azure">Administrador</span></td>
+              <td><span class="badge bg-green-lt"><span class="status-dot bg-green"></span>Activo</span></td>
+              <td>02 mar 2026</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editRoleModal" data-user-name="Sofía Alarcón" data-user-role="Administrador">Editar rol</button>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateModal" data-user-name="Sofía Alarcón">Desactivar</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="d-flex align-items-center gap-2">
+                <span class="avatar avatar-sm bg-green-lt text-green">AR</span>
+                <span class="fw-semibold">Abraham Ramirez</span>
+              </td>
+              <td>abraham.ramirez@skillbridge.com</td>
+              <td><span class="badge bg-green-lt text-green">Resource Manager</span></td>
+              <td><span class="badge bg-green-lt"><span class="status-dot bg-green"></span>Activo</span></td>
+              <td>14 ene 2026</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editRoleModal" data-user-name="Abraham Ramirez" data-user-role="Resource Manager">Editar rol</button>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateModal" data-user-name="Abraham Ramirez">Desactivar</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="d-flex align-items-center gap-2">
+                <span class="avatar avatar-sm bg-blue-lt text-blue">AV</span>
+                <span class="fw-semibold">Abdon Vallejo</span>
+              </td>
+              <td>abdon.vallejo@skillbridge.com</td>
+              <td><span class="badge bg-blue-lt text-blue">Project Manager</span></td>
+              <td><span class="badge bg-green-lt"><span class="status-dot bg-green"></span>Activo</span></td>
+              <td>14 ene 2026</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editRoleModal" data-user-name="Abdon Vallejo" data-user-role="Project Manager">Editar rol</button>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateModal" data-user-name="Abdon Vallejo">Desactivar</button>
+              </td>
+            </tr>
+            <tr class="table-warning-row">
+              <td class="text-secondary fst-italic">Pendiente de activación</td>
+              <td>renato.silva@skillbridge.com</td>
+              <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
+              <td><span class="badge bg-yellow-lt"><span class="status-dot bg-yellow"></span>Pendiente</span></td>
+              <td>05 sep 2026</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-secondary btn-sm">Reenviar enlace</button>
+              </td>
+            </tr>
+            <tr class="table-warning-row">
+              <td class="text-secondary fst-italic">Pendiente de activación</td>
+              <td>camila.rojas@skillbridge.com</td>
+              <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
+              <td><span class="badge bg-yellow-lt"><span class="status-dot bg-yellow"></span>Pendiente</span></td>
+              <td>06 sep 2026</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-secondary btn-sm">Reenviar enlace</button>
+              </td>
+            </tr>
+            <tr class="opacity-75">
+              <td class="d-flex align-items-center gap-2">
+                <span class="avatar avatar-sm bg-secondary-lt text-secondary">MT</span>
+                <span class="fw-semibold">Miguel Torres</span>
+              </td>
+              <td>miguel.torres@skillbridge.com</td>
+              <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
+              <td><span class="badge bg-secondary-lt"><span class="status-dot bg-secondary"></span>Inactivo</span></td>
+              <td>20 abr 2025</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-success btn-sm">Reactivar</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-wrap">
+        <div class="text-secondary small">Mostrando 6 de 42 usuarios</div>
+        <ul class="pagination pagination-sm m-0">
+          <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+          <li class="page-item active"><span class="page-link">1</span></li>
+          <li class="page-item"><a class="page-link" href="#">2</a></li>
+          <li class="page-item"><a class="page-link" href="#">3</a></li>
+          <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
+        </ul>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL: NUEVO USUARIO -->
+<div class="modal modal-blur fade admin-modal" id="newUserModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Nuevo usuario</h5>
+          <div class="text-white-50 small">El sistema enviará el correo de activación automáticamente.</div>
+        </div>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form class="admin-modal-form" novalidate>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="newUserEmail">Correo electrónico</label>
+            <input id="newUserEmail" type="email" class="form-control" placeholder="nombre@empresa.com" required>
+            <div class="invalid-feedback">Ingresa un correo válido.</div>
+          </div>
+          <div class="mb-1">
+            <label class="form-label" for="newUserRole">Rol</label>
+            <select id="newUserRole" class="form-select" required>
+              <option value="">Seleccionar rol</option>
+              <option>Administrador</option>
+              <option>Resource Manager</option>
+              <option>Project Manager</option>
+              <option>Colaborador</option>
+            </select>
+            <div class="invalid-feedback">Selecciona un rol.</div>
+          </div>
+          <div class="form-hint mt-2">El nombre completo y la contraseña los define el propio usuario al activar su cuenta desde el enlace enviado a su correo.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear y enviar invitación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CARGA MASIVA -->
+<div class="modal modal-blur fade admin-modal" id="bulkUploadModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Carga masiva de usuarios</h5>
+          <div class="text-white-50 small">Archivo CSV o Excel con columnas: correo, rol.</div>
+        </div>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="bulkFile">Archivo</label>
+          <input id="bulkFile" type="file" class="form-control" accept=".csv,.xlsx">
+          <div class="form-hint">Formatos aceptados: .csv, .xlsx. Columnas requeridas: <code>correo</code>, <code>rol</code>.</div>
+        </div>
+        <div class="admin-preview-empty">
+          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 12h6M9 16h6"/></svg>
+          <div class="mt-2">Selecciona un archivo para ver la vista previa de los usuarios detectados.</div>
+        </div>
+        <div class="info-note-box mt-3">
+          <span class="info-note-icon">i</span>
+          <div class="small text-secondary">Se validarán correos duplicados (dentro del archivo y contra usuarios existentes), roles inválidos y filas incompletas antes de confirmar la carga.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" disabled>Confirmar carga</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR ROL -->
+<div class="modal modal-blur fade admin-modal" id="editRoleModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar rol</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Usuario</label>
+          <input type="text" class="form-control" data-admin-source="userName" readonly disabled>
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="editRoleSelect">Nuevo rol</label>
+          <select id="editRoleSelect" class="form-select">
+            <option>Administrador</option>
+            <option>Resource Manager</option>
+            <option>Project Manager</option>
+            <option>Colaborador</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DESACTIVAR -->
+<div class="modal modal-blur fade admin-modal" id="deactivateModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Desactivar usuario</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Deseas desactivar a <strong data-admin-source="userName">este usuario</strong>? Perderá acceso inmediato a la plataforma, pero su historial se conserva.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Confirmar desactivación</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
+<script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
+</body>
+</html>

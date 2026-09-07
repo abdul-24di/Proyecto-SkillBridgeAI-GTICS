@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Mi Perfil</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
+    <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('perfil')}"></header>
+
+    <main class="page-wrap">
+        <div class="container-xl mt-4">
+            <div class="page-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h2 class="page-title">Configuración de Perfil</h2>
+                        <div class="text-secondary mt-1">Administra tu información personal y de seguridad</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+                            <span class="avatar avatar-xl mb-4 rounded" style="font-size: 1.5rem;">AR</span>
+                            <h3 class="m-0 mb-1">Abraham Ramirez</h3>
+                            <div class="text-secondary mb-4">Resource Manager</div>
+                            
+                            
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-8 col-lg-9">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Datos de la Cuenta</h3>
+                        </div>
+                        <div class="card-body">
+                            <form action="#" method="post">
+                                                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label">Foto de perfil</label>
+                                        <input type="file" id="editPhotoInput" class="form-control" name="foto" accept="image/png, image/jpeg">
+                                        <div class="form-hint">Formatos JPG o PNG, máximo 2MB.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nombres</label>
+                                        <input type="text" class="form-control" name="nombres" value="Abraham" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Apellidos</label>
+                                        <input type="text" class="form-control" name="apellidos" value="Ramirez" required>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Correo electrónico</label>
+                                        <input type="email" class="form-control" name="correo" value="Abraham.Ramirez@skillbridge.com" readonly disabled>
+                                        <div class="form-hint">El correo es tu identificador de acceso. Solo el Administrador puede modificarlo.</div>
+                                    </div>
+                                    
+                                    <div class="col-12 mt-4">
+                                        <h4 class="form-label">Seguridad</h4>
+                                        <div class="hr-text mt-0 mb-3">Cambiar contraseña</div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nueva Contraseña</label>
+                                        <input type="password" class="form-control" name="password" placeholder="Dejar en blanco para no cambiar">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Confirmar Contraseña</label>
+                                        <input type="password" class="form-control" name="password_confirm" placeholder="Repite la nueva contraseña">
+                                    </div>
+                                </div>
+                                <div class="mt-5 d-flex justify-content-end gap-2">
+                                    <button type="button" class="btn btn-secondary" onclick="history.back()">Cancelar</button>
+                                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

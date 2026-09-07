@@ -46,6 +46,43 @@ forgotForm?.addEventListener("submit", e => {
     btn.textContent = "Enlace enviado";
 });
 
+/* ---------- Activación de cuenta ---------- */
+const activationForm = document.getElementById("activationForm");
+if (activationForm) {
+    const params = new URLSearchParams(window.location.search);
+    const estado = params.get("estado");
+
+    if (estado === "expirado" || estado === "usado") {
+        document.getElementById("activationValidState").hidden = true;
+        const targetId = estado === "expirado" ? "activationExpiredState" : "activationUsedState";
+        document.getElementById(targetId).hidden = false;
+    }
+
+    activationForm.addEventListener("submit", e => {
+        e.preventDefault();
+        const box = document.getElementById("activationAlertBox");
+        const name = document.getElementById("activationName").value.trim();
+        const password = document.getElementById("activationPassword").value;
+        const confirm = document.getElementById("activationConfirmPassword").value;
+
+        if (name.length < 3) {
+            box.innerHTML = `<div class="auth-alert error">Ingresa tu nombre completo.</div>`;
+            return;
+        }
+        if (password.length < 6) {
+            box.innerHTML = `<div class="auth-alert error">La contraseña debe tener al menos 6 caracteres.</div>`;
+            return;
+        }
+        if (password !== confirm) {
+            box.innerHTML = `<div class="auth-alert error">Las contraseñas no coinciden.</div>`;
+            return;
+        }
+
+        box.innerHTML = `<div class="auth-alert success">Cuenta activada correctamente. Redirigiendo al inicio de sesión...</div>`;
+        setTimeout(() => { window.location.href = activationForm.dataset.redirect; }, 900);
+    });
+}
+
 /* ---------- Nueva contraseña ---------- */
 const resetForm = document.getElementById("resetForm");
 resetForm?.addEventListener("submit", e => {

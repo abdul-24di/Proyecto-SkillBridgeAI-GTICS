@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<header class="topbar" th:fragment="topbar(activeSection)">
+  <div class="container-xl">
+    <a href="../admin/admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
+
+    <nav class="main-nav" aria-label="Navegacion principal Admin">
+      <a href="../admin/admin-dashboard.html"
+         th:classappend="${activeSection == 'dashboard'} ? 'active' : ''" th:href="@{/admin/dashboard}">Dashboard</a>
+      <a href="../admin/admin-usuarios.html"
+         th:classappend="${activeSection == 'usuarios'} ? 'active' : ''" th:href="@{/admin/usuarios}">Usuarios</a>
+      <a href="../admin/admin-habilidades.html"
+         th:classappend="${activeSection == 'habilidades'} ? 'active' : ''" th:href="@{/admin/habilidades}">Habilidades</a>
+      <a href="../admin/admin-configuracion.html"
+         th:classappend="${activeSection == 'configuracion'} ? 'active' : ''" th:href="@{/admin/configuracion}">Configuración</a>
+      <a href="../admin/admin-auditoria.html"
+         th:classappend="${activeSection == 'auditoria'} ? 'active' : ''" th:href="@{/admin/auditoria}">Auditoría</a>
+    </nav>
+
+    <div class="user-area">
+      <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+          <path d="M9 19a3 3 0 0 0 6 0"/>
+        </svg>
+        <span class="badge bg-red notification-dot"></span>
+      </a>
+      <a href="../admin/admin-dashboard.html" th:href="@{/admin/dashboard}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;"><span class="avatar avatar-sm user-avatar">SA</span><div class="user-meta"><div class="fw-semibold">Sofía Alarcón</div><div class="small">Administrador</div></div></a><a href="/" th:href="@{/}" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+    <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>
+    <path d="M9 12h12l-3 -3"></path>
+    <path d="M18 15l3 -3"></path>
+  </svg>
+  Salir
+</a>
+</div>  </div>
+  <script th:src="@{/js/notificaciones.js}" src="../static/js/notificaciones.js"></script>
+</header>
+
+</body>
+</html>

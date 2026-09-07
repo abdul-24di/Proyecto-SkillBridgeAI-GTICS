@@ -21,6 +21,11 @@ public class AuthViewController {
         return "auth/registro";
     }
 
+    @GetMapping({"/activar-cuenta", "/activar-cuenta.html"})
+    public String activarCuenta() {
+        return "auth/activar-cuenta";
+    }
+
     @GetMapping({"/recuperar", "/recuperar-contrasena.html"})
     public String recuperar() {
         return "auth/recuperar-contrasena";

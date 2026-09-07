@@ -1,37 +1,47 @@
 <!doctype html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
-<header th:fragment="topbar(activeSection)" class="topbar">
-  <div class="container-xl">
-    <a href="../pm/pm-proyectos.html" class="brand">SkillBridge AI</a>
 
-    <nav class="main-nav" aria-label="Navegación principal PM">
-      <a href="../pm/pm-proyectos.html" th:classappend="${activeSection == 'proyectos'} ? 'active' : ''">Mis Proyectos</a>
-      <a href="../pm/pm-crear-proyecto.html" th:classappend="${activeSection == 'crear-proyecto'} ? 'active' : ''">Crear Proyecto</a>
-      <a href="../pm/pm-foro.html" th:classappend="${activeSection == 'foro'} ? 'active' : ''">Foro</a>
-      <a href="../pm/pm-chat.html" th:classappend="${activeSection == 'chat'} ? 'active' : ''">Chat</a>
-      <a href="../pm/pm-asistente-ia.html" th:classappend="${activeSection == 'asistente-ia'} ? 'active' : ''">Asistente IA</a>
-      <a href="../pm/pm-reporte-proyecto.html" th:classappend="${activeSection == 'reportes'} ? 'active' : ''">Reportes</a>
+<header class="topbar" th:fragment="topbar(activeSection)">
+  <div class="container-xl">
+    <a href="../pm/pm-proyectos.html" class="brand" th:href="@{/pm/proyectos}">SkillBridge AI</a>
+
+    <nav class="main-nav" aria-label="Navegacion principal PM">
+      <a href="../pm/pm-proyectos.html"
+         th:classappend="${activeSection == 'proyectos'} ? 'active' : ''" th:href="@{/pm/proyectos}">Mis Proyectos</a>
+      <a href="../pm/pm-crear-proyecto.html"
+         th:classappend="${activeSection == 'crear-proyecto'} ? 'active' : ''" th:href="@{/pm/proyectos/crear}">Crear Proyecto</a>
+      <a href="../pm/pm-foros.html"
+         th:classappend="${activeSection == 'foro'} ? 'active' : ''" th:href="@{/pm/foros}">Foros</a>
+      <a href="../pm/pm-chat.html"
+         th:classappend="${activeSection == 'chat'} ? 'active' : ''" th:href="@{/pm/chat}">Chat</a>
+      <a href="../pm/pm-asistente-ia.html"
+         th:classappend="${activeSection == 'asistente-ia'} ? 'active' : ''" th:href="@{/pm/asistente}">Asistente IA</a>
+      <a href="../pm/pm-reportes.html"
+         th:classappend="${activeSection == 'reportes'} ? 'active' : ''" th:href="@{/pm/reportes}">Reportes</a>
     </nav>
 
     <div class="user-area">
       <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
-             viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
           <path d="M9 19a3 3 0 0 0 6 0"/>
         </svg>
         <span class="badge bg-red notification-dot"></span>
       </a>
-
-      <span class="avatar avatar-sm user-avatar">AV</span>
-      <div class="user-meta">
-        <div class="fw-semibold">Abdon Vallejo</div>
-        <div class="small">Project Manager</div>
-      </div>
-    </div>
-  </div>
+      <a href="../pm/pm-perfil.html" th:href="@{/pm/perfil}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;"><span class="avatar avatar-sm user-avatar">AV</span><div class="user-meta"><div class="fw-semibold">Abdon Vallejo</div><div class="small">Project Manager</div></div></a><a href="/" th:href="@{/}" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+    <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>
+    <path d="M9 12h12l-3 -3"></path>
+    <path d="M18 15l3 -3"></path>
+  </svg>
+  Salir
+</a>
+</div>  </div>
+  <script th:src="@{/js/notificaciones.js}" src="../static/js/notificaciones.js"></script>
 </header>
+
 </body>
 </html>

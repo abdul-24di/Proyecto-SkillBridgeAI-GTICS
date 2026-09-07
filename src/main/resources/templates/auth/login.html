@@ -65,6 +65,47 @@
 
         <hr class="auth-divider">
 
+        <!-- ACCESO RAPIDO POR ROL — solo para desarrollo, quitar antes del entregable final -->
+        <div style="background:#f4f6fa;border:1.5px dashed #c8d0dc;border-radius:8px;padding:16px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:700;color:#8592a3;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;text-align:center;">
+                🚧 Acceso rápido por rol (solo desarrollo)
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <a href="/rm/dashboard" th:href="@{/rm/dashboard}"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #dce1e9;border-radius:6px;text-decoration:none;color:#1d273b;font-size:14px;font-weight:500;transition:border-color .15s;">
+                    <span style="width:28px;height:28px;background:#2fb344;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">RM</span>
+                    <div>
+                        <div style="font-weight:600;">Resource Manager</div>
+                        <div style="font-size:12px;color:#8592a3;">/rm/dashboard</div>
+                    </div>
+                </a>
+                <a href="/pm/proyectos" th:href="@{/pm/proyectos}"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #dce1e9;border-radius:6px;text-decoration:none;color:#1d273b;font-size:14px;font-weight:500;transition:border-color .15s;">
+                    <span style="width:28px;height:28px;background:#4263eb;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">PM</span>
+                    <div>
+                        <div style="font-weight:600;">Project Manager</div>
+                        <div style="font-size:12px;color:#8592a3;">/pm/proyectos</div>
+                    </div>
+                </a>
+                <a href="/colaborador/dashboard" th:href="@{/colaborador/dashboard}"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #dce1e9;border-radius:6px;text-decoration:none;color:#1d273b;font-size:14px;font-weight:500;transition:border-color .15s;">
+                    <span style="width:28px;height:28px;background:#f76707;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">CO</span>
+                    <div>
+                        <div style="font-weight:600;">Colaborador</div>
+                        <div style="font-size:12px;color:#8592a3;">/colaborador/dashboard</div>
+                    </div>
+                </a>
+                <a href="/admin/dashboard" th:href="@{/admin/dashboard}"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #dce1e9;border-radius:6px;text-decoration:none;color:#1d273b;font-size:14px;font-weight:500;transition:border-color .15s;">
+                    <span style="width:28px;height:28px;background:#2565a5;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">AD</span>
+                    <div>
+                        <div style="font-weight:600;">Administrador</div>
+                        <div style="font-size:12px;color:#8592a3;">/admin/dashboard</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
         <div class="auth-footer-line">¿No tienes cuenta? <a href="registro.html" class="auth-link" th:href="@{/registro}">Regístrate aquí</a></div>
 
     </div>

@@ -76,6 +76,17 @@
           </thead>
           <tbody>
             <tr>
+              <td class="fw-semibold">NOMBRE_ORGANIZACION</td>
+              <td class="text-secondary">Nombre de la organización, usado en correos, reportes y encabezados del sistema.</td>
+              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">SkillBridge AI</span></td>
+              <td>—</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal" data-param-name="NOMBRE_ORGANIZACION" data-param-desc="Nombre de la organización, usado en correos, reportes y encabezados del sistema." data-param-value="SkillBridge AI">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr>
               <td class="fw-semibold">MAX_ASIGNACIONES_POR_COLABORADOR</td>
               <td class="text-secondary">Número máximo de asignaciones activas simultáneas que puede tener un colaborador.</td>
               <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">3</span></td>
@@ -86,28 +97,19 @@
                 </button>
               </td>
             </tr>
-            <tr class="opacity-75">
+            <tr>
               <td class="fw-semibold">TOPE_HORAS_EXTRA_BONO</td>
-              <td class="text-secondary">Máximo de horas extra pagables por mes en el cálculo de bono (Épica 9 — Horas y Pagos).</td>
-              <td><span class="badge bg-secondary-lt text-secondary fs-5 px-3 py-2">20</span></td>
+              <td class="text-secondary">Máximo de horas extra pagables por mes que se reconocen como bono a un colaborador.</td>
+              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">20</span></td>
               <td>—</td>
               <td class="text-end">
-                <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Se habilita cuando la Épica 9 entre en desarrollo">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal" data-param-name="TOPE_HORAS_EXTRA_BONO" data-param-desc="Máximo de horas extra pagables por mes que se reconocen como bono a un colaborador." data-param-value="20">
                   Editar
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div class="card-body border-top">
-        <div class="filters-note">
-          <span class="filters-note-icon">i</span>
-          <div class="small text-secondary">
-            <strong>TOPE_HORAS_EXTRA_BONO</strong> pertenece a la Épica 9 (Horas y Pagos), diferida hasta después del checkpoint del Parcial. El parámetro queda visible con su valor por defecto, pero solo será editable cuando esa épica se active.
-          </div>
-        </div>
       </div>
     </div>
 
@@ -171,7 +173,7 @@
         </div>
         <div class="mb-1">
           <label class="form-label" for="editParamValue">Nuevo valor</label>
-          <input id="editParamValue" type="number" min="1" class="form-control" data-admin-source="paramValue">
+          <input id="editParamValue" type="text" class="form-control" data-admin-source="paramValue" required>
         </div>
       </div>
       <div class="modal-footer">

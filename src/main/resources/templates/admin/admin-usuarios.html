@@ -327,6 +327,22 @@
           <input id="bulkFile" type="file" class="form-control" accept=".csv,.xlsx">
           <div class="form-hint">Formatos aceptados: .csv, .xlsx. Columnas requeridas: <code>correo</code>, <code>rol</code>.</div>
         </div>
+        <div class="mb-3">
+          <div class="small text-secondary mb-2">Ejemplo del formato esperado:</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered mb-0">
+              <thead>
+                <tr><th>correo</th><th>rol</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="text-secondary">juan.perez@skillbridge.com</td><td class="text-secondary">Colaborador</td></tr>
+                <tr><td class="text-secondary">maria.lopez@skillbridge.com</td><td class="text-secondary">Project Manager</td></tr>
+                <tr><td class="text-secondary">carlos.diaz@skillbridge.com</td><td class="text-secondary">Resource Manager</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <a href="../../static/plantillas/usuarios-plantilla.csv" th:href="@{/plantillas/usuarios-plantilla.csv}" download class="small">Descargar plantilla .csv</a>
+        </div>
         <div class="admin-preview-empty">
           <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 12h6M9 16h6"/></svg>
           <div class="mt-2">Selecciona un archivo para ver la vista previa de los usuarios detectados.</div>

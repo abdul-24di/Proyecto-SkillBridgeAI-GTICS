@@ -235,7 +235,8 @@
                                         </div>
                                         <div class="col-md-12">
                                             <label class="form-label">Correo electrónico</label>
-                                            <input type="email" class="form-control" name="correo" value="colaborador@empresa.com" required>
+                                            <input type="email" class="form-control" name="correo" value="colaborador@empresa.com" readonly disabled>
+                                            <div class="form-hint">Solo el Administrador puede cambiar tu correo, ya que es tu identificador de acceso.</div>
                                         </div>
                                         
                                                                                 <div class="col-12 mt-4">
@@ -314,7 +315,10 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Habilidad <span class="text-red">*</span></label>
-                    <input type="text" id="skillNameInput" class="form-control" placeholder="Ingresa nombre de habilidad...">
+                    <select id="skillNameInput" class="form-select">
+                        <option value="" selected disabled>Seleccionar del catálogo...</option>
+                    </select>
+                    <div class="form-hint">Solo puedes elegir habilidades del catálogo oficial de la organización, para mantener los términos estandarizados.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Nivel <span class="text-red">*</span></label>

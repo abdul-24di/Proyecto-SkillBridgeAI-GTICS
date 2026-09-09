@@ -330,6 +330,39 @@ body.auth-page {
     font-size: .78rem;
 }
 
+/* ---------- Código de verificación ---------- */
+
+.auth-code-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.auth-code-input {
+    width: 46px;
+    height: 54px;
+    border: 1px solid #e1e5eb;
+    border-radius: 9px;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #182433;
+}
+
+.auth-code-input:focus {
+    outline: none;
+    border-color: #7fb1e3;
+    box-shadow: 0 0 0 3px rgba(43, 120, 197, .14);
+}
+
+@media (max-width: 460px) {
+    .auth-code-input {
+        width: 42px;
+        height: 50px;
+    }
+}
+
 /* ---------- Estado de éxito ---------- */
 
 .auth-success-card {

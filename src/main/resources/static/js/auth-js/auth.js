@@ -1,5 +1,4 @@
 
-
 /* Mostrar / ocultar contraseña en cualquier input marcado */
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
     const input = document.getElementById(btn.dataset.togglePassword);
@@ -13,92 +12,46 @@ document.querySelectorAll("[data-toggle-password]").forEach(btn => {
     });
 });
 
-/* ---------- Registro ---------- */
-const registerForm = document.getElementById("registerForm");
-registerForm?.addEventListener("submit", e => {
-    e.preventDefault();
-    const box = document.getElementById("registerAlertBox");
+/* ---------- Verificar código: auto-avance + concatenar antes de enviar ---------- */
+/* Las validaciones reales (código correcto, vigencia) las hace el servidor —
+   este script solo arma la experiencia de escritura y junta los 6 dígitos en
+   el input oculto "codigo" antes de que el form haga el POST real. */
+const verifyForm = document.getElementById("verifyForm");
+if (verifyForm) {
+    const codeInputs = Array.from(document.querySelectorAll("#codeRow .auth-code-input"));
+    const codigoCompleto = document.getElementById("codigoCompleto");
 
-    const password = document.getElementById("regPassword").value;
-    const confirm = document.getElementById("regConfirmPassword").value;
+    codeInputs.forEach((input, i) => {
+        input.addEventListener("input", () => {
+            input.value = input.value.replace(/[^0-9]/g, "").slice(0, 1);
+            if (input.value && i < codeInputs.length - 1) {
+                codeInputs[i + 1].focus();
+            }
+        });
+        input.addEventListener("keydown", e => {
+            if (e.key === "Backspace" && !input.value && i > 0) {
+                codeInputs[i - 1].focus();
+            }
+        });
+        input.addEventListener("paste", e => {
+            const pasted = (e.clipboardData || window.clipboardData).getData("text").replace(/[^0-9]/g, "");
+            if (!pasted) return;
+            e.preventDefault();
+            pasted.slice(0, codeInputs.length).split("").forEach((digit, idx) => {
+                if (codeInputs[idx]) codeInputs[idx].value = digit;
+            });
+            const next = codeInputs[Math.min(pasted.length, codeInputs.length - 1)];
+            next?.focus();
+        });
+    });
 
-    if (password.length < 6) {
-        box.innerHTML = `<div class="auth-alert error">La contraseña debe tener al menos 6 caracteres.</div>`;
-        return;
-    }
-    if (password !== confirm) {
-        box.innerHTML = `<div class="auth-alert error">Las contraseñas no coinciden.</div>`;
-        return;
-    }
-
-    box.innerHTML
-    setTimeout(() => { window.location.href = registerForm.dataset.redirect; }, 900);
-});
-
-/* ---------- Recuperar contraseña ---------- */
-const forgotForm = document.getElementById("forgotForm");
-forgotForm?.addEventListener("submit", e => {
-    e.preventDefault();
-    const box = document.getElementById("forgotAlertBox");
-    const btn = document.getElementById("forgotSubmitBtn");
-    box.innerHTML = `<div class="auth-alert success">Si el correo existe en SkillBridge AI, te enviamos un enlace de recuperación.</div>`;
-    btn.disabled = true;
-    btn.textContent = "Enlace enviado";
-});
-
-/* ---------- Activación de cuenta ---------- */
-const activationForm = document.getElementById("activationForm");
-if (activationForm) {
-    const params = new URLSearchParams(window.location.search);
-    const estado = params.get("estado");
-
-    if (estado === "expirado" || estado === "usado") {
-        document.getElementById("activationValidState").hidden = true;
-        const targetId = estado === "expirado" ? "activationExpiredState" : "activationUsedState";
-        document.getElementById(targetId).hidden = false;
-    }
-
-    activationForm.addEventListener("submit", e => {
-        e.preventDefault();
-        const box = document.getElementById("activationAlertBox");
-        const name = document.getElementById("activationName").value.trim();
-        const password = document.getElementById("activationPassword").value;
-        const confirm = document.getElementById("activationConfirmPassword").value;
-
-        if (name.length < 3) {
-            box.innerHTML = `<div class="auth-alert error">Ingresa tu nombre completo.</div>`;
+    verifyForm.addEventListener("submit", e => {
+        const codigo = codeInputs.map(i => i.value).join("");
+        if (codigo.length < codeInputs.length) {
+            e.preventDefault();
+            codeInputs[0].focus();
             return;
         }
-        if (password.length < 6) {
-            box.innerHTML = `<div class="auth-alert error">La contraseña debe tener al menos 6 caracteres.</div>`;
-            return;
-        }
-        if (password !== confirm) {
-            box.innerHTML = `<div class="auth-alert error">Las contraseñas no coinciden.</div>`;
-            return;
-        }
-
-        box.innerHTML = `<div class="auth-alert success">Cuenta activada correctamente. Redirigiendo al inicio de sesión...</div>`;
-        setTimeout(() => { window.location.href = activationForm.dataset.redirect; }, 900);
+        codigoCompleto.value = codigo;
     });
 }
-
-/* ---------- Nueva contraseña ---------- */
-const resetForm = document.getElementById("resetForm");
-resetForm?.addEventListener("submit", e => {
-    e.preventDefault();
-    const box = document.getElementById("resetAlertBox");
-    const password = document.getElementById("newPassword").value;
-    const confirm = document.getElementById("confirmNewPassword").value;
-
-    if (password.length < 6) {
-        box.innerHTML = `<div class="auth-alert error">La contraseña debe tener al menos 6 caracteres.</div>`;
-        return;
-    }
-    if (password !== confirm) {
-        box.innerHTML = `<div class="auth-alert error">Las contraseñas no coinciden.</div>`;
-        return;
-    }
-
-    window.location.href = resetForm.dataset.redirect;
-});

@@ -25,6 +25,10 @@
         <h2 class="auth-title centered">Bienvenido</h2>
         <p class="auth-subtitle centered">Ingresa tus credenciales para continuar</p>
 
+        <div class="auth-alert error" th:if="${param.error}">Correo o contraseña incorrectos.</div>
+        <div class="auth-alert success" th:if="${param.logout}">Sesión cerrada correctamente.</div>
+        <div class="auth-alert success" th:if="${param.activado}">Cuenta activada. Ya puedes iniciar sesión.</div>
+        <div class="auth-alert success" th:if="${param.recuperado}">Contraseña actualizada. Ya puedes iniciar sesión.</div>
 
         <form class="auth-form" th:action="@{/login}" action="/login" method="post">
 
@@ -105,8 +109,6 @@
                 </a>
             </div>
         </div>
-
-        <div class="auth-footer-line">¿No tienes cuenta? <a href="registro.html" class="auth-link" th:href="@{/registro}">Regístrate aquí</a></div>
 
     </div>
 

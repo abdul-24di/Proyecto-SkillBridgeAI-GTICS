@@ -1,3 +1,11 @@
+// Catálogo oficial de habilidades gestionado por el Admin (Épica 5).
+// El colaborador solo puede elegir de esta lista, nunca escribir texto libre.
+const catalogoHabilidades = [
+    "Java", "Spring Boot", "React", "Angular", "JavaScript", "Python",
+    "MySQL", "PostgreSQL", "MongoDB", "Docker", "AWS", "GCP", "Git", "Scrum",
+    "Comunicación efectiva", "AWS Certified Developer", "jQuery"
+];
+
 const profile = {
     nombre: "Paweł Kuna",
     cargo: "Backend Developer",
@@ -189,41 +197,19 @@ function renderAll() {
     renderProjectHistory();
 }
 
-// ---------------- MODAL: Editar perfil (solo foto) ----------------
-const editProfileModal = document.getElementById("editProfileModal");
+// ---------------- Foto de perfil (campo dentro de "Ajustes de Cuenta") ----------------
+// Antes apuntaba a un modal (#editProfileModal) que ya no existe en el HTML —
+// la foto ahora se edita directo desde el campo de archivo del tab de Ajustes de Cuenta.
 const editPhotoInput = document.getElementById("editPhotoInput");
-const editPhotoPreviewImg = document.getElementById("editPhotoPreviewImg");
-const editPhotoPreviewPlaceholder = document.getElementById("editPhotoPreviewPlaceholder");
-let pendingPhotoUrl = null;
 
-editProfileModal.addEventListener("show.bs.modal", () => {
-    pendingPhotoUrl = profile.fotoUrl;
-
-    if (profile.fotoUrl) {
-        editPhotoPreviewImg.src = profile.fotoUrl;
-        editPhotoPreviewImg.classList.remove("d-none");
-        editPhotoPreviewPlaceholder.classList.add("d-none");
-    } else {
-        editPhotoPreviewImg.classList.add("d-none");
-        editPhotoPreviewPlaceholder.classList.remove("d-none");
-    }
-    editPhotoInput.value = "";
-});
-
-editPhotoInput.addEventListener("change", () => {
+editPhotoInput?.addEventListener("change", () => {
     const file = editPhotoInput.files?.[0];
     if (!file) return;
-    pendingPhotoUrl = URL.createObjectURL(file);
-    editPhotoPreviewImg.src = pendingPhotoUrl;
-    editPhotoPreviewImg.classList.remove("d-none");
-    editPhotoPreviewPlaceholder.classList.add("d-none");
-});
-
-document.getElementById("saveProfileBtn").addEventListener("click", () => {
-    profile.fotoUrl = pendingPhotoUrl;
+    profile.fotoUrl = URL.createObjectURL(file);
     renderHero();
     renderCompletion();
 });
+
 // ---------------- MODAL: Editar sobre mí ----------------
 const editAboutModal = document.getElementById("editAboutModal");
 const editAboutInput = document.getElementById("editAboutInput");
@@ -245,7 +231,11 @@ const skillLevelInput = document.getElementById("skillLevelInput");
 const skillEvidenceInput = document.getElementById("skillEvidenceInput");
 
 addSkillModal.addEventListener("show.bs.modal", () => {
-    skillNameInput.value = "";
+    const yaAgregadas = profile.skills.map(s => s.nombre);
+    const disponibles = catalogoHabilidades.filter(h => !yaAgregadas.includes(h));
+
+    skillNameInput.innerHTML = `<option value="" selected disabled>Seleccionar del catálogo...</option>`
+        + disponibles.map(h => `<option value="${h}">${h}</option>`).join("");
     skillLevelInput.value = "";
     skillEvidenceInput.value = "";
 });

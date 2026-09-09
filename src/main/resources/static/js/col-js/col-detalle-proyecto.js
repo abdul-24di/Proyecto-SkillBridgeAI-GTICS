@@ -315,3 +315,19 @@ document.querySelectorAll(".chat-contact").forEach(c => {
         c.classList.add("active");
     });
 });
+// ---------------- Foro (tab) — reusa los datos y el componente de tarjeta reales ----------------
+// Esta página muestra el proyecto A, así que filtramos por ese scope. Cuando se conecte
+// a la BD real, este id vendrá del proyecto que efectivamente se está viendo.
+const projectForumList = document.getElementById("projectForumList");
+if (projectForumList && typeof posts !== "undefined") {
+    const projectPosts = posts.filter(p => p.scope === "proyectoA");
+    projectForumList.innerHTML = projectPosts.length
+        ? projectPosts.map(p => renderPost(p, "projectForumList")).join("")
+        : `<div class="empty-state">Este proyecto aún no tiene publicaciones.</div>`;
+
+    projectForumList.addEventListener("click", (e) => {
+        if (e.target.closest("[data-open-post]") || e.target.closest("[data-vote]")) {
+            window.location.href = "col-foros.html";
+        }
+    });
+}

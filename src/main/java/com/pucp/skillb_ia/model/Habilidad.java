@@ -2,9 +2,7 @@ package com.pucp.skillb_ia.model;
 
 import jakarta.persistence.*;
 
-// Catálogo oficial de habilidades gestionado por el Admin (Épica 5) — el
-// colaborador elige de aquí, nunca escribe texto libre, para estandarizar
-// los términos de toda la organización y evitar duplicados.
+
 @Entity
 @Table(name = "habilidad", uniqueConstraints = @UniqueConstraint(columnNames = {"nombre", "categoria_id"}))
 public class Habilidad {

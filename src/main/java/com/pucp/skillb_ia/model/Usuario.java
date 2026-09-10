@@ -43,6 +43,9 @@ public class Usuario {
     @Column(name = "foto_url", length = 500)
     private String fotoUrl;
 
+    @Column(name = "descripcion", length = 500)
+    private String descripcion;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "rol_id", nullable = false)
     private Rol rol;
@@ -104,6 +107,14 @@ public class Usuario {
 
     public String getFotoUrl() { return fotoUrl; }
     public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
 
     public Rol getRol() { return rol; }
     public void setRol(Rol rol) { this.rol = rol; }

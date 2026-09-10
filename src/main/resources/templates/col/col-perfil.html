@@ -23,48 +23,12 @@
                 <a href="col-perfil.html" class="active">Perfil Profesional</a>
                 <a href="col-explorar.html">Explorar</a>
             </nav>
-            <div class="user-area">
-                <div class="notification-wrap">
-                    <button type="button" class="notification-link position-relative" id="notifBellBtn" aria-label="Notificaciones">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
-                            <path d="M9 19a3 3 0 0 0 6 0"/>
-                        </svg>
-                        <span class="badge bg-red notification-dot" id="notifDot"></span>
-                    </button>
-                    <div class="notification-panel" id="notifPanel">
-                        <div class="notification-panel-header">
-                            <span>Notificaciones</span>
-                            <button type="button" class="notification-panel-close" id="notifCloseBtn" aria-label="Cerrar">&times;</button>
-                        </div>
-                        <div class="notification-panel-list">
-                            <a href="col-proyectos.html" class="notification-item">
-                                <span class="notification-item-dot bg-red"></span>
-                                <div><div class="notification-item-title">Asignación a nuevo proyecto</div><div class="notification-item-sub">Proyecto A</div></div>
-                            </a>
-                            <a href="col-foros.html" class="notification-item">
-                                <span class="notification-item-dot bg-secondary"></span>
-                                <div><div class="notification-item-title">Respuesta en el foro</div><div class="notification-item-sub">Respondieron tu publicación sobre autenticación</div></div>
-                            </a>
-                        </div>
-                        <div class="notification-panel-footer">
-                            <button type="button" class="btn btn-link btn-sm p-0" id="notifMarkAllBtn">Marcar todas como leídas</button>
-                        </div>
-                    </div>
-                </div>
-                <span class="avatar avatar-sm user-avatar">PK</span>
-                <div class="user-meta">
-                    <div class="fw-semibold">Paweł Kuna</div>
-                    <div class="small">Colaborador</div>
-                </div>
-            </div>
-
         </div>
     </header>
 
     <main class="page-wrap">
 
-                <div class="page-header mb-4">
+        <div class="page-header mb-4">
             <div class="row align-items-center">
                 <div class="col">
                     <h2 class="page-title">Mi Perfil</h2>
@@ -73,15 +37,18 @@
             </div>
         </div>
 
+        <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+        <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+
         <ul class="nav nav-pills mb-4" role="tablist">
             <li class="nav-item" role="presentation">
-                <a class="nav-link active" data-bs-toggle="tab" href="#tab-profesional" aria-selected="true" role="tab">
+                <a class="nav-link active" id="tabLinkProfesional" data-bs-toggle="tab" href="#tab-profesional" aria-selected="true" role="tab">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1" /><path d="M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M17 10h2a2 2 0 0 1 2 2v1" /><path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M3 13v-1a2 2 0 0 1 2 -2h2" /></svg>
                     Perfil Profesional
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" data-bs-toggle="tab" href="#tab-cuenta" aria-selected="false" role="tab" tabindex="-1">
+                <a class="nav-link" id="tabLinkCuenta" data-bs-toggle="tab" href="#tab-cuenta" aria-selected="false" role="tab" tabindex="-1">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 -.94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c.996 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>
                     Ajustes de Cuenta
                 </a>
@@ -92,187 +59,230 @@
             <!-- TAB 1: PROFESIONAL -->
             <div class="tab-pane active show" id="tab-profesional" role="tabpanel">
 
-        <!-- HERO: datos básicos + progreso de perfil -->
-        <div class="card section-card profile-hero mb-4">
-            <div class="card-body profile-hero-body">
+                <!-- HERO: datos básicos + progreso de perfil -->
+                <div class="card section-card profile-hero mb-4">
+                    <div class="card-body profile-hero-body">
 
-                <div class="profile-hero-main">
-                    <div class="profile-photo-wrap">
-                        <img id="profilePhotoImg" class="profile-photo d-none" alt="Foto de perfil">
-                        <div id="profilePhotoPlaceholder" class="profile-photo profile-photo-placeholder">PK</div>
-                    </div>
-                    <div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <h2 class="profile-name mb-0" id="profileName">Paweł Kuna</h2>
-                            <span class="badge bg-secondary-lt" id="profileLevelBadge">Junior</span>
+                        <div class="profile-hero-main">
+                            <div class="profile-photo-wrap">
+                                <img th:if="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                     th:src="@{${colaborador.fotoUrl}}" class="profile-photo" alt="Foto de perfil">
+                                <div th:unless="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                     class="profile-photo profile-photo-placeholder"
+                                     th:text="|${#strings.isEmpty(colaborador.nombre) ? '' : #strings.substring(colaborador.nombre,0,1)}${#strings.isEmpty(colaborador.apellido) ? '' : #strings.substring(colaborador.apellido,0,1)}|">PK</div>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <h2 class="profile-name mb-0" th:text="|${colaborador.nombre} ${colaborador.apellido}|">Nombre Apellido</h2>
+                                    <span th:if="${colaborador.nivelExperiencia != null}" class="badge bg-secondary-lt" th:text="${colaborador.nivelExperiencia.name() == 'JUNIOR' ? 'Junior' : (colaborador.nivelExperiencia.name() == 'SEMI_SENIOR' ? 'Semi-Senior' : 'Senior')}">Junior</span>
+                                </div>
+                                <div class="profile-role" th:text="${colaborador.cargo != null ? colaborador.cargo : 'Sin cargo asignado'}">Backend Developer</div>
+                                <div class="profile-status-row mt-2">
+                                    <span class="status-dot" th:classappend="${(colaborador.horasDisponibles == null or colaborador.horasDisponibles.signum() <= 0) ? 'offline' : ''}"></span>
+                                    <span class="fw-semibold" th:text="${(colaborador.horasDisponibles != null and colaborador.horasDisponibles.signum() > 0) ? 'Disponible' : 'No disponible'}">Disponible</span>
+                                    <span class="text-secondary" th:if="${colaborador.horasDisponibles != null}">· <span th:text="|${colaborador.horasDisponibles} horas/semana disponibles|">20 horas/semana disponibles</span></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="profile-role" id="profileRole">Backend Developer</div>
-                        <div class="profile-status-row mt-2">
-                            <span class="status-dot" id="profileStatusDot"></span>
-                            <span class="fw-semibold" id="profileStatusText">Disponible</span>
-                            <span class="text-secondary">· <span id="profileHoursText">20 horas/semana disponibles</span></span>
+
+                        <div class="profile-hero-progress">
+                            <div class="progress-ring" th:style="'--value:' + ${porcentajeCompletado}">
+                                <div class="progress-ring-value"><span th:text="|${porcentajeCompletado}%|">80%</span><small>Completado</small></div>
+                            </div>
+                            <div class="completion-hint">
+                                <div class="info-label mb-1" th:if="${!pendientesCompletar.isEmpty()}">Te falta completar</div>
+                                <div class="info-label mb-1" th:if="${pendientesCompletar.isEmpty()}">¡Tu perfil está completo!</div>
+                                <ul class="completion-checklist">
+                                    <li th:each="pendiente : ${pendientesCompletar}" th:text="${pendiente}"></li>
+                                </ul>
+                            </div>
                         </div>
-                        
+
                     </div>
                 </div>
 
-                <div class="profile-hero-progress">
-                    <div class="progress-ring" id="profileProgressRing" style="--value:80">
-                        <div class="progress-ring-value" id="profileProgressValue">80%<small>Completado</small></div>
+                <!-- SOBRE MÍ + HABILIDADES -->
+                <div class="row row-cards mb-4 g-3">
+                    <div class="col-lg-6">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header">
+                                <div>
+                                    <h3 class="card-title mb-1">Sobre mí</h3>
+                                    <div class="section-description">Una breve descripción visible para PMs y RMs.</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#editAboutModal">Editar</button>
+                            </div>
+
+                            <div class="card-body">
+                                <p class="profile-about-text mb-0" th:text="${(colaborador.descripcion != null and !colaborador.descripcion.isBlank()) ? colaborador.descripcion : 'Aún no has agregado una descripción de tu perfil.'}"></p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="completion-hint">
-                        <div class="info-label mb-1">Te falta completar</div>
-                        <ul class="completion-checklist" id="completionChecklist"></ul>
+
+                    <div class="col-lg-6">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header">
+                                <div>
+                                    <h3 class="card-title mb-1">Habilidades</h3>
+                                    <div class="section-description">Visibles para el Resource Manager y el Talent Matching.</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addSkillModal">+ Agregar habilidad</button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div th:if="${habilidadesColaborador.isEmpty()}" class="empty-state">Aún no has agregado habilidades a tu perfil.</div>
+                                <div th:each="ch : ${habilidadesColaborador}" class="skill-item">
+                                    <div>
+                                        <div class="skill-item-name" th:text="${ch.habilidad.nombre}">Java</div>
+                                        <div class="skill-item-cert" th:classappend="${ch.estadoValidacion.name() == 'VALIDADA' ? 'text-green' : (ch.estadoValidacion.name() == 'RECHAZADA' ? 'text-red' : '')}"
+                                             th:text="${ch.estadoValidacion.name() == 'VALIDADA' ? 'Validada por el RM' : (ch.estadoValidacion.name() == 'RECHAZADA' ? 'Rechazada por el RM' : 'Pendiente de validación')}">Pendiente de validación</div>
+                                    </div>
+                                    <div class="skill-item-actions">
+                                <span class="badge"
+                                      th:classappend="${ch.nivelDominio.name() == 'AVANZADO' ? 'bg-green-lt' : (ch.nivelDominio.name() == 'INTERMEDIO' ? 'bg-blue-lt' : 'bg-secondary-lt')}"
+                                      th:text="${ch.nivelDominio.name() == 'AVANZADO' ? 'Avanzado' : (ch.nivelDominio.name() == 'INTERMEDIO' ? 'Intermedio' : 'Básico')}">Avanzado</span>
+                                        <form th:action="@{'/colaborador/perfil/habilidades/' + ${ch.habilidad.id} + '/eliminar'}" method="post" class="d-inline">
+                                            <button type="submit" class="skill-remove-btn" aria-label="Quitar habilidad" onclick="return confirm('¿Quitar esta habilidad de tu perfil?');">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-            </div>
-        </div>
+                <!-- EXPERIENCIA + EDUCACIÓN -->
+                <div class="row row-cards mb-4 g-3">
+                    <div class="col-lg-6">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header">
+                                <div>
+                                    <h3 class="card-title mb-1">Experiencia profesional</h3>
+                                    <div class="section-description">Historial laboral fuera de SkillBridge AI.</div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0" id="experienceList"></div>
+                        </div>
+                    </div>
 
-        <!-- SOBRE MÍ + HABILIDADES -->
-        <div class="row row-cards mb-4 g-3">
-            <div class="col-lg-6">
-                <div class="card section-card h-100">
+                    <div class="col-lg-6">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header">
+                                <div>
+                                    <h3 class="card-title mb-1">Educación</h3>
+                                    <div class="section-description">Formación académica registrada.</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addEducationModal">+ Agregar formación</button>
+                            </div>
+                            <div class="card-body p-0" id="educationList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORIAL DE PROYECTOS -->
+                <div class="card section-card">
                     <div class="card-header section-header">
                         <div>
-                            <h3 class="card-title mb-1">Experiencia profesional</h3>
-                            <div class="section-description">Historial laboral fuera de SkillBridge AI.</div>
+                            <h3 class="card-title mb-1">Historial de proyectos</h3>
+                            <div class="section-description">Participación registrada en proyectos de la organización. Vista de solo lectura.</div>
                         </div>
                     </div>
-
-                    <div class="card-body">
-                        <p class="profile-about-text mb-0" id="aboutText"></p>
-                    </div>
+                    <div class="card-body p-0" id="projectHistoryList"></div>
                 </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card section-card h-100">
-                    <div class="card-header section-header">
-                        <div>
-                            <h3 class="card-title mb-1">Habilidades</h3>
-                            <div class="section-description">Visibles para el Resource Manager y el Talent Matching.</div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addSkillModal">+ Agregar habilidad</button>
-                    </div>
-                    <div class="card-body p-0" id="skillsList"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- EXPERIENCIA + EDUCACIÓN -->
-        <div class="row row-cards mb-4 g-3">
-            <div class="col-lg-6">
-                <div class="card section-card h-100">
-                    <div class="card-header section-header">
-                        <div>
-                            <h3 class="card-title mb-1">Experiencia profesional</h3>
-                            <div class="section-description">Historial laboral fuera de SkillBridge AI.</div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addExperienceModal">+ Agregar</button>
-                    </div>
-                    <div class="card-body p-0" id="experienceList"></div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card section-card h-100">
-                    <div class="card-header section-header">
-                        <div>
-                            <h3 class="card-title mb-1">Educación</h3>
-                            <div class="section-description">Formación académica registrada.</div>
-                        </div>
-                        <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addEducationModal">+ Agregar formación</button>
-                    </div>
-                    <div class="card-body p-0" id="educationList"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- HISTORIAL DE PROYECTOS -->
-        <div class="card section-card">
-            <div class="card-header section-header">
-                <div>
-                    <h3 class="card-title mb-1">Historial de proyectos</h3>
-                    <div class="section-description">Participación registrada en proyectos de la organización. Vista de solo lectura.</div>
-                </div>
-            </div>
-            <div class="card-body p-0" id="projectHistoryList"></div>
-        </div>
 
             </div>
-            
+
             <!-- TAB 2: CUENTA -->
             <div class="tab-pane" id="tab-cuenta" role="tabpanel">
                 <div class="row">
                     <div class="col-md-4 col-lg-3 mb-4">
                         <div class="card">
                             <div class="card-body text-center py-5">
-                                <span class="avatar avatar-xl mb-4 rounded" style="font-size: 1.5rem;">PK</span>
-                                <h3 class="m-0 mb-1">Paweł Kuna</h3>
-                                <div class="text-secondary mb-4">Colaborador</div>
-                                
-                                
+                                <span class="avatar avatar-xl mb-4 rounded" style="font-size: 1.5rem;"
+                                      th:text="|${#strings.isEmpty(colaborador.nombre) ? '' : #strings.substring(colaborador.nombre,0,1)}${#strings.isEmpty(colaborador.apellido) ? '' : #strings.substring(colaborador.apellido,0,1)}|">PK</span>
+                                <h3 class="m-0 mb-1" th:text="|${colaborador.nombre} ${colaborador.apellido}|">Nombre Apellido</h3>
+                                <div class="text-secondary mb-4" th:text="${colaborador.rol.nombre == 'COLABORADOR' ? 'Colaborador' : colaborador.rol.nombre}">Colaborador</div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-8 col-lg-9">
-                        <div class="card">
+                        <div class="card mb-3">
                             <div class="card-header">
-                                <h3 class="card-title">Datos Personales y de Acceso</h3>
+                                <h3 class="card-title">Datos Personales</h3>
                             </div>
                             <div class="card-body">
-                                <form action="#" method="post">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nombres</label>
+                                        <input type="text" class="form-control" th:value="${colaborador.nombre}" readonly disabled>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Apellidos</label>
+                                        <input type="text" class="form-control" th:value="${colaborador.apellido}" readonly disabled>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Correo electrónico</label>
+                                        <input type="email" class="form-control" th:value="${colaborador.correo}" readonly disabled>
+                                        <div class="form-hint">Solo el Administrador puede cambiar tu correo, ya que es tu identificador de acceso.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cargo / puesto</label>
+                                        <input type="text" class="form-control" th:value="${colaborador.cargo}" readonly disabled>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Horas disponibles por semana</label>
+                                        <input type="text" class="form-control" th:value="${colaborador.horasDisponibles}" readonly disabled>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-hint">Estos datos son administrados por el Resource Manager / Administrador y no se editan desde aquí.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Foto de perfil</h3>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/colaborador/perfil/foto}" method="post" enctype="multipart/form-data">
                                     <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label">Nombres</label>
-                                            <input type="text" class="form-control" name="nombres" value="Paweł" required>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Apellidos</label>
-                                            <input type="text" class="form-control" name="apellidos" value="Kuna" required>
-                                        </div>
                                         <div class="col-md-12">
-                                            <label class="form-label">Correo electrónico</label>
-                                            <input type="email" class="form-control" name="correo" value="colaborador@empresa.com" readonly disabled>
-                                            <div class="form-hint">Solo el Administrador puede cambiar tu correo, ya que es tu identificador de acceso.</div>
-                                        </div>
-                                        
-                                                                                <div class="col-12 mt-4">
-                                            <h4 class="form-label">Perfil Profesional</h4>
-                                            <div class="hr-text mt-0 mb-3">Información visible para PMs y RMs</div>
-                                        </div>
-                                        <div class="col-md-12">
-                                            <label class="form-label">Foto de perfil</label>
-                                            <input type="file" id="editPhotoInput" class="form-control" accept="image/png, image/jpeg">
+                                            <input type="file" name="foto" class="form-control" accept="image/png, image/jpeg" required>
                                             <div class="form-hint">Formatos JPG o PNG, máximo 2MB.</div>
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label">Cargo / puesto</label>
-                                            <input type="text" id="editRoleInput" class="form-control" name="cargo" value="Backend Developer">
+                                    </div>
+                                    <div class="mt-3 d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-primary">Guardar foto</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Seguridad — Cambiar contraseña</h3>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/colaborador/perfil/password}" method="post">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <label class="form-label">Contraseña actual</label>
+                                            <input type="password" class="form-control" name="passwordActual" required>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Horas disponibles por semana</label>
-                                            <input type="number" id="editHoursInput" min="0" max="60" class="form-control" name="horas" value="20">
-                                        </div>
-                                        
-                                        <div class="col-12 mt-4">
-                                            <h4 class="form-label">Seguridad</h4>
-                                            <div class="hr-text mt-0 mb-3">Cambiar contraseña</div>
-                                        </div>
-                                        
-                                        <div class="col-md-6">
-                                            <label class="form-label">Nueva Contraseña</label>
-                                            <input type="password" class="form-control" name="password" placeholder="Dejar en blanco para no cambiar">
+                                            <label class="form-label">Nueva contraseña</label>
+                                            <input type="password" class="form-control" name="passwordNueva" minlength="6" required>
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Confirmar Contraseña</label>
-                                            <input type="password" class="form-control" name="password_confirm" placeholder="Repite la nueva contraseña">
+                                            <label class="form-label">Confirmar contraseña</label>
+                                            <input type="password" class="form-control" name="passwordConfirmar" minlength="6" required>
                                         </div>
                                     </div>
-                                    <div class="mt-5 d-flex justify-content-end gap-2">
-                                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                                    <div class="mt-3 d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
                                     </div>
                                 </form>
                             </div>
@@ -287,64 +297,65 @@
 <!-- MODAL: EDITAR SOBRE MÍ -->
 <div class="modal modal-blur fade col-modal" id="editAboutModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Editar "Sobre mí"</h5>
-                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        <form th:action="@{/colaborador/perfil/sobre-mi}" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar "Sobre mí"</h5>
+                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Descripción</label>
+                    <textarea name="descripcion" class="form-control" rows="5" maxlength="500"
+                              placeholder="Cuéntale a la organización sobre tu experiencia, intereses y lo que te apasiona como profesional..."
+                              th:text="${colaborador.descripcion}"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Guardar</button>
+                </div>
             </div>
-            <div class="modal-body">
-                <label class="form-label">Descripción</label>
-                <textarea id="editAboutInput" class="form-control" rows="5" placeholder="Cuéntale a la organización sobre tu experiencia, intereses y lo que te apasiona como profesional..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" type="button" id="saveAboutBtn" data-bs-dismiss="modal">Guardar</button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
 <!-- MODAL: AGREGAR HABILIDAD -->
 <div class="modal modal-blur fade col-modal" id="addSkillModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Agregar habilidad</h5>
-                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Habilidad <span class="text-red">*</span></label>
-                    <select id="skillNameInput" class="form-select">
-                        <option value="" selected disabled>Seleccionar del catálogo...</option>
-                    </select>
-                    <div class="form-hint">Solo puedes elegir habilidades del catálogo oficial de la organización, para mantener los términos estandarizados.</div>
+        <form th:action="@{/colaborador/perfil/habilidades}" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar habilidad</h5>
+                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Nivel <span class="text-red">*</span></label>
-                    <select id="skillLevelInput" class="form-select">
-                        <option value="" selected disabled>Seleccionar nivel</option>
-                        <option value="Básico">Básico</option>
-                        <option value="Intermedio">Intermedio</option>
-                        <option value="Avanzado">Avanzado</option>
-                    </select>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Habilidad <span class="text-red">*</span></label>
+                        <select name="habilidadId" class="form-select" required>
+                            <option value="" selected disabled>Seleccionar del catálogo...</option>
+                            <option th:each="h : ${habilidadesDisponibles}" th:value="${h.id}" th:text="${h.nombre}"></option>
+                        </select>
+                        <div class="form-hint">Solo puedes elegir habilidades del catálogo oficial de la organización, para mantener los términos estandarizados.</div>
+                    </div>
+                    <div>
+                        <label class="form-label">Nivel <span class="text-red">*</span></label>
+                        <select name="nivel" class="form-select" required>
+                            <option value="" selected disabled>Seleccionar nivel</option>
+                            <option value="BASICO">Básico</option>
+                            <option value="INTERMEDIO">Intermedio</option>
+                            <option value="AVANZADO">Avanzado</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label class="form-label">Evidencia</label>
-                    <input type="file" id="skillEvidenceInput" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
-                    <div class="form-hint">Adjuntar una certificación es opcional, pero acelera la validación del Resource Manager.</div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Agregar habilidad</button>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" type="button" id="saveSkillBtn" data-bs-dismiss="modal">Agregar habilidad</button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
-
-<!-- MODAL: AGREGAR FORMACIÓN -->
+<!-- MODAL: AGREGAR FORMACIÓN  -->
 <div class="modal modal-blur fade col-modal" id="addEducationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -389,5 +400,13 @@
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/col-js/col-perfil.js" th:src="@{/js/col-js/col-perfil.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+<script>
+    // Reabre la pestaña "Ajustes de Cuenta" tras guardar foto/contraseña (redirect ?tab=cuenta).
+    if (new URLSearchParams(location.search).get("tab") === "cuenta") {
+        document.addEventListener("DOMContentLoaded", () => {
+            new bootstrap.Tab(document.getElementById("tabLinkCuenta")).show();
+        });
+    }
+</script>
 </body>
 </html>

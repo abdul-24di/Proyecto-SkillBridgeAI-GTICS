@@ -1,24 +1,4 @@
-// Catálogo oficial de habilidades gestionado por el Admin (Épica 5).
-// El colaborador solo puede elegir de esta lista, nunca escribir texto libre.
-const catalogoHabilidades = [
-    "Java", "Spring Boot", "React", "Angular", "JavaScript", "Python",
-    "MySQL", "PostgreSQL", "MongoDB", "Docker", "AWS", "GCP", "Git", "Scrum",
-    "Comunicación efectiva", "AWS Certified Developer", "jQuery"
-];
-
-const profile = {
-    nombre: "Paweł Kuna",
-    cargo: "Backend Developer",
-    nivel: "Junior",
-    horas: 20,
-    fotoUrl: null,
-    about: "Desarrollador backend interesado en construir sistemas escalables y aprender sobre arquitectura cloud.",
-    skills: [
-        { id: 1, nombre: "Java", nivel: "Avanzado", certificado: true },
-        { id: 2, nombre: "Spring Boot", nivel: "Avanzado", certificado: true },
-        { id: 3, nombre: "MySQL", nivel: "Intermedio", certificado: true },
-        { id: 4, nombre: "Git", nivel: "Básico", certificado: false }
-    ],
+const mock = {
     experience: [
         { id: 1, empresa: "Empresa X", cargo: "Full Stack Developer", descripcion: "Desarrollo de módulos internos y APIs REST.", inicio: "2024", fin: "Actualidad", actual: true },
         { id: 2, empresa: "Empresa Y", cargo: "Backend Developer", descripcion: "Mantenimiento de servicios backend en Java.", inicio: "2022", fin: "2024", actual: false }
@@ -32,120 +12,11 @@ const profile = {
     ]
 };
 
-const levelBadgeClass = (nivel) => ({
-    "Básico": "bg-secondary-lt",
-    "Intermedio": "bg-blue-lt",
-    "Avanzado": "bg-green-lt"
-}[nivel] || "bg-secondary-lt");
-
-// ---------------- Render: hero ----------------
-const profileNameEl = document.getElementById("profileName");
-const profileRoleEl = document.getElementById("profileRole");
-const profileLevelBadge = document.getElementById("profileLevelBadge");
-const profileHoursText = document.getElementById("profileHoursText");
-const profileStatusDot = document.getElementById("profileStatusDot");
-const profileStatusText = document.getElementById("profileStatusText");
-const profilePhotoImg = document.getElementById("profilePhotoImg");
-const profilePhotoPlaceholder = document.getElementById("profilePhotoPlaceholder");
-
-function initials(name) {
-    return name.split(" ").filter(Boolean).slice(0, 2).map(p => p[0]).join("").toUpperCase();
-}
-
-function renderHero() {
-    profileNameEl.textContent = profile.nombre;
-    profileRoleEl.textContent = profile.cargo;
-    profileLevelBadge.textContent = profile.nivel;
-    profileHoursText.textContent = `${profile.horas} horas/semana disponibles`;
-
-    const disponible = profile.horas > 0;
-    profileStatusDot.classList.toggle("offline", !disponible);
-    profileStatusText.textContent = disponible ? "Disponible" : "No disponible";
-
-    if (profile.fotoUrl) {
-        profilePhotoImg.src = profile.fotoUrl;
-        profilePhotoImg.classList.remove("d-none");
-        profilePhotoPlaceholder.classList.add("d-none");
-    } else {
-        profilePhotoImg.classList.add("d-none");
-        profilePhotoPlaceholder.classList.remove("d-none");
-        profilePhotoPlaceholder.textContent = initials(profile.nombre);
-    }
-}
-
-// ---------------- Perfil completado ----------------
-const progressRing = document.getElementById("profileProgressRing");
-const progressValue = document.getElementById("profileProgressValue");
-const completionChecklist = document.getElementById("completionChecklist");
-
-function renderCompletion() {
-    const checks = [
-        { done: !!profile.fotoUrl, label: "Agrega una foto de perfil" },
-        { done: profile.about.trim().length > 0, label: "Agrega una descripción" },
-        { done: profile.skills.length > 0, label: "Agrega una habilidad" },
-        { done: profile.education.length > 0, label: "Registra tu formación académica" }
-    ];
-
-    const done = checks.filter(c => c.done).length;
-    const percent = Math.round((done / checks.length) * 100);
-
-    progressRing.style.setProperty("--value", percent);
-    progressValue.innerHTML = `${percent}%<small>Completado</small>`;
-
-    const pending = checks.filter(c => !c.done);
-    if (pending.length) {
-        completionChecklist.classList.remove("empty");
-        completionChecklist.innerHTML = pending.map(c => `<li>${c.label}</li>`).join("");
-    } else {
-        completionChecklist.classList.add("empty");
-        completionChecklist.innerHTML = `<li>¡Tu perfil está completo!</li>`;
-    }
-}
-
-// ---------------- Sobre mí ----------------
-const aboutText = document.getElementById("aboutText");
-
-function renderAbout() {
-    aboutText.textContent = profile.about.trim() || "Aún no has agregado una descripción de tu perfil.";
-}
-
-// ---------------- Habilidades ----------------
-const skillsList = document.getElementById("skillsList");
-
-function renderSkills() {
-    skillsList.innerHTML = profile.skills.length ? profile.skills.map(s => `
-        <div class="skill-item" data-skill-id="${s.id}">
-            <div>
-                <div class="skill-item-name">${s.nombre}</div>
-                ${s.certificado ? `<div class="skill-item-cert">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15l-3.5 2 1-4-3-2.6h3.8L12 6l1.7 4.4h3.8l-3 2.6 1 4z"/><circle cx="12" cy="10" r="8"/></svg>
-                    Certificación adjunta
-                </div>` : ""}
-            </div>
-            <div class="skill-item-actions">
-                <span class="badge ${levelBadgeClass(s.nivel)}">${s.nivel}</span>
-                <button type="button" class="skill-remove-btn" data-remove-skill="${s.id}" aria-label="Quitar habilidad">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                </button>
-            </div>
-        </div>
-    `).join("") : `<div class="empty-state">Aún no has agregado habilidades a tu perfil.</div>`;
-}
-
-skillsList.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-remove-skill]");
-    if (!btn) return;
-    const id = Number(btn.dataset.removeSkill);
-    profile.skills = profile.skills.filter(s => s.id !== id);
-    renderSkills();
-    renderCompletion();
-});
-
 // ---------------- Experiencia ----------------
 const experienceList = document.getElementById("experienceList");
 
 function renderExperience() {
-    experienceList.innerHTML = profile.experience.length ? profile.experience.map(exp => `
+    experienceList.innerHTML = mock.experience.length ? mock.experience.map(exp => `
         <div class="timeline-entry">
             <div class="timeline-entry-title">${exp.cargo}${exp.empresa ? ` — ${exp.empresa}` : ""}</div>
             <div class="timeline-entry-meta">${exp.inicio || "?"} – ${exp.actual ? "Actualidad" : (exp.fin || "?")}</div>
@@ -158,7 +29,7 @@ function renderExperience() {
 const educationList = document.getElementById("educationList");
 
 function renderEducation() {
-    educationList.innerHTML = profile.education.length ? profile.education.map(edu => `
+    educationList.innerHTML = mock.education.length ? mock.education.map(edu => `
         <div class="timeline-entry">
             <div class="timeline-entry-title">${edu.titulo}</div>
             <div class="timeline-entry-meta">${edu.institucion || ""}</div>
@@ -172,7 +43,7 @@ const projectHistoryList = document.getElementById("projectHistoryList");
 const projectStatusBadge = (estado) => estado === "Activo" ? "bg-green-lt" : "bg-secondary-lt";
 
 function renderProjectHistory() {
-    projectHistoryList.innerHTML = profile.projectHistory.length ? profile.projectHistory.map(p => `
+    projectHistoryList.innerHTML = mock.projectHistory.length ? mock.projectHistory.map(p => `
         <div class="project-history-item">
             <div>
                 <div class="fw-semibold">${p.nombre}</div>
@@ -185,76 +56,6 @@ function renderProjectHistory() {
         </div>
     `).join("") : `<div class="empty-state">Aún no participas en ningún proyecto.</div>`;
 }
-
-// ---------------- Render general ----------------
-function renderAll() {
-    renderHero();
-    renderCompletion();
-    renderAbout();
-    renderSkills();
-    renderExperience();
-    renderEducation();
-    renderProjectHistory();
-}
-
-// ---------------- Foto de perfil (campo dentro de "Ajustes de Cuenta") ----------------
-// Antes apuntaba a un modal (#editProfileModal) que ya no existe en el HTML —
-// la foto ahora se edita directo desde el campo de archivo del tab de Ajustes de Cuenta.
-const editPhotoInput = document.getElementById("editPhotoInput");
-
-editPhotoInput?.addEventListener("change", () => {
-    const file = editPhotoInput.files?.[0];
-    if (!file) return;
-    profile.fotoUrl = URL.createObjectURL(file);
-    renderHero();
-    renderCompletion();
-});
-
-// ---------------- MODAL: Editar sobre mí ----------------
-const editAboutModal = document.getElementById("editAboutModal");
-const editAboutInput = document.getElementById("editAboutInput");
-
-editAboutModal.addEventListener("show.bs.modal", () => {
-    editAboutInput.value = profile.about;
-});
-
-document.getElementById("saveAboutBtn").addEventListener("click", () => {
-    profile.about = editAboutInput.value.trim();
-    renderAbout();
-    renderCompletion();
-});
-
-// ---------------- MODAL: Agregar habilidad ----------------
-const addSkillModal = document.getElementById("addSkillModal");
-const skillNameInput = document.getElementById("skillNameInput");
-const skillLevelInput = document.getElementById("skillLevelInput");
-const skillEvidenceInput = document.getElementById("skillEvidenceInput");
-
-addSkillModal.addEventListener("show.bs.modal", () => {
-    const yaAgregadas = profile.skills.map(s => s.nombre);
-    const disponibles = catalogoHabilidades.filter(h => !yaAgregadas.includes(h));
-
-    skillNameInput.innerHTML = `<option value="" selected disabled>Seleccionar del catálogo...</option>`
-        + disponibles.map(h => `<option value="${h}">${h}</option>`).join("");
-    skillLevelInput.value = "";
-    skillEvidenceInput.value = "";
-});
-
-document.getElementById("saveSkillBtn").addEventListener("click", () => {
-    const nombre = skillNameInput.value.trim();
-    const nivel = skillLevelInput.value;
-    if (!nombre || !nivel) return;
-
-    profile.skills.push({
-        id: Date.now(),
-        nombre,
-        nivel,
-        certificado: !!skillEvidenceInput.files?.length
-    });
-    renderSkills();
-    renderCompletion();
-});
-
 
 // ---------------- MODAL: Agregar formación ----------------
 const addEducationModal = document.getElementById("addEducationModal");
@@ -273,7 +74,7 @@ document.getElementById("saveEducationBtn").addEventListener("click", () => {
     const titulo = eduDegreeInput.value.trim();
     if (!titulo) return;
 
-    profile.education.unshift({
+    mock.education.unshift({
         id: Date.now(),
         institucion: eduInstitutionInput.value.trim(),
         titulo,
@@ -282,7 +83,8 @@ document.getElementById("saveEducationBtn").addEventListener("click", () => {
         actual: eduCurrentInput.checked
     });
     renderEducation();
-    renderCompletion();
 });
 
-renderAll();
+renderExperience();
+renderEducation();
+renderProjectHistory();

@@ -16,7 +16,7 @@
         </nav>
 
         <div class="user-area">
-            
+
             <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -25,17 +25,25 @@
                 </svg>
                 <span class="badge bg-red notification-dot"></span>
             </a>
-            <a href="../col/col-perfil.html" th:href="@{/colaborador/perfil}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;"><span class="avatar avatar-sm user-avatar">PK</span><div class="user-meta"><div class="fw-semibold">Paweł Kuna</div><div class="small">Colaborador</div></div></a><a href="/" th:href="@{/}" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-    <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>
-    <path d="M9 12h12l-3 -3"></path>
-    <path d="M18 15l3 -3"></path>
-  </svg>
-  Salir
-</a>
-</div>  </div>
-  <script th:src="@{/js/notificaciones.js}" src="../static/js/notificaciones.js"></script>
+            <a href="../col/col-perfil.html" th:href="@{/colaborador/perfil}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+                <span class="avatar avatar-sm user-avatar"
+                      th:text="${usuarioActual != null ? ((#strings.isEmpty(usuarioActual.nombre) ? '' : #strings.substring(usuarioActual.nombre,0,1)) + (#strings.isEmpty(usuarioActual.apellido) ? '' : #strings.substring(usuarioActual.apellido,0,1))) : 'PK'}">PK</span>
+                <div class="user-meta">
+                    <div class="fw-semibold" th:text="${usuarioActual != null ? (usuarioActual.nombre + ' ' + usuarioActual.apellido) : 'Invitado'}">Paweł Kuna</div>
+                    <div class="small">Colaborador</div>
+                </div>
+            </a>
+            <a href="/logout" th:href="@{/logout}" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>
+                    <path d="M9 12h12l-3 -3"></path>
+                    <path d="M18 15l3 -3"></path>
+                </svg>
+                Salir
+            </a>
+        </div>  </div>
+    <script th:src="@{/js/notificaciones.js}" src="../static/js/notificaciones.js"></script>
 </header>
 
 </body>

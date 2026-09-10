@@ -1,28 +1,3 @@
--- =====================================================================
--- SkillBridge AI — Base de Datos (v4, corregida según observaciones
--- del profesor tras la presentación)
--- GTICS 2026-2 · TEL137
--- =====================================================================
--- CAMBIOS APLICADOS EN ESTA VERSIÓN (ver consideraciones_correcciones.md
--- para el detalle de cada uno):
---   1. `rol` ahora es tabla independiente (antes VARCHAR + CHECK).
---   2. Se elimina `token_recuperacion_password`; se une con
---      `token_activacion` en una sola tabla `token_usuario` (campo `tipo`).
---   3. Se elimina la tabla `colaborador` — sus campos pasan a `usuario`.
---   4. Se agrega `anios_experiencia` a `usuario`.
---   5. Se elimina la tabla `disponibilidad` — `horas_disponibles` pasa
---      a ser un campo simple en `usuario`.
---   6. `categoria_habilidad` ahora tiene borrado lógico (`activa`).
---   7. `foro.visibilidad` ahora es BOOLEAN (`es_publico`).
---   8. `certificado` tiene 2 relaciones directas a `usuario`
---      (colaborador_id y revisado_por), ya no pasa por colaborador_habilidad.
---   9. `publicacion_foro` referencia UNA etiqueta directamente (FK simple,
---      relación 1:N etiqueta→publicaciones); se elimina la tabla
---      `publicacion_etiqueta` (era N:M).
---  10. Simplificación general: se quita `colaborador.estado` (quedaba
---      redundante con `usuario.activo`).
--- =====================================================================
-
 SET NAMES utf8mb4;
 
 CREATE DATABASE IF NOT EXISTS skillbridge_db
@@ -31,8 +6,18 @@ CREATE DATABASE IF NOT EXISTS skillbridge_db
 
 USE skillbridge_db;
 
+-- Contraseña: 123456!
+INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles)
+VALUES (
+  'colaborador.prueba@skillbridge.com',
+  '$2b$10$qO/NHqcucTyvuvQq4YXG9e50/vsLvibZ1Ef8QfKea8cYuxWMD5api',
+  'Ana', 'Torres',
+  (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
+  TRUE, 'Backend Developer', 20
+);
+
 -- =====================================================================
--- 1. ROL (independiente, observación del profesor)
+-- 1. ROL 
 -- =====================================================================
 
 CREATE TABLE rol (
@@ -49,12 +34,7 @@ INSERT INTO rol (nombre) VALUES
 -- =====================================================================
 -- 2. USUARIO
 -- =====================================================================
--- Se fusionan aquí los campos que antes vivían en la tabla `colaborador`
--- (cargo, horas_contratadas_semana, sueldo_base, nivel_experiencia,
--- fecha_contratacion) y en `disponibilidad` (horas_disponibles), más
--- `anios_experiencia` que pidió el profesor. Estos campos quedan NULL
--- para usuarios que no son COLABORADOR (PM, RM, Admin).
--- =====================================================================
+
 
 CREATE TABLE usuario (
     id                          BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -64,11 +44,12 @@ CREATE TABLE usuario (
     apellido                    VARCHAR(150)  NULL,
     telefono                    VARCHAR(20)   NULL,
     foto_url                    VARCHAR(500)  NULL,
+	descripcion                 VARCHAR(500)  NULL,
     rol_id                      BIGINT        NOT NULL,
     activo                      BOOLEAN       NOT NULL DEFAULT TRUE,
     fecha_creacion              DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    -- --- Campos exclusivos de colaborador (NULL para los demás roles) ---
+    
     cargo                       VARCHAR(100)  NULL,
     horas_contratadas_semana    DECIMAL(5,2)  NULL,
     horas_disponibles           DECIMAL(5,2)  NULL,
@@ -188,10 +169,7 @@ CREATE TABLE colaborador_habilidad (
 -- =====================================================================
 -- 7. CERTIFICADOS
 -- =====================================================================
--- Dos relaciones independientes con `usuario`: quién lo sube
--- (colaborador_id) y quién lo revisa (revisado_por, el RM). Ya NO
--- depende de que exista un registro previo en colaborador_habilidad.
--- =====================================================================
+
 
 CREATE TABLE certificado (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -324,7 +302,7 @@ CREATE TABLE asignacion (
 
 
 -- =====================================================================
--- 11. ACTIVIDADES (tareas del proyecto — flujo de 2 pasos)
+-- 11. ACTIVIDADES 
 -- =====================================================================
 
 CREATE TABLE actividad (
@@ -457,7 +435,7 @@ CREATE TABLE nomina_mensual (
 
 
 -- =====================================================================
--- 16. ETIQUETAS (creada antes que foro/publicacion por el orden de FKs)
+-- 16. ETIQUETAS 
 -- =====================================================================
 
 CREATE TABLE etiqueta (
@@ -469,8 +447,7 @@ CREATE TABLE etiqueta (
 -- =====================================================================
 -- 17. FOROS
 -- =====================================================================
--- `visibilidad` pasa de VARCHAR a BOOLEAN (es_publico), según lo pedido.
--- =====================================================================
+
 
 CREATE TABLE foro (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -488,10 +465,7 @@ CREATE TABLE foro (
 -- =====================================================================
 -- 18. PUBLICACIONES DEL FORO
 -- =====================================================================
--- Una publicación tiene UNA etiqueta (FK directa) — relación 1:N desde
--- `etiqueta` hacia `publicacion_foro`. Se elimina la tabla intermedia
--- `publicacion_etiqueta` (era N:M, el profesor pidió simplificarla).
--- =====================================================================
+
 
 CREATE TABLE publicacion_foro (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,

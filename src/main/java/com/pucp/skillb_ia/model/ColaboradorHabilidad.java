@@ -4,9 +4,7 @@ import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import jakarta.persistence.*;
 
-// Habilidades que el colaborador agregó a su perfil, con su nivel de dominio.
-// estado_validacion queda para cuando se implemente A23 (revisión de
-// certificados por el RM) — hoy nace en PENDIENTE.
+
 @Entity
 @Table(name = "colaborador_habilidad")
 public class ColaboradorHabilidad {

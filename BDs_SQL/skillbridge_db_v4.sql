@@ -6,15 +6,6 @@ CREATE DATABASE IF NOT EXISTS skillbridge_db
 
 USE skillbridge_db;
 
--- Contraseña: 123456!
-INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles)
-VALUES (
-  'colaborador.prueba@skillbridge.com',
-  '$2b$10$qO/NHqcucTyvuvQq4YXG9e50/vsLvibZ1Ef8QfKea8cYuxWMD5api',
-  'Ana', 'Torres',
-  (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
-  TRUE, 'Backend Developer', 20
-);
 
 -- =====================================================================
 -- 1. ROL 
@@ -78,6 +69,8 @@ CREATE TABLE usuario (
 -- =====================================================================
 -- 3. TOKEN DE USUARIO (unifica activación + recuperación)
 -- =====================================================================
+
+-- Contraseña: 123456!
 
 CREATE TABLE token_usuario (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -627,3 +620,14 @@ CREATE TABLE log_auditoria (
 
     CONSTRAINT fk_log_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 ) ENGINE=InnoDB;
+
+-- =====================================================================
+-- DATOS DE PRUEBA: USUARIOS (contraseña para todos: abc123)
+-- Hash generado con BCrypt $ (compatible con Spring Security Java)
+-- =====================================================================
+
+INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES
+  ('admin@skillbridge.com',  '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Admin',   'Sistema',  1, 1, NULL, NULL),
+  ('rm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Ricardo', 'Mendez',   3, 1, NULL, NULL),
+  ('pm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Pedro',   'Martinez', 2, 1, NULL, NULL),
+  ('col@skillbridge.com',    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Carlos',  'Lopez',    4, 1, 'Backend Developer', 40);

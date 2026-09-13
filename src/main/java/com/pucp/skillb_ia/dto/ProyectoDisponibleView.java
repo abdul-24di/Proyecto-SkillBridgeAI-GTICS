@@ -10,14 +10,17 @@ public class ProyectoDisponibleView {
     private final int cuposDisponibles;
     private final List<String> habilidadesRequeridas;
     private final boolean yaTieneSolicitud;
+    private final boolean tieneHorasSuficientes;
 
     public ProyectoDisponibleView(Proyecto proyecto, int colaboradoresActivos, int cuposDisponibles,
-                                  List<String> habilidadesRequeridas, boolean yaTieneSolicitud) {
+                                  List<String> habilidadesRequeridas, boolean yaTieneSolicitud,
+                                  boolean tieneHorasSuficientes) {
         this.proyecto = proyecto;
         this.colaboradoresActivos = colaboradoresActivos;
         this.cuposDisponibles = cuposDisponibles;
         this.habilidadesRequeridas = habilidadesRequeridas;
         this.yaTieneSolicitud = yaTieneSolicitud;
+        this.tieneHorasSuficientes = tieneHorasSuficientes;
     }
 
     public Proyecto getProyecto() { return proyecto; }
@@ -25,7 +28,5 @@ public class ProyectoDisponibleView {
     public int getCuposDisponibles() { return cuposDisponibles; }
     public List<String> getHabilidadesRequeridas() { return habilidadesRequeridas; }
     public boolean isYaTieneSolicitud() { return yaTieneSolicitud; }
-
-
-
+    public boolean isTieneHorasSuficientes() { return tieneHorasSuficientes; }
 }

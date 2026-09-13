@@ -12,7 +12,6 @@ USE skillbridge_db;
 -- usuario: colaborador.prueba@skillbridge.com
 
 
-
 -- =====================================================================
 -- 1. ROL 
 -- =====================================================================
@@ -147,6 +146,7 @@ CREATE TABLE colaborador_habilidad (
     habilidad_id        BIGINT NOT NULL,
     nivel_dominio       VARCHAR(20) NOT NULL,
     estado_validacion   VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    activo               BOOLEAN NOT NULL DEFAULT TRUE,
 
     PRIMARY KEY (colaborador_id, habilidad_id),
 
@@ -194,7 +194,7 @@ CREATE TABLE certificado (
 ) ENGINE=InnoDB;
 
 -- =====================================================================
--- 7. EDUCACIÓN
+-- 8. EDUCACIÓN
 -- =====================================================================
 CREATE TABLE educacion (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -213,10 +213,11 @@ CREATE TABLE educacion (
 
     CONSTRAINT fk_educacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
     CONSTRAINT fk_educacion_revisor FOREIGN KEY (revisado_por) REFERENCES usuario(id),
-    CONSTRAINT chk_educacion_estado CHECK (estado IN ('PENDIENTE','APROBADO','RECHAZADO'))
-);
+    CONSTRAINT chk_educacion_estado CHECK (estado IN ('PENDIENTE','APROBADO','RECHAZADO')) 
+  
+) ENGINE=InnoDB; 
 -- =====================================================================
--- 8. PROYECTOS
+-- 9. PROYECTOS
 -- =====================================================================
 
 CREATE TABLE proyecto (
@@ -233,6 +234,7 @@ CREATE TABLE proyecto (
     justificacion_presupuesto   VARCHAR(500)  NULL,
     presupuesto                 DECIMAL(12,2) NULL,
     colaboradores_requeridos    INT NOT NULL DEFAULT 1,
+    horas_semanales_requeridas  DECIMAL(5,2)  NOT NULL DEFAULT 20,
     pm_id                       BIGINT NOT NULL,
     rm_revisor_id               BIGINT NULL,
     fecha_creacion              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -252,7 +254,7 @@ CREATE TABLE proyecto (
 
 
 -- =====================================================================
--- 9. HABILIDADES REQUERIDAS POR PROYECTO
+-- 10. HABILIDADES REQUERIDAS POR PROYECTO
 -- =====================================================================
 
 CREATE TABLE proyecto_habilidad_requerida (
@@ -275,7 +277,7 @@ CREATE TABLE proyecto_habilidad_requerida (
 
 
 -- =====================================================================
--- 10. ASIGNACIONES / POSTULACIONES
+-- 11. ASIGNACIONES / POSTULACIONES
 -- =====================================================================
 
 CREATE TABLE asignacion (
@@ -321,7 +323,7 @@ CREATE TABLE asignacion (
 
 
 -- =====================================================================
--- 11. ACTIVIDADES 
+-- 12. ACTIVIDADES 
 -- =====================================================================
 
 CREATE TABLE actividad (
@@ -356,7 +358,7 @@ CREATE TABLE actividad (
 
 
 -- =====================================================================
--- 12. CURSOS
+-- 13. CURSOS
 -- =====================================================================
 
 CREATE TABLE curso (
@@ -375,7 +377,7 @@ CREATE TABLE curso (
 
 
 -- =====================================================================
--- 13. SOLICITUDES / ASIGNACIONES DE CURSOS
+-- 14. SOLICITUDES / ASIGNACIONES DE CURSOS
 -- =====================================================================
 
 CREATE TABLE colaborador_curso (
@@ -402,7 +404,7 @@ CREATE TABLE colaborador_curso (
 
 
 -- =====================================================================
--- 14. PENALIZACIONES
+-- 15. PENALIZACIONES
 -- =====================================================================
 
 CREATE TABLE penalizacion (
@@ -427,7 +429,7 @@ CREATE TABLE penalizacion (
 
 
 -- =====================================================================
--- 15. NÓMINA MENSUAL
+-- 16. NÓMINA MENSUAL
 -- =====================================================================
 
 CREATE TABLE nomina_mensual (
@@ -454,7 +456,7 @@ CREATE TABLE nomina_mensual (
 
 
 -- =====================================================================
--- 16. ETIQUETAS 
+-- 17. ETIQUETAS 
 -- =====================================================================
 
 CREATE TABLE etiqueta (
@@ -464,7 +466,7 @@ CREATE TABLE etiqueta (
 
 
 -- =====================================================================
--- 17. FOROS
+-- 18. FOROS
 -- =====================================================================
 
 
@@ -482,7 +484,7 @@ CREATE TABLE foro (
 
 
 -- =====================================================================
--- 18. PUBLICACIONES DEL FORO
+-- 19. PUBLICACIONES DEL FORO
 -- =====================================================================
 
 
@@ -502,7 +504,7 @@ CREATE TABLE publicacion_foro (
 
 
 -- =====================================================================
--- 19. RESPUESTAS DEL FORO
+-- 20. RESPUESTAS DEL FORO
 -- =====================================================================
 
 CREATE TABLE respuesta_foro (
@@ -519,7 +521,7 @@ CREATE TABLE respuesta_foro (
 
 
 -- =====================================================================
--- 20. VOTOS DE PUBLICACIONES
+-- 21. VOTOS DE PUBLICACIONES
 -- =====================================================================
 
 CREATE TABLE voto_publicacion (
@@ -536,7 +538,7 @@ CREATE TABLE voto_publicacion (
 
 
 -- =====================================================================
--- 21. VOTOS DE RESPUESTAS
+-- 22. VOTOS DE RESPUESTAS
 -- =====================================================================
 
 CREATE TABLE voto_respuesta (
@@ -553,7 +555,7 @@ CREATE TABLE voto_respuesta (
 
 
 -- =====================================================================
--- 22. CONVERSACIONES / CHAT
+-- 23. CONVERSACIONES / CHAT
 -- =====================================================================
 
 CREATE TABLE conversacion (
@@ -589,7 +591,7 @@ CREATE TABLE mensaje (
 
 
 -- =====================================================================
--- 23. NOTIFICACIONES
+-- 24. NOTIFICACIONES
 -- =====================================================================
 
 CREATE TABLE notificacion (
@@ -612,7 +614,7 @@ CREATE TABLE notificacion (
 
 
 -- =====================================================================
--- 24. CONFIGURACIÓN DEL SISTEMA
+-- 25. CONFIGURACIÓN DEL SISTEMA
 -- =====================================================================
 
 CREATE TABLE configuracion_sistema (
@@ -629,7 +631,7 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion) VALUES
 
 
 -- =====================================================================
--- 25. AUDITORÍA
+-- 26. AUDITORÍA
 -- =====================================================================
 
 CREATE TABLE log_auditoria (
@@ -649,11 +651,11 @@ CREATE TABLE log_auditoria (
 
 -- =====================================================================
 -- DATOS DE PRUEBA: USUARIOS (contraseña para todos: abc123)
--- Hash generado con BCrypt $ (compatible con Spring Security Java)
 -- =====================================================================
-
-INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES
-  ('admin@skillbridge.com',  '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Admin',   'Sistema',  1, 1, NULL, NULL),
-  ('rm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Ricardo', 'Mendez',   3, 1, NULL, NULL),
-  ('pm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Pedro',   'Martinez', 2, 1, NULL, NULL),
-  ('col@skillbridge.com',    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Carlos',  'Lopez',    4, 1, 'Backend Developer', 40);
+  
+  
+  INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES
+  ('admin@skillbridge.com',  '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Admin',   'Sistema',  (SELECT id FROM rol WHERE nombre='ADMINISTRADOR'), 1, NULL, NULL),
+  ('rm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Ricardo', 'Mendez',   (SELECT id FROM rol WHERE nombre='RESOURCE_MANAGER'), 1, NULL, NULL),
+  ('pm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Pedro',   'Martinez', (SELECT id FROM rol WHERE nombre='PROJECT_MANAGER'), 1, NULL, NULL),
+  ('col@skillbridge.com',    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Carlos',  'Lopez',    (SELECT id FROM rol WHERE nombre='COLABORADOR'), 1, 'Backend Developer', 40);

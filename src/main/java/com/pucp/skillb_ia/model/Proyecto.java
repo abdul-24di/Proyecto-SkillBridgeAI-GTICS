@@ -8,11 +8,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// Bloque B punto 3: el PM marca prioridad y la justifica al crear el proyecto;
-// el RM revisa y confirma/rechaza. El PM puede cancelar mientras está EN_REVISION.
-// A20: el presupuesto (`presupuesto`) es exclusivo del RM — el PM no puede
-// editarlo, solo ver. `presupuesto_solicitado`/`justificacion_presupuesto` son
-// lo que el PM pide al crear el proyecto; `presupuesto` es lo que el RM asigna.
 @Entity
 @Table(name = "proyecto")
 public class Proyecto {
@@ -59,6 +54,9 @@ public class Proyecto {
 
     @Column(name = "colaboradores_requeridos", nullable = false)
     private int colaboradoresRequeridos = 1;
+
+    @Column(name = "horas_semanales_requeridas", precision = 5, scale = 2, nullable = false)
+    private BigDecimal horasSemanalesRequeridas = BigDecimal.valueOf(20);
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "pm_id", nullable = false)
@@ -114,6 +112,9 @@ public class Proyecto {
 
     public int getColaboradoresRequeridos() { return colaboradoresRequeridos; }
     public void setColaboradoresRequeridos(int colaboradoresRequeridos) { this.colaboradoresRequeridos = colaboradoresRequeridos; }
+
+    public BigDecimal getHorasSemanalesRequeridas() { return horasSemanalesRequeridas; }
+    public void setHorasSemanalesRequeridas(BigDecimal horasSemanalesRequeridas) { this.horasSemanalesRequeridas = horasSemanalesRequeridas; }
 
     public Usuario getPm() { return pm; }
     public void setPm(Usuario pm) { this.pm = pm; }

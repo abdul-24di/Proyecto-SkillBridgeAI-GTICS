@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-
 @Service
 public class ColaboradorProyectoService {
 
@@ -40,7 +39,7 @@ public class ColaboradorProyectoService {
     }
 
     // ============================================================
-    // CONSULTA
+    // CONSULTA DE PROYECTOS DISPONIBLES
     // ============================================================
 
     public List<ProyectoDisponibleView> listarProyectosDisponibles(Usuario colaborador) {
@@ -83,10 +82,21 @@ public class ColaboradorProyectoService {
         }
 
         int cupos = proyecto.getColaboradoresRequeridos() - activos;
-        return new ProyectoDisponibleView(proyecto, activos, cupos, habilidades, yaTieneSolicitud);
+        boolean tieneHorasSuficientes = tieneHorasSuficientes(colaborador, proyecto);
+
+        return new ProyectoDisponibleView(proyecto, activos, cupos, habilidades, yaTieneSolicitud, tieneHorasSuficientes);
     }
 
-    // "El colaborador puede ver el estado de las solicitudes que ha enviado".
+    //Determinamos si el colaborador tiene horas disponibles para postularse al proyecto de interes
+    private boolean tieneHorasSuficientes(Usuario colaborador, Proyecto proyecto) {
+        BigDecimal disponibles = colaborador.getHorasDisponibles();
+        if (disponibles == null) {
+            return false;
+        }
+        return disponibles.compareTo(proyecto.getHorasSemanalesRequeridas()) > 0;
+    }
+
+    //Listamos las solicitudes enviadas
     public List<Asignacion> listarMisSolicitudes(Usuario colaborador) {
         List<Asignacion> todasMisAsignaciones = asignacionRepository.findByColaborador(colaborador);
         List<Asignacion> misSolicitudes = new ArrayList<>();
@@ -97,25 +107,43 @@ public class ColaboradorProyectoService {
             }
         }
 
-        // De la más reciente a la más antigua.
+        //Listamos de la más reciente a la más antigua.
         misSolicitudes.sort(Comparator.comparing(Asignacion::getFechaSolicitud).reversed());
         return misSolicitudes;
     }
 
     // ============================================================
+    // Consulta de proyectos ASIGNADOS
+    // ============================================================
+    public List<Asignacion> listarMisAsignaciones(Usuario colaborador) {
+        List<Asignacion> encontradas = asignacionRepository.findByColaborador(colaborador);
+        List<Asignacion> misAsignaciones = new ArrayList<>(encontradas);
+
+        //Listamos de la más reciente a la más antigua.
+        misAsignaciones.sort(Comparator.comparing(Asignacion::getFechaSolicitud).reversed());
+        return misAsignaciones;
+    }
+
+    // ============================================================
     // SOLICITAR INCORPORACIÓN
     // ============================================================
+    // OJO: las horas semanales de la asignación YA NO las escribe el
+    // colaborador — las fija el PM al crear el proyecto
+    // (proyecto.horas_semanales_requeridas). Aquí solo validamos que el
+    // colaborador tenga esa cantidad disponible antes de dejarlo postularse.
 
     @Transactional
-    public void solicitarIncorporacion(Usuario colaborador, Long proyectoId, BigDecimal horasSemanales, String mensaje) {
+    public void solicitarIncorporacion(Usuario colaborador, Long proyectoId, String mensaje) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("El proyecto seleccionado no existe."));
 
         if (proyecto.getEstado() != EstadoProyecto.ACTIVO) {
             throw new IllegalArgumentException("Este proyecto ya no está activo.");
         }
-        if (horasSemanales == null || horasSemanales.signum() <= 0) {
-            throw new IllegalArgumentException("Indica cuántas horas semanales puedes dedicar.");
+
+        if (!tieneHorasSuficientes(colaborador, proyecto)) {
+            throw new IllegalArgumentException("No tienes suficientes horas disponibles para este proyecto. Se requieren "
+                    + proyecto.getHorasSemanalesRequeridas() + " horas/semana.");
         }
 
         List<Asignacion> asignacionesDelProyecto = asignacionRepository.findByProyecto(proyecto);
@@ -147,11 +175,9 @@ public class ColaboradorProyectoService {
         Asignacion asignacion = new Asignacion();
         asignacion.setProyecto(proyecto);
         asignacion.setColaborador(colaborador);
-        asignacion.setHorasSemanales(horasSemanales);
+        asignacion.setHorasSemanales(proyecto.getHorasSemanalesRequeridas());
         asignacion.setOrigen(OrigenAsignacion.SOLICITADA_COLABORADOR);
         asignacion.setMensajeSolicitud(mensaje == null || mensaje.isBlank() ? null : mensaje.trim());
-        // estado nace en PENDIENTE por el valor por defecto de la entidad;
-        // A4 exige aprobación de PM y RM porque el origen es SOLICITADA_COLABORADOR.
         Asignacion guardada = asignacionRepository.save(asignacion);
 
         auditoriaService.registrar(colaborador, "SOLICITAR_ASIGNACION", "ASIGNACION", guardada.getId(),

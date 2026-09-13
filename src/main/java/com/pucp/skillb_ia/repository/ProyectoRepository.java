@@ -10,6 +10,6 @@ import java.util.List;
 public interface ProyectoRepository extends JpaRepository<Proyecto, Long> {
     List<Proyecto> findByPm(Usuario pm);
 
-    // Bandeja del RM: proyectos "En revisión" pendientes de confirmar/rechazar (Bloque B punto 3).
+
     List<Proyecto> findByEstado(EstadoProyecto estado);
 }

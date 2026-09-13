@@ -4,6 +4,7 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
+import com.pucp.skillb_ia.service.col.ColaboradorProyectoService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,9 +21,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ColaboradorViewController {
 
     private final ColaboradorPerfilService colaboradorPerfilService;
+    private final ColaboradorProyectoService colaboradorProyectoService;
 
-    public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService) {
+    public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
+                                     ColaboradorProyectoService colaboradorProyectoService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
+        this.colaboradorProyectoService = colaboradorProyectoService;
     }
 
     @GetMapping({"", "/"})
@@ -36,7 +40,11 @@ public class ColaboradorViewController {
     }
 
     @GetMapping({"/proyectos", "/col-proyectos.html"})
-    public String projects() {
+    public String projects(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        if (principal == null) {
+            return "redirect:/login";
+        }
+        model.addAttribute("misAsignaciones", colaboradorProyectoService.listarMisAsignaciones(principal.getUsuario()));
         return "col/col-proyectos";
     }
 
@@ -56,8 +64,29 @@ public class ColaboradorViewController {
     }
 
     @GetMapping({"/explorar", "/col-explorar.html"})
-    public String explore() {
+    public String explore(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        if (principal == null) {
+            return "redirect:/login";
+        }
+        Usuario colaborador = principal.getUsuario();
+        model.addAttribute("proyectosDisponibles", colaboradorProyectoService.listarProyectosDisponibles(colaborador));
+        model.addAttribute("misSolicitudes", colaboradorProyectoService.listarMisSolicitudes(colaborador));
         return "col/col-explorar";
+    }
+
+    @PostMapping("/proyectos/solicitar")
+    public String solicitarIncorporacion(@AuthenticationPrincipal UsuarioDetails principal,
+                                         @RequestParam Long proyectoId,
+                                         @RequestParam(required = false) String mensaje,
+                                         RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, mensaje);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud fue enviada. Quedará pendiente de aprobación del PM y del RM.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/explorar";
     }
 
     // ============================================================

@@ -13,11 +13,7 @@ import java.time.LocalDateTime;
 //   PROPUESTA_PM            -> requiere aprobado_por_rm = true.
 //   PROPUESTA_RM            -> requiere aprobado_por_pm = true.
 //   SOLICITADA_COLABORADOR  -> requiere AMBOS.
-// Pasa a ACTIVA solo cuando se cumplen todas las aprobaciones según el
-// origen; si cualquier rol requerido rechaza, queda RECHAZADA. A18: el PM o
-// el RM pueden finalizarla directamente (motivo_finalizacion determina si
-// aplica penalización — Bloque B punto 7). El colaborador nunca
-// aprueba/rechaza, solo consulta (A2) o solicita (A3).
+
 @Entity
 @Table(name = "asignacion")
 public class Asignacion {

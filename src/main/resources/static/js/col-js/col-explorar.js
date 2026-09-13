@@ -9,144 +9,32 @@ document.querySelectorAll(".explore-tab").forEach(tab => {
 });
 
 /* ================= PROYECTOS ================= */
-const exploreProjects = [
-    {
-        id: 1, name: "Proyecto X", estado: "En planificación", estadoDot: "bg-yellow",
-        postulacionesAbiertas: true,
-        description: "Plataforma inteligente para la gestión de colaboradores.",
-        pm: "Jeffie Lewzey", equipoActual: 6, equipoTotal: 10,
-        perfiles: [
-            { nombre: "Backend Developer", vacantes: 1, tech: "Java / Spring Boot" },
-            { nombre: "Frontend Developer", vacantes: 2, tech: "React" },
-            { nombre: "QA Tester", vacantes: 1, tech: "" }
-        ],
-        tecnologias: ["Java", "Spring Boot", "MySQL", "AWS"],
-        fechaInicio: "01/09/2026", fechaFin: "20/02/2027",
-        yaPostulado: false
-    },
-    {
-        id: 2, name: "Proyecto Y", estado: "Activo", estadoDot: "bg-green",
-        postulacionesAbiertas: false,
-        description: "Rediseño del portal de autoservicio para clientes.",
-        pm: "María López", equipoActual: 5, equipoTotal: 5,
-        perfiles: [{ nombre: "UX/UI Designer", vacantes: 0, tech: "Figma" }],
-        tecnologias: ["React", "Figma"], fechaInicio: "10/03/2026", fechaFin: "—",
-        yaPostulado: false
-    },
-    {
-        id: 3, name: "Proyecto Z", estado: "En planificación", estadoDot: "bg-yellow",
-        postulacionesAbiertas: true,
-        description: "Nuevo módulo de reportes financieros para el área de contabilidad.",
-        pm: "Carlos Mendoza", equipoActual: 2, equipoTotal: 6,
-        perfiles: [
-            { nombre: "Backend Developer", vacantes: 2, tech: "Java / MySQL" },
-            { nombre: "QA Tester", vacantes: 1, tech: "" }
-        ],
-        tecnologias: ["Java", "MySQL", "Docker"], fechaInicio: "01/10/2026", fechaFin: "30/04/2027",
-        yaPostulado: true
-    }
-];
 
-const misHabilidades = ["Java", "Spring Boot", "MySQL"];
-
-function renderProjectAccordion() {
-    const q = (document.getElementById("projectSearch")?.value || "").trim().toLowerCase();
-    const estado = document.getElementById("projectStatusFilter")?.value || "all";
-    const postulaciones = document.getElementById("projectApplicationsFilter")?.value || "all";
-
-    const filtered = exploreProjects.filter(p => {
-        const matchesSearch = (p.name + " " + p.description).toLowerCase().includes(q);
-        const matchesEstado = estado === "all" || p.estado === estado;
-        const matchesPost = postulaciones === "all"
-            || (postulaciones === "Abiertas" && p.postulacionesAbiertas)
-            || (postulaciones === "Cerradas" && !p.postulacionesAbiertas);
-        return matchesSearch && matchesEstado && matchesPost;
-    });
-
-    const container = document.getElementById("projectAccordion");
-    container.innerHTML = filtered.length ? filtered.map(p => `
-        <div class="project-accordion-item" data-project-id="${p.id}">
-            <div class="project-accordion-header" data-toggle-project="${p.id}">
-                <div>
-                    <div class="project-accordion-title">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
-                        ${p.name}
-                    </div>
-                    <div class="text-secondary small mt-1">
-                        <span class="status-inline-dot ${p.estadoDot}"></span>${p.estado}
-                        &nbsp;·&nbsp;
-                        <span class="status-inline-dot ${p.postulacionesAbiertas ? "bg-green" : "bg-secondary"}"></span>${p.postulacionesAbiertas ? "Postulaciones abiertas" : "Postulaciones cerradas"}
-                    </div>
-                </div>
-                <svg class="project-accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
-            </div>
-            <div class="project-accordion-body">
-                <p class="text-secondary small">${p.description}</p>
-                <div class="profile-list-line"><strong>PM:</strong> ${p.pm}</div>
-                <div class="profile-list-line"><strong>Equipo:</strong> ${p.equipoActual} / ${p.equipoTotal} colaboradores</div>
-                <div class="info-label mt-3 mb-1">Perfiles que busca</div>
-                ${p.perfiles.map(pf => `<div class="profile-list-line">• ${pf.nombre}${pf.vacantes ? ` — ${pf.vacantes} vacante${pf.vacantes > 1 ? "s" : ""}` : " — sin vacantes"}${pf.tech ? ` (${pf.tech})` : ""}</div>`).join("")}
-                <div class="info-label mt-3 mb-1">Tecnologías</div>
-                <div>${p.tecnologias.map(t => `<span class="badge bg-blue-lt me-1 mb-1">${t}</span>`).join("")}</div>
-                <div class="info-grid mt-3">
-                    <div><div class="info-label">Fecha de inicio</div><div class="info-value">${p.fechaInicio}</div></div>
-                    <div><div class="info-label">Fin estimado</div><div class="info-value">${p.fechaFin}</div></div>
-                </div>
-                <div class="action-bar mt-3 mb-0">
-                    ${p.yaPostulado
-        ? `<span class="badge bg-blue-lt">Ya te postulaste a este proyecto</span>`
-        : p.postulacionesAbiertas
-            ? `<button type="button" class="btn btn-primary btn-sm" data-open-apply="${p.id}">Postularme</button>`
-            : `<span class="badge bg-secondary-lt">Postulaciones cerradas</span>`}
-                </div>
-            </div>
-        </div>`).join("") : `<div class="card"><div class="empty-state">No se encontraron proyectos.</div></div>`;
-
-    container.querySelectorAll("[data-toggle-project]").forEach(header => {
-        header.addEventListener("click", () => header.closest(".project-accordion-item").classList.toggle("open"));
-    });
-
-    container.querySelectorAll("[data-open-apply]").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            openApplyModal(Number(btn.dataset.openApply));
-        });
-    });
-}
-
-["projectSearch", "projectStatusFilter", "projectApplicationsFilter"].forEach(id => {
-    const el = document.getElementById(id);
-    el?.addEventListener(el.tagName === "INPUT" ? "input" : "change", renderProjectAccordion);
+document.querySelectorAll("#projectAccordion [data-toggle-project]").forEach(header => {
+    header.addEventListener("click", () => header.closest(".project-accordion-item").classList.toggle("open"));
 });
 
-renderProjectAccordion();
-
-function openApplyModal(projectId) {
-    const p = exploreProjects.find(x => x.id === projectId);
-    if (!p) return;
-
-    document.getElementById("applyModalTitle").textContent = `Postulación al ${p.name}`;
-
-    document.getElementById("applyPerfilSelect").innerHTML = p.perfiles.map(pf => `<option>${pf.nombre}</option>`).join("");
-
-    const habilidadesWrap = document.getElementById("applySkillsWrap");
-    habilidadesWrap.innerHTML = misHabilidades.map(h => `<button type="button" class="btn btn-outline-secondary btn-sm apply-skill-chip" data-skill="${h}">${h}</button>`).join("");
-    habilidadesWrap.querySelectorAll(".apply-skill-chip").forEach(chip => {
-        chip.addEventListener("click", () => chip.classList.toggle("active"));
+document.getElementById("projectSearch")?.addEventListener("input", (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll("#projectAccordion .project-accordion-item").forEach(item => {
+        const nombre = (item.dataset.projectName || "").toLowerCase();
+        const texto = item.textContent.toLowerCase();
+        item.classList.toggle("d-none", q.length > 0 && !nombre.includes(q) && !texto.includes(q));
     });
+});
 
-    document.getElementById("applyMessageInput").value = "";
+document.querySelectorAll("#projectAccordion [data-open-apply]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        document.getElementById("applyModalTitle").textContent = "Postulación al " + btn.dataset.projectName;
+        document.getElementById("applyProyectoId").value = btn.dataset.projectId;
+        document.getElementById("applyMessageInput").value = "";
 
-    const modalEl = document.getElementById("applyModal");
-    const Modal = window.bootstrap?.Modal || window.tabler?.bootstrap?.Modal;
-    Modal.getOrCreateInstance(modalEl).show();
-
-    document.getElementById("applySubmitBtn").onclick = () => {
-        p.yaPostulado = true;
-        renderProjectAccordion();
-        Modal.getOrCreateInstance(modalEl).hide();
-    };
-}
+        const modalEl = document.getElementById("applyModal");
+        const Modal = window.bootstrap?.Modal || window.tabler?.bootstrap?.Modal;
+        Modal.getOrCreateInstance(modalEl).show();
+    });
+});
 
 /* ================= COLABORADORES ================= */
 const exploreCollaborators = [

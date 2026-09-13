@@ -1,3 +1,4 @@
+
 SET NAMES utf8mb4;
 
 CREATE DATABASE IF NOT EXISTS skillbridge_db
@@ -5,6 +6,11 @@ CREATE DATABASE IF NOT EXISTS skillbridge_db
     COLLATE utf8mb4_unicode_ci;
 
 USE skillbridge_db;
+
+-- Select * from usuario; 
+-- Contraseña: Colab123!
+-- usuario: colaborador.prueba@skillbridge.com
+
 
 
 -- =====================================================================
@@ -70,7 +76,6 @@ CREATE TABLE usuario (
 -- 3. TOKEN DE USUARIO (unifica activación + recuperación)
 -- =====================================================================
 
--- Contraseña: 123456!
 
 CREATE TABLE token_usuario (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -188,7 +193,28 @@ CREATE TABLE certificado (
         CHECK (estado IN ('PENDIENTE','APROBADO','RECHAZADO'))
 ) ENGINE=InnoDB;
 
+-- =====================================================================
+-- 7. EDUCACIÓN
+-- =====================================================================
+CREATE TABLE educacion (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    colaborador_id  BIGINT NOT NULL,
+    institucion     VARCHAR(150) NOT NULL,
+    titulo          VARCHAR(150) NOT NULL,
+    fecha_inicio    DATE NULL,
+    fecha_fin       DATE NULL,
+    actual          BOOLEAN NOT NULL DEFAULT FALSE,
+    estado          VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    motivo_rechazo  VARCHAR(300) NULL,
+    revisado_por    BIGINT NULL,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_revision  DATETIME NULL,
 
+    CONSTRAINT fk_educacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
+    CONSTRAINT fk_educacion_revisor FOREIGN KEY (revisado_por) REFERENCES usuario(id),
+    CONSTRAINT chk_educacion_estado CHECK (estado IN ('PENDIENTE','APROBADO','RECHAZADO'))
+);
 -- =====================================================================
 -- 8. PROYECTOS
 -- =====================================================================

@@ -8,5 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ColaboradorHabilidadRepository extends JpaRepository<ColaboradorHabilidad, ColaboradorHabilidadId> {
-    List<ColaboradorHabilidad> findByColaborador(Usuario colaborador);
+
+
+    //Buscamos las habilidades del colaborador que no han sido borradas.
+    List<ColaboradorHabilidad> findByColaboradorAndActivoTrue(Usuario colaborador);
+
 }

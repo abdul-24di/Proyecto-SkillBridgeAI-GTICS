@@ -1,11 +1,9 @@
 package com.pucp.skillb_ia.service.col;
 
-import com.pucp.skillb_ia.model.ColaboradorHabilidad;
-import com.pucp.skillb_ia.model.ColaboradorHabilidadId;
-import com.pucp.skillb_ia.model.Habilidad;
-import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
+import com.pucp.skillb_ia.repository.EducacionRepository;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
@@ -20,9 +18,8 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -35,6 +32,7 @@ public class ColaboradorPerfilService {
     private final UsuarioRepository usuarioRepository;
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     private final HabilidadRepository habilidadRepository;
+    private final EducacionRepository educacionRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaService auditoriaService;
     private final String uploadDir;
@@ -42,35 +40,48 @@ public class ColaboradorPerfilService {
     public ColaboradorPerfilService(UsuarioRepository usuarioRepository,
                                     ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                     HabilidadRepository habilidadRepository,
+                                    EducacionRepository educacionRepository,
                                     PasswordEncoder passwordEncoder,
                                     AuditoriaService auditoriaService,
                                     @Value("${app.upload-dir:uploads}") String uploadDir) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.habilidadRepository = habilidadRepository;
+        this.educacionRepository = educacionRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
         this.uploadDir = uploadDir;
     }
 
-    //Listado de las habilidades del colaborador
+    //Listado de las habilidades activas del colaborador
     public List<ColaboradorHabilidad> listarHabilidades(Usuario colaborador) {
-        return colaboradorHabilidadRepository.findByColaborador(colaborador);
+        return colaboradorHabilidadRepository.findByColaboradorAndActivoTrue(colaborador);
     }
 
     //Listado de habilidades con las que no cuenta el colaborador
     public List<Habilidad> listarHabilidadesDisponibles(Usuario colaborador) {
-        Set<Long> yaAgregadas = listarHabilidades(colaborador).stream().map(ch -> ch.getHabilidad().getId())
-                .collect(Collectors.toSet());
+        List<ColaboradorHabilidad> misHabilidades = listarHabilidades(colaborador);
 
-        return habilidadRepository.findByActivaTrue().stream()
-                .filter(h -> !yaAgregadas.contains(h.getId()))
-                .toList();
+        // Armamos la lista de ids que el colaborador ya tiene,
+        List<Long> idsYaAgregados = new ArrayList<>();
+        for (ColaboradorHabilidad ch : misHabilidades) {
+            idsYaAgregados.add(ch.getHabilidad().getId());
+        }
+
+        List<Habilidad> catalogoActivo = habilidadRepository.findByActivaTrue();
+        List<Habilidad> disponibles = new ArrayList<>();
+        for (Habilidad h : catalogoActivo) {
+            //Verificamos si el id de habilidad pertenece las habilidades del colaborador
+            if (!idsYaAgregados.contains(h.getId())) {
+                disponibles.add(h);
+            }
+        }
+        return disponibles;
     }
 
     //Calculamos el porcentaje que medira si el perfil esta completado del colaborador, considerando la sección de foto, sobre mí y habilidad.
     public int calcularPorcentajeCompletado(Usuario colaborador) {
-        int total = 3;
+        int total = 4;
         int listos = 0;
         if (colaborador.getFotoUrl() != null && !colaborador.getFotoUrl().isBlank()) listos++;
         if (colaborador.getDescripcion() != null && !colaborador.getDescripcion().isBlank()) listos++;
@@ -78,15 +89,23 @@ public class ColaboradorPerfilService {
         return Math.round((listos * 100f) / total);
     }
 
-    //Listado de cosas que le faltan completar en su perfil
+    //Implementamos el listado de cosas que le faltan completar en su perfil al colaborador
     public List<String> listarPendientesCompletar(Usuario colaborador) {
-        return java.util.stream.Stream.of(
-                (colaborador.getFotoUrl() == null || colaborador.getFotoUrl().isBlank()) ? "Agrega una foto de perfil" : null,
-                (colaborador.getDescripcion() == null || colaborador.getDescripcion().isBlank()) ? "Agrega una descripción en \"Sobre mí\"" : null,
-                listarHabilidades(colaborador).isEmpty() ? "Agrega una habilidad" : null
+        List<String> pendientes = new ArrayList<>();
 
-                //Filtramos y formamos una lista con los elementos que no sean nulos
-        ).filter(java.util.Objects::nonNull).toList();
+        if (colaborador.getFotoUrl() == null || colaborador.getFotoUrl().isBlank()) {
+            pendientes.add("Agrega una foto de perfil");
+        }
+        if (colaborador.getDescripcion() == null || colaborador.getDescripcion().isBlank()) {
+            pendientes.add("Agrega una descripción en \"Sobre mí\"");
+        }
+        if (listarHabilidades(colaborador).isEmpty()) {
+            pendientes.add("Agrega una habilidad");
+        }
+        if (listarEducacion(colaborador).isEmpty()) {
+            pendientes.add("Agrega tu formación académica");
+        }
+        return pendientes;
     }
 
     // ============================================================
@@ -181,7 +200,6 @@ public class ColaboradorPerfilService {
     // ============================================================
     // HABILIDADES DEL COLABORADOR
     // ============================================================
-
     @Transactional
     public void agregarHabilidad(Usuario colaborador, Long habilidadId, NivelDominio nivel) {
         if (habilidadId == null || nivel == null) {
@@ -191,20 +209,33 @@ public class ColaboradorPerfilService {
         //Creamos el ID compuesto que identifica la relación entre el colaborador y la habilidad
         ColaboradorHabilidadId id = new ColaboradorHabilidadId(colaborador.getId(), habilidadId);
 
-        if (colaboradorHabilidadRepository.existsById(id)) {
+        //Buscamos si ya existe un registro con ese ID compuesto
+        Optional<ColaboradorHabilidad> existente = colaboradorHabilidadRepository.findById(id);
+
+        if (existente.isPresent() && existente.get().isActivo()) {
             throw new IllegalArgumentException("Ya tienes esa habilidad agregada.");
         }
-        //Buscamoa la habilidad, en caso de que exista y este activa, la guárdamos en habilidad y en caso de que no, lanzamos un error
+
         Habilidad habilidad = habilidadRepository.findById(habilidadId)
                 .filter(Habilidad::isActiva)
                 .orElseThrow(() -> new IllegalArgumentException("La habilidad seleccionada no existe o ya no está activa."));
 
-        ColaboradorHabilidad ch = new ColaboradorHabilidad();
-        ch.setId(id);
-        ch.setColaborador(colaborador);
-        ch.setHabilidad(habilidad);
-        ch.setNivelDominio(nivel);
-        colaboradorHabilidadRepository.save(ch);
+        //Evaluamos en caso de que la habilidad ya haya sido registrada anteriormente pero fue borrada
+        if (existente.isPresent()) {
+
+            //Reactivamos la misma fila en lugar de crear una nueva
+            ColaboradorHabilidad ch = existente.get();
+            ch.setNivelDominio(nivel);
+            ch.setActivo(true);
+            colaboradorHabilidadRepository.save(ch);
+        } else {  //En caso de que la habilidad no este presente, la agregamos.
+            ColaboradorHabilidad ch = new ColaboradorHabilidad();
+            ch.setId(id);
+            ch.setColaborador(colaborador);
+            ch.setHabilidad(habilidad);
+            ch.setNivelDominio(nivel);
+            colaboradorHabilidadRepository.save(ch);
+        }
 
         auditoriaService.registrar(colaborador, "AGREGAR_HABILIDAD", "COLABORADOR_HABILIDAD", habilidadId,
                 "Agregó la habilidad \"" + habilidad.getNombre() + "\" (" + nivel + ") a su perfil.");
@@ -212,17 +243,86 @@ public class ColaboradorPerfilService {
 
     @Transactional
     public void eliminarHabilidad(Usuario colaborador, Long habilidadId) {
-
         ColaboradorHabilidadId id = new ColaboradorHabilidadId(colaborador.getId(), habilidadId);
 
-        colaboradorHabilidadRepository.findById(id).ifPresent(ch -> {
-            colaboradorHabilidadRepository.deleteById(id);
+        Optional<ColaboradorHabilidad> ch = colaboradorHabilidadRepository.findById(id);
+
+        if (ch.isPresent()) {
+
+            ColaboradorHabilidad habilidadColaborador = ch.get();
+            //La habilidad cambia a inactivo
+            habilidadColaborador.setActivo(false);
+            colaboradorHabilidadRepository.save(habilidadColaborador);
+
             auditoriaService.registrar(colaborador, "ELIMINAR_HABILIDAD", "COLABORADOR_HABILIDAD", habilidadId,
-                    "Quitó la habilidad \"" + ch.getHabilidad().getNombre() + "\" de su perfil.");
-        });
-
-
+                    "Quitó la habilidad \"" + habilidadColaborador.getHabilidad().getNombre() + "\" de su perfil.");
+        }
     }
+
+    // ============================================================
+    // EDUCACIÓN
+    // ============================================================
+
+    //Listamos la formación académica activa del colaborador
+    public List<Educacion> listarEducacion(Usuario colaborador) {
+        return educacionRepository.findByColaboradorAndActivoTrue(colaborador);
+    }
+
+    //Agregamos educación
+    @Transactional
+    public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
+                                 LocalDate fechaInicio, LocalDate fechaFin, boolean actual) {
+        if (institucion == null || institucion.isBlank()) {
+            throw new IllegalArgumentException("Indica la institución.");
+        }
+        if (titulo == null || titulo.isBlank()) {
+            throw new IllegalArgumentException("Indica el título o carrera.");
+        }
+
+        Educacion educacion = new Educacion();
+        educacion.setColaborador(colaborador);
+        educacion.setInstitucion(institucion.trim());
+        educacion.setTitulo(titulo.trim());
+        educacion.setFechaInicio(fechaInicio);
+        educacion.setFechaFin(actual ? null : fechaFin);
+        educacion.setActual(actual);
+        //Guardamos con estado en pendiente por defecto hasta que el adminsitrador lo valide.
+        educacionRepository.save(educacion);
+
+        auditoriaService.registrar(colaborador, "AGREGAR_EDUCACION", "EDUCACION", educacion.getId(),
+                "Agregó la formación académica \"" + titulo.trim() + "\" (" + institucion.trim() + ") a su perfil.");
+    }
+
+
+    @Transactional
+    public void eliminarEducacion(Usuario usuarioQueElimina, Long educacionId) {
+        Optional<Educacion> educacionOpt = educacionRepository.findById(educacionId);
+
+        if (educacionOpt.isPresent()) {
+            Educacion educacion = educacionOpt.get();
+
+            //Verficamos que solo el colaborador y el administrador puedan eliminar
+            boolean esElDueno = educacion.getColaborador().getId().equals(usuarioQueElimina.getId());
+            boolean esAdministrador = usuarioQueElimina.getRol().getNombre().equals("ADMINISTRADOR");
+
+            if (!esElDueno && !esAdministrador) {
+                throw new IllegalArgumentException("No puedes eliminar una formación académica que no es tuya.");
+            }
+
+            educacion.setActivo(false);
+            educacionRepository.save(educacion);
+
+            auditoriaService.registrar(usuarioQueElimina, "ELIMINAR_EDUCACION", "EDUCACION", educacionId,
+                    "Quitó la formación académica \"" + educacion.getTitulo() + "\" del perfil de "
+                            + educacion.getColaborador().getNombre() + ".");
+        }
+    }
+
+
+
+
+
+
 
 }
 

@@ -75,6 +75,7 @@ public class ColaboradorViewController {
         model.addAttribute("habilidadesColaborador", colaboradorPerfilService.listarHabilidades(colaborador));
         model.addAttribute("habilidadesDisponibles", colaboradorPerfilService.listarHabilidadesDisponibles(colaborador));
         model.addAttribute("nivelesDominio", NivelDominio.values());
+        model.addAttribute("educacionColaborador", colaboradorPerfilService.listarEducacion(colaborador));
         model.addAttribute("porcentajeCompletado", colaboradorPerfilService.calcularPorcentajeCompletado(colaborador));
         model.addAttribute("pendientesCompletar", colaboradorPerfilService.listarPendientesCompletar(colaborador));
 
@@ -147,6 +148,38 @@ public class ColaboradorViewController {
         if (principal == null) return "redirect:/login";
         colaboradorPerfilService.eliminarHabilidad(principal.getUsuario(), habilidadId);
         redirectAttributes.addFlashAttribute("mensajeExito", "Habilidad eliminada de tu perfil.");
+        return "redirect:/colaborador/perfil";
+    }
+
+    @PostMapping("/perfil/educacion")
+    public String agregarEducacion(@AuthenticationPrincipal UsuarioDetails principal,
+                                   @RequestParam String institucion,
+                                   @RequestParam String titulo,
+                                   @RequestParam(required = false) java.time.LocalDate fechaInicio,
+                                   @RequestParam(required = false) java.time.LocalDate fechaFin,
+                                   @RequestParam(required = false, defaultValue = "false") boolean actual,
+                                   RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorPerfilService.agregarEducacion(principal.getUsuario(), institucion, titulo, fechaInicio, fechaFin, actual);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica agregada. Quedará pendiente de revisión del Administrador.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/perfil";
+    }
+
+    @PostMapping("/perfil/educacion/{educacionId}/eliminar")
+    public String eliminarEducacion(@AuthenticationPrincipal UsuarioDetails principal,
+                                    @PathVariable Long educacionId,
+                                    RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorPerfilService.eliminarEducacion(principal.getUsuario(), educacionId);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica eliminada de tu perfil.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
         return "redirect:/colaborador/perfil";
     }
 }

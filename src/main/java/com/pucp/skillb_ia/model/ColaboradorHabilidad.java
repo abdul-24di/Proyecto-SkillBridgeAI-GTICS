@@ -30,6 +30,12 @@ public class ColaboradorHabilidad {
     @Column(name = "estado_validacion", nullable = false, length = 20)
     private EstadoValidacion estadoValidacion = EstadoValidacion.PENDIENTE;
 
+    @Column(nullable = false)
+    private boolean activo = true;
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
+
     public ColaboradorHabilidadId getId() { return id; }
     public void setId(ColaboradorHabilidadId id) { this.id = id; }
 

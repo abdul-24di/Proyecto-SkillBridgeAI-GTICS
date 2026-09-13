@@ -171,11 +171,32 @@
                             <div class="card-header section-header">
                                 <div>
                                     <h3 class="card-title mb-1">Educación</h3>
-                                    <div class="section-description">Formación académica registrada.</div>
+                                    <div class="section-description">Formación académica registrada. El Administrador la revisa antes de validarla.</div>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addEducationModal">+ Agregar formación</button>
                             </div>
-                            <div class="card-body p-0" id="educationList"></div>
+                            <div class="card-body p-0">
+                                <div th:if="${educacionColaborador.isEmpty()}" class="empty-state">Aún no has registrado formación académica.</div>
+                                <div th:each="edu : ${educacionColaborador}" class="timeline-entry d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <div class="timeline-entry-title" th:text="${edu.titulo}">Ingeniería de Software</div>
+                                        <div class="timeline-entry-meta" th:text="${edu.institucion}">Universidad X</div>
+                                        <div class="timeline-entry-desc">
+                                            <span th:text="${edu.fechaInicio != null ? #temporals.format(edu.fechaInicio, 'dd/MM/yyyy') : '¿?'}">2022</span>
+                                            –
+                                            <span th:text="${edu.actual} ? 'Actualidad' : (${edu.fechaFin != null} ? ${#temporals.format(edu.fechaFin, 'dd/MM/yyyy')} : '¿?')">Actualidad</span>
+                                        </div>
+                                        <span class="badge mt-1"
+                                              th:classappend="${edu.estado.name() == 'APROBADO'} ? 'bg-green-lt' : (${edu.estado.name() == 'RECHAZADO'} ? 'bg-red-lt' : 'bg-yellow-lt')"
+                                              th:text="${edu.estado.name() == 'APROBADO'} ? 'Validada' : (${edu.estado.name() == 'RECHAZADO'} ? 'Rechazada' : 'Pendiente de revisión')">Pendiente de revisión</span>
+                                    </div>
+                                    <form th:action="@{'/colaborador/perfil/educacion/' + ${edu.id} + '/eliminar'}" method="post" class="d-inline">
+                                        <button type="submit" class="skill-remove-btn" aria-label="Quitar formación" onclick="return confirm('¿Quitar esta formación académica de tu perfil?');">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -358,42 +379,44 @@
 <!-- MODAL: AGREGAR FORMACIÓN  -->
 <div class="modal modal-blur fade col-modal" id="addEducationModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Agregar formación académica</h5>
-                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Institución</label>
-                        <input type="text" id="eduInstitutionInput" class="form-control" placeholder="Ej. Universidad X">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Título / carrera</label>
-                        <input type="text" id="eduDegreeInput" class="form-control" placeholder="Ej. Ingeniería de Software">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Fecha de inicio</label>
-                        <input type="month" id="eduStartInput" class="form-control">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Fecha de fin</label>
-                        <input type="month" id="eduEndInput" class="form-control">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-check">
-                            <input class="form-check-input" type="checkbox" id="eduCurrentInput">
-                            <span class="form-check-label">Actualmente en curso</span>
-                        </label>
+        <form th:action="@{/colaborador/perfil/educacion}" method="post" id="addEducationForm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar formación académica</h5>
+                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Institución <span class="text-red">*</span></label>
+                            <input type="text" name="institucion" class="form-control" placeholder="Ej. Universidad X" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Título / carrera <span class="text-red">*</span></label>
+                            <input type="text" name="titulo" class="form-control" placeholder="Ej. Ingeniería de Software" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de inicio</label>
+                            <input type="date" name="fechaInicio" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de fin</label>
+                            <input type="date" name="fechaFin" id="eduEndInput" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-check">
+                                <input class="form-check-input" type="checkbox" name="actual" id="eduCurrentInput" value="true">
+                                <span class="form-check-label">Actualmente en curso</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Agregar formación</button>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" type="button" id="saveEducationBtn" data-bs-dismiss="modal">Agregar formación</button>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
@@ -401,7 +424,6 @@
 <script src="../../static/js/col-js/col-perfil.js" th:src="@{/js/col-js/col-perfil.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
 <script>
-    // Reabre la pestaña "Ajustes de Cuenta" tras guardar foto/contraseña (redirect ?tab=cuenta).
     if (new URLSearchParams(location.search).get("tab") === "cuenta") {
         document.addEventListener("DOMContentLoaded", () => {
             new bootstrap.Tab(document.getElementById("tabLinkCuenta")).show();

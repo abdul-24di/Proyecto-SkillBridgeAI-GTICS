@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface ExperienciaProfesionalRepository extends JpaRepository<ExperienciaProfesional, Long> {
     List<ExperienciaProfesional> findByColaborador(Usuario colaborador);
+
+    List<ExperienciaProfesional> findByColaboradorOrderByFechaInicioDesc(Usuario colaborador);
 }

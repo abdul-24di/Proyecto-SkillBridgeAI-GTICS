@@ -36,6 +36,7 @@ public class SecurityConfig {
             // etc.) todavía no llevan el campo oculto de token CSRF. Retomar esto
             // cuando se agregue CSRF a todos los forms del proyecto, no solo a Auth.
             .csrf(csrf -> csrf.disable())
+
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
@@ -45,11 +46,13 @@ public class SecurityConfig {
                 .failureUrl("/login?error")
                 .permitAll()
             )
+
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
             )
+
             .rememberMe(remember -> remember
                 .key("skillbridge-remember-me")
                 .rememberMeParameter("remember-me")

@@ -12,4 +12,6 @@ public interface CertificadoRepository extends JpaRepository<Certificado, Long> 
 
     // Bandeja de certificados pendientes del RM (Historia A23).
     List<Certificado> findByEstado(EstadoCertificado estado);
+
+    long countByColaboradorAndEstado(Usuario colaborador, EstadoCertificado estado);
 }

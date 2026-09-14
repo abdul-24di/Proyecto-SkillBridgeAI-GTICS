@@ -88,6 +88,10 @@
 
   <main class="page-wrap">
 
+    <div class="alert alert-warning" role="alert" th:if="${proyectoNoEncontrado}">
+      El proyecto solicitado no existe.
+    </div>
+
     <!-- BREADCRUMB -->
     <nav class="breadcrumb-wrap"
          aria-label="Migas de pan">
@@ -149,7 +153,7 @@
               </div>
 
               <div class="summary-number"
-                   id="metricTotal">
+                   id="metricTotal" th:text="${totalProyectos}">
                 8
               </div>
 
@@ -191,7 +195,7 @@
               </div>
 
               <div class="summary-number"
-                   id="metricVacancies">
+                   id="metricVacancies" th:text="${totalConVacantes}">
                 4
               </div>
 
@@ -232,7 +236,7 @@
               </div>
 
               <div class="summary-number"
-                   id="metricPending">
+                   id="metricPending" th:text="${totalPendientesRm}">
                 4
               </div>
 
@@ -273,7 +277,7 @@
               </div>
 
               <div class="summary-number"
-                   id="metricInReview">
+                   id="metricInReview" th:text="${totalEnRevision}">
                 1
               </div>
 
@@ -343,27 +347,27 @@
                 Todos los estados
               </option>
 
-              <option value="En revisión">
+              <option value="EN_REVISION">
                 En revisión
               </option>
 
-              <option value="Activo">
+              <option value="ACTIVO">
                 Activo
               </option>
 
-              <option value="Rechazado">
+              <option value="RECHAZADO">
                 Rechazado
               </option>
 
-              <option value="En espera">
+              <option value="EN_ESPERA">
                 En espera
               </option>
 
-              <option value="Cancelado">
+              <option value="CANCELADO">
                 Cancelado
               </option>
 
-              <option value="Finalizado">
+              <option value="FINALIZADO">
                 Finalizado
               </option>
 
@@ -383,9 +387,9 @@
                     class="form-select">
 
               <option value="all">Todas</option>
-              <option value="Alta">Alta</option>
-              <option value="Media">Media</option>
-              <option value="Baja">Baja</option>
+              <option value="ALTA">Alta</option>
+              <option value="MEDIA">Media</option>
+              <option value="BAJA">Baja</option>
 
             </select>
 
@@ -439,6 +443,89 @@
 
         <div id="projectGrid"
              class="row row-cards">
+
+          <div class="col-lg-6 project-item"
+               th:each="item : ${proyectos}"
+               th:attr="data-search=${item.textoBusqueda},
+                        data-status=${item.proyecto.estado},
+                        data-priority=${item.proyecto.prioridad},
+                        data-vacancies=${item.vacantes}">
+            <div class="card project-card">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div>
+                    <h3 class="project-title" th:text="${item.proyecto.nombre}">Proyecto</h3>
+                    <div class="text-secondary small mt-1">
+                      PM: <span class="fw-medium text-body" th:text="${item.pmNombre}">Project Manager</span>
+                    </div>
+                  </div>
+                  <span class="badge" th:classappend="${item.estadoClase}"
+                        th:text="${item.estadoTexto}">Activo</span>
+                </div>
+
+                <div class="project-desc"
+                     th:text="${item.proyecto.descripcion != null and !item.proyecto.descripcion.isBlank() ? item.proyecto.descripcion : 'Sin descripción registrada.'}">
+                  Descripción del proyecto.
+                </div>
+
+                <div class="meta-grid">
+                  <div>
+                    <div class="meta-label">Equipo</div>
+                    <div class="meta-value"
+                         th:text="|${item.integrantesActivos}/${item.proyecto.colaboradoresRequeridos} integrantes|">0/0 integrantes</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Vacantes</div>
+                    <div class="meta-value" th:text="${item.vacantes}">0</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Pendientes del RM</div>
+                    <div class="meta-value" th:text="${item.pendientesRm}">0</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Fin estimado</div>
+                    <div class="meta-value"
+                         th:text="${item.proyecto.fechaFinEstimada != null ? #temporals.format(item.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : 'Sin definir'}">
+                      Sin definir
+                    </div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Prioridad</div>
+                    <div class="meta-value">
+                      <span class="badge priority-badge" th:classappend="${item.prioridadClase}"
+                            th:text="${item.prioridadTexto}">Media</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="project-budget">
+                  <div class="meta-label" th:text="${item.presupuestoEtiqueta}">Presupuesto</div>
+                  <div class="meta-value"
+                       th:text="${item.presupuestoVisible != null ? 'S/ ' + #numbers.formatDecimal(item.presupuestoVisible, 1, 'COMMA', 2, 'POINT') : 'Sin definir'}">
+                    Sin definir
+                  </div>
+                </div>
+
+                <div class="project-footer">
+                  <div>
+                    <span class="badge bg-yellow-lt" th:if="${item.pendientesRm > 0}"
+                          th:text="|${item.pendientesRm} pendiente(s) RM|">Pendientes RM</span>
+                    <span class="badge bg-green-lt" th:if="${item.pendientesRm == 0}">Sin pendientes RM</span>
+                  </div>
+                  <a class="btn btn-outline-primary btn-sm"
+                     th:href="@{/rm/proyectos/detalle(id=${item.proyecto.id})}">Ver proyecto</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12" th:if="${#lists.isEmpty(proyectos)}">
+            <div class="card"><div class="empty-state">No hay proyectos registrados.</div></div>
+          </div>
+
+          <div id="noProjectResults" class="col-12 d-none">
+            <div class="card"><div class="empty-state">No se encontraron proyectos con los filtros seleccionados.</div></div>
+          </div>
         </div>
 
       </div>

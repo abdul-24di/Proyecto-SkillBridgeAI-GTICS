@@ -1,862 +1,345 @@
 <!doctype html>
-<html lang="es"
-      xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <title>SkillBridge AI — Perfil de colaborador</title>
 
-  <!-- Tabler local -->
-  <link rel="stylesheet"
-        href="../../static/tabler/css/tabler.min.css"
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css"
         th:href="@{/tabler/css/tabler.min.css}">
-
-  <!-- Estilos compartidos RM -->
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-common.css"
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css"
         th:href="@{/css/rm-css/rm-common.css}">
-
-  <!-- Estilos específicos de la vista -->
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-perfil-colaborador.css"
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-perfil-colaborador.css"
         th:href="@{/css/rm-css/rm-perfil-colaborador.css}">
-
-  <!-- Topbar RM compartida -->
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-topbar.css"
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css"
         th:href="@{/css/rm-css/rm-topbar.css}">
 </head>
 
 <body>
 <div class="app-shell">
-
-  <!-- TOPBAR COMPARTIDA -->
-  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}">
-
-    <!-- Fallback para previsualización directa sin Thymeleaf -->
-    <div class="container-xl">
-
-      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
-
-      <nav class="main-nav" aria-label="Navegación principal">
-        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
-        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
-        <a href="rm-colaboradores.html" class="active" th:href="@{/rm/colaboradores}">Colaboradores</a>
-        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
-        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
-        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
-        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
-      </nav>
-
-      <div class="user-area">
-
-        <a href="#"
-           class="notification-link position-relative"
-           aria-label="Notificaciones">
-
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="20"
-               height="20"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round">
-            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
-            <path d="M9 19a3 3 0 0 0 6 0"/>
-          </svg>
-
-          <span class="badge bg-red notification-dot"></span>
-        </a>
-
-        <span class="avatar avatar-sm user-avatar">AR</span>
-
-        <div class="user-meta">
-          <div class="fw-semibold">Abraham Ramirez</div>
-          <div class="small">Resource Manager</div>
-        </div>
-
-      </div>
-
-    </div>
-
-  </header>
-
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}"></header>
 
   <main class="page-wrap">
-
-    <!-- BREADCRUMB -->
-    <nav class="breadcrumb-wrap"
-         aria-label="Migas de pan">
-
-      <a href="rm-colaboradores.html"
-         class="breadcrumb-link" th:href="@{/rm/colaboradores}">
-        Colaboradores
-      </a>
-
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <a class="breadcrumb-link" th:href="@{/rm/colaboradores}">Colaboradores</a>
       <span class="breadcrumb-separator">›</span>
-
-      <span class="text-secondary">
-        Carlos Mendoza
-      </span>
-
+      <span class="text-secondary" th:text="${colaborador.resumen.nombreCompleto}">Colaborador</span>
     </nav>
 
-
-    <!-- PROFILE HEADER -->
     <div class="card section-card profile-header mb-4">
-
       <div class="card-body">
-
         <div class="row g-3 align-items-start">
-
           <div class="col-lg">
-
             <div class="d-flex align-items-start gap-3">
-
-              <span class="avatar profile-avatar bg-blue-lt text-blue">
-                CM
-              </span>
+              <img th:if="${colaborador.resumen.fotoUrl != null and !colaborador.resumen.fotoUrl.isBlank()}"
+                   th:src="${colaborador.resumen.fotoUrl}"
+                   class="avatar profile-avatar"
+                   alt="Foto del colaborador">
+              <span th:unless="${colaborador.resumen.fotoUrl != null and !colaborador.resumen.fotoUrl.isBlank()}"
+                    class="avatar profile-avatar bg-blue-lt text-blue"
+                    th:text="${colaborador.resumen.iniciales}">CO</span>
 
               <div class="flex-fill">
-
                 <div class="d-flex align-items-center gap-2 flex-wrap">
-
-                  <h1 class="profile-name mb-0">
-                    Carlos Mendoza
+                  <h1 class="profile-name mb-0" th:text="${colaborador.resumen.nombreCompleto}">
+                    Nombre del colaborador
                   </h1>
-
-                  <span class="badge bg-secondary-lt">
-                    Senior
-                  </span>
-
-                  <span class="badge bg-green-lt">
+                  <span class="badge bg-secondary-lt" th:text="${colaborador.resumen.nivel}">Senior</span>
+                  <span class="badge"
+                        th:classappend="${colaborador.resumen.disponibilidadClase}"
+                        th:text="|${colaborador.resumen.horasDisponiblesTexto} h/sem disponibles|">
                     16 h/sem disponibles
                   </span>
-
                 </div>
 
-                <div class="text-secondary mt-1">
-                  Backend Developer
-                </div>
+                <div class="text-secondary mt-1" th:text="${colaborador.resumen.cargo}">Cargo</div>
 
                 <div class="mt-2">
-                  <span class="badge bg-blue-lt skill-badge">Java</span>
-                  <span class="badge bg-blue-lt skill-badge">Spring Boot</span>
-                  <span class="badge bg-blue-lt skill-badge">AWS</span>
-                  <span class="badge bg-blue-lt skill-badge">Docker</span>
-                  <span class="badge bg-blue-lt skill-badge">Microservicios</span>
+                  <span class="badge bg-blue-lt skill-badge"
+                        th:each="habilidad : ${colaborador.resumen.habilidades}"
+                        th:text="${habilidad}">Java</span>
+                  <span class="small text-secondary"
+                        th:if="${#lists.isEmpty(colaborador.resumen.habilidades)}">
+                    Sin habilidades registradas.
+                  </span>
                 </div>
 
                 <div class="small text-secondary mt-2">
                   Perfil profesional consultado por el Resource Manager.
                 </div>
-
               </div>
-
             </div>
-
           </div>
-
 
           <div class="col-lg-auto">
-
             <div class="d-flex flex-wrap gap-2 header-actions">
-
-              <a href="rm-asignaciones-colaborador.html"
-                 class="btn btn-outline-secondary" th:href="@{/rm/colaboradores/asignaciones}">
+              <a class="btn btn-outline-secondary"
+                 th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id})}">
                 Ver asignaciones
               </a>
-
-              <a href="#"
-                 class="btn btn-outline-primary">
-                Actualizar nivel
-              </a>
-
-              <a href="rm-proponer-asignacion.html"
-                 class="btn btn-primary" th:href="@{/rm/proyectos/proponer-asignacion}">
+              <a class="btn btn-primary"
+                 th:href="@{/rm/proyectos/proponer-asignacion(colaboradorId=${colaborador.resumen.id})}">
                 Proponer asignación
               </a>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
 
-
-    <!-- SUMMARY -->
     <div class="row row-cards mb-4">
-
       <div class="col-sm-6 col-lg-3">
-
         <div class="card summary-card">
-
-          <div class="card-body d-flex align-items-center gap-3">
-
-            <div class="summary-icon bg-green-lt text-green">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="22"
-                   height="22"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round">
-                <circle cx="12" cy="12" r="9"/>
-                <path d="M12 7v5l3 2"/>
-              </svg>
-            </div>
-
-            <div>
-              <div class="summary-label">
-                Disponibilidad
-              </div>
-
-              <div class="summary-number">
-                16 h
-              </div>
-
-              <div class="small text-secondary">
-                Libres por semana
-              </div>
-            </div>
-
+          <div class="card-body">
+            <div class="summary-label">Disponibilidad</div>
+            <div class="summary-number"
+                 th:text="|${colaborador.resumen.horasDisponiblesTexto} h|">0 h</div>
+            <div class="small text-secondary">Horas libres por semana.</div>
           </div>
-
         </div>
-
       </div>
 
-
       <div class="col-sm-6 col-lg-3">
-
         <div class="card summary-card">
-
-          <div class="card-body d-flex align-items-center gap-3">
-
-            <div class="summary-icon bg-yellow-lt text-yellow">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="22"
-                   height="22"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round">
-                <path d="M4 4h6l2 2h8v14H4z"/>
-              </svg>
+          <div class="card-body">
+            <div class="summary-label">Carga activa</div>
+            <div class="summary-number"
+                 th:text="|${colaborador.resumen.asignacionesActivas} / ${colaborador.resumen.maxAsignaciones}|">
+              0 / 3
             </div>
-
-            <div>
-              <div class="summary-label">
-                Carga actual
-              </div>
-
-              <div class="summary-number">
-                2 / 3
-              </div>
-
-              <div class="small text-secondary">
-                Asignaciones activas
-              </div>
-            </div>
-
+            <div class="small text-secondary">Asignaciones sobre el límite.</div>
           </div>
-
         </div>
-
       </div>
 
-
       <div class="col-sm-6 col-lg-3">
-
         <div class="card summary-card">
-
-          <div class="card-body d-flex align-items-center gap-3">
-
-            <div class="summary-icon bg-blue-lt text-blue">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="22"
-                   height="22"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round">
-                <path d="M7 12l5 5 9-9"/>
-                <path d="M5 5h14v14H5z"/>
-              </svg>
-            </div>
-
-            <div>
-              <div class="summary-label">
-                Certificados aprobados
-              </div>
-
-              <div class="summary-number">
-                4
-              </div>
-
-              <div class="small text-secondary">
-                Validados por RM
-              </div>
-            </div>
-
+          <div class="card-body">
+            <div class="summary-label">Certificados aprobados</div>
+            <div class="summary-number" th:text="${colaborador.resumen.certificadosAprobados}">0</div>
+            <div class="small text-secondary">Validaciones completadas.</div>
           </div>
-
         </div>
-
       </div>
 
-
       <div class="col-sm-6 col-lg-3">
-
         <div class="card summary-card">
-
-          <div class="card-body d-flex align-items-center gap-3">
-
-            <div class="summary-icon bg-red-lt text-red">
-              <svg xmlns="http://www.w3.org/2000/svg"
-                   width="22"
-                   height="22"
-                   viewBox="0 0 24 24"
-                   fill="none"
-                   stroke="currentColor"
-                   stroke-width="2"
-                   stroke-linecap="round"
-                   stroke-linejoin="round">
-                <path d="M12 9v4"/>
-                <path d="M12 17h.01"/>
-                <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/>
-              </svg>
-            </div>
-
-            <div>
-              <div class="summary-label">
-                Pendientes de revisión
-              </div>
-
-              <div class="summary-number">
-                2
-              </div>
-
-              <div class="small text-secondary">
-                Certificados por validar
-              </div>
-            </div>
-
+          <div class="card-body">
+            <div class="summary-label">Experiencia</div>
+            <div class="summary-number" th:text="${colaborador.resumen.experienciaTexto}">Sin registrar</div>
+            <div class="small text-secondary">Experiencia profesional declarada.</div>
           </div>
-
         </div>
-
       </div>
-
     </div>
 
-
-    <!-- INFORMACIÓN + ESTADO -->
     <div class="row row-cards mb-4">
-
       <div class="col-lg-8">
-
         <div class="card section-card h-100">
-
           <div class="card-header section-header">
-
             <div>
-              <h3 class="card-title mb-1">
-                Información profesional
-              </h3>
-
-              <div class="section-description">
-                Datos del perfil utilizados para búsqueda, asignaciones y Talent Matching.
-              </div>
+              <h3 class="card-title mb-1">Información general</h3>
+              <div class="section-description">Datos laborales visibles para el Resource Manager.</div>
             </div>
-
           </div>
-
-
           <div class="card-body compact-card-body">
-
             <div class="info-grid info-grid-three">
-
               <div>
                 <div class="info-label">Correo</div>
-                <div class="info-value">carlos.mendoza@skillbridge.ai</div>
+                <div class="info-value" th:text="${colaborador.correo}">correo@empresa.com</div>
               </div>
-
               <div>
-                <div class="info-label">Área</div>
-                <div class="info-value">Backend Engineering</div>
+                <div class="info-label">Teléfono</div>
+                <div class="info-value"
+                     th:text="${colaborador.telefono != null and !colaborador.telefono.isBlank() ? colaborador.telefono : 'Sin registrar'}">
+                  Sin registrar
+                </div>
               </div>
-
               <div>
-                <div class="info-label">Experiencia</div>
-                <div class="info-value">6 años</div>
+                <div class="info-label">Fecha de contratación</div>
+                <div class="info-value"
+                     th:text="${colaborador.fechaContratacion != null ? #temporals.format(colaborador.fechaContratacion, 'dd/MM/yyyy') : 'Sin registrar'}">
+                  Sin registrar
+                </div>
               </div>
-
               <div>
-                <div class="info-label">Nivel general</div>
-                <div class="info-value">Senior</div>
+                <div class="info-label">Cargo</div>
+                <div class="info-value" th:text="${colaborador.resumen.cargo}">Cargo</div>
               </div>
-
               <div>
-                <div class="info-label">Disponibilidad declarada</div>
-                <div class="info-value text-success">16 h / semana</div>
+                <div class="info-label">Nivel</div>
+                <div class="info-value" th:text="${colaborador.resumen.nivel}">Nivel</div>
               </div>
-
               <div>
-                <div class="info-label">Ubicación</div>
-                <div class="info-value">Lima, Perú</div>
+                <div class="info-label">Jornada contratada</div>
+                <div class="info-value" th:text="${colaborador.horasContratadasTexto}">Sin registrar</div>
               </div>
-
             </div>
-
 
             <div class="profile-summary mt-3">
-
-              <div class="info-label mb-2">
-                Resumen profesional
+              <div class="info-label">Descripción profesional</div>
+              <div class="text-secondary mt-1"
+                   th:text="${colaborador.descripcion != null and !colaborador.descripcion.isBlank() ? colaborador.descripcion : 'El colaborador aún no ha registrado una descripción profesional.'}">
+                Sin descripción profesional.
               </div>
-
-              <div class="text-secondary">
-                Desarrollador backend con experiencia en diseño de APIs, arquitectura de microservicios,
-                integración cloud y despliegue de soluciones empresariales con Java y Spring Boot.
-              </div>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
 
       <div class="col-lg-4">
-
         <div class="card section-card h-100">
-
           <div class="card-header section-header">
-
             <div>
-              <h3 class="card-title mb-1">
-                Estado de asignación
-              </h3>
-
-              <div class="section-description">
-                Capacidad actual del colaborador.
-              </div>
+              <h3 class="card-title mb-1">Estado actual</h3>
+              <div class="section-description">Resumen de disponibilidad y carga.</div>
             </div>
-
           </div>
-
-
           <div class="card-body compact-card-body">
-
             <div class="status-grid">
-
               <div class="status-row">
-                <div>
-                  <div class="info-label">Carga</div>
-                  <div class="info-value">2 / 3 asignaciones</div>
-                </div>
-                <span class="badge bg-yellow-lt">Capacidad parcial</span>
+                <span class="text-secondary">Disponibilidad</span>
+                <span class="badge"
+                      th:classappend="${colaborador.resumen.disponibilidadClase}"
+                      th:text="|${colaborador.resumen.horasDisponiblesTexto} h/sem|">0 h/sem</span>
               </div>
-
               <div class="status-row">
-                <div>
-                  <div class="info-label">Disponibilidad</div>
-                  <div class="info-value">16 h / semana</div>
-                </div>
-                <span class="badge bg-green-lt">Disponible</span>
+                <span class="text-secondary">Carga de asignaciones</span>
+                <span class="badge"
+                      th:classappend="${colaborador.resumen.cargaClase}"
+                      th:text="|${colaborador.resumen.asignacionesActivas} / ${colaborador.resumen.maxAsignaciones}|">0 / 3</span>
               </div>
-
               <div class="status-row">
-                <div>
-                  <div class="info-label">Proyectos actuales</div>
-                  <div class="info-value">Clínica AI, ERP Cloud</div>
-                </div>
+                <span class="text-secondary">Nivel de experiencia</span>
+                <span class="fw-semibold" th:text="${colaborador.resumen.nivel}">Sin definir</span>
               </div>
-
-              <div class="status-row">
-                <div>
-                  <div class="info-label">Última actualización</div>
-                  <div class="info-value">25 Ago 2026</div>
-                </div>
-              </div>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
 
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Habilidades</h3>
+          <div class="section-description">Nivel declarado y estado de validación de cada habilidad activa.</div>
+        </div>
+      </div>
+      <div th:if="${!#lists.isEmpty(colaborador.habilidades)}">
+        <div class="skill-row" th:each="habilidad : ${colaborador.habilidades}">
+          <div>
+            <div class="fw-semibold" th:text="${habilidad.nombre}">Habilidad</div>
+            <div class="small text-secondary" th:text="|Dominio: ${habilidad.nivel}|">Dominio</div>
+          </div>
+          <span class="badge bg-secondary-lt" th:text="${habilidad.estadoValidacion}">Pendiente</span>
+        </div>
+      </div>
+      <div class="empty-state" th:if="${#lists.isEmpty(colaborador.habilidades)}">
+        Este colaborador todavía no registró habilidades.
+      </div>
+    </div>
 
-    <!-- HABILIDADES + ASIGNACIONES -->
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Asignaciones activas</h3>
+          <div class="section-description">Proyectos en los que participa actualmente.</div>
+        </div>
+        <a class="btn btn-light btn-sm"
+           th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id})}">Ver historial</a>
+      </div>
+      <div class="table-responsive" th:if="${!#lists.isEmpty(colaborador.asignaciones)}">
+        <table class="table table-vcenter compact-table card-table">
+          <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Horas semanales</th>
+            <th>Periodo</th>
+            <th>Estado</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="asignacion : ${colaborador.asignaciones}">
+            <td class="fw-semibold" th:text="${asignacion.proyecto}">Proyecto</td>
+            <td th:text="|${asignacion.horasSemanales} h|">0 h</td>
+            <td>
+              <span th:text="${asignacion.fechaInicio != null ? #temporals.format(asignacion.fechaInicio, 'dd/MM/yyyy') : 'Sin fecha'}">Inicio</span>
+              <span> — </span>
+              <span th:text="${asignacion.fechaFin != null ? #temporals.format(asignacion.fechaFin, 'dd/MM/yyyy') : 'Sin fecha'}">Fin</span>
+            </td>
+            <td><span class="badge bg-green-lt" th:text="${asignacion.estado}">Activa</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="empty-state" th:if="${#lists.isEmpty(colaborador.asignaciones)}">
+        Este colaborador no tiene asignaciones activas.
+      </div>
+    </div>
+
     <div class="row row-cards mb-4">
+      <div class="col-lg-6">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Experiencia profesional</h3>
+              <div class="section-description">Trayectoria declarada por el colaborador.</div>
+            </div>
+          </div>
+          <div th:if="${!#lists.isEmpty(colaborador.experiencias)}">
+            <div class="timeline-item" th:each="experiencia : ${colaborador.experiencias}">
+              <div class="d-flex justify-content-between gap-2 flex-wrap">
+                <div class="fw-semibold" th:text="${experiencia.cargo}">Cargo</div>
+                <span class="small text-secondary">
+                  <span th:text="${experiencia.fechaInicio != null ? #temporals.format(experiencia.fechaInicio, 'MM/yyyy') : 'Sin fecha'}">Inicio</span>
+                  <span> — </span>
+                  <span th:text="${experiencia.actual ? 'Actualidad' : (experiencia.fechaFin != null ? #temporals.format(experiencia.fechaFin, 'MM/yyyy') : 'Sin fecha')}">Fin</span>
+                </span>
+              </div>
+              <div class="text-secondary" th:text="${experiencia.empresa}">Empresa</div>
+              <div class="small text-secondary mt-2" th:text="${experiencia.descripcion}">Descripción</div>
+            </div>
+          </div>
+          <div class="empty-state" th:if="${#lists.isEmpty(colaborador.experiencias)}">
+            No hay experiencia profesional registrada.
+          </div>
+        </div>
+      </div>
 
       <div class="col-lg-6">
-
         <div class="card section-card h-100">
-
           <div class="card-header section-header">
-
             <div>
-              <h3 class="card-title mb-1">
-                Habilidades validadas
-              </h3>
-
-              <div class="section-description">
-                Competencias visibles para búsquedas y recomendaciones.
-              </div>
+              <h3 class="card-title mb-1">Educación</h3>
+              <div class="section-description">Formación académica activa en el perfil.</div>
             </div>
-
           </div>
-
-
-          <div class="card-body p-0">
-
-            <div class="skill-row">
-              <div>
-                <div class="fw-semibold">Java</div>
-                <div class="small text-secondary">Backend</div>
+          <div th:if="${!#lists.isEmpty(colaborador.educacion)}">
+            <div class="timeline-item" th:each="estudio : ${colaborador.educacion}">
+              <div class="d-flex justify-content-between gap-2 flex-wrap">
+                <div class="fw-semibold" th:text="${estudio.titulo}">Título</div>
+                <span class="badge bg-secondary-lt" th:text="${estudio.estado}">Pendiente</span>
               </div>
-              <div class="d-flex gap-2 align-items-center">
-                <span class="badge bg-blue-lt">Avanzado</span>
-                <span class="badge bg-green-lt">Validado</span>
-              </div>
-            </div>
-
-            <div class="skill-row">
-              <div>
-                <div class="fw-semibold">Spring Boot</div>
-                <div class="small text-secondary">Backend</div>
-              </div>
-              <div class="d-flex gap-2 align-items-center">
-                <span class="badge bg-blue-lt">Avanzado</span>
-                <span class="badge bg-green-lt">Validado</span>
+              <div class="text-secondary" th:text="${estudio.institucion}">Institución</div>
+              <div class="small text-secondary mt-1">
+                <span th:text="${estudio.fechaInicio != null ? #temporals.format(estudio.fechaInicio, 'MM/yyyy') : 'Sin fecha'}">Inicio</span>
+                <span> — </span>
+                <span th:text="${estudio.actual ? 'Actualidad' : (estudio.fechaFin != null ? #temporals.format(estudio.fechaFin, 'MM/yyyy') : 'Sin fecha')}">Fin</span>
               </div>
             </div>
-
-            <div class="skill-row">
-              <div>
-                <div class="fw-semibold">AWS</div>
-                <div class="small text-secondary">Cloud</div>
-              </div>
-              <div class="d-flex gap-2 align-items-center">
-                <span class="badge bg-blue-lt">Intermedio</span>
-                <span class="badge bg-green-lt">Validado</span>
-              </div>
-            </div>
-
-            <div class="skill-row">
-              <div>
-                <div class="fw-semibold">Docker</div>
-                <div class="small text-secondary">DevOps</div>
-              </div>
-              <div class="d-flex gap-2 align-items-center">
-                <span class="badge bg-blue-lt">Intermedio</span>
-                <span class="badge bg-green-lt">Validado</span>
-              </div>
-            </div>
-
           </div>
-
+          <div class="empty-state" th:if="${#lists.isEmpty(colaborador.educacion)}">
+            No hay estudios registrados.
+          </div>
         </div>
-
       </div>
-
-
-      <div class="col-lg-6">
-
-        <div class="card section-card h-100">
-
-          <div class="card-header section-header">
-
-            <div>
-              <h3 class="card-title mb-1">
-                Asignaciones actuales
-              </h3>
-
-              <div class="section-description">
-                Participación activa del colaborador en proyectos.
-              </div>
-            </div>
-
-            <a href="rm-historial-validaciones.html"
-               class="btn btn-sm btn-light" th:href="@{/rm/colaboradores/historial-validaciones}">
-              Ver historial
-            </a>
-
-          </div>
-
-
-          <div class="table-responsive">
-
-            <table class="table table-vcenter card-table compact-table mb-0">
-
-              <thead>
-              <tr>
-                <th>Proyecto</th>
-                <th>Rol</th>
-                <th>Horas/sem</th>
-                <th>Estado</th>
-              </tr>
-              </thead>
-
-              <tbody>
-
-              <tr>
-                <td class="fw-semibold">Clínica AI</td>
-                <td>Backend Developer</td>
-                <td>16 h</td>
-                <td><span class="badge bg-green-lt">Activa</span></td>
-              </tr>
-
-              <tr>
-                <td class="fw-semibold">ERP Cloud</td>
-                <td>Backend Developer</td>
-                <td>8 h</td>
-                <td><span class="badge bg-green-lt">Activa</span></td>
-              </tr>
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-
-          <div class="card-body compact-card-body border-top">
-
-            <div class="small text-secondary">
-              Las horas semanales comprometidas corresponden a la dedicación de las asignaciones
-              y no a las horas trabajadas por tareas.
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
     </div>
-
-
-    <!-- HISTORIAL + CERTIFICADOS -->
-    <div class="row row-cards">
-
-      <div class="col-lg-5">
-
-        <div class="card section-card h-100">
-
-          <div class="card-header section-header">
-
-            <div>
-              <h3 class="card-title mb-1">
-                Historial profesional
-              </h3>
-
-              <div class="section-description">
-                Experiencia laboral registrada.
-              </div>
-            </div>
-
-          </div>
-
-
-          <div class="card-body p-0">
-
-            <div class="timeline-item">
-              <div class="fw-semibold">
-                Senior Backend Developer — SkillBridge AI
-              </div>
-
-              <div class="small text-secondary">
-                2024 - Actualidad
-              </div>
-
-              <div class="small text-secondary mt-1">
-                APIs empresariales, servicios cloud y soporte a proyectos multiplataforma.
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="fw-semibold">
-                Backend Developer — Digital Core Solutions
-              </div>
-
-              <div class="small text-secondary">
-                2021 - 2024
-              </div>
-
-              <div class="small text-secondary mt-1">
-                Microservicios y procesos de integración con Java y Spring.
-              </div>
-            </div>
-
-            <div class="timeline-item">
-              <div class="fw-semibold">
-                Software Developer — Innova Tech
-              </div>
-
-              <div class="small text-secondary">
-                2019 - 2021
-              </div>
-
-              <div class="small text-secondary mt-1">
-                Desarrollo y mantenimiento de módulos internos.
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      <div class="col-lg-7">
-
-        <div class="card section-card h-100">
-
-          <div class="card-header section-header">
-
-            <div>
-              <h3 class="card-title mb-1">
-                Certificados y acreditaciones
-              </h3>
-
-              <div class="section-description">
-                Revisa documentos pendientes y consulta los ya validados o rechazados.
-              </div>
-            </div>
-
-            <a href="rm-historial-validaciones.html"
-               class="btn btn-sm btn-light" th:href="@{/rm/colaboradores/historial-validaciones}">
-              Ver historial
-            </a>
-
-          </div>
-
-
-          <div class="table-responsive">
-
-            <table class="table table-vcenter card-table compact-table mb-0">
-
-              <thead>
-              <tr>
-                <th>Documento</th>
-                <th>Habilidad</th>
-                <th>Estado</th>
-                <th class="text-end">Acción</th>
-              </tr>
-              </thead>
-
-              <tbody>
-
-              <tr>
-                <td>
-                  <div class="fw-semibold">AWS Certified Developer.pdf</div>
-                  <div class="small text-secondary">24 Ago 2026</div>
-                </td>
-                <td>AWS</td>
-                <td><span class="badge bg-yellow-lt">Pendiente</span></td>
-                <td class="text-end">
-                  <a href="rm-revision-certificado.html"
-                     class="btn btn-primary btn-sm"
-                     th:href="@{/rm/colaboradores/certificados/revision}">Revisar</a>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="fw-semibold">Spring Boot Avanzado.pdf</div>
-                  <div class="small text-secondary">23 Ago 2026</div>
-                </td>
-                <td>Spring Boot</td>
-                <td><span class="badge bg-yellow-lt">Pendiente</span></td>
-                <td class="text-end">
-                  <a href="rm-revision-certificado.html"
-                     class="btn btn-primary btn-sm"
-                     th:href="@{/rm/colaboradores/certificados/revision}">Revisar</a>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="fw-semibold">Oracle Java Professional.pdf</div>
-                  <div class="small text-secondary">18 Ago 2026</div>
-                </td>
-                <td>Java</td>
-                <td><span class="badge bg-green-lt">Aprobado</span></td>
-                <td class="text-end">
-                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver</a>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="fw-semibold">Kubernetes Basics.pdf</div>
-                  <div class="small text-secondary">10 Ago 2026</div>
-                </td>
-                <td>Kubernetes</td>
-                <td><span class="badge bg-red-lt">Rechazado</span></td>
-                <td class="text-end">
-                  <a href="#" class="btn btn-outline-secondary btn-sm">Ver motivo</a>
-                </td>
-              </tr>
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-
-          <div class="certificate-note">
-
-            <span class="certificate-note-icon">
-              i
-            </span>
-
-            <div class="small text-secondary">
-              Los certificados rechazados no se eliminan. Permanecen visibles para el colaborador
-              junto con el motivo del rechazo; para intentarlo nuevamente debe subir un documento nuevo.
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </div>
-
   </main>
-
 </div>
 
-
-<script src="../../static/tabler/js/tabler.min.js"
-        th:src="@{/tabler/js/tabler.min.js}">
-</script>
-
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
 </body>
 </html>

@@ -27,10 +27,23 @@
                 <div class="col-md-4 col-lg-3 mb-4">
                     <div class="card">
                         <div class="card-body text-center py-5">
-                            <span class="avatar avatar-xl mb-4 rounded" style="font-size: 1.5rem;">AR</span>
-                            <h3 class="m-0 mb-1">Abraham Ramirez</h3>
-                            <div class="text-secondary mb-4">Resource Manager</div>
-                            
+
+                            <img th:if="${rm.fotoUrl != null and !rm.fotoUrl.isBlank()}"
+                                 th:src="@{${rm.fotoUrl}}"
+                                 class="avatar avatar-xl mb-4 rounded"
+                                 alt="Foto de perfil">
+
+                            <span th:unless="${rm.fotoUrl != null and !rm.fotoUrl.isBlank()}"
+                                  class="avatar avatar-xl mb-4 rounded"
+                                  style="font-size: 1.5rem;"
+                                  th:text="|${#strings.isEmpty(rm.nombre) ? '' : #strings.substring(rm.nombre, 0, 1)}${#strings.isEmpty(rm.apellido) ? '' : #strings.substring(rm.apellido, 0, 1)}|">
+                                RM
+                            </span>
+
+                            <h3 class="m-o mb-1"
+                                th:text="|${rm.nombre != null ? rm.nombre : ''} ${rm.apellido != null ? rm.apellido : ''}|">
+                                Nombre del RM
+                            </h3>
                             
                         </div>
                     </div>
@@ -42,7 +55,7 @@
                             <h3 class="card-title">Datos de la Cuenta</h3>
                         </div>
                         <div class="card-body">
-                            <form action="#" method="post">
+                            <form onsubmit="event.preventDefault()">
                                                                 <div class="row g-3">
                                     <div class="col-md-12">
                                         <label class="form-label">Foto de perfil</label>
@@ -51,16 +64,33 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Nombres</label>
-                                        <input type="text" class="form-control" name="nombres" value="Abraham" required>
+                                        <input type="text" class="form-control" th:value="${rm.nombre}" readonly disabled>
+
+                                        <div class="form-hint">
+                                            Solo el Administrador puede modificar los nombres.
+                                        </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Apellidos</label>
-                                        <input type="text" class="form-control" name="apellidos" value="Ramirez" required>
+                                        <input type="text" class="form-control" th:value="${rm.apellido}" readonly disabled>
+
+                                        <div class="form-hint">
+                                            Solo el Administrador puede modificar los apellidos.
+                                        </div>
                                     </div>
                                     <div class="col-md-12">
                                         <label class="form-label">Correo electrónico</label>
-                                        <input type="email" class="form-control" name="correo" value="Abraham.Ramirez@skillbridge.com" readonly disabled>
-                                        <div class="form-hint">El correo es tu identificador de acceso. Solo el Administrador puede modificarlo.</div>
+                                        <input type="email" class="form-control" th:value="${rm.correo}" readonly disabled>
+                                        <div class="form-hint">
+                                            El correo es tu identificador de acceso. Solo el Administrador puede modificarlo.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Teléfono</label>
+                                        <input type="tel" class="form-control" name="telefono" th:value="${rm.telefono}" maxlength="20" placeholder="Ejemplo: 999 999 999" disabled>
+                                        <div class="form-hint">
+                                            Podrás actualizar este número desde tu perfil.
+                                        </div>
                                     </div>
                                     
                                     <div class="col-12 mt-4">

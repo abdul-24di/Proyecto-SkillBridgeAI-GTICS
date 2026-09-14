@@ -88,6 +88,10 @@
 
   <main class="page-wrap">
 
+    <div class="alert alert-warning" role="alert" th:if="${colaboradorNoEncontrado}">
+      El colaborador solicitado no existe, está inactivo o no tiene el rol de colaborador.
+    </div>
+
     <!-- BREADCRUMB -->
     <nav class="breadcrumb-wrap"
          aria-label="Migas de pan">
@@ -153,7 +157,8 @@
               </div>
 
               <div class="summary-number"
-                   id="metricTotal">
+                   id="metricTotal"
+                   th:text="${totalColaboradores}">
                 12
               </div>
 
@@ -193,7 +198,8 @@
               </div>
 
               <div class="summary-number"
-                   id="metricAvailable">
+                   id="metricAvailable"
+                   th:text="${totalDisponibles}">
                 0
               </div>
 
@@ -234,7 +240,8 @@
               </div>
 
               <div class="summary-number"
-                   id="metricFree">
+                   id="metricFree"
+                   th:text="${totalSinAsignaciones}">
                 0
               </div>
 
@@ -276,7 +283,8 @@
               </div>
 
               <div class="summary-number"
-                   id="metricMaxLoad">
+                   id="metricMaxLoad"
+                   th:text="${totalCargaMaxima}">
                 0
               </div>
 
@@ -420,6 +428,10 @@
                 Junior
               </option>
 
+              <option value="Semi Senior">
+                Semi Senior
+              </option>
+
               <option value="Senior">
                 Senior
               </option>
@@ -463,6 +475,108 @@
 
         <div id="collaboratorGrid"
              class="row row-cards">
+
+          <div class="col-lg-4 col-md-6 collaborator-item"
+               th:each="colaborador : ${colaboradores}"
+               th:attr="data-search=${colaborador.textoBusqueda},
+                        data-hours=${colaborador.horasDisponibles},
+                        data-load=${colaborador.asignacionesActivas},
+                        data-max=${colaborador.maxAsignaciones},
+                        data-level=${colaborador.nivel}">
+
+            <div class="card collab-card">
+              <div class="card-body">
+                <div class="d-flex align-items-start gap-3">
+                  <img th:if="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                       th:src="${colaborador.fotoUrl}"
+                       class="avatar avatar-lg"
+                       alt="Foto del colaborador">
+
+                  <span th:unless="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                        class="avatar avatar-lg bg-blue-lt text-blue"
+                        th:text="${colaborador.iniciales}">CM</span>
+
+                  <div class="flex-fill min-width-0">
+                    <div class="d-flex justify-content-between gap-2 align-items-start">
+                      <div>
+                        <h3 class="collab-name" th:text="${colaborador.nombreCompleto}">Carlos Mendoza</h3>
+                        <div class="text-secondary small" th:text="${colaborador.cargo}">Backend Developer</div>
+                      </div>
+
+                      <span class="badge"
+                            th:classappend="${colaborador.disponibilidadClase}"
+                            th:text="|${colaborador.horasDisponiblesTexto} h/sem|">16 h/sem</span>
+                    </div>
+
+                    <div class="mt-2">
+                      <span class="badge bg-secondary-lt" th:text="${colaborador.nivel}">Senior</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <span class="badge bg-blue-lt skill-badge"
+                        th:each="habilidad : ${colaborador.habilidades}"
+                        th:text="${habilidad}">Java</span>
+                  <span class="small text-secondary"
+                        th:if="${#lists.isEmpty(colaborador.habilidades)}">Sin habilidades registradas.</span>
+                </div>
+
+                <div class="meta-grid">
+                  <div>
+                    <div class="meta-label">Experiencia</div>
+                    <div class="meta-value" th:text="${colaborador.experienciaTexto}">6 años</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Nivel</div>
+                    <div class="meta-value" th:text="${colaborador.nivel}">Senior</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Disponibilidad</div>
+                    <div class="meta-value" th:text="|${colaborador.horasDisponiblesTexto} h / semana|">16 h / semana</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Carga actual</div>
+                    <div class="meta-value">
+                      <span class="badge"
+                            th:classappend="${colaborador.cargaClase}"
+                            th:text="|${colaborador.asignacionesActivas} / ${colaborador.maxAsignaciones} asignaciones|">
+                        2 / 3 asignaciones
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="certificate-line">
+                  <span class="text-secondary small">Certificados aprobados:</span>
+                  <span class="fw-semibold" th:text="${colaborador.certificadosAprobados}">4</span>
+                </div>
+
+                <div class="card-actions">
+                  <a class="btn btn-outline-secondary btn-sm"
+                     th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.id})}">
+                    Ver asignaciones
+                  </a>
+                  <a class="btn btn-primary btn-sm"
+                     th:href="@{/rm/colaboradores/perfil(id=${colaborador.id})}">
+                    Ver perfil
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12" th:if="${#lists.isEmpty(colaboradores)}">
+            <div class="card">
+              <div class="empty-state">No hay colaboradores activos registrados.</div>
+            </div>
+          </div>
+
+          <div id="noFilterResults" class="col-12 d-none">
+            <div class="card">
+              <div class="empty-state">No se encontraron colaboradores con los filtros seleccionados.</div>
+            </div>
+          </div>
         </div>
 
       </div>

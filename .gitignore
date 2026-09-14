@@ -32,3 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 .claude/
+
+### Configuracion local / secretos ###
+.env
+.env.*
+!.env.example
+application-local.properties
+config/application-local.properties

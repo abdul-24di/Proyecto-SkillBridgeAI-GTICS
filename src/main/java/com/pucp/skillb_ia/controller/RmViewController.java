@@ -4,9 +4,37 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.dto.RmColaboradorDetalle;
+import com.pucp.skillb_ia.dto.RmColaboradorResumen;
+import com.pucp.skillb_ia.dto.RmProyectoView;
+import com.pucp.skillb_ia.security.UsuarioDetails;
+import com.pucp.skillb_ia.service.rm.RmColaboradorConsultaService;
+import com.pucp.skillb_ia.service.rm.RmPerfilService;
+import com.pucp.skillb_ia.service.rm.RmProyectoConsultaService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.math.BigDecimal;
+import java.util.List;
+
 @Controller
 @RequestMapping("/rm")
 public class RmViewController {
+
+    private final RmPerfilService rmPerfilService;
+    private final RmColaboradorConsultaService rmColaboradorConsultaService;
+    private final RmProyectoConsultaService rmProyectoConsultaService;
+
+    public RmViewController(
+            RmPerfilService rmPerfilService,
+            RmColaboradorConsultaService rmColaboradorConsultaService,
+            RmProyectoConsultaService rmProyectoConsultaService) {
+        this.rmPerfilService = rmPerfilService;
+        this.rmColaboradorConsultaService = rmColaboradorConsultaService;
+        this.rmProyectoConsultaService = rmProyectoConsultaService;
+    }
 
     @GetMapping({"", "/"})
     public String index() {
@@ -19,12 +47,35 @@ public class RmViewController {
     }
 
     @GetMapping({"/proyectos", "/rm-proyectos.html"})
-    public String projects() {
+    public String projects(
+            @RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
+            Model model) {
+        List<RmProyectoView> proyectos = rmProyectoConsultaService.listar();
+        model.addAttribute("proyectos", proyectos);
+        model.addAttribute("totalProyectos", proyectos.size());
+        model.addAttribute("totalConVacantes", proyectos.stream()
+                .filter(RmProyectoView::isConVacantesParaDotacion)
+                .count());
+        model.addAttribute("totalPendientesRm", proyectos.stream()
+                .mapToInt(RmProyectoView::getPendientesRm)
+                .sum());
+        model.addAttribute("totalEnRevision", proyectos.stream()
+                .filter(proyecto -> proyecto.getProyecto().getEstado().name().equals("EN_REVISION"))
+                .count());
+        model.addAttribute("proyectoNoEncontrado", Boolean.TRUE.equals(noEncontrado));
         return "rm/rm-proyectos";
     }
 
     @GetMapping({"/proyectos/detalle", "/rm-detalle-proyecto.html"})
-    public String projectDetail() {
+    public String projectDetail(
+            @RequestParam(name = "id", required = false) Long proyectoId,
+            Model model) {
+        if (proyectoId == null) return "redirect:/rm/proyectos";
+        try {
+            model.addAttribute("proyecto", rmProyectoConsultaService.obtener(proyectoId));
+        } catch (IllegalArgumentException ex) {
+            return "redirect:/rm/proyectos?noEncontrado=true";
+        }
         return "rm/rm-detalle-proyecto";
     }
 
@@ -49,12 +100,45 @@ public class RmViewController {
     }
 
     @GetMapping({"/colaboradores", "/rm-colaboradores.html"})
-    public String collaborators() {
+    public String collaborators(
+            @RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
+            Model model) {
+        List<RmColaboradorResumen> colaboradores =
+                rmColaboradorConsultaService.listarColaboradoresActivos();
+
+        model.addAttribute("colaboradores", colaboradores);
+        model.addAttribute("totalColaboradores", colaboradores.size());
+        model.addAttribute("totalDisponibles", colaboradores.stream()
+                .filter(colaborador -> colaborador.getHorasDisponibles()
+                        .compareTo(BigDecimal.valueOf(16)) >= 0)
+                .count());
+        model.addAttribute("totalSinAsignaciones", colaboradores.stream()
+                .filter(colaborador -> colaborador.getAsignacionesActivas() == 0)
+                .count());
+        model.addAttribute("totalCargaMaxima", colaboradores.stream()
+                .filter(RmColaboradorResumen::isCargaMaxima)
+                .count());
+        model.addAttribute("colaboradorNoEncontrado", Boolean.TRUE.equals(noEncontrado));
+
         return "rm/rm-colaboradores";
     }
 
     @GetMapping({"/colaboradores/perfil", "/rm-perfil-colaborador.html"})
-    public String collaboratorProfile() {
+    public String collaboratorProfile(
+            @RequestParam(name = "id", required = false) Long colaboradorId,
+            Model model) {
+        if (colaboradorId == null) {
+            return "redirect:/rm/colaboradores";
+        }
+
+        try {
+            RmColaboradorDetalle colaborador =
+                    rmColaboradorConsultaService.obtenerDetalle(colaboradorId);
+            model.addAttribute("colaborador", colaborador);
+        } catch (IllegalArgumentException ex) {
+            return "redirect:/rm/colaboradores?noEncontrado=true";
+        }
+
         return "rm/rm-perfil-colaborador";
     }
 
@@ -152,8 +236,31 @@ public class RmViewController {
     public String collaboratorHours() {
         return "rm/rm-horas-colaboradores";
     }
+
     @GetMapping("/perfil")
-    public String perfil() {
+    public String perfil(
+            @AuthenticationPrincipal UsuarioDetails principal,
+            Model model) {
+
+        if (principal == null){
+            return "redirect:/login";
+        }
+
+        boolean esResourceManager = principal.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_RESOURCE_MANAGER"));
+
+        if (!esResourceManager){
+            return "redirect:/login";
+        }
+
+        Usuario rm = rmPerfilService.obtenerPerfil(
+                principal.getUsuario().getId());
+
+        model.addAttribute("rm", rm);
+
         return "rm/rm-perfil";
+
     }
 }

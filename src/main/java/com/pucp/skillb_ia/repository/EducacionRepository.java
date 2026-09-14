@@ -9,4 +9,5 @@ import java.util.List;
 public interface EducacionRepository extends JpaRepository<Educacion, Long> {
     List<Educacion> findByColaboradorAndActivoTrue(Usuario colaborador);
 
+    List<Educacion> findByColaboradorAndActivoTrueOrderByFechaInicioDesc(Usuario colaborador);
 }

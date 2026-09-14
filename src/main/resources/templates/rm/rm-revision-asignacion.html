@@ -1,451 +1,53 @@
 <!doctype html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="page">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SkillBridge AI — Revisión de asignación</title>
-
-  <link rel="stylesheet"
-        href="../../static/tabler/css/tabler.min.css"
-        th:href="@{/tabler/css/tabler.min.css}">
-
-  <!-- Estilos compartidos RM -->
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-common.css"
-        th:href="@{/css/rm-css/rm-common.css}">
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-revision-asignacion.css"
-        th:href="@{/css/rm-css/rm-revision-asignacion.css}">
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-topbar.css"
-        th:href="@{/css/rm-css/rm-topbar.css}">
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}" href="../../static/tabler/css/tabler.min.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}" href="../../static/css/rm-css/rm-common.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-revision-asignacion.css}" href="../../static/css/rm-css/rm-revision-asignacion.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}" href="../../static/css/rm-css/rm-topbar.css">
 </head>
-
-<body>
-<div class="app-shell">
-
-  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}">
-    <!-- Fallback para previsualización sin Thymeleaf -->
-    <div class="container-xl">
-      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
-
-      <nav class="main-nav" aria-label="Navegación principal">
-        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
-        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
-        <a href="rm-colaboradores.html" th:href="@{/rm/colaboradores}">Colaboradores</a>
-        <a href="rm-asignaciones.html" class="active" th:href="@{/rm/asignaciones}">Asignaciones</a>
-        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
-        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
-        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
-      </nav>
-
-      <div class="user-area">
-        <a href="#"
-           class="notification-link position-relative"
-           aria-label="Notificaciones">
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="20"
-               height="20"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round">
-            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
-            <path d="M9 19a3 3 0 0 0 6 0"/>
-          </svg>
-          <span class="badge bg-red notification-dot"></span>
-        </a>
-
-        <span class="avatar avatar-sm user-avatar">AR</span>
-
-        <div class="user-meta">
-          <div class="fw-semibold">Abraham Ramirez</div>
-          <div class="small">Resource Manager</div>
-        </div>
-      </div>
-    </div>
-  </header>
-
+<body><div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}"></header>
   <main class="page-wrap">
-
-    <div class="page-head page-head-stack-mobile">
-      <div>
-        <a href="rm-asignaciones.html" class="text-secondary text-decoration-none small" th:href="@{/rm/asignaciones}">← Volver a asignaciones</a>
-        <h1 class="page-title mt-2">Revisión de propuesta de asignación</h1>
-        <div class="text-secondary">Solicitud #ASG-024 · Propuesta iniciada por Project Manager</div>
-      </div>
-
-      <span class="badge bg-yellow-lt fs-6 status-badge">
-        Pendiente de aprobación del RM
-      </span>
-    </div>
+    <div class="page-head page-head-stack-mobile"><div><a class="text-secondary text-decoration-none small" th:href="@{/rm/asignaciones}">← Volver a asignaciones</a><h1 class="page-title mt-2" th:text="${asignacion.solicitudColaborador} ? 'Revisión de solicitud del colaborador' : 'Revisión de propuesta de asignación'">Revisión</h1><div class="text-secondary" th:text="|Asignación #${asignacion.asignacion.id} · ${asignacion.origenTexto}|">Asignación</div></div><span class="badge bg-yellow-lt fs-6 status-badge">Pendiente de aprobación del RM</span></div>
 
     <div class="row row-cards">
-
       <div class="col-lg-6">
+        <div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Proyecto</h3><div class="section-description">Contexto del proyecto solicitado.</div></div></div><div class="card-body">
+          <div class="d-flex justify-content-between gap-3"><div><h3 class="mb-1" th:text="${asignacion.asignacion.proyecto.nombre}">Proyecto</h3><div class="text-secondary" th:text="${asignacion.asignacion.proyecto.descripcion}"></div></div><span class="badge bg-green-lt" th:text="${asignacion.asignacion.proyecto.estado}">Activo</span></div>
+          <div class="info-grid mt-4"><div><div class="label-small">Project Manager</div><div class="value-strong" th:text="${asignacion.projectManagerNombre}">PM</div></div><div><div class="label-small">Equipo actual</div><div class="value-strong" th:text="|${asignacion.equipoActual} / ${asignacion.asignacion.proyecto.colaboradoresRequeridos} integrantes|">0</div></div><div><div class="label-small">Vacantes</div><div class="value-strong" th:text="${asignacion.vacantes}">0</div></div><div><div class="label-small">Presupuesto</div><div class="value-strong" th:text="${asignacion.asignacion.proyecto.presupuesto == null ? 'Sin asignar' : 'S/ ' + asignacion.asignacion.proyecto.presupuesto}">Sin asignar</div></div></div>
+          <a class="btn btn-outline-primary btn-sm mt-4" th:href="@{/rm/proyectos/detalle(id=${asignacion.asignacion.proyecto.id})}">Ver proyecto</a>
+        </div></div>
 
-        <div class="card section-card mb-4">
-          <div class="card-header section-header">
-            <div>
-              <h3 class="card-title mb-1">Proyecto</h3>
-              <div class="section-description">
-                Información del proyecto al que se propone incorporar al colaborador.
-              </div>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div class="d-flex justify-content-between gap-3 align-items-start">
-              <div>
-                <h3 class="mb-1">Clínica AI</h3>
-                <div class="text-secondary">
-                  Plataforma para gestión clínica y analítica de datos hospitalarios.
-                </div>
-              </div>
-              <span class="badge bg-green-lt">Activo</span>
-            </div>
-
-            <div class="info-grid mt-4">
-              <div>
-                <div class="label-small">Project Manager</div>
-                <div class="value-strong">Juan Pérez</div>
-              </div>
-
-              <div>
-                <div class="label-small">Equipo actual</div>
-                <div class="value-strong">4 / 6 integrantes</div>
-              </div>
-
-              <div>
-                <div class="label-small">Vacantes</div>
-                <div class="value-strong">2</div>
-              </div>
-
-              <div>
-                <div class="label-small">Presupuesto asignado</div>
-                <div class="value-strong">S/ 40,000</div>
-              </div>
-
-              <div>
-                <div class="label-small">Inicio</div>
-                <div class="value-strong">01 sep 2026</div>
-              </div>
-
-              <div>
-                <div class="label-small">Fin estimado</div>
-                <div class="value-strong">15 dic 2026</div>
-              </div>
-            </div>
-
-            <div class="mt-4">
-              <a href="rm-detalle-proyecto.html" class="btn btn-outline-primary btn-sm" th:href="@{/rm/proyectos/detalle}">Ver proyecto</a>
-            </div>
-          </div>
-        </div>
-
-        <div class="card section-card mb-4">
-          <div class="card-header section-header">
-            <div>
-              <h3 class="card-title mb-1">Datos de la propuesta</h3>
-              <div class="section-description">
-                Condiciones solicitadas por el Project Manager para esta asignación.
-              </div>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div class="info-grid">
-              <div>
-                <div class="label-small">Rol en el proyecto</div>
-                <div class="value-strong">Backend Developer</div>
-              </div>
-
-              <div>
-                <div class="label-small">Horas semanales solicitadas</div>
-                <div class="value-strong text-primary">12 h / semana</div>
-              </div>
-
-              <div>
-                <div class="label-small">Fecha de inicio propuesta</div>
-                <div class="value-strong">07 sep 2026</div>
-              </div>
-
-              <div>
-                <div class="label-small">Fecha de fin propuesta</div>
-                <div class="value-strong">15 dic 2026</div>
-              </div>
-            </div>
-
-            <div class="mt-4">
-              <div class="label-small">Justificación del Project Manager</div>
-              <div class="proposal-note">
-                Se requiere reforzar el desarrollo de servicios backend con Java y Spring Boot
-                durante la fase de integración del proyecto.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card section-card">
-          <div class="card-header section-header">
-            <div>
-              <h3 class="card-title mb-1">Colaborador propuesto</h3>
-              <div class="section-description">
-                Perfil profesional y disponibilidad semanal actual del colaborador seleccionado.
-              </div>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div class="d-flex align-items-center gap-3 mb-4">
-              <span class="avatar avatar-lg bg-blue-lt text-blue">CM</span>
-
-              <div>
-                <h3 class="mb-1">Carlos Mendoza</h3>
-                <div class="text-secondary">Senior Backend Developer</div>
-
-                <div class="mt-2">
-                  <span class="badge bg-blue-lt skill-badge">Java</span>
-                  <span class="badge bg-blue-lt skill-badge">Spring Boot</span>
-                  <span class="badge bg-blue-lt skill-badge">AWS</span>
-                  <span class="badge bg-blue-lt skill-badge">Docker</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="info-grid">
-              <div>
-                <div class="label-small">Experiencia</div>
-                <div class="value-strong">6 años</div>
-              </div>
-
-              <div>
-                <div class="label-small">Nivel de experiencia</div>
-                <div class="value-strong">Senior</div>
-              </div>
-
-              <div>
-                <div class="label-small">Carga actual</div>
-                <div class="value-strong">2 / 3 asignaciones</div>
-              </div>
-
-              <div>
-                <div class="label-small">Disponibilidad declarada</div>
-                <div class="value-strong text-success">16 h / semana</div>
-              </div>
-
-              <div>
-                <div class="label-small">Horas semanales comprometidas</div>
-                <div class="value-strong">24 / 40 h</div>
-              </div>
-            </div>
-
-            <div class="mt-4">
-              <a href="rm-perfil-colaborador.html" class="btn btn-outline-primary btn-sm" th:href="@{/rm/colaboradores/perfil}">Ver perfil completo</a>
-            </div>
-          </div>
-        </div>
-
+        <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Datos de la solicitud</h3><div class="section-description">Condiciones registradas por quien inició el flujo.</div></div></div><div class="card-body">
+          <div class="info-grid"><div><div class="label-small">Origen</div><div class="value-strong" th:text="${asignacion.origenTexto}">Origen</div></div><div><div class="label-small">Horas semanales</div><div class="value-strong text-primary" th:text="|${asignacion.asignacion.horasSemanales} h / semana|">0</div></div><div><div class="label-small">Fecha de solicitud</div><div class="value-strong" th:text="${#temporals.format(asignacion.asignacion.fechaSolicitud, 'dd MMM yyyy HH:mm')}">Fecha</div></div></div>
+          <div class="mt-4"><div class="label-small">Justificación o mensaje</div><div class="request-message" th:text="${#strings.isEmpty(asignacion.asignacion.mensajeSolicitud) ? 'Sin mensaje registrado.' : asignacion.asignacion.mensajeSolicitud}">Mensaje</div></div>
+        </div></div>
       </div>
 
       <div class="col-lg-6">
+        <div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Colaborador</h3><div class="section-description">Disponibilidad y carga antes de tomar la decisión.</div></div></div><div class="card-body">
+          <div class="d-flex align-items-center gap-3"><span class="avatar profile-avatar bg-blue-lt text-blue" th:text="${asignacion.colaboradorIniciales}">CO</span><div><h3 class="mb-1" th:text="${asignacion.colaboradorNombre}">Colaborador</h3><div class="text-secondary" th:text="${asignacion.asignacion.colaborador.cargo ?: 'Cargo sin registrar'}">Cargo</div></div></div>
+          <div class="mt-3"><span th:each="habilidad : ${asignacion.habilidades}" class="badge bg-blue-lt me-1" th:text="${habilidad}">Habilidad</span><span th:if="${#lists.isEmpty(asignacion.habilidades)}" class="text-secondary small">Sin habilidades registradas</span></div>
+          <div class="info-grid mt-4"><div><div class="label-small">Disponibilidad declarada</div><div class="value-strong" th:classappend="${asignacion.superaDisponibilidad} ? 'text-danger' : 'text-success'" th:text="|${asignacion.horasDisponibles} h / semana|">0</div></div><div><div class="label-small">Carga actual</div><div class="value-strong" th:classappend="${asignacion.superaLimite} ? 'text-danger' : ''" th:text="|${asignacion.asignacionesActivas} / ${asignacion.maxAsignaciones} asignaciones|">0</div></div><div><div class="label-small">Horas comprometidas</div><div class="value-strong" th:text="|${asignacion.horasComprometidas} h / semana|">0</div></div><div><div class="label-small">Experiencia</div><div class="value-strong" th:text="${asignacion.asignacion.colaborador.nivelExperiencia ?: 'Sin definir'}">Nivel</div></div></div>
+          <div th:if="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-warning mt-4 mb-0">La asignación supera la disponibilidad declarada o el límite configurado. Puedes aprobarla, pero debes justificar la excepción.</div>
+          <div th:unless="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-success mt-4 mb-0">La carga y disponibilidad están dentro de los límites registrados.</div>
+        </div></div>
 
-        <div class="card section-card mb-4">
-          <div class="card-header section-header">
-            <div>
-              <h3 class="card-title mb-1">Impacto en la disponibilidad</h3>
-              <div class="section-description">
-                Comparación de horas comprometidas y carga de asignaciones si se aprueba la propuesta.
-              </div>
-            </div>
-          </div>
-
-          <div class="card-body">
-
-            <div class="workload-summary">
-              <div class="workload-metric">
-                <span class="workload-label">Horas comprometidas actuales</span>
-                <strong>24 h</strong>
-              </div>
-
-              <div class="workload-symbol">+</div>
-
-              <div class="workload-metric">
-                <span class="workload-label">Horas de la propuesta</span>
-                <strong class="text-primary">12 h</strong>
-              </div>
-
-              <div class="workload-symbol">=</div>
-
-              <div class="workload-metric">
-                <span class="workload-label">Total comprometido</span>
-                <strong>36 / 40 h</strong>
-              </div>
-            </div>
-
-            <div class="assignment-load-impact">
-              <span class="workload-label">Carga de asignaciones</span>
-              <div class="assignment-load-values">
-                <strong>2 / 3</strong>
-                <span aria-hidden="true">→</span>
-                <strong class="text-primary">3 / 3 asignaciones</strong>
-              </div>
-            </div>
-
-            <div class="mt-4">
-              <div class="d-flex justify-content-between mb-2">
-                <span class="text-secondary">Uso de capacidad semanal</span>
-                <span class="fw-semibold">36 / 40 h</span>
-              </div>
-
-              <div class="progress workload-progress">
-                <div class="progress-bar bg-blue progress-90"></div>
-              </div>
-
-              <div class="d-flex justify-content-between mt-2">
-                <span class="small text-secondary">90% comprometido</span>
-                <span class="small text-success fw-semibold">4 h disponibles</span>
-              </div>
-            </div>
-
-            <hr class="my-4">
-
-            <div class="label-small mb-2">Distribución semanal actual</div>
-
-            <div class="assignment-hours">
-              <div class="assignment-hours-row">
-                <div>
-                  <div class="fw-semibold">DataHub</div>
-                  <div class="small text-secondary">Backend Developer</div>
-                </div>
-                <strong>16 h</strong>
-              </div>
-
-              <div class="assignment-hours-row">
-                <div>
-                  <div class="fw-semibold">ERP Cloud</div>
-                  <div class="small text-secondary">API Developer</div>
-                </div>
-                <strong>8 h</strong>
-              </div>
-
-              <div class="assignment-hours-row proposed-hours-row">
-                <div>
-                  <div class="fw-semibold">Clínica AI</div>
-                  <div class="small text-secondary">Propuesta actual</div>
-                </div>
-                <strong class="text-primary">+12 h</strong>
-              </div>
-            </div>
-
-            <div class="alert alert-info mt-4 mb-0 allocation-note">
-              Las horas semanales de una asignación representan la dedicación comprometida
-              planificada para el colaborador dentro del proyecto.
-            </div>
-
-          </div>
-        </div>
-
-        <div class="card section-card">
-          <div class="card-header section-header">
-            <div>
-              <h3 class="card-title mb-1">Validación de capacidad</h3>
-              <div class="section-description">
-                Control del límite máximo de 40 horas semanales por colaborador.
-              </div>
-            </div>
-          </div>
-
-          <div class="card-body">
-            <div class="capacity-result capacity-ok">
-              <div class="capacity-icon">✓</div>
-
-              <div>
-                <div class="fw-semibold">Dentro del límite permitido</div>
-                <div class="small text-secondary mt-1">
-                  El total sería de 36 horas semanales comprometidas, por lo que no supera el máximo de 40 horas.
-                </div>
-              </div>
-            </div>
-
-            <div class="small text-secondary mt-3">
-              Si una propuesta supera las 40 h/semana, el RM deberá registrar un motivo
-              para aprobarla o podrá rechazarla.
-            </div>
-          </div>
-        </div>
-
+        <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Decisión del RM</h3><div class="section-description">El rechazo requiere motivo. La excepción de capacidad requiere justificación.</div></div></div><div class="card-body">
+          <form class="mb-4" method="post" th:action="@{/rm/asignaciones/{id}/aprobar(id=${asignacion.asignacion.id})}">
+            <label for="motivoCapacidad" class="form-label">Justificación de excepción</label><textarea id="motivoCapacidad" name="motivoCapacidad" maxlength="300" rows="3" class="form-control" th:required="${asignacion.superaLimite or asignacion.superaDisponibilidad}" placeholder="Completa este campo si se excede la capacidad."></textarea>
+            <button type="submit" class="btn btn-primary w-100 mt-3">Aprobar asignación</button>
+          </form>
+          <form method="post" th:action="@{/rm/asignaciones/{id}/rechazar(id=${asignacion.asignacion.id})}">
+            <label for="motivo" class="form-label">Motivo del rechazo</label><textarea id="motivo" name="motivo" maxlength="300" rows="3" class="form-control" required placeholder="Explica por qué no se aprueba."></textarea>
+            <button type="submit" class="btn btn-outline-danger w-100 mt-3">Rechazar asignación</button>
+          </form>
+        </div></div>
       </div>
     </div>
-
-    <div class="card section-card approval-review-card mt-4">
-      <div class="card-header section-header">
-        <div>
-          <h3 class="card-title mb-1">Estado de aprobación</h3>
-          <div class="section-description">
-            Seguimiento del flujo requerido para una propuesta iniciada por el Project Manager.
-          </div>
-        </div>
-      </div>
-
-      <div class="card-body approval-review-grid">
-        <div class="approval-timeline">
-          <div class="approval-step">
-            <span class="approval-dot bg-green-lt text-green">✓</span>
-
-            <div>
-              <div class="fw-semibold">Propuesta del Project Manager</div>
-              <div class="text-secondary small">
-                Iniciada por Juan Pérez · 04 Sep 2026
-              </div>
-            </div>
-          </div>
-
-          <div class="approval-step">
-            <span class="approval-dot bg-yellow-lt text-yellow">!</span>
-
-            <div>
-              <div class="fw-semibold">Aprobación del Resource Manager</div>
-              <div class="text-secondary small">Pendiente de tu revisión</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="approval-comment">
-          <label for="comentarioRevision" class="form-label">
-            Comentario de revisión
-          </label>
-
-          <textarea id="comentarioRevision"
-                    name="comentarioRevision"
-                    class="form-control"
-                    rows="3"
-                    placeholder="Agrega un comentario o motivo si corresponde."></textarea>
-
-          <div class="form-hint">
-            El motivo será obligatorio al rechazar o al aprobar una propuesta que exceda el límite permitido.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="action-bar">
-      <button type="button" class="btn btn-outline-danger">
-        Rechazar propuesta
-      </button>
-
-      <button type="button" class="btn btn-primary">
-        Aprobar asignación
-      </button>
-    </div>
-
   </main>
-</div>
-
-<script src="../../static/tabler/js/tabler.min.js"
-        th:src="@{/tabler/js/tabler.min.js}">
-</script>
-</body>
+</div><script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body>
 </html>

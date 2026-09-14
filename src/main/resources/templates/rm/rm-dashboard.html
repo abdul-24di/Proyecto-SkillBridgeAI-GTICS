@@ -336,71 +336,30 @@
 
           <tbody>
 
-          <tr>
-            <td>Asignación propuesta</td>
-            <td class="fw-semibold">Clínica AI</td>
-            <td>Carlos Mendoza</td>
+          <tr th:each="item : ${accionesPendientes}">
+            <td th:text="${item.solicitudColaborador ? 'Postulación' : 'Asignación propuesta'}">Tipo</td>
+            <td class="fw-semibold" th:text="${item.asignacion.proyecto.nombre}">Proyecto</td>
+            <td th:text="${item.colaboradorNombre}">Colaborador</td>
             <td>
-              <span class="badge bg-yellow-lt">
-                Pendiente RM
-              </span>
+              <span class="badge" th:classappend="${item.estadoClase}"
+                    th:text="${item.estadoTexto}">Estado</span>
             </td>
-            <td>25 Ago 2026</td>
+            <td th:text="${#temporals.format(item.asignacion.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
             <td class="text-end">
-              <a href="rm-revision-asignacion.html" class="btn btn-primary btn-sm" th:href="@{/rm/asignaciones/revision}">
+              <a th:if="${item.requiereDecisionRm}" class="btn btn-primary btn-sm"
+                 th:href="${item.solicitudColaborador} ? @{/rm/asignaciones/revision-postulacion(id=${item.asignacion.id})} : @{/rm/asignaciones/revision(id=${item.asignacion.id})}">
                 Revisar
               </a>
-            </td>
-          </tr>
-
-          <tr>
-            <td>Postulación</td>
-            <td class="fw-semibold">ERP Cloud</td>
-            <td>Ana Torres</td>
-            <td>
-              <span class="badge bg-azure-lt">
-                Pendiente revisión
-              </span>
-            </td>
-            <td>25 Ago 2026</td>
-            <td class="text-end">
-              <a href="rm-revision-postulacion.html" class="btn btn-primary btn-sm" th:href="@{/rm/asignaciones/revision-postulacion}">
-                Revisar
-              </a>
-            </td>
-          </tr>
-
-          <tr>
-            <td>Asignación propuesta</td>
-            <td class="fw-semibold">DataHub</td>
-            <td>Luis Ramos</td>
-            <td>
-              <span class="badge bg-blue-lt">
-                Pendiente PM
-              </span>
-            </td>
-            <td>24 Ago 2026</td>
-            <td class="text-end">
-              <a href="rm-detalle-asignacion-pendiente-pm.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/pendiente-pm}">
+              <a th:if="${item.pendientePm}" class="btn btn-outline-secondary btn-sm"
+                 th:href="@{/rm/asignaciones/pendiente-pm(id=${item.asignacion.id})}">
                 Ver
               </a>
             </td>
           </tr>
 
-          <tr>
-            <td>Postulación</td>
-            <td class="fw-semibold">Plataforma Retail</td>
-            <td>Sofía Torres</td>
-            <td>
-              <span class="badge bg-azure-lt">
-                Pendiente revisión
-              </span>
-            </td>
-            <td>24 Ago 2026</td>
-            <td class="text-end">
-              <a href="rm-revision-postulacion.html" class="btn btn-primary btn-sm" th:href="@{/rm/asignaciones/revision-postulacion}">
-                Revisar
-              </a>
+          <tr th:if="${#lists.isEmpty(accionesPendientes)}">
+            <td colspan="6" class="text-center text-secondary py-5">
+              No hay acciones pendientes en este momento.
             </td>
           </tr>
 
@@ -412,37 +371,14 @@
 
       <div class="card-footer table-footer">
 
-        <div class="text-secondary small">
-          Mostrando 1–4 de 12 acciones pendientes
+        <div class="text-secondary small"
+             th:text="${totalAccionesPendientes == 0 ? 'Sin acciones pendientes' : 'Mostrando ' + #lists.size(accionesPendientes) + ' de ' + totalAccionesPendientes + ' acciones pendientes'}">
+          Sin acciones pendientes
         </div>
 
-        <ul class="pagination pagination-sm m-0">
-
-          <li class="page-item disabled">
-            <a class="page-link" href="#" tabindex="-1">
-              Anterior
-            </a>
-          </li>
-
-          <li class="page-item active">
-            <a class="page-link" href="#">1</a>
-          </li>
-
-          <li class="page-item">
-            <a class="page-link" href="#">2</a>
-          </li>
-
-          <li class="page-item">
-            <a class="page-link" href="#">3</a>
-          </li>
-
-          <li class="page-item">
-            <a class="page-link" href="#">
-              Siguiente
-            </a>
-          </li>
-
-        </ul>
+        <a class="btn btn-outline-primary btn-sm" th:href="@{/rm/asignaciones}">
+          Ver todas las asignaciones
+        </a>
 
       </div>
 

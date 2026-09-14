@@ -512,7 +512,11 @@
                           th:text="|${item.pendientesRm} pendiente(s) RM|">Pendientes RM</span>
                     <span class="badge bg-green-lt" th:if="${item.pendientesRm == 0}">Sin pendientes RM</span>
                   </div>
+                  <a class="btn btn-primary btn-sm"
+                     th:if="${item.proyecto.estado.name() == 'EN_REVISION'}"
+                     th:href="@{/rm/proyectos/revision(id=${item.proyecto.id})}">Revisar proyecto</a>
                   <a class="btn btn-outline-primary btn-sm"
+                     th:unless="${item.proyecto.estado.name() == 'EN_REVISION'}"
                      th:href="@{/rm/proyectos/detalle(id=${item.proyecto.id})}">Ver proyecto</a>
                 </div>
               </div>

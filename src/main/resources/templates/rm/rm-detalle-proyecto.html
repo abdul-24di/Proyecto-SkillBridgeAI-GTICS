@@ -14,14 +14,18 @@
   <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('proyectos')}"></header>
 
   <main class="page-wrap">
+    <div class="alert alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
     <nav class="breadcrumb-wrap" aria-label="Migas de pan">
       <a class="breadcrumb-link" th:href="@{/rm/proyectos}">Proyectos</a>
       <span class="breadcrumb-separator">›</span>
       <span class="text-secondary" th:text="${proyecto.proyecto.nombre}">Proyecto</span>
     </nav>
 
-    <div class="alert alert-info" th:if="${proyecto.proyecto.estado.name() == 'EN_REVISION'}">
-      Este proyecto espera la revisión del Resource Manager. La aprobación, rechazo y asignación de presupuesto se implementarán en la siguiente subparte.
+    <div class="alert alert-info d-flex justify-content-between align-items-center gap-3 flex-wrap"
+         th:if="${proyecto.proyecto.estado.name() == 'EN_REVISION'}">
+      <span>Este proyecto espera la revisión del Resource Manager.</span>
+      <a class="btn btn-primary btn-sm" th:href="@{/rm/proyectos/revision(id=${proyecto.proyecto.id})}">Revisar ahora</a>
     </div>
 
     <div class="card project-header-card mb-4">
@@ -73,6 +77,35 @@
              th:text="${proyecto.presupuestoVisible != null ? 'S/ ' + #numbers.formatDecimal(proyecto.presupuestoVisible, 1, 'COMMA', 2, 'POINT') : 'Sin definir'}">Sin definir</div>
         <div class="small text-secondary">Monto registrado.</div>
       </div></div></div>
+    </div>
+
+    <div class="card mb-4"
+         th:if="${proyecto.proyecto.estado.name() == 'ACTIVO' or proyecto.proyecto.estado.name() == 'EN_ESPERA'}">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Administrar presupuesto</h3>
+          <div class="section-description">Solo un Resource Manager puede asignar o actualizar este monto.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="post" class="row g-3 align-items-end"
+              th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}">
+          <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+          <div class="col-md-8">
+            <label for="projectBudget" class="form-label">Presupuesto asignado (S/)</label>
+            <input id="projectBudget" name="presupuesto" type="number" class="form-control"
+                   min="0.01" max="9999999999.99" step="0.01" required
+                   th:value="${proyecto.proyecto.presupuesto}">
+            <div class="form-hint">Es un valor informativo; no se descuenta automáticamente por horas o pagos.</div>
+          </div>
+          <div class="col-md-4 d-grid">
+            <button type="submit" class="btn btn-primary"
+                    th:text="${proyecto.proyecto.presupuesto == null ? 'Asignar presupuesto' : 'Actualizar presupuesto'}">
+              Guardar presupuesto
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <div class="card mb-4">

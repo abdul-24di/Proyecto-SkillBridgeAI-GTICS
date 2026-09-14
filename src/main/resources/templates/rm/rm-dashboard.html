@@ -425,129 +425,16 @@
           </thead>
 
           <tbody>
-
-          <tr>
-
-            <td class="fw-semibold">
-              Sistema de Inventario
-            </td>
-
-            <td>
-              Carlos Méndez
-            </td>
-
-            <td>
-              <span class="badge bg-blue-lt">
-                2 colaboradores
-              </span>
-            </td>
-
-            <td>
-              <span class="badge bg-secondary-lt">Java</span>
-              <span class="badge bg-secondary-lt">Spring Boot</span>
-              <span class="badge bg-secondary-lt">Docker</span>
-              <span class="text-secondary small">+3</span>
-            </td>
-
-            <td>
-              <span class="badge bg-yellow-lt">
-                Pendiente
-              </span>
-            </td>
-
-            <td>
-              25 Ago 2026
-            </td>
-
-            <td class="text-end">
-              <a href="rm-detalle-solicitud-colaboradores.html" class="btn btn-primary btn-sm" th:href="@{/rm/asignaciones/solicitudes-colaboradores/detalle}">
-                Atender
-              </a>
-            </td>
-
+          <tr th:each="item : ${solicitudesRecientes}">
+            <td class="fw-semibold" th:text="${item.solicitud.proyecto.nombre}">Proyecto</td>
+            <td th:text="${item.pmNombre}">PM</td>
+            <td><span class="badge bg-blue-lt" th:text="|${item.solicitud.cantidadColaboradores} colaborador(es)|">0</span></td>
+            <td><span th:each="req, stat : ${item.requisitos}" th:if="${stat.index < 3}" class="badge bg-secondary-lt" th:text="${req.habilidad}">Habilidad</span></td>
+            <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
+            <td th:text="${#temporals.format(item.solicitud.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
+            <td class="text-end"><a class="btn btn-sm" th:classappend="${item.pendiente ? 'btn-primary' : (item.enAtencion ? 'btn-outline-primary' : 'btn-outline-secondary')}" th:href="@{/rm/asignaciones/solicitudes-colaboradores/detalle(id=${item.solicitud.id})}" th:text="${item.accionTexto}">Ver</a></td>
           </tr>
-
-
-          <tr>
-
-            <td class="fw-semibold">
-              Portal de Clientes
-            </td>
-
-            <td>
-              Marco Ruiz
-            </td>
-
-            <td>
-              <span class="badge bg-blue-lt">
-                3 colaboradores
-              </span>
-            </td>
-
-            <td>
-              <span class="badge bg-secondary-lt">React</span>
-              <span class="badge bg-secondary-lt">UX/UI</span>
-              <span class="badge bg-secondary-lt">Node.js</span>
-            </td>
-
-            <td>
-              <span class="badge bg-blue-lt">
-                En atención
-              </span>
-            </td>
-
-            <td>
-              24 Ago 2026
-            </td>
-
-            <td class="text-end">
-              <a href="rm-detalle-solicitud-colaboradores.html" class="btn btn-outline-primary btn-sm" th:href="@{/rm/asignaciones/solicitudes-colaboradores/detalle}">
-                Continuar
-              </a>
-            </td>
-
-          </tr>
-
-
-          <tr>
-
-            <td class="fw-semibold">
-              ERP Cloud
-            </td>
-
-            <td>
-              María Ruiz
-            </td>
-
-            <td>
-              <span class="badge bg-blue-lt">
-                1 colaborador
-              </span>
-            </td>
-
-            <td>
-              <span class="badge bg-secondary-lt">AWS</span>
-              <span class="badge bg-secondary-lt">Kubernetes</span>
-            </td>
-
-            <td>
-              <span class="badge bg-green-lt">
-                Atendida
-              </span>
-            </td>
-
-            <td>
-              22 Ago 2026
-            </td>
-
-            <td class="text-end">
-              <a href="rm-detalle-solicitud-colaboradores.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/solicitudes-colaboradores/detalle}">
-                Ver
-              </a>
-            </td>
-
-          </tr>
-
+          <tr th:if="${#lists.isEmpty(solicitudesRecientes)}"><td colspan="7" class="text-center text-secondary py-4">No hay solicitudes de personal registradas.</td></tr>
           </tbody>
 
         </table>
@@ -555,41 +442,7 @@
       </div>
 
 
-      <div class="card-footer table-footer">
-
-        <div class="text-secondary small">
-          Mostrando 1–3 de 9 solicitudes
-        </div>
-
-        <ul class="pagination pagination-sm m-0">
-
-          <li class="page-item disabled">
-            <a class="page-link" href="#" tabindex="-1">
-              Anterior
-            </a>
-          </li>
-
-          <li class="page-item active">
-            <a class="page-link" href="#">1</a>
-          </li>
-
-          <li class="page-item">
-            <a class="page-link" href="#">2</a>
-          </li>
-
-          <li class="page-item">
-            <a class="page-link" href="#">3</a>
-          </li>
-
-          <li class="page-item">
-            <a class="page-link" href="#">
-              Siguiente
-            </a>
-          </li>
-
-        </ul>
-
-      </div>
+      <div class="card-footer table-footer"><div class="text-secondary small" th:text="|Mostrando ${#lists.size(solicitudesRecientes)} solicitudes recientes|">Solicitudes recientes</div></div>
 
     </div>
 

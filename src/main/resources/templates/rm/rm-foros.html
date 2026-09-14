@@ -78,12 +78,16 @@
       </div>
     </div>
 
+    <div th:if="${foroNoEncontrado}" class="alert alert-warning">
+      El foro solicitado no existe o ya no está disponible.
+    </div>
+
     <div class="row row-cards mb-4">
       <div class="col-sm-6 col-lg-3">
         <div class="card forum-metric">
           <div class="card-body">
             <div class="forum-metric-label">Foros disponibles</div>
-            <div class="forum-metric-value" id="forumMetricTotal">0</div>
+            <div class="forum-metric-value" id="forumMetricTotal" th:text="${totalForos}">0</div>
             <div class="small text-secondary">Proyectos consultables</div>
           </div>
         </div>
@@ -93,7 +97,7 @@
         <div class="card forum-metric">
           <div class="card-body">
             <div class="forum-metric-label">Proyectos activos</div>
-            <div class="forum-metric-value" id="forumMetricActive">0</div>
+            <div class="forum-metric-value" id="forumMetricActive" th:text="${totalActivos}">0</div>
             <div class="small text-secondary">Con foro habilitado</div>
           </div>
         </div>
@@ -103,7 +107,7 @@
         <div class="card forum-metric">
           <div class="card-body">
             <div class="forum-metric-label">Publicaciones</div>
-            <div class="forum-metric-value" id="forumMetricPosts">0</div>
+            <div class="forum-metric-value" id="forumMetricPosts" th:text="${totalPublicaciones}">0</div>
             <div class="small text-secondary">En los foros listados</div>
           </div>
         </div>
@@ -113,7 +117,8 @@
         <div class="card forum-metric">
           <div class="card-body">
             <div class="forum-metric-label">Actividad reciente</div>
-            <div class="forum-metric-value forum-metric-text">Hoy</div>
+            <div class="forum-metric-value forum-metric-text"
+                 th:text="${ultimaActividad == null ? 'Sin actividad' : #temporals.format(ultimaActividad, 'dd/MM HH:mm')}">Sin actividad</div>
             <div class="small text-secondary">Última publicación</div>
           </div>
         </div>
@@ -143,9 +148,13 @@
             <label for="forumStatusFilter" class="form-label">Estado del proyecto</label>
             <select id="forumStatusFilter" class="form-select">
               <option value="all">Todos</option>
-              <option value="Activo">Activo</option>
-              <option value="En espera">En espera</option>
-              <option value="Finalizado">Finalizado</option>
+              <option value="GENERAL">General</option>
+              <option value="EN_REVISION">En revisión</option>
+              <option value="ACTIVO">Activo</option>
+              <option value="EN_ESPERA">En espera</option>
+              <option value="RECHAZADO">Rechazado</option>
+              <option value="CANCELADO">Cancelado</option>
+              <option value="FINALIZADO">Finalizado</option>
             </select>
           </div>
 
@@ -168,7 +177,57 @@
         </div>
       </div>
 
-      <div class="forum-list" id="forumList"></div>
+      <div class="forum-list" id="forumList">
+        <div th:if="${foros.isEmpty()}" class="forum-empty" id="forumEmptyInitial">
+          No hay foros registrados en la organización.
+        </div>
+
+        <div th:each="foro : ${foros}" class="forum-row forum-data-row"
+             th:attr="data-search=${foro.textoBusqueda},data-status=${foro.proyectoEstadoCodigo},data-recent=${foro.actividadReciente}">
+          <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <div class="forum-project" th:text="${foro.nombre}">Foro del proyecto</div>
+              <span class="badge" th:classappend="${foro.proyectoEstadoClase}"
+                    th:text="${foro.proyectoEstado}">Activo</span>
+              <span class="badge" th:classappend="${foro.publico ? 'bg-blue-lt' : 'bg-purple-lt'}"
+                    th:text="${foro.publico ? 'Público' : 'Privado'}">Privado</span>
+            </div>
+            <div class="forum-topic" th:text="${foro.temaReciente}">Tema reciente</div>
+            <div class="forum-tags" th:if="${!foro.etiquetas.isEmpty()}">
+              <span th:each="etiqueta : ${foro.etiquetas}" class="badge bg-blue-lt"
+                    th:text="${etiqueta}">Etiqueta</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="forum-meta-label">Proyecto / PM</div>
+            <div class="forum-meta-value" th:text="${foro.proyectoNombre}">Proyecto</div>
+            <div class="small text-secondary" th:text="${foro.pmNombre}">Project Manager</div>
+          </div>
+
+          <div>
+            <div class="forum-meta-label">Actividad</div>
+            <div class="forum-meta-value" th:text="|${foro.totalPublicaciones} publicaciones|">0 publicaciones</div>
+            <div class="small text-secondary"
+                 th:text="|${foro.totalRespuestas} respuestas · ${foro.participantes} participantes|">0 respuestas</div>
+          </div>
+
+          <div>
+            <div class="forum-meta-label">Última actividad</div>
+            <div class="forum-meta-value"
+                 th:text="${foro.ultimaActividad == null ? 'Sin actividad' : #temporals.format(foro.ultimaActividad, 'dd/MM/yyyy HH:mm')}">Sin actividad</div>
+          </div>
+
+          <div class="forum-row-action text-end">
+            <a class="btn btn-outline-primary btn-sm"
+               th:href="@{/rm/foros/detalle(id=${foro.id})}">Ver foro</a>
+          </div>
+        </div>
+
+        <div class="forum-empty d-none" id="forumEmptyFiltered">
+          No se encontraron foros con los filtros seleccionados.
+        </div>
+      </div>
 
       <div class="pagination-wrap">
         <div id="forumPaginationInfo" class="text-secondary small"></div>

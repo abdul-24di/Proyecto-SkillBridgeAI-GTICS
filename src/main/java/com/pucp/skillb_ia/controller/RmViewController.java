@@ -9,14 +9,21 @@ import com.pucp.skillb_ia.dto.RmColaboradorDetalle;
 import com.pucp.skillb_ia.dto.RmColaboradorResumen;
 import com.pucp.skillb_ia.dto.RmAsignacionView;
 import com.pucp.skillb_ia.dto.RmProyectoView;
+import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
+import com.pucp.skillb_ia.dto.RmForoView;
 import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.model.enums.NivelDominio;
+import com.pucp.skillb_ia.model.enums.NivelExperiencia;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.rm.RmColaboradorConsultaService;
 import com.pucp.skillb_ia.service.rm.RmAsignacionService;
 import com.pucp.skillb_ia.service.rm.RmPerfilService;
 import com.pucp.skillb_ia.service.rm.RmProyectoConsultaService;
 import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
+import com.pucp.skillb_ia.service.rm.RmSolicitudPersonalService;
+import com.pucp.skillb_ia.service.rm.RmCertificadoService;
+import com.pucp.skillb_ia.service.rm.RmForoConsultaService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,6 +32,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Controller
@@ -36,18 +44,27 @@ public class RmViewController {
     private final RmProyectoConsultaService rmProyectoConsultaService;
     private final RmProyectoRevisionService rmProyectoRevisionService;
     private final RmAsignacionService rmAsignacionService;
+    private final RmSolicitudPersonalService rmSolicitudPersonalService;
+    private final RmCertificadoService rmCertificadoService;
+    private final RmForoConsultaService rmForoConsultaService;
 
     public RmViewController(
             RmPerfilService rmPerfilService,
             RmColaboradorConsultaService rmColaboradorConsultaService,
             RmProyectoConsultaService rmProyectoConsultaService,
             RmProyectoRevisionService rmProyectoRevisionService,
-            RmAsignacionService rmAsignacionService) {
+            RmAsignacionService rmAsignacionService,
+            RmSolicitudPersonalService rmSolicitudPersonalService,
+            RmCertificadoService rmCertificadoService,
+            RmForoConsultaService rmForoConsultaService) {
         this.rmPerfilService = rmPerfilService;
         this.rmColaboradorConsultaService = rmColaboradorConsultaService;
         this.rmProyectoConsultaService = rmProyectoConsultaService;
         this.rmProyectoRevisionService = rmProyectoRevisionService;
         this.rmAsignacionService = rmAsignacionService;
+        this.rmSolicitudPersonalService = rmSolicitudPersonalService;
+        this.rmCertificadoService = rmCertificadoService;
+        this.rmForoConsultaService = rmForoConsultaService;
     }
 
     @GetMapping({"", "/"})
@@ -62,6 +79,8 @@ public class RmViewController {
                 .toList();
         model.addAttribute("accionesPendientes", pendientes.stream().limit(4).toList());
         model.addAttribute("totalAccionesPendientes", pendientes.size());
+        model.addAttribute("solicitudesRecientes",
+                rmSolicitudPersonalService.listar().stream().limit(3).toList());
         return "rm/rm-dashboard";
     }
 
@@ -178,7 +197,19 @@ public class RmViewController {
     }
 
     @GetMapping({"/proyectos/detalle-solicitudes", "/rm-detalle-proyecto-solicitudes.html"})
-    public String projectDetailWithRequests() {
+    public String projectDetailWithRequests(
+            @RequestParam(name = "solicitudId", required = false) Long solicitudId,
+            Model model) {
+        if (solicitudId == null) {
+            return "redirect:/rm/asignaciones/solicitudes-colaboradores";
+        }
+        try {
+            RmSolicitudPersonalView solicitud = rmSolicitudPersonalService.obtener(solicitudId);
+            model.addAttribute("solicitud", solicitud);
+            model.addAttribute("proyecto", solicitud.getProyecto());
+        } catch (IllegalArgumentException ex) {
+            return "redirect:/rm/asignaciones/solicitudes-colaboradores?noEncontrada=true";
+        }
         return "rm/rm-detalle-proyecto-solicitudes";
     }
 
@@ -295,18 +326,103 @@ public class RmViewController {
     }
 
     @GetMapping({"/colaboradores/certificados", "/rm-certificados-pendientes.html"})
-    public String pendingCertificates() {
+    public String pendingCertificates(Model model) {
+        var certificados = rmCertificadoService.listarPendientes();
+        model.addAttribute("certificados", certificados);
+        model.addAttribute("totalPendientes", certificados.size());
+        model.addAttribute("totalColaboradores", certificados.stream()
+                .map(item -> item.getCertificado().getColaborador().getId()).distinct().count());
+        model.addAttribute("totalHabilidades", certificados.stream()
+                .map(item -> item.getCertificado().getHabilidad().getId()).distinct().count());
+        model.addAttribute("revisadosHoy", rmCertificadoService.contarRevisadosHoy());
         return "rm/rm-certificados-pendientes";
     }
 
     @GetMapping({"/colaboradores/certificados/revision", "/rm-revision-certificado.html"})
-    public String certificateReview() {
+    public String certificateReview(
+            @RequestParam(name = "id", required = false) Long certificadoId,
+            Model model) {
+        if (certificadoId == null) return "redirect:/rm/colaboradores/certificados";
+        try {
+            model.addAttribute("certificado", rmCertificadoService.obtener(certificadoId));
+        } catch (IllegalArgumentException ex) {
+            return "redirect:/rm/colaboradores/certificados";
+        }
         return "rm/rm-revision-certificado";
     }
 
     @GetMapping({"/colaboradores/historial-validaciones", "/rm-historial-validaciones.html"})
-    public String validationHistory() {
+    public String validationHistory(
+            @RequestParam(name = "id", required = false) Long colaboradorId,
+            Model model) {
+        if (colaboradorId == null) return "redirect:/rm/colaboradores";
+        try {
+            var colaborador = rmColaboradorConsultaService.obtenerDetalle(colaboradorId);
+            var certificados = rmCertificadoService.listarHistorial(colaboradorId);
+            model.addAttribute("colaborador", colaborador);
+            model.addAttribute("certificados", certificados);
+            model.addAttribute("aprobados", certificados.stream()
+                    .filter(item -> item.getCertificado().getEstado().name().equals("APROBADO")).count());
+            model.addAttribute("rechazados", certificados.stream()
+                    .filter(item -> item.getCertificado().getEstado().name().equals("RECHAZADO")).count());
+            model.addAttribute("pendientes", certificados.stream().filter(item -> item.isPendiente()).count());
+        } catch (IllegalArgumentException ex) {
+            return "redirect:/rm/colaboradores?noEncontrado=true";
+        }
         return "rm/rm-historial-validaciones";
+    }
+
+    @PostMapping("/colaboradores/certificados/{id}/aprobar")
+    public String approveCertificate(
+            @PathVariable("id") Long certificadoId,
+            @RequestParam(name = "nivelHabilidad", required = false) NivelDominio nivelHabilidad,
+            @RequestParam(name = "nivelGeneral", required = false) NivelExperiencia nivelGeneral,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmCertificadoService.aprobar(certificadoId, nivelHabilidad, nivelGeneral,
+                    principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Certificado aprobado y perfil actualizado.");
+            return "redirect:/rm/colaboradores/certificados";
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/colaboradores/certificados/revision?id=" + certificadoId;
+        }
+    }
+
+    @PostMapping("/colaboradores/certificados/{id}/rechazar")
+    public String rejectCertificate(
+            @PathVariable("id") Long certificadoId,
+            @RequestParam("motivo") String motivo,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmCertificadoService.rechazar(certificadoId, motivo, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Certificado rechazado; el motivo quedó guardado.");
+            return "redirect:/rm/colaboradores/certificados";
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/colaboradores/certificados/revision?id=" + certificadoId;
+        }
+    }
+
+    @PostMapping("/colaboradores/{id}/nivel-experiencia")
+    public String updateCollaboratorExperienceLevel(
+            @PathVariable("id") Long colaboradorId,
+            @RequestParam("nivel") NivelExperiencia nivel,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmCertificadoService.actualizarNivelExperiencia(
+                    colaboradorId, nivel, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Nivel de experiencia actualizado.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/colaboradores/perfil?id=" + colaboradorId;
     }
 
     @GetMapping({"/cursos", "/rm-cursos.html"})
@@ -469,13 +585,67 @@ public class RmViewController {
     }
 
     @GetMapping({"/asignaciones/solicitudes-colaboradores", "/rm-solicitudes-colaboradores.html"})
-    public String collaboratorRequests() {
+    public String collaboratorRequests(
+            @RequestParam(name = "noEncontrada", required = false) Boolean noEncontrada,
+            Model model) {
+        List<RmSolicitudPersonalView> solicitudes = rmSolicitudPersonalService.listar();
+        model.addAttribute("solicitudes", solicitudes);
+        model.addAttribute("pendientes", solicitudes.stream().filter(RmSolicitudPersonalView::isPendiente).count());
+        model.addAttribute("enAtencion", solicitudes.stream().filter(RmSolicitudPersonalView::isEnAtencion).count());
+        model.addAttribute("atendidas", solicitudes.stream()
+                .filter(item -> item.getSolicitud().getEstado().name().equals("ATENDIDA")).count());
+        model.addAttribute("totalSolicitados", solicitudes.stream()
+                .mapToInt(item -> item.getSolicitud().getCantidadColaboradores()).sum());
+        model.addAttribute("solicitudNoEncontrada", Boolean.TRUE.equals(noEncontrada));
         return "rm/rm-solicitudes-colaboradores";
     }
 
     @GetMapping({"/asignaciones/solicitudes-colaboradores/detalle", "/rm-detalle-solicitud-colaboradores.html"})
-    public String collaboratorRequestDetail() {
+    public String collaboratorRequestDetail(
+            @RequestParam(name = "id", required = false) Long solicitudId,
+            Model model) {
+        if (solicitudId == null) {
+            return "redirect:/rm/asignaciones/solicitudes-colaboradores";
+        }
+        try {
+            model.addAttribute("solicitud", rmSolicitudPersonalService.obtener(solicitudId));
+        } catch (IllegalArgumentException ex) {
+            return "redirect:/rm/asignaciones/solicitudes-colaboradores?noEncontrada=true";
+        }
         return "rm/rm-detalle-solicitud-colaboradores";
+    }
+
+    @PostMapping("/asignaciones/solicitudes-colaboradores/{id}/iniciar")
+    public String startCollaboratorRequest(
+            @PathVariable("id") Long solicitudId,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmSolicitudPersonalService.iniciarAtencion(solicitudId, principal.getUsuario().getId());
+            RmSolicitudPersonalView solicitud = rmSolicitudPersonalService.obtener(solicitudId);
+            redirectAttributes.addFlashAttribute("mensajeExito", "La solicitud pasó a En atención.");
+            return "redirect:/rm/proyectos/buscar-colaboradores?proyectoId="
+                    + solicitud.getSolicitud().getProyecto().getId();
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/asignaciones/solicitudes-colaboradores/detalle?id=" + solicitudId;
+        }
+    }
+
+    @PostMapping("/asignaciones/solicitudes-colaboradores/{id}/atendida")
+    public String finishCollaboratorRequest(
+            @PathVariable("id") Long solicitudId,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmSolicitudPersonalService.marcarAtendida(solicitudId, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Solicitud marcada como atendida.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/asignaciones/solicitudes-colaboradores/detalle?id=" + solicitudId;
     }
 
     @GetMapping({"/talent-matching", "/rm-talent-matching.html"})
@@ -484,13 +654,36 @@ public class RmViewController {
     }
 
     @GetMapping({"/foros", "/rm-foros.html"})
-    public String forums() {
+    public String forums(@RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
+                         Model model) {
+        List<RmForoView> foros = rmForoConsultaService.listar();
+        model.addAttribute("foros", foros);
+        model.addAttribute("totalForos", foros.size());
+        model.addAttribute("totalActivos", foros.stream()
+                .filter(foro -> "ACTIVO".equals(foro.getProyectoEstadoCodigo()))
+                .count());
+        model.addAttribute("totalPublicaciones", foros.stream()
+                .mapToInt(RmForoView::getTotalPublicaciones).sum());
+        model.addAttribute("ultimaActividad", foros.stream()
+                .map(RmForoView::getUltimaActividad)
+                .filter(java.util.Objects::nonNull)
+                .max(LocalDateTime::compareTo)
+                .orElse(null));
+        model.addAttribute("foroNoEncontrado", Boolean.TRUE.equals(noEncontrado));
         return "rm/rm-foros";
     }
 
     @GetMapping({"/foros/detalle", "/rm-foro-detalle.html"})
-    public String forumDetail() {
-        return "rm/rm-foro-detalle";
+    public String forumDetail(@RequestParam Long id,
+                              @RequestParam(defaultValue = "fecha") String ordenar,
+                              Model model) {
+        try {
+            model.addAttribute("foro", rmForoConsultaService.obtener(id, ordenar));
+            model.addAttribute("ordenActual", "votos".equalsIgnoreCase(ordenar) ? "votos" : "fecha");
+            return "rm/rm-foro-detalle";
+        } catch (IllegalArgumentException e) {
+            return "redirect:/rm/foros?noEncontrado=true";
+        }
     }
 
     @GetMapping({"/reportes/recursos", "/rm-reporte-recursos.html"})

@@ -152,6 +152,85 @@
                     </div>
                 </div>
 
+                <!-- CERTIFICADOS DE HABILIDADES -->
+                <div class="card section-card mb-4">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Certificados de habilidades</h3>
+                            <div class="section-description">Presenta una evidencia para que el Resource Manager valide una habilidad de tu perfil.</div>
+                        </div>
+                    </div>
+                    <div class="card-body border-bottom">
+                        <form th:action="@{/colaborador/perfil/certificados}" method="post" enctype="multipart/form-data">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label">Habilidad <span class="text-red">*</span></label>
+                                    <select name="habilidadId" class="form-select" required
+                                            th:disabled="${habilidadesColaborador.isEmpty()}">
+                                        <option value="" selected disabled>Seleccionar habilidad...</option>
+                                        <option th:each="ch : ${habilidadesColaborador}"
+                                                th:value="${ch.habilidad.id}"
+                                                th:text="|${ch.habilidad.nombre} — ${ch.nivelDominio.name() == 'AVANZADO' ? 'Avanzado' : (ch.nivelDominio.name() == 'INTERMEDIO' ? 'Intermedio' : 'Básico')}|">
+                                            Java — Básico
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Archivo <span class="text-red">*</span></label>
+                                    <input type="file" name="certificado" class="form-control"
+                                           accept="application/pdf,image/jpeg,image/png" required
+                                           th:disabled="${habilidadesColaborador.isEmpty()}">
+                                    <div class="form-hint">PDF, JPG o PNG; máximo 10MB.</div>
+                                </div>
+                                <div class="col-md-3 d-grid">
+                                    <button type="submit" class="btn btn-primary"
+                                            th:disabled="${habilidadesColaborador.isEmpty()}">Enviar a revisión</button>
+                                </div>
+                            </div>
+                            <div th:if="${habilidadesColaborador.isEmpty()}" class="form-hint text-warning mt-2">
+                                Primero agrega al menos una habilidad a tu perfil.
+                            </div>
+                        </form>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table mb-0">
+                            <thead>
+                            <tr>
+                                <th>Habilidad</th>
+                                <th>Fecha de envío</th>
+                                <th>Estado</th>
+                                <th>Resultado</th>
+                                <th class="text-end">Documento</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${certificadosColaborador.isEmpty()}">
+                                <td colspan="5" class="text-center text-secondary py-4">Todavía no has enviado certificados.</td>
+                            </tr>
+                            <tr th:each="cert : ${certificadosColaborador}">
+                                <td class="fw-semibold" th:text="${cert.habilidad.nombre}">Java</td>
+                                <td th:text="${#temporals.format(cert.fechaSubida, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${cert.estado.name() == 'APROBADO' ? 'bg-green-lt' : (cert.estado.name() == 'RECHAZADO' ? 'bg-red-lt' : 'bg-yellow-lt')}"
+                                          th:text="${cert.estado.name() == 'APROBADO' ? 'Aprobado' : (cert.estado.name() == 'RECHAZADO' ? 'Rechazado' : 'Pendiente')}">Pendiente</span>
+                                </td>
+                                <td>
+                                    <span th:if="${cert.estado.name() == 'PENDIENTE'}" class="text-secondary">Pendiente de revisión por el RM.</span>
+                                    <span th:if="${cert.estado.name() == 'APROBADO'}" class="text-green">Habilidad validada.</span>
+                                    <span th:if="${cert.estado.name() == 'RECHAZADO'}" class="text-red"
+                                          th:text="|Motivo: ${cert.motivoRechazo}|">Motivo del rechazo</span>
+                                </td>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-secondary" th:href="${cert.archivoUrl}"
+                                       target="_blank" rel="noopener">Ver archivo</a>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <!-- EXPERIENCIA + EDUCACIÓN -->
                 <div class="row row-cards mb-4 g-3">
                     <div class="col-lg-6">

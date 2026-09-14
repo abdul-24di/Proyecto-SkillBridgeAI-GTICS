@@ -2,6 +2,9 @@ package com.pucp.skillb_ia.service.col;
 
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
+import com.pucp.skillb_ia.model.enums.EstadoCertificado;
+import com.pucp.skillb_ia.model.enums.EstadoValidacion;
+import com.pucp.skillb_ia.repository.CertificadoRepository;
 import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
 import com.pucp.skillb_ia.repository.EducacionRepository;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
@@ -28,11 +31,15 @@ public class ColaboradorPerfilService {
 
     private static final Set<String> TIPOS_IMAGEN_PERMITIDOS = Set.of("image/jpeg", "image/png");
     private static final long TAMANO_MAXIMO_FOTO_BYTES = 2L * 1024 * 1024; // 2MB
+    private static final Set<String> TIPOS_CERTIFICADO_PERMITIDOS =
+            Set.of("application/pdf", "image/jpeg", "image/png");
+    private static final long TAMANO_MAXIMO_CERTIFICADO_BYTES = 10L * 1024 * 1024;
 
     private final UsuarioRepository usuarioRepository;
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     private final HabilidadRepository habilidadRepository;
     private final EducacionRepository educacionRepository;
+    private final CertificadoRepository certificadoRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaService auditoriaService;
     private final String uploadDir;
@@ -41,6 +48,7 @@ public class ColaboradorPerfilService {
                                     ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                     HabilidadRepository habilidadRepository,
                                     EducacionRepository educacionRepository,
+                                    CertificadoRepository certificadoRepository,
                                     PasswordEncoder passwordEncoder,
                                     AuditoriaService auditoriaService,
                                     @Value("${app.upload-dir:uploads}") String uploadDir) {
@@ -48,6 +56,7 @@ public class ColaboradorPerfilService {
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.habilidadRepository = habilidadRepository;
         this.educacionRepository = educacionRepository;
+        this.certificadoRepository = certificadoRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
         this.uploadDir = uploadDir;
@@ -77,6 +86,13 @@ public class ColaboradorPerfilService {
             }
         }
         return disponibles;
+    }
+
+    // Certificados que el colaborador ha presentado, incluidos los rechazados.
+    // Se conservan para que el motivo y el historial siempre permanezcan visibles.
+    @Transactional(readOnly = true)
+    public List<Certificado> listarCertificados(Usuario colaborador) {
+        return certificadoRepository.findByColaboradorIdConDetalle(colaborador.getId());
     }
 
     //Calculamos el porcentaje que medira si el perfil esta completado del colaborador, considerando la sección de foto, sobre mí y habilidad.
@@ -257,6 +273,76 @@ public class ColaboradorPerfilService {
             auditoriaService.registrar(colaborador, "ELIMINAR_HABILIDAD", "COLABORADOR_HABILIDAD", habilidadId,
                     "Quitó la habilidad \"" + habilidadColaborador.getHabilidad().getNombre() + "\" de su perfil.");
         }
+    }
+
+    // ============================================================
+    // CERTIFICADOS DE HABILIDADES
+    // ============================================================
+
+    @Transactional
+    public Certificado subirCertificado(Usuario colaborador, Long habilidadId, MultipartFile archivo) {
+        if (habilidadId == null) {
+            throw new IllegalArgumentException("Selecciona la habilidad que deseas certificar.");
+        }
+        if (archivo == null || archivo.isEmpty()) {
+            throw new IllegalArgumentException("Selecciona un certificado para subir.");
+        }
+        if (!TIPOS_CERTIFICADO_PERMITIDOS.contains(archivo.getContentType())) {
+            throw new IllegalArgumentException("El certificado debe estar en formato PDF, JPG o PNG.");
+        }
+        if (archivo.getSize() > TAMANO_MAXIMO_CERTIFICADO_BYTES) {
+            throw new IllegalArgumentException("El certificado supera el máximo de 10MB.");
+        }
+
+        Habilidad habilidad = habilidadRepository.findById(habilidadId)
+                .orElseThrow(() -> new IllegalArgumentException("La habilidad seleccionada no existe."));
+        ColaboradorHabilidad perfilHabilidad = colaboradorHabilidadRepository
+                .findByColaboradorAndHabilidad(colaborador, habilidad)
+                .filter(ColaboradorHabilidad::isActivo)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Solo puedes certificar una habilidad activa de tu perfil."));
+
+        if (certificadoRepository.countByColaboradorAndHabilidadAndEstado(
+                colaborador, habilidad, EstadoCertificado.PENDIENTE) > 0) {
+            throw new IllegalArgumentException(
+                    "Ya tienes un certificado pendiente de revisión para esta habilidad.");
+        }
+
+        String extension = switch (archivo.getContentType()) {
+            case "application/pdf" -> ".pdf";
+            case "image/png" -> ".png";
+            default -> ".jpg";
+        };
+        String nombreArchivo = "certificado-" + colaborador.getId() + "-"
+                + UUID.randomUUID() + extension;
+
+        try {
+            Path carpeta = Path.of(uploadDir, "certificados");
+            Files.createDirectories(carpeta);
+            Files.copy(archivo.getInputStream(), carpeta.resolve(nombreArchivo),
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("No se pudo guardar el certificado. Inténtalo nuevamente.", e);
+        }
+
+        Certificado certificado = new Certificado();
+        certificado.setColaborador(colaborador);
+        certificado.setHabilidad(habilidad);
+        certificado.setArchivoUrl("/uploads/certificados/" + nombreArchivo);
+        certificado.setEstado(EstadoCertificado.PENDIENTE);
+        certificado = certificadoRepository.save(certificado);
+
+        // Un nuevo intento vuelve a quedar pendiente, salvo que la habilidad ya
+        // estuviera validada por un certificado aprobado anteriormente.
+        if (perfilHabilidad.getEstadoValidacion() != EstadoValidacion.VALIDADA) {
+            perfilHabilidad.setEstadoValidacion(EstadoValidacion.PENDIENTE);
+            colaboradorHabilidadRepository.save(perfilHabilidad);
+        }
+
+        auditoriaService.registrar(colaborador, "SUBIR_CERTIFICADO", "CERTIFICADO",
+                certificado.getId(), "Subió un certificado para la habilidad \""
+                        + habilidad.getNombre() + "\".");
+        return certificado;
     }
 
     // ============================================================

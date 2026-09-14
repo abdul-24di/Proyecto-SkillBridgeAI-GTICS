@@ -23,7 +23,8 @@
 --   Contrasena: abc123
 --
 -- Antes de ejecutar este archivo debe existir la estructura creada por
--- skillbridge_db_v4.sql.
+-- skillbridge_db_v4.sql. Si la BD ya existía antes del modelo de solicitudes,
+-- ejecutar primero migracion_solicitud_personal.sql.
 -- ============================================================================
 ROLLBACK;
 
@@ -155,6 +156,62 @@ ON DUPLICATE KEY UPDATE
     nivel_dominio = nuevo.nivel_dominio,
     estado_validacion = nuevo.estado_validacion,
     activo = TRUE;
+
+-- Certificados visibles en la bandeja y el historial de validaciones del RM.
+INSERT INTO certificado (
+    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo,
+    revisado_por, fecha_subida, fecha_revision
+)
+SELECT
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
+    (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
+     WHERE h.nombre = 'Java' AND c.nombre = '[DEMO] Tecnologia'),
+    '/documentos/certificado-demo-java.txt', 'PENDIENTE', NULL, NULL,
+    CURRENT_TIMESTAMP - INTERVAL 2 DAY, NULL
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM certificado WHERE archivo_url = '/documentos/certificado-demo-java.txt');
+
+INSERT INTO certificado (
+    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo,
+    revisado_por, fecha_subida, fecha_revision
+)
+SELECT
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
+    (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
+     WHERE h.nombre = 'AWS' AND c.nombre = '[DEMO] Tecnologia'),
+    '/documentos/certificado-demo-aws.txt', 'PENDIENTE', NULL, NULL,
+    CURRENT_TIMESTAMP - INTERVAL 1 DAY, NULL
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM certificado WHERE archivo_url = '/documentos/certificado-demo-aws.txt');
+
+INSERT INTO certificado (
+    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo,
+    revisado_por, fecha_subida, fecha_revision
+)
+SELECT
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
+    (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
+     WHERE h.nombre = 'Spring Boot' AND c.nombre = '[DEMO] Tecnologia'),
+    '/documentos/certificado-demo-spring.txt', 'APROBADO', NULL,
+    (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
+    CURRENT_TIMESTAMP - INTERVAL 12 DAY, CURRENT_TIMESTAMP - INTERVAL 10 DAY
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM certificado WHERE archivo_url = '/documentos/certificado-demo-spring.txt');
+
+INSERT INTO certificado (
+    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo,
+    revisado_por, fecha_subida, fecha_revision
+)
+SELECT
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
+    (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
+     WHERE h.nombre = 'Python' AND c.nombre = '[DEMO] Tecnologia'),
+    '/documentos/certificado-demo-python.txt', 'RECHAZADO',
+    'El documento de demostracion no identifica claramente a la entidad emisora.',
+    (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
+    CURRENT_TIMESTAMP - INTERVAL 9 DAY, CURRENT_TIMESTAMP - INTERVAL 8 DAY
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM certificado WHERE archivo_url = '/documentos/certificado-demo-python.txt');
 
 -- --------------------------------------------------------------------------
 -- 4. Proyectos de demostracion
@@ -335,7 +392,103 @@ ON DUPLICATE KEY UPDATE
     cantidad_personas = nuevo.cantidad_personas;
 
 -- --------------------------------------------------------------------------
--- 6. Asignaciones: ejemplos para cada bandeja del RM
+-- 6. Solicitudes de personal: ejemplos de sus tres estados visibles
+-- --------------------------------------------------------------------------
+INSERT INTO solicitud_personal (
+    proyecto_id, cantidad_colaboradores, perfiles_requeridos, mensaje_pm,
+    estado, rm_responsable_id, fecha_solicitud,
+    fecha_inicio_atencion, fecha_atencion
+)
+SELECT
+    (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
+    1,
+    'Cloud Engineer con experiencia intermedia o avanzada en AWS y Docker.',
+    'Se necesita completar el equipo para la siguiente fase de migracion.',
+    'PENDIENTE', NULL, CURRENT_TIMESTAMP - INTERVAL 3 DAY, NULL, NULL
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM solicitud_personal
+    WHERE mensaje_pm = 'Se necesita completar el equipo para la siguiente fase de migracion.'
+);
+
+INSERT INTO solicitud_personal (
+    proyecto_id, cantidad_colaboradores, perfiles_requeridos, mensaje_pm,
+    estado, rm_responsable_id, fecha_solicitud,
+    fecha_inicio_atencion, fecha_atencion
+)
+SELECT
+    (SELECT id FROM proyecto WHERE nombre = '[DEMO] Analitica Comercial'),
+    2,
+    'Data Analyst con Python y especialista en visualizacion con Power BI.',
+    'Priorizar disponibilidad para iniciar durante este mes.',
+    'EN_ATENCION',
+    (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
+    CURRENT_TIMESTAMP - INTERVAL 6 DAY,
+    CURRENT_TIMESTAMP - INTERVAL 5 DAY,
+    NULL
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM solicitud_personal
+    WHERE mensaje_pm = 'Priorizar disponibilidad para iniciar durante este mes.'
+);
+
+INSERT INTO solicitud_personal (
+    proyecto_id, cantidad_colaboradores, perfiles_requeridos, mensaje_pm,
+    estado, rm_responsable_id, fecha_solicitud,
+    fecha_inicio_atencion, fecha_atencion
+)
+SELECT
+    (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Finalizado'),
+    1,
+    'Analista de datos junior.',
+    'Solicitud historica para comprobar el estado atendido.',
+    'ATENDIDA',
+    (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
+    CURRENT_TIMESTAMP - INTERVAL 170 DAY,
+    CURRENT_TIMESTAMP - INTERVAL 169 DAY,
+    CURRENT_TIMESTAMP - INTERVAL 165 DAY
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM solicitud_personal
+    WHERE mensaje_pm = 'Solicitud historica para comprobar el estado atendido.'
+);
+
+-- Restaurar los estados de las solicitudes DEMO sin desactivar SQL_SAFE_UPDATES.
+SET @demo_sol_migracion_id := (
+    SELECT MIN(id) FROM solicitud_personal
+    WHERE mensaje_pm = 'Se necesita completar el equipo para la siguiente fase de migracion.'
+);
+SET @demo_sol_analitica_id := (
+    SELECT MIN(id) FROM solicitud_personal
+    WHERE mensaje_pm = 'Priorizar disponibilidad para iniciar durante este mes.'
+);
+SET @demo_sol_finalizada_id := (
+    SELECT MIN(id) FROM solicitud_personal
+    WHERE mensaje_pm = 'Solicitud historica para comprobar el estado atendido.'
+);
+
+UPDATE solicitud_personal
+SET estado = 'PENDIENTE', rm_responsable_id = NULL,
+    fecha_inicio_atencion = NULL, fecha_atencion = NULL
+WHERE id = @demo_sol_migracion_id
+LIMIT 1;
+
+UPDATE solicitud_personal
+SET estado = 'EN_ATENCION', rm_responsable_id = @demo_rm_id,
+    fecha_inicio_atencion = CURRENT_TIMESTAMP - INTERVAL 5 DAY,
+    fecha_atencion = NULL
+WHERE id = @demo_sol_analitica_id
+LIMIT 1;
+
+UPDATE solicitud_personal
+SET estado = 'ATENDIDA', rm_responsable_id = @demo_rm_id,
+    fecha_inicio_atencion = CURRENT_TIMESTAMP - INTERVAL 169 DAY,
+    fecha_atencion = CURRENT_TIMESTAMP - INTERVAL 165 DAY
+WHERE id = @demo_sol_finalizada_id
+LIMIT 1;
+
+-- --------------------------------------------------------------------------
+-- 7. Asignaciones: ejemplos para cada bandeja del RM
 -- --------------------------------------------------------------------------
 INSERT INTO asignacion (
     proyecto_id, colaborador_id, horas_semanales, origen, mensaje_solicitud,
@@ -403,7 +556,7 @@ ON DUPLICATE KEY UPDATE
 COMMIT;
 
 -- --------------------------------------------------------------------------
--- 7. Comprobacion rapida
+-- 8. Comprobacion rapida
 -- Debe devolver cinco proyectos y sus datos principales.
 -- --------------------------------------------------------------------------
 SELECT

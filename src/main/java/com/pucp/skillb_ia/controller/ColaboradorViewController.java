@@ -103,6 +103,7 @@ public class ColaboradorViewController {
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("habilidadesColaborador", colaboradorPerfilService.listarHabilidades(colaborador));
         model.addAttribute("habilidadesDisponibles", colaboradorPerfilService.listarHabilidadesDisponibles(colaborador));
+        model.addAttribute("certificadosColaborador", colaboradorPerfilService.listarCertificados(colaborador));
         model.addAttribute("nivelesDominio", NivelDominio.values());
         model.addAttribute("educacionColaborador", colaboradorPerfilService.listarEducacion(colaborador));
         model.addAttribute("porcentajeCompletado", colaboradorPerfilService.calcularPorcentajeCompletado(colaborador));
@@ -177,6 +178,23 @@ public class ColaboradorViewController {
         if (principal == null) return "redirect:/login";
         colaboradorPerfilService.eliminarHabilidad(principal.getUsuario(), habilidadId);
         redirectAttributes.addFlashAttribute("mensajeExito", "Habilidad eliminada de tu perfil.");
+        return "redirect:/colaborador/perfil";
+    }
+
+    @PostMapping("/perfil/certificados")
+    public String subirCertificado(@AuthenticationPrincipal UsuarioDetails principal,
+                                   @RequestParam Long habilidadId,
+                                   @RequestParam("certificado") MultipartFile certificado,
+                                   RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorPerfilService.subirCertificado(
+                    principal.getUsuario(), habilidadId, certificado);
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Certificado enviado. El Resource Manager podrá revisarlo desde su bandeja.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
         return "redirect:/colaborador/perfil";
     }
 

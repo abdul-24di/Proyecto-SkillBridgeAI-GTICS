@@ -277,7 +277,37 @@ CREATE TABLE proyecto_habilidad_requerida (
 
 
 -- =====================================================================
--- 11. ASIGNACIONES / POSTULACIONES
+-- 11. SOLICITUDES DE PERSONAL
+-- =====================================================================
+
+CREATE TABLE solicitud_personal (
+    id                       BIGINT AUTO_INCREMENT PRIMARY KEY,
+    proyecto_id              BIGINT NOT NULL,
+    cantidad_colaboradores   INT NOT NULL,
+    perfiles_requeridos      VARCHAR(1000) NULL,
+    mensaje_pm               VARCHAR(1000) NULL,
+    estado                   VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    rm_responsable_id        BIGINT NULL,
+    fecha_solicitud          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_inicio_atencion    DATETIME NULL,
+    fecha_atencion           DATETIME NULL,
+
+    CONSTRAINT fk_solpersonal_proyecto
+        FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
+    CONSTRAINT fk_solpersonal_rm
+        FOREIGN KEY (rm_responsable_id) REFERENCES usuario(id),
+    CONSTRAINT chk_solpersonal_cantidad
+        CHECK (cantidad_colaboradores > 0),
+    CONSTRAINT chk_solpersonal_estado
+        CHECK (estado IN ('PENDIENTE','EN_ATENCION','ATENDIDA','CANCELADA')),
+
+    INDEX idx_solpersonal_estado_fecha (estado, fecha_solicitud),
+    INDEX idx_solpersonal_proyecto (proyecto_id)
+) ENGINE=InnoDB;
+
+
+-- =====================================================================
+-- 12. ASIGNACIONES / POSTULACIONES
 -- =====================================================================
 
 CREATE TABLE asignacion (
@@ -323,7 +353,7 @@ CREATE TABLE asignacion (
 
 
 -- =====================================================================
--- 12. ACTIVIDADES 
+-- 13. ACTIVIDADES
 -- =====================================================================
 
 CREATE TABLE actividad (
@@ -358,7 +388,7 @@ CREATE TABLE actividad (
 
 
 -- =====================================================================
--- 13. CURSOS
+-- 14. CURSOS
 -- =====================================================================
 
 CREATE TABLE curso (
@@ -377,7 +407,7 @@ CREATE TABLE curso (
 
 
 -- =====================================================================
--- 14. SOLICITUDES / ASIGNACIONES DE CURSOS
+-- 15. SOLICITUDES / ASIGNACIONES DE CURSOS
 -- =====================================================================
 
 CREATE TABLE colaborador_curso (
@@ -404,7 +434,7 @@ CREATE TABLE colaborador_curso (
 
 
 -- =====================================================================
--- 15. PENALIZACIONES
+-- 16. PENALIZACIONES
 -- =====================================================================
 
 CREATE TABLE penalizacion (
@@ -429,7 +459,7 @@ CREATE TABLE penalizacion (
 
 
 -- =====================================================================
--- 16. NÓMINA MENSUAL
+-- 17. NÓMINA MENSUAL
 -- =====================================================================
 
 CREATE TABLE nomina_mensual (
@@ -456,7 +486,7 @@ CREATE TABLE nomina_mensual (
 
 
 -- =====================================================================
--- 17. ETIQUETAS 
+-- 18. ETIQUETAS
 -- =====================================================================
 
 CREATE TABLE etiqueta (
@@ -466,7 +496,7 @@ CREATE TABLE etiqueta (
 
 
 -- =====================================================================
--- 18. FOROS
+-- 19. FOROS
 -- =====================================================================
 
 
@@ -484,7 +514,7 @@ CREATE TABLE foro (
 
 
 -- =====================================================================
--- 19. PUBLICACIONES DEL FORO
+-- 20. PUBLICACIONES DEL FORO
 -- =====================================================================
 
 
@@ -504,7 +534,7 @@ CREATE TABLE publicacion_foro (
 
 
 -- =====================================================================
--- 20. RESPUESTAS DEL FORO
+-- 21. RESPUESTAS DEL FORO
 -- =====================================================================
 
 CREATE TABLE respuesta_foro (
@@ -521,7 +551,7 @@ CREATE TABLE respuesta_foro (
 
 
 -- =====================================================================
--- 21. VOTOS DE PUBLICACIONES
+-- 22. VOTOS DE PUBLICACIONES
 -- =====================================================================
 
 CREATE TABLE voto_publicacion (
@@ -538,7 +568,7 @@ CREATE TABLE voto_publicacion (
 
 
 -- =====================================================================
--- 22. VOTOS DE RESPUESTAS
+-- 23. VOTOS DE RESPUESTAS
 -- =====================================================================
 
 CREATE TABLE voto_respuesta (
@@ -555,7 +585,7 @@ CREATE TABLE voto_respuesta (
 
 
 -- =====================================================================
--- 23. CONVERSACIONES / CHAT
+-- 24. CONVERSACIONES / CHAT
 -- =====================================================================
 
 CREATE TABLE conversacion (
@@ -591,7 +621,7 @@ CREATE TABLE mensaje (
 
 
 -- =====================================================================
--- 24. NOTIFICACIONES
+-- 25. NOTIFICACIONES
 -- =====================================================================
 
 CREATE TABLE notificacion (
@@ -614,7 +644,7 @@ CREATE TABLE notificacion (
 
 
 -- =====================================================================
--- 25. CONFIGURACIÓN DEL SISTEMA
+-- 26. CONFIGURACIÓN DEL SISTEMA
 -- =====================================================================
 
 CREATE TABLE configuracion_sistema (
@@ -631,7 +661,7 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion) VALUES
 
 
 -- =====================================================================
--- 26. AUDITORÍA
+-- 27. AUDITORÍA
 -- =====================================================================
 
 CREATE TABLE log_auditoria (

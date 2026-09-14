@@ -1,0 +1,4 @@
+CERTIFICADO DE DEMOSTRACION - JAVA
+
+Documento ficticio utilizado exclusivamente para probar el flujo de validacion
+de certificados de SkillBridge AI. No tiene validez academica ni profesional.

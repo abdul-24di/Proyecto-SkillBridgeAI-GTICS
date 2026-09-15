@@ -37,6 +37,8 @@
   color: #404b5a;
   font-size: .92rem;
   line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .post-footer {
@@ -61,6 +63,8 @@
   color: #4b5665;
   font-size: .86rem;
   line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
 }
 
 .forum-side-list {

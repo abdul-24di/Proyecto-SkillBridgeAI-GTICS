@@ -420,6 +420,7 @@ CREATE TABLE colaborador_curso (
     fecha_solicitud     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_respuesta     DATETIME NULL,
     fecha_completado    DATETIME NULL,
+    motivo_respuesta    VARCHAR(500) NULL,
 
     CONSTRAINT fk_colcurso_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
     CONSTRAINT fk_colcurso_curso FOREIGN KEY (curso_id) REFERENCES curso(id),

@@ -5,8 +5,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Historia A25 (Épica 5) — Tier 3, diferida. Catálogo de cursos gestionado por
-// el Admin; el RM los asigna o los colaboradores los solicitan (A26/A27).
+// Catálogo de cursos gestionado por el Admin; el RM los asigna o los
+// colaboradores los solicitan (A25/A26/A27).
 @Entity
 @Table(name = "curso")
 public class Curso {

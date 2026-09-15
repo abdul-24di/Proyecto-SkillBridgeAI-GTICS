@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-// Épica 5, Historia A25 — Tier 3, diferida.
+// Catálogo de cursos de la Épica 5.
 public interface CursoRepository extends JpaRepository<Curso, Long> {
-    List<Curso> findByActivoTrue();
+    List<Curso> findByActivoTrueOrderByNombreAsc();
 }

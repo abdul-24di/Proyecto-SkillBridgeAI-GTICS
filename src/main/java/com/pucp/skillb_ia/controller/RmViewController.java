@@ -11,6 +11,8 @@ import com.pucp.skillb_ia.dto.RmAsignacionView;
 import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.dto.RmForoView;
+import com.pucp.skillb_ia.dto.RmReporteView;
+import com.pucp.skillb_ia.dto.RmCursoView;
 import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
@@ -24,6 +26,13 @@ import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
 import com.pucp.skillb_ia.service.rm.RmSolicitudPersonalService;
 import com.pucp.skillb_ia.service.rm.RmCertificadoService;
 import com.pucp.skillb_ia.service.rm.RmForoConsultaService;
+import com.pucp.skillb_ia.service.rm.RmReporteExportService;
+import com.pucp.skillb_ia.service.rm.RmReporteService;
+import com.pucp.skillb_ia.service.rm.RmCursoService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,6 +42,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.List;
 
 @Controller
@@ -47,6 +58,9 @@ public class RmViewController {
     private final RmSolicitudPersonalService rmSolicitudPersonalService;
     private final RmCertificadoService rmCertificadoService;
     private final RmForoConsultaService rmForoConsultaService;
+    private final RmReporteService rmReporteService;
+    private final RmReporteExportService rmReporteExportService;
+    private final RmCursoService rmCursoService;
 
     public RmViewController(
             RmPerfilService rmPerfilService,
@@ -56,7 +70,10 @@ public class RmViewController {
             RmAsignacionService rmAsignacionService,
             RmSolicitudPersonalService rmSolicitudPersonalService,
             RmCertificadoService rmCertificadoService,
-            RmForoConsultaService rmForoConsultaService) {
+            RmForoConsultaService rmForoConsultaService,
+            RmReporteService rmReporteService,
+            RmReporteExportService rmReporteExportService,
+            RmCursoService rmCursoService) {
         this.rmPerfilService = rmPerfilService;
         this.rmColaboradorConsultaService = rmColaboradorConsultaService;
         this.rmProyectoConsultaService = rmProyectoConsultaService;
@@ -65,6 +82,9 @@ public class RmViewController {
         this.rmSolicitudPersonalService = rmSolicitudPersonalService;
         this.rmCertificadoService = rmCertificadoService;
         this.rmForoConsultaService = rmForoConsultaService;
+        this.rmReporteService = rmReporteService;
+        this.rmReporteExportService = rmReporteExportService;
+        this.rmCursoService = rmCursoService;
     }
 
     @GetMapping({"", "/"})
@@ -74,14 +94,61 @@ public class RmViewController {
 
     @GetMapping({"/dashboard", "/rm-dashboard.html"})
     public String dashboard(Model model) {
-        List<RmAsignacionView> pendientes = rmAsignacionService.listar().stream()
-                .filter(item -> "pending".equals(item.getGrupo()))
+        List<RmAsignacionView> asignaciones = rmAsignacionService.listar();
+        List<RmAsignacionView> pendientes = asignaciones.stream()
+                .filter(item -> item.isRequiereDecisionRm() || item.isPendientePm())
                 .toList();
+        List<RmProyectoView> proyectos = rmProyectoConsultaService.listar();
+        List<RmProyectoView> proyectosAtencion = proyectos.stream()
+                .filter(this::requiereAtencionDashboard)
+                .sorted(Comparator.comparingInt(this::puntajeAtencionDashboard).reversed()
+                        .thenComparing(proyecto -> proyecto.getProyecto().getFechaCreacion(),
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+        List<RmSolicitudPersonalView> solicitudes = rmSolicitudPersonalService.listar();
+        long solicitudesAbiertas = solicitudes.stream()
+                .filter(item -> item.isPendiente() || item.isEnAtencion())
+                .count();
+        long certificadosPendientes = rmCertificadoService.listarPendientes().size();
+
+        model.addAttribute("totalAprobacionesRm", asignaciones.stream()
+                .filter(RmAsignacionView::isRequiereDecisionRm).count());
+        model.addAttribute("totalEsperandoPm", asignaciones.stream()
+                .filter(RmAsignacionView::isPendientePm).count());
+        model.addAttribute("totalPostulaciones", asignaciones.stream()
+                .filter(RmAsignacionView::isSolicitudColaborador)
+                .filter(RmAsignacionView::isRequiereDecisionRm).count());
+        model.addAttribute("totalProyectosVacantes", proyectos.stream()
+                .filter(RmProyectoView::isConVacantesParaDotacion).count());
+        model.addAttribute("totalProyectosRevision", proyectos.stream()
+                .filter(item -> item.getProyecto().getEstado() == EstadoProyecto.EN_REVISION).count());
+
         model.addAttribute("accionesPendientes", pendientes.stream().limit(4).toList());
         model.addAttribute("totalAccionesPendientes", pendientes.size());
-        model.addAttribute("solicitudesRecientes",
-                rmSolicitudPersonalService.listar().stream().limit(3).toList());
+        model.addAttribute("solicitudesRecientes", solicitudes.stream().limit(3).toList());
+        model.addAttribute("totalSolicitudesAbiertas", solicitudesAbiertas);
+        model.addAttribute("totalCertificadosPendientes", certificadosPendientes);
+        model.addAttribute("proyectosAtencion", proyectosAtencion.stream().limit(5).toList());
+        model.addAttribute("totalProyectosAtencion", proyectosAtencion.size());
+        model.addAttribute("proyectoPrioritario",
+                proyectosAtencion.stream().findFirst().orElse(null));
         return "rm/rm-dashboard";
+    }
+
+    private boolean requiereAtencionDashboard(RmProyectoView proyecto) {
+        return proyecto.getProyecto().getEstado() == EstadoProyecto.EN_REVISION
+                || proyecto.isConVacantesParaDotacion()
+                || proyecto.getPendientesRm() > 0;
+    }
+
+    private int puntajeAtencionDashboard(RmProyectoView proyecto) {
+        int puntaje = proyecto.getPendientesRm() * 10 + proyecto.getVacantes() * 3;
+        if (proyecto.getProyecto().getEstado() == EstadoProyecto.EN_REVISION) puntaje += 30;
+        return switch (proyecto.getProyecto().getPrioridad()) {
+            case ALTA -> puntaje + 20;
+            case MEDIA -> puntaje + 10;
+            case BAJA -> puntaje;
+        };
     }
 
     @GetMapping({"/proyectos", "/rm-proyectos.html"})
@@ -426,18 +493,95 @@ public class RmViewController {
     }
 
     @GetMapping({"/cursos", "/rm-cursos.html"})
-    public String courses() {
+    public String courses(
+            @RequestParam(name = "busqueda", required = false) String busqueda,
+            @RequestParam(name = "categoria", required = false) String categoria,
+            @RequestParam(name = "duracion", required = false) String duracion,
+            Model model) {
+        model.addAttribute("catalogo", rmCursoService.obtenerCatalogo(busqueda, categoria, duracion));
+        model.addAttribute("busqueda", busqueda == null ? "" : busqueda);
+        model.addAttribute("categoriaSeleccionada", categoria == null ? "" : categoria);
+        model.addAttribute("duracionSeleccionada", duracion == null ? "" : duracion);
         return "rm/rm-cursos";
     }
 
     @GetMapping({"/cursos/solicitudes", "/rm-solicitudes-cursos.html"})
-    public String courseRequests() {
+    public String courseRequests(
+            @RequestParam(name = "busqueda", required = false) String busqueda,
+            @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "origen", required = false) String origen,
+            Model model) {
+        String filtroEstado = estado == null ? "SOLICITADO" : estado;
+        model.addAttribute("bandeja", rmCursoService.obtenerBandeja(busqueda, filtroEstado, origen));
+        model.addAttribute("busqueda", busqueda == null ? "" : busqueda);
+        model.addAttribute("estadoSeleccionado", filtroEstado);
+        model.addAttribute("origenSeleccionado", origen == null ? "" : origen);
         return "rm/rm-solicitudes-cursos";
     }
 
     @GetMapping({"/cursos/asignar", "/rm-asignar-curso.html"})
-    public String assignCourse() {
+    public String assignCourse(
+            @RequestParam(name = "colaborador", required = false) Long colaboradorId,
+            @RequestParam(name = "curso", required = false) Long cursoId,
+            Model model) {
+        model.addAttribute("colaboradoresCurso", rmCursoService.listarColaboradoresActivos());
+        model.addAttribute("cursosActivos", rmCursoService.listarCursosActivos());
+        model.addAttribute("colaboradorSeleccionado", colaboradorId);
+        model.addAttribute("cursoSeleccionado", cursoId);
         return "rm/rm-asignar-curso";
+    }
+
+    @PostMapping("/cursos/asignar")
+    public String assignCourseSubmit(
+            @RequestParam("colaboradorId") Long colaboradorId,
+            @RequestParam("cursoId") Long cursoId,
+            @RequestParam("motivo") String motivo,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmCursoService.asignarDirectamente(
+                    colaboradorId, cursoId, motivo, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Curso asignado correctamente; el colaborador fue notificado.");
+            return "redirect:/rm/cursos/solicitudes?estado=EN_CURSO";
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/cursos/asignar?colaborador=" + colaboradorId + "&curso=" + cursoId;
+        }
+    }
+
+    @PostMapping("/cursos/solicitudes/{id}/aprobar")
+    public String approveCourseRequest(
+            @PathVariable("id") Long inscripcionId,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmCursoService.aprobar(inscripcionId, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Solicitud aprobada; el colaborador fue notificado.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/cursos/solicitudes";
+    }
+
+    @PostMapping("/cursos/solicitudes/{id}/rechazar")
+    public String rejectCourseRequest(
+            @PathVariable("id") Long inscripcionId,
+            @RequestParam("motivo") String motivo,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmCursoService.rechazar(inscripcionId, motivo, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Solicitud rechazada; el motivo quedó registrado y se notificó al colaborador.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/cursos/solicitudes";
     }
 
     @GetMapping({"/asignaciones", "/rm-asignaciones.html"})
@@ -687,13 +831,81 @@ public class RmViewController {
     }
 
     @GetMapping({"/reportes/recursos", "/rm-reporte-recursos.html"})
-    public String resourceReport() {
+    public String resourceReport(
+            @RequestParam(name = "periodo", required = false) String periodo,
+            @RequestParam(name = "proyecto", required = false) Long proyectoId,
+            @RequestParam(name = "estado", required = false) String estado,
+            Model model) {
+        RmReporteView reporte = rmReporteService.generar(periodo, proyectoId, estado);
+        cargarModeloReporte(model, reporte);
         return "rm/rm-reporte-recursos";
     }
 
     @GetMapping({"/reportes/horas-colaboradores", "/rm-horas-colaboradores.html"})
-    public String collaboratorHours() {
+    public String collaboratorHours(
+            @RequestParam(name = "periodo", required = false) String periodo,
+            @RequestParam(name = "proyecto", required = false) Long proyectoId,
+            @RequestParam(name = "busqueda", required = false) String busqueda,
+            @RequestParam(name = "colaborador", required = false) Long colaboradorId,
+            Model model) {
+        RmReporteView reporte = rmReporteService.generar(periodo, proyectoId, null);
+        List<RmReporteView.ColaboradorReporte> colaboradores =
+                rmReporteService.filtrarColaboradores(reporte, busqueda);
+        RmReporteView.ColaboradorReporte seleccionado = colaboradores.stream()
+                .filter(item -> colaboradorId != null && item.getId().equals(colaboradorId))
+                .findFirst()
+                .orElseGet(() -> colaboradores.stream().findFirst().orElse(null));
+        cargarModeloReporte(model, reporte);
+        model.addAttribute("colaboradores", colaboradores);
+        model.addAttribute("colaboradorSeleccionado", seleccionado);
+        model.addAttribute("busqueda", busqueda == null ? "" : busqueda);
+        model.addAttribute("totalColaboradoresHoras", colaboradores.size());
+        model.addAttribute("totalHorasColaboradores", colaboradores.stream()
+                .map(RmReporteView.ColaboradorReporte::getHoras)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add));
+        model.addAttribute("debajoReferencia", colaboradores.stream()
+                .filter(item -> !item.isAlcanzaReferencia()).count());
+        model.addAttribute("enReferencia", colaboradores.stream()
+                .filter(RmReporteView.ColaboradorReporte::isAlcanzaReferencia).count());
         return "rm/rm-horas-colaboradores";
+    }
+
+    @GetMapping("/reportes/recursos/excel")
+    public ResponseEntity<byte[]> exportarReporteExcel(
+            @RequestParam(name = "periodo", required = false) String periodo,
+            @RequestParam(name = "proyecto", required = false) Long proyectoId,
+            @RequestParam(name = "estado", required = false) String estado) {
+        RmReporteView reporte = rmReporteService.generar(periodo, proyectoId, estado);
+        return archivo(rmReporteExportService.crearExcel(reporte),
+                "reporte-recursos-" + reporte.getPeriodoValor() + ".xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
+
+    @GetMapping("/reportes/recursos/pdf")
+    public ResponseEntity<byte[]> exportarReportePdf(
+            @RequestParam(name = "periodo", required = false) String periodo,
+            @RequestParam(name = "proyecto", required = false) Long proyectoId,
+            @RequestParam(name = "estado", required = false) String estado) {
+        RmReporteView reporte = rmReporteService.generar(periodo, proyectoId, estado);
+        return archivo(rmReporteExportService.crearPdf(reporte),
+                "reporte-recursos-" + reporte.getPeriodoValor() + ".pdf",
+                MediaType.APPLICATION_PDF_VALUE);
+    }
+
+    private void cargarModeloReporte(Model model, RmReporteView reporte) {
+        model.addAttribute("reporte", reporte);
+        model.addAttribute("periodos", rmReporteService.listarPeriodos(reporte.getPeriodoValor()));
+        model.addAttribute("proyectosFiltro", rmReporteService.listarProyectos());
+        model.addAttribute("estadosFiltro", rmReporteService.listarEstados());
+    }
+
+    private ResponseEntity<byte[]> archivo(byte[] contenido, String nombre, String contentType) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(nombre, StandardCharsets.UTF_8).build());
+        headers.setContentLength(contenido.length);
+        return ResponseEntity.ok().headers(headers).body(contenido);
     }
 
     @GetMapping("/perfil")

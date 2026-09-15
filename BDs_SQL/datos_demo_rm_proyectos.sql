@@ -11,6 +11,8 @@
 --   * revision, aprobacion y rechazo
 --   * asignacion y actualizacion de presupuesto
 --   * equipo, vacantes, habilidades y pendientes del RM
+--   * foros, publicaciones, respuestas, soluciones y votos de solo lectura
+--   * catalogo, solicitudes e inscripciones de cursos
 --
 -- SEGURIDAD
 --   * No elimina tablas ni registros normales.
@@ -25,6 +27,8 @@
 -- Antes de ejecutar este archivo debe existir la estructura creada por
 -- skillbridge_db_v4.sql. Si la BD ya existía antes del modelo de solicitudes,
 -- ejecutar primero migracion_solicitud_personal.sql.
+-- Si la BD ya existía antes del flujo completo de Cursos, ejecutar también
+-- migracion_cursos.sql antes de cargar estos datos.
 -- ============================================================================
 ROLLBACK;
 
@@ -37,6 +41,7 @@ START TRANSACTION;
 -- 1. Roles requeridos
 -- --------------------------------------------------------------------------
 INSERT INTO rol (nombre) VALUES
+    ('ADMIN'),
     ('RESOURCE_MANAGER'),
     ('PROJECT_MANAGER'),
     ('COLABORADOR')
@@ -52,6 +57,13 @@ INSERT INTO usuario (
     rol_id, activo, cargo, horas_contratadas_semana, horas_disponibles,
     anios_experiencia, nivel_experiencia, fecha_contratacion
 ) VALUES
+(
+    'demo.admin@skillbridge.local',
+    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
+    'Adriana', 'Campos', '999000111', 'Administradora de demostracion.',
+    (SELECT id FROM rol WHERE nombre = 'ADMIN'),
+    TRUE, NULL, NULL, NULL, NULL, NULL, NULL
+),
 (
     'demo.rm@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
@@ -553,11 +565,477 @@ ON DUPLICATE KEY UPDATE
     aprobado_por_pm = nuevo.aprobado_por_pm,
     aprobado_por_rm = nuevo.aprobado_por_rm;
 
+-- --------------------------------------------------------------------------
+-- 8. Foros de demostracion para la consulta de solo lectura del RM
+-- --------------------------------------------------------------------------
+INSERT INTO etiqueta (nombre) VALUES
+    ('Arquitectura'),
+    ('Incidente'),
+    ('Pregunta'),
+    ('Anuncio') AS nuevo
+ON DUPLICATE KEY UPDATE nombre = nuevo.nombre;
+
+INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
+       'PROYECTO', FALSE, '[DEMO] Foro Migracion Cloud',
+       CURRENT_TIMESTAMP - INTERVAL 18 DAY
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = '[DEMO] Foro Migracion Cloud');
+
+INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Portal de Atencion'),
+       'PROYECTO', TRUE, '[DEMO] Foro Portal de Atencion',
+       CURRENT_TIMESTAMP - INTERVAL 4 DAY
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = '[DEMO] Foro Portal de Atencion');
+
+INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+SELECT NULL, 'GENERAL', TRUE, '[DEMO] Comunidad Tecnica',
+       CURRENT_TIMESTAMP - INTERVAL 30 DAY
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = '[DEMO] Comunidad Tecnica');
+
+SET @demo_foro_migracion_id := (SELECT MIN(id) FROM foro WHERE nombre = '[DEMO] Foro Migracion Cloud');
+SET @demo_foro_portal_id := (SELECT MIN(id) FROM foro WHERE nombre = '[DEMO] Foro Portal de Atencion');
+SET @demo_foro_general_id := (SELECT MIN(id) FROM foro WHERE nombre = '[DEMO] Comunidad Tecnica');
+
+INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion)
+SELECT @demo_foro_migracion_id,
+       (SELECT id FROM usuario WHERE correo = 'demo.pm@skillbridge.local'),
+       (SELECT id FROM etiqueta WHERE nombre = 'Arquitectura'),
+       '[DEMO] Estrategia de migracion por etapas',
+       'Propongo migrar primero los servicios sin estado y dejar las bases de datos para la segunda etapa. Revisemos dependencias y riesgos antes del corte.',
+       CURRENT_TIMESTAMP - INTERVAL 3 DAY
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM publicacion_foro
+    WHERE foro_id = @demo_foro_migracion_id
+      AND titulo = '[DEMO] Estrategia de migracion por etapas'
+);
+
+INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion)
+SELECT @demo_foro_migracion_id,
+       (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
+       (SELECT id FROM etiqueta WHERE nombre = 'Incidente'),
+       '[DEMO] Incidente en despliegue AWS',
+       'El servicio de integracion reinicio dos veces luego del despliegue. Los eventos indican que el limite de memoria es insuficiente durante la inicializacion.',
+       CURRENT_TIMESTAMP - INTERVAL 1 DAY
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM publicacion_foro
+    WHERE foro_id = @demo_foro_migracion_id
+      AND titulo = '[DEMO] Incidente en despliegue AWS'
+);
+
+INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion)
+SELECT @demo_foro_portal_id,
+       (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
+       (SELECT id FROM etiqueta WHERE nombre = 'Pregunta'),
+       '[DEMO] Contrato del API de solicitudes',
+       'Antes de implementar la pantalla necesitamos confirmar los estados y los mensajes de error que devolvera el API de solicitudes.',
+       CURRENT_TIMESTAMP - INTERVAL 2 DAY
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM publicacion_foro
+    WHERE foro_id = @demo_foro_portal_id
+      AND titulo = '[DEMO] Contrato del API de solicitudes'
+);
+
+INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion)
+SELECT @demo_foro_general_id,
+       (SELECT id FROM usuario WHERE correo = 'demo.pm@skillbridge.local'),
+       (SELECT id FROM etiqueta WHERE nombre = 'Anuncio'),
+       '[DEMO] Estandares para documentar APIs',
+       'Desde esta semana utilizaremos el mismo formato para describir endpoints, parametros, respuestas y ejemplos de cada API.',
+       CURRENT_TIMESTAMP - INTERVAL 8 DAY
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM publicacion_foro
+    WHERE foro_id = @demo_foro_general_id
+      AND titulo = '[DEMO] Estandares para documentar APIs'
+);
+
+SET @demo_pub_incidente_id := (
+    SELECT MIN(id) FROM publicacion_foro
+    WHERE foro_id = @demo_foro_migracion_id
+      AND titulo = '[DEMO] Incidente en despliegue AWS'
+);
+SET @demo_pub_estrategia_id := (
+    SELECT MIN(id) FROM publicacion_foro
+    WHERE foro_id = @demo_foro_migracion_id
+      AND titulo = '[DEMO] Estrategia de migracion por etapas'
+);
+SET @demo_pub_portal_id := (
+    SELECT MIN(id) FROM publicacion_foro
+    WHERE foro_id = @demo_foro_portal_id
+      AND titulo = '[DEMO] Contrato del API de solicitudes'
+);
+
+INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, es_solucion, fecha_creacion)
+SELECT @demo_pub_incidente_id,
+       (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
+       'Aumente el limite de memoria manteniendo el request actual. Los pods completaron la inicializacion y permanecen estables.',
+       TRUE, CURRENT_TIMESTAMP - INTERVAL 20 HOUR
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM respuesta_foro
+    WHERE publicacion_id = @demo_pub_incidente_id
+      AND contenido LIKE 'Aumente el limite de memoria%'
+);
+
+INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, es_solucion, fecha_creacion)
+SELECT @demo_pub_incidente_id,
+       (SELECT id FROM usuario WHERE correo = 'demo.pm@skillbridge.local'),
+       'Confirmado en el ambiente de pruebas. Conservaremos esta configuracion para el siguiente despliegue.',
+       FALSE, CURRENT_TIMESTAMP - INTERVAL 18 HOUR
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM respuesta_foro
+    WHERE publicacion_id = @demo_pub_incidente_id
+      AND contenido LIKE 'Confirmado en el ambiente de pruebas%'
+);
+
+INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, es_solucion, fecha_creacion)
+SELECT @demo_pub_estrategia_id,
+       (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
+       'El inventario de dependencias esta listo. Sugiero incluir las tareas programadas antes de cerrar la primera etapa.',
+       FALSE, CURRENT_TIMESTAMP - INTERVAL 2 DAY
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM respuesta_foro
+    WHERE publicacion_id = @demo_pub_estrategia_id
+      AND contenido LIKE 'El inventario de dependencias esta listo%'
+);
+
+INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, es_solucion, fecha_creacion)
+SELECT @demo_pub_portal_id,
+       (SELECT id FROM usuario WHERE correo = 'demo.pm@skillbridge.local'),
+       'Los estados acordados son pendiente, en proceso, atendida y cancelada. Publicare el contrato definitivo en la documentacion del proyecto.',
+       TRUE, CURRENT_TIMESTAMP - INTERVAL 1 DAY
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM respuesta_foro
+    WHERE publicacion_id = @demo_pub_portal_id
+      AND contenido LIKE 'Los estados acordados son%'
+);
+
+SET @demo_resp_solucion_id := (
+    SELECT MIN(id) FROM respuesta_foro
+    WHERE publicacion_id = @demo_pub_incidente_id
+      AND contenido LIKE 'Aumente el limite de memoria%'
+);
+
+INSERT INTO voto_publicacion (usuario_id, publicacion_id, tipo)
+SELECT (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
+       @demo_pub_incidente_id, 'POSITIVO'
+FROM DUAL
+ON DUPLICATE KEY UPDATE tipo = 'POSITIVO';
+
+INSERT INTO voto_publicacion (usuario_id, publicacion_id, tipo)
+SELECT (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
+       @demo_pub_incidente_id, 'POSITIVO'
+FROM DUAL
+ON DUPLICATE KEY UPDATE tipo = 'POSITIVO';
+
+INSERT INTO voto_publicacion (usuario_id, publicacion_id, tipo)
+SELECT (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
+       @demo_pub_estrategia_id, 'POSITIVO'
+FROM DUAL
+ON DUPLICATE KEY UPDATE tipo = 'POSITIVO';
+
+INSERT INTO voto_respuesta (usuario_id, respuesta_id, tipo)
+SELECT (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
+       @demo_resp_solucion_id, 'POSITIVO'
+FROM DUAL
+ON DUPLICATE KEY UPDATE tipo = 'POSITIVO';
+
+INSERT INTO voto_respuesta (usuario_id, respuesta_id, tipo)
+SELECT (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
+       @demo_resp_solucion_id, 'POSITIVO'
+FROM DUAL
+ON DUPLICATE KEY UPDATE tipo = 'POSITIVO';
+
+-- --------------------------------------------------------------------------
+-- 9. Actividades para probar los reportes mensuales del RM
+-- El reporte solo considera las actividades COMPLETADA del mes actual.
+-- --------------------------------------------------------------------------
+SET @demo_pm_id := (SELECT id FROM usuario WHERE correo = 'demo.pm@skillbridge.local');
+SET @demo_colaborador1_id := (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local');
+SET @demo_colaborador2_id := (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local');
+SET @demo_colaborador3_id := (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local');
+
+INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+                       fecha_asignacion, fecha_limite, fecha_marcado_revision, fecha_entrega,
+                       estado_entrega, veces_devuelta, estado, creado_por)
+SELECT @demo_migracion_id, @demo_colaborador1_id, '[DEMO] Inventario de servicios',
+       'Inventario tecnico utilizado para planificar la migracion.', 42.00,
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 1 DAY), LAST_DAY(CURRENT_DATE),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 5 DAY),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 6 DAY),
+       'A_TIEMPO', 0, 'COMPLETADA', @demo_pm_id
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM actividad WHERE proyecto_id = @demo_migracion_id
+      AND titulo = '[DEMO] Inventario de servicios'
+);
+
+INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+                       fecha_asignacion, fecha_limite, fecha_marcado_revision, fecha_entrega,
+                       estado_entrega, veces_devuelta, estado, creado_por)
+SELECT @demo_migracion_id, @demo_colaborador2_id, '[DEMO] Configuracion de infraestructura',
+       'Preparacion de la infraestructura cloud del proyecto.', 36.00,
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 2 DAY), LAST_DAY(CURRENT_DATE),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 7 DAY),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 8 DAY),
+       'A_TIEMPO', 0, 'COMPLETADA', @demo_pm_id
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM actividad WHERE proyecto_id = @demo_migracion_id
+      AND titulo = '[DEMO] Configuracion de infraestructura'
+);
+
+INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+                       fecha_asignacion, fecha_limite, fecha_marcado_revision, fecha_entrega,
+                       estado_entrega, veces_devuelta, estado, creado_por)
+SELECT @demo_portal_id, @demo_colaborador1_id, '[DEMO] API de solicitudes',
+       'Implementacion del contrato principal de solicitudes.', 28.00,
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 1 DAY), LAST_DAY(CURRENT_DATE),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 9 DAY),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 10 DAY),
+       'A_TIEMPO', 1, 'COMPLETADA', @demo_pm_id
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM actividad WHERE proyecto_id = @demo_portal_id
+      AND titulo = '[DEMO] API de solicitudes'
+);
+
+INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+                       fecha_asignacion, fecha_limite, fecha_marcado_revision, fecha_entrega,
+                       estado_entrega, veces_devuelta, estado, creado_por)
+SELECT @demo_portal_id, @demo_colaborador3_id, '[DEMO] Pruebas de aceptacion',
+       'Ejecucion de casos funcionales para el portal.', 52.00,
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 3 DAY), LAST_DAY(CURRENT_DATE),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 11 DAY),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 12 DAY),
+       'A_TIEMPO', 0, 'COMPLETADA', @demo_pm_id
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM actividad WHERE proyecto_id = @demo_portal_id
+      AND titulo = '[DEMO] Pruebas de aceptacion'
+);
+
+INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+                       fecha_asignacion, fecha_limite, fecha_marcado_revision, fecha_entrega,
+                       estado_entrega, veces_devuelta, estado, creado_por)
+SELECT @demo_analitica_id, @demo_colaborador2_id, '[DEMO] Modelo de indicadores',
+       'Construccion del modelo inicial de indicadores comerciales.', 44.00,
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 2 DAY), LAST_DAY(CURRENT_DATE),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 8 DAY),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 9 DAY),
+       'A_TIEMPO', 0, 'COMPLETADA', @demo_pm_id
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM actividad WHERE proyecto_id = @demo_analitica_id
+      AND titulo = '[DEMO] Modelo de indicadores'
+);
+
+-- Esta actividad aparece en otro mes y permite comprobar el filtro de periodo.
+INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+                       fecha_asignacion, fecha_limite, fecha_marcado_revision, fecha_entrega,
+                       estado_entrega, veces_devuelta, estado, creado_por)
+SELECT @demo_migracion_id, @demo_colaborador1_id, '[DEMO] Diagnostico del mes anterior',
+       'Actividad completada antes del mes actual.', 32.00,
+       DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 10 DAY),
+       DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 1 DAY),
+       DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 3 DAY),
+       DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 2 DAY),
+       'A_TIEMPO', 0, 'COMPLETADA', @demo_pm_id
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM actividad WHERE proyecto_id = @demo_migracion_id
+      AND titulo = '[DEMO] Diagnostico del mes anterior'
+);
+
+-- Esta actividad sigue en revision y no debe sumarse como hora trabajada.
+INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+                       fecha_asignacion, fecha_limite, fecha_marcado_revision, fecha_entrega,
+                       estado_entrega, veces_devuelta, estado, creado_por)
+SELECT @demo_analitica_id, @demo_colaborador3_id, '[DEMO] Tablero comercial en revision',
+       'Actividad intencionalmente pendiente de aprobacion.', 60.00,
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 3 DAY), LAST_DAY(CURRENT_DATE),
+       DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 12 DAY), NULL,
+       NULL, 0, 'EN_REVISION', @demo_pm_id
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM actividad WHERE proyecto_id = @demo_analitica_id
+      AND titulo = '[DEMO] Tablero comercial en revision'
+);
+
+-- Al volver a ejecutar el archivo, mueve los registros demo al periodo actual.
+-- Solo restaura estas actividades identificadas explícitamente con [DEMO].
+SET @demo_act_inventario_id := (SELECT MIN(id) FROM actividad WHERE proyecto_id = @demo_migracion_id AND titulo = '[DEMO] Inventario de servicios');
+SET @demo_act_infraestructura_id := (SELECT MIN(id) FROM actividad WHERE proyecto_id = @demo_migracion_id AND titulo = '[DEMO] Configuracion de infraestructura');
+SET @demo_act_api_id := (SELECT MIN(id) FROM actividad WHERE proyecto_id = @demo_portal_id AND titulo = '[DEMO] API de solicitudes');
+SET @demo_act_pruebas_id := (SELECT MIN(id) FROM actividad WHERE proyecto_id = @demo_portal_id AND titulo = '[DEMO] Pruebas de aceptacion');
+SET @demo_act_indicadores_id := (SELECT MIN(id) FROM actividad WHERE proyecto_id = @demo_analitica_id AND titulo = '[DEMO] Modelo de indicadores');
+SET @demo_act_anterior_id := (SELECT MIN(id) FROM actividad WHERE proyecto_id = @demo_migracion_id AND titulo = '[DEMO] Diagnostico del mes anterior');
+SET @demo_act_revision_id := (SELECT MIN(id) FROM actividad WHERE proyecto_id = @demo_analitica_id AND titulo = '[DEMO] Tablero comercial en revision');
+
+UPDATE actividad
+SET fecha_asignacion = DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 1 DAY),
+    fecha_limite = LAST_DAY(CURRENT_DATE),
+    fecha_marcado_revision = DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 10 DAY),
+    fecha_entrega = DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 11 DAY),
+    estado_entrega = 'A_TIEMPO',
+    estado = 'COMPLETADA'
+WHERE id IN (@demo_act_inventario_id, @demo_act_infraestructura_id,
+             @demo_act_api_id, @demo_act_pruebas_id, @demo_act_indicadores_id);
+
+UPDATE actividad
+SET fecha_asignacion = DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 10 DAY),
+    fecha_limite = DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 1 DAY),
+    fecha_marcado_revision = DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 3 DAY),
+    fecha_entrega = DATE_SUB(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 2 DAY),
+    estado_entrega = 'A_TIEMPO',
+    estado = 'COMPLETADA'
+WHERE id = @demo_act_anterior_id;
+
+UPDATE actividad
+SET fecha_asignacion = DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 3 DAY),
+    fecha_limite = LAST_DAY(CURRENT_DATE),
+    fecha_marcado_revision = DATE_ADD(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01'), INTERVAL 12 DAY),
+    fecha_entrega = NULL,
+    estado_entrega = NULL,
+    estado = 'EN_REVISION'
+WHERE id = @demo_act_revision_id;
+
+-- --------------------------------------------------------------------------
+-- 10. Catalogo y solicitudes de cursos del RM
+-- --------------------------------------------------------------------------
+SET @demo_admin_id := (SELECT id FROM usuario WHERE correo = 'demo.admin@skillbridge.local');
+
+INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
+SELECT '[DEMO] Spring Boot avanzado', 'Arquitectura, seguridad y persistencia con Spring Boot.',
+       'Tecnico', 20.00, TRUE, @demo_admin_id
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] Spring Boot avanzado');
+
+INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
+SELECT '[DEMO] AWS Cloud Practitioner', 'Fundamentos de servicios, seguridad y arquitectura en AWS.',
+       'Certificacion', 32.00, TRUE, @demo_admin_id
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] AWS Cloud Practitioner');
+
+INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
+SELECT '[DEMO] Comunicacion efectiva', 'Comunicacion profesional y coordinacion de equipos.',
+       'Habilidades blandas', 8.00, TRUE, @demo_admin_id
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] Comunicacion efectiva');
+
+INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
+SELECT '[DEMO] Kubernetes productivo', 'Despliegue y operacion de cargas en Kubernetes.',
+       'Tecnico', 24.00, TRUE, @demo_admin_id
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] Kubernetes productivo');
+
+INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
+SELECT '[DEMO] Curso inactivo', 'Curso desactivado que no debe aparecer en el catalogo del RM.',
+       'Tecnico', 10.00, FALSE, @demo_admin_id
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] Curso inactivo');
+
+SET @demo_curso_spring_id := (SELECT MIN(id) FROM curso WHERE nombre = '[DEMO] Spring Boot avanzado');
+SET @demo_curso_aws_id := (SELECT MIN(id) FROM curso WHERE nombre = '[DEMO] AWS Cloud Practitioner');
+SET @demo_curso_comunicacion_id := (SELECT MIN(id) FROM curso WHERE nombre = '[DEMO] Comunicacion efectiva');
+SET @demo_curso_kubernetes_id := (SELECT MIN(id) FROM curso WHERE nombre = '[DEMO] Kubernetes productivo');
+SET @demo_curso_inactivo_id := (SELECT MIN(id) FROM curso WHERE nombre = '[DEMO] Curso inactivo');
+
+UPDATE curso SET activo = TRUE WHERE id IN (
+    @demo_curso_spring_id, @demo_curso_aws_id,
+    @demo_curso_comunicacion_id, @demo_curso_kubernetes_id
+);
+UPDATE curso SET activo = FALSE WHERE id = @demo_curso_inactivo_id;
+
+INSERT INTO colaborador_curso (
+    colaborador_id, curso_id, origen, estado, asignado_por,
+    fecha_solicitud, fecha_respuesta, motivo_respuesta
+)
+SELECT @demo_colaborador1_id, @demo_curso_spring_id, 'SOLICITUD_COLABORADOR',
+       'SOLICITADO', NULL, CURRENT_TIMESTAMP - INTERVAL 2 DAY, NULL, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM colaborador_curso
+    WHERE colaborador_id = @demo_colaborador1_id AND curso_id = @demo_curso_spring_id
+);
+
+INSERT INTO colaborador_curso (
+    colaborador_id, curso_id, origen, estado, asignado_por,
+    fecha_solicitud, fecha_respuesta, motivo_respuesta
+)
+SELECT @demo_colaborador2_id, @demo_curso_aws_id, 'SOLICITUD_COLABORADOR',
+       'SOLICITADO', NULL, CURRENT_TIMESTAMP - INTERVAL 1 DAY, NULL, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM colaborador_curso
+    WHERE colaborador_id = @demo_colaborador2_id AND curso_id = @demo_curso_aws_id
+);
+
+INSERT INTO colaborador_curso (
+    colaborador_id, curso_id, origen, estado, asignado_por,
+    fecha_solicitud, fecha_respuesta, motivo_respuesta
+)
+SELECT @demo_colaborador3_id, @demo_curso_comunicacion_id, 'SOLICITUD_COLABORADOR',
+       'EN_CURSO', @demo_rm_id, CURRENT_TIMESTAMP - INTERVAL 7 DAY,
+       CURRENT_TIMESTAMP - INTERVAL 5 DAY, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM colaborador_curso
+    WHERE colaborador_id = @demo_colaborador3_id AND curso_id = @demo_curso_comunicacion_id
+);
+
+INSERT INTO colaborador_curso (
+    colaborador_id, curso_id, origen, estado, asignado_por,
+    fecha_solicitud, fecha_respuesta, motivo_respuesta
+)
+SELECT @demo_colaborador1_id, @demo_curso_kubernetes_id, 'SOLICITUD_COLABORADOR',
+       'RECHAZADO', @demo_rm_id, CURRENT_TIMESTAMP - INTERVAL 8 DAY,
+       CURRENT_TIMESTAMP - INTERVAL 6 DAY,
+       'Se recomienda completar primero la capacitacion base de contenedores.'
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM colaborador_curso
+    WHERE colaborador_id = @demo_colaborador1_id AND curso_id = @demo_curso_kubernetes_id
+);
+
+INSERT INTO colaborador_curso (
+    colaborador_id, curso_id, origen, estado, asignado_por,
+    fecha_solicitud, fecha_respuesta, motivo_respuesta
+)
+SELECT @demo_colaborador2_id, @demo_curso_kubernetes_id, 'ASIGNADO_POR_RM',
+       'EN_CURSO', @demo_rm_id, CURRENT_TIMESTAMP - INTERVAL 4 DAY,
+       CURRENT_TIMESTAMP - INTERVAL 4 DAY,
+       'Capacitacion recomendada para fortalecer la operacion cloud.'
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM colaborador_curso
+    WHERE colaborador_id = @demo_colaborador2_id AND curso_id = @demo_curso_kubernetes_id
+);
+
+SET @demo_cc_spring_id := (SELECT MIN(id) FROM colaborador_curso WHERE colaborador_id = @demo_colaborador1_id AND curso_id = @demo_curso_spring_id);
+SET @demo_cc_aws_id := (SELECT MIN(id) FROM colaborador_curso WHERE colaborador_id = @demo_colaborador2_id AND curso_id = @demo_curso_aws_id);
+SET @demo_cc_comunicacion_id := (SELECT MIN(id) FROM colaborador_curso WHERE colaborador_id = @demo_colaborador3_id AND curso_id = @demo_curso_comunicacion_id);
+SET @demo_cc_rechazado_id := (SELECT MIN(id) FROM colaborador_curso WHERE colaborador_id = @demo_colaborador1_id AND curso_id = @demo_curso_kubernetes_id);
+SET @demo_cc_asignado_id := (SELECT MIN(id) FROM colaborador_curso WHERE colaborador_id = @demo_colaborador2_id AND curso_id = @demo_curso_kubernetes_id);
+
+UPDATE colaborador_curso SET origen = 'SOLICITUD_COLABORADOR', estado = 'SOLICITADO',
+    asignado_por = NULL, fecha_solicitud = CURRENT_TIMESTAMP - INTERVAL 2 DAY,
+    fecha_respuesta = NULL, motivo_respuesta = NULL WHERE id = @demo_cc_spring_id;
+UPDATE colaborador_curso SET origen = 'SOLICITUD_COLABORADOR', estado = 'SOLICITADO',
+    asignado_por = NULL, fecha_solicitud = CURRENT_TIMESTAMP - INTERVAL 1 DAY,
+    fecha_respuesta = NULL, motivo_respuesta = NULL WHERE id = @demo_cc_aws_id;
+UPDATE colaborador_curso SET origen = 'SOLICITUD_COLABORADOR', estado = 'EN_CURSO',
+    asignado_por = @demo_rm_id, fecha_solicitud = CURRENT_TIMESTAMP - INTERVAL 7 DAY,
+    fecha_respuesta = CURRENT_TIMESTAMP - INTERVAL 5 DAY, motivo_respuesta = NULL
+WHERE id = @demo_cc_comunicacion_id;
+UPDATE colaborador_curso SET origen = 'SOLICITUD_COLABORADOR', estado = 'RECHAZADO',
+    asignado_por = @demo_rm_id, fecha_solicitud = CURRENT_TIMESTAMP - INTERVAL 8 DAY,
+    fecha_respuesta = CURRENT_TIMESTAMP - INTERVAL 6 DAY,
+    motivo_respuesta = 'Se recomienda completar primero la capacitacion base de contenedores.'
+WHERE id = @demo_cc_rechazado_id;
+UPDATE colaborador_curso SET origen = 'ASIGNADO_POR_RM', estado = 'EN_CURSO',
+    asignado_por = @demo_rm_id, fecha_solicitud = CURRENT_TIMESTAMP - INTERVAL 4 DAY,
+    fecha_respuesta = CURRENT_TIMESTAMP - INTERVAL 4 DAY,
+    motivo_respuesta = 'Capacitacion recomendada para fortalecer la operacion cloud.'
+WHERE id = @demo_cc_asignado_id;
+
 COMMIT;
 
 -- --------------------------------------------------------------------------
--- 8. Comprobacion rapida
--- Debe devolver cinco proyectos y sus datos principales.
+-- 11. Comprobacion rapida
+-- Debe devolver proyectos, foros, actividades y cursos de demostracion.
 -- --------------------------------------------------------------------------
 SELECT
     p.id,
@@ -571,3 +1049,46 @@ FROM proyecto p
 JOIN usuario pm ON pm.id = p.pm_id
 WHERE p.nombre LIKE '[DEMO]%'
 ORDER BY p.fecha_creacion DESC;
+
+SELECT
+    f.id,
+    f.nombre,
+    f.tipo,
+    f.es_publico,
+    COALESCE(p.nombre, 'Comunidad general') AS proyecto,
+    COUNT(DISTINCT pub.id) AS publicaciones,
+    COUNT(DISTINCT resp.id) AS respuestas
+FROM foro f
+LEFT JOIN proyecto p ON p.id = f.proyecto_id
+LEFT JOIN publicacion_foro pub ON pub.foro_id = f.id
+LEFT JOIN respuesta_foro resp ON resp.publicacion_id = pub.id
+WHERE f.nombre LIKE '[DEMO]%'
+GROUP BY f.id, f.nombre, f.tipo, f.es_publico, p.nombre
+ORDER BY f.fecha_creacion DESC;
+
+SELECT
+    DATE_FORMAT(a.fecha_entrega, '%Y-%m') AS periodo,
+    p.nombre AS proyecto,
+    CONCAT(c.nombre, ' ', c.apellido) AS colaborador,
+    a.estado,
+    SUM(a.horas_estimadas) AS horas
+FROM actividad a
+JOIN proyecto p ON p.id = a.proyecto_id
+JOIN usuario c ON c.id = a.colaborador_id
+WHERE a.titulo LIKE '[DEMO]%'
+GROUP BY DATE_FORMAT(a.fecha_entrega, '%Y-%m'), p.nombre,
+         CONCAT(c.nombre, ' ', c.apellido), a.estado
+ORDER BY periodo DESC, proyecto, colaborador;
+
+SELECT
+    c.nombre AS curso,
+    c.activo,
+    CONCAT(u.nombre, ' ', u.apellido) AS colaborador,
+    cc.origen,
+    cc.estado,
+    cc.motivo_respuesta
+FROM curso c
+LEFT JOIN colaborador_curso cc ON cc.curso_id = c.id
+LEFT JOIN usuario u ON u.id = cc.colaborador_id
+WHERE c.nombre LIKE '[DEMO]%'
+ORDER BY c.nombre, colaborador;

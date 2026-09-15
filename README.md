@@ -27,14 +27,47 @@ ejecutar una sola vez [`BDs_SQL/migracion_solicitud_personal.sql`](BDs_SQL/migra
 antes de desplegar esta versión. La migración agrega la tabla
 `solicitud_personal` sin borrar ni modificar registros existentes.
 
+Para incorporar el flujo de Cursos del RM en una base ya creada con una
+versión anterior de `skillbridge_db_v4.sql`, se debe ejecutar una sola vez
+[`BDs_SQL/migracion_cursos.sql`](BDs_SQL/migracion_cursos.sql). Esta migración
+añade el campo donde se conserva el motivo de rechazo o asignación directa y
+puede ejecutarse nuevamente sin duplicarlo. Una instalación nueva que ejecute
+el `skillbridge_db_v4.sql` actualizado no necesita esta migración.
+
 Las fotos y los certificados que suben los colaboradores se guardan en la
 carpeta indicada por `UPLOAD_DIR`. En la nube esta variable debe apuntar a un
 directorio escribible y persistente; si se usa el almacenamiento temporal de
 la instancia, los archivos podrían perderse al reiniciar o volver a desplegar.
 
-Para cargar datos de demostración del RM, incluidas solicitudes de personal y
-certificados en diferentes estados, se puede ejecutar después
+Para cargar datos de demostración del RM, incluidas solicitudes de personal,
+certificados, foros, actividades para reportes y solicitudes de cursos, se
+puede ejecutar después
 [`BDs_SQL/datos_demo_rm_proyectos.sql`](BDs_SQL/datos_demo_rm_proyectos.sql).
+
+### Reportes del RM
+
+Las horas trabajadas corresponden a la suma de `actividad.horas_estimadas` de
+las actividades con estado `COMPLETADA` y fecha de entrega dentro del mes
+seleccionado. Las actividades pendientes o en revisión no se contabilizan.
+Los reportes no exponen sueldo base, bonos ni pagos mensuales. La exportación
+a Excel usa Apache POI, por lo que el despliegue debe volver a construir el
+proyecto para descargar la dependencia declarada en `pom.xml`. Esta función no
+requiere una migración adicional de la base de datos.
+
+### Cursos del RM
+
+En `/rm/cursos` se consulta el catálogo activo con filtros. Desde la bandeja
+se aprueban o rechazan solicitudes (con motivo obligatorio para rechazar), y
+desde el formulario se asignan cursos directamente a colaboradores activos.
+Se impiden inscripciones pendientes o activas duplicadas. Cada decisión o
+asignación genera una notificación real en la campana del colaborador.
+
+Este alcance corresponde al RM: el mantenimiento del catálogo por el
+administrador y el envío de nuevas solicitudes desde la vista del colaborador
+todavía deben conectarse a la base de datos. Los datos de demostración permiten
+probar la revisión del RM mientras se implementan esos módulos. Antes de iniciar
+esta versión en una base existente, ejecutar `migracion_cursos.sql`; no borra
+registros y solo agrega `colaborador_curso.motivo_respuesta`.
 
 ## Pruebas
 

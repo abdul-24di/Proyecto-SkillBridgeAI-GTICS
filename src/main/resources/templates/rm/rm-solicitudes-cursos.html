@@ -1,155 +1,64 @@
 <!doctype html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SkillBridge AI — Solicitudes de Cursos</title>
-  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
-  <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
-  <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Solicitudes de cursos</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}">
 </head>
-<body>
-<div class="app-shell">
-  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('cursos')}">
-    <div class="container-xl">
-      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
-      <nav class="main-nav" aria-label="Navegacion principal">
-        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
-        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
-        <a href="rm-colaboradores.html" th:href="@{/rm/colaboradores}">Colaboradores</a>
-        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
-        <a href="rm-cursos.html" class="active" th:href="@{/rm/cursos}">Cursos</a>
-        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
-        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
-      </nav>
-      <div class="user-area">
-        <span class="avatar avatar-sm user-avatar">AR</span>
-        <div class="user-meta"><div class="fw-semibold">Abraham Ramirez</div><div class="small">Resource Manager</div></div>
-      </div>
-    </div>
-  </header>
+<body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('cursos')}"></header>
+<main class="page-wrap">
+  <div class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/cursos}">Cursos</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Solicitudes</span></div>
+  <div class="page-head page-head-stack-mobile page-head-button-mobile">
+    <div><h1 class="page-title">Solicitudes de cursos</h1><div class="text-secondary">Aprueba o rechaza solicitudes y consulta el historial de inscripciones.</div></div>
+    <div class="d-flex gap-2"><a class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Ver catálogo</a><a class="btn btn-primary" th:href="@{/rm/cursos/asignar}">Asignar curso</a></div>
+  </div>
 
-  <main class="page-wrap">
-    <div class="page-head page-head-stack-mobile page-head-button-mobile">
-      <div>
-        <h1 class="page-title">Solicitudes de Cursos</h1>
-        <div class="text-secondary">Solicitudes de inscripcion a cursos enviadas por colaboradores. Aprueba o rechaza cada una.</div>
-      </div>
-      <a href="rm-cursos.html" class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Ver catalogo de cursos</a>
-    </div>
+  <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+  <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
 
-    <div class="row row-cards mb-4">
-      <div class="col-sm-6 col-xl-3"><div class="card summary-card"><div class="card-body d-flex align-items-center gap-3">
-        <div class="summary-icon bg-yellow-lt text-yellow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
-        <div><div class="summary-label">Solicitudes pendientes</div><div class="summary-number">7</div></div>
-      </div></div></div>
-      <div class="col-sm-6 col-xl-3"><div class="card summary-card"><div class="card-body d-flex align-items-center gap-3">
-        <div class="summary-icon bg-green-lt text-green"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-        <div><div class="summary-label">Aprobadas este mes</div><div class="summary-number">12</div></div>
-      </div></div></div>
-      <div class="col-sm-6 col-xl-3"><div class="card summary-card"><div class="card-body d-flex align-items-center gap-3">
-        <div class="summary-icon bg-red-lt text-red"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></div>
-        <div><div class="summary-label">Rechazadas este mes</div><div class="summary-number">3</div></div>
-      </div></div></div>
-      <div class="col-sm-6 col-xl-3"><div class="card summary-card"><div class="card-body d-flex align-items-center gap-3">
-        <div class="summary-icon bg-blue-lt text-blue"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-        <div><div class="summary-label">En curso</div><div class="summary-number">18</div></div>
-      </div></div></div>
-    </div>
+  <div class="row row-cards mb-4">
+    <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Solicitudes pendientes</div><div class="metric-number" th:text="${bandeja.pendientes}">0</div></div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Aprobadas este mes</div><div class="metric-number" th:text="${bandeja.aprobadasEsteMes}">0</div></div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Rechazadas este mes</div><div class="metric-number" th:text="${bandeja.rechazadasEsteMes}">0</div></div></div></div>
+    <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">En curso</div><div class="metric-number" th:text="${bandeja.enCurso}">0</div></div></div></div>
+  </div>
 
-    <div class="card section-card mb-4">
-      <div class="card-body">
-        <div class="row g-3 align-items-end">
-          <div class="col-xl-4 col-md-6"><label class="form-label">Buscar colaborador o curso</label><input type="text" class="form-control" placeholder="Nombre del colaborador o curso..."></div>
-          <div class="col-xl-3 col-md-6"><label class="form-label">Estado</label><select class="form-select"><option value="all">Todos</option><option value="SOLICITADO" selected>Pendientes</option><option value="EN_CURSO">En curso</option><option value="COMPLETADO">Completados</option><option value="RECHAZADO">Rechazados</option></select></div>
-          <div class="col-xl-3 col-md-6"><label class="form-label">Origen</label><select class="form-select"><option value="all">Todos los origenes</option><option value="SOLICITUD_COLABORADOR">Solicitud del colaborador</option><option value="ASIGNADO_POR_RM">Asignado por RM</option></select></div>
-          <div class="col-xl-2 col-md-6 d-grid"><button class="btn btn-outline-secondary" type="button">Limpiar</button></div>
-        </div>
-      </div>
-    </div>
+  <div class="card section-card mb-4">
+    <form class="card-body" method="get" th:action="@{/rm/cursos/solicitudes}"><div class="row g-3 align-items-end">
+      <div class="col-xl-4 col-md-6"><label class="form-label" for="busqueda">Buscar colaborador o curso</label><input id="busqueda" name="busqueda" class="form-control" th:value="${busqueda}" placeholder="Nombre, cargo, curso o categoría"></div>
+      <div class="col-xl-3 col-md-6"><label class="form-label" for="estado">Estado</label><select id="estado" name="estado" class="form-select"><option value="" th:selected="${estadoSeleccionado == ''}">Todos</option><option value="SOLICITADO" th:selected="${estadoSeleccionado == 'SOLICITADO'}">Pendientes</option><option value="EN_CURSO" th:selected="${estadoSeleccionado == 'EN_CURSO'}">En curso</option><option value="COMPLETADO" th:selected="${estadoSeleccionado == 'COMPLETADO'}">Completados</option><option value="RECHAZADO" th:selected="${estadoSeleccionado == 'RECHAZADO'}">Rechazados</option></select></div>
+      <div class="col-xl-3 col-md-6"><label class="form-label" for="origen">Origen</label><select id="origen" name="origen" class="form-select"><option value="">Todos</option><option value="SOLICITUD_COLABORADOR" th:selected="${origenSeleccionado == 'SOLICITUD_COLABORADOR'}">Solicitud del colaborador</option><option value="ASIGNADO_POR_RM" th:selected="${origenSeleccionado == 'ASIGNADO_POR_RM'}">Asignado por RM</option></select></div>
+      <div class="col-xl-2 col-md-6 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit">Aplicar</button><a class="btn btn-outline-secondary" th:href="@{/rm/cursos/solicitudes}">Limpiar</a></div>
+    </div></form>
+  </div>
 
-    <div class="card section-card">
-      <div class="card-header section-header">
-        <div><h3 class="card-title mb-1">Solicitudes pendientes de revision</h3><div class="section-description">Revisa cada solicitud y aprueba o rechaza la inscripcion al curso.</div></div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-vcenter card-table">
-          <thead><tr>
-            <th>Colaborador</th><th>Curso</th><th>Categoria</th><th>Horas</th><th>Origen</th><th>Estado</th><th>Fecha solicitud</th><th class="text-end">Acciones</th>
-          </tr></thead>
-          <tbody>
-          <tr>
-            <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm bg-blue-lt text-blue">CM</span><div><div class="fw-semibold">Carlos Mendoza</div><div class="text-secondary small">Desarrollador Backend</div></div></div></td>
-            <td class="fw-semibold">Spring Boot Avanzado</td>
-            <td><span class="badge bg-blue-lt">Tecnico</span></td>
-            <td>40 h</td>
-            <td><span class="badge bg-azure-lt">Solicitud propia</span></td>
-            <td><span class="badge bg-yellow-lt">Pendiente</span></td>
-            <td>1 Sep 2026</td>
-            <td class="text-end"><div class="d-flex gap-2 justify-content-end"><button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal">Aprobar</button><button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">Rechazar</button></div></td>
-          </tr>
-          <tr>
-            <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm bg-green-lt text-green">AT</span><div><div class="fw-semibold">Ana Torres</div><div class="text-secondary small">Analista de Datos</div></div></div></td>
-            <td class="fw-semibold">Machine Learning con Python</td>
-            <td><span class="badge bg-blue-lt">Tecnico</span></td>
-            <td>60 h</td>
-            <td><span class="badge bg-azure-lt">Solicitud propia</span></td>
-            <td><span class="badge bg-yellow-lt">Pendiente</span></td>
-            <td>31 Ago 2026</td>
-            <td class="text-end"><div class="d-flex gap-2 justify-content-end"><button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal">Aprobar</button><button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">Rechazar</button></div></td>
-          </tr>
-          <tr>
-            <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm bg-purple-lt text-purple">LR</span><div><div class="fw-semibold">Luis Ramos</div><div class="text-secondary small">DevOps Engineer</div></div></div></td>
-            <td class="fw-semibold">Kubernetes en Produccion</td>
-            <td><span class="badge bg-blue-lt">Tecnico</span></td>
-            <td>30 h</td>
-            <td><span class="badge bg-secondary-lt">Asignado por RM</span></td>
-            <td><span class="badge bg-blue-lt">En curso</span></td>
-            <td>25 Ago 2026</td>
-            <td class="text-end"><a href="rm-perfil-colaborador.html" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil}">Ver perfil</a></td>
-          </tr>
-          <tr>
-            <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm bg-orange-lt text-orange">SR</span><div><div class="fw-semibold">Sofia Ramirez</div><div class="text-secondary small">UX Designer</div></div></div></td>
-            <td class="fw-semibold">Comunicacion Efectiva en Equipos</td>
-            <td><span class="badge bg-green-lt">Habilidades blandas</span></td>
-            <td>16 h</td>
-            <td><span class="badge bg-azure-lt">Solicitud propia</span></td>
-            <td><span class="badge bg-yellow-lt">Pendiente</span></td>
-            <td>2 Sep 2026</td>
-            <td class="text-end"><div class="d-flex gap-2 justify-content-end"><button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#approveModal">Aprobar</button><button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">Rechazar</button></div></td>
-          </tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="card-footer table-footer">
-        <div class="text-secondary small">Mostrando 1-4 de 7 solicitudes pendientes</div>
-        <ul class="pagination pagination-sm m-0">
-          <li class="page-item disabled"><a class="page-link" href="#" tabindex="-1">Anterior</a></li>
-          <li class="page-item active"><a class="page-link" href="#">1</a></li>
-          <li class="page-item"><a class="page-link" href="#">2</a></li>
-          <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
-        </ul>
-      </div>
-    </div>
-  </main>
-</div>
-
-<div class="modal modal-blur fade" id="approveModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-md modal-dialog-centered"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">Aprobar solicitud de curso</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
-    <div class="modal-body"><p class="text-secondary">Confirmas que apruebas la inscripcion al curso?</p></div>
-    <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success" type="button">Confirmar aprobacion</button></div>
-  </div></div>
-</div>
-
-<div class="modal modal-blur fade" id="rejectModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-md modal-dialog-centered"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">Rechazar solicitud de curso</h5><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
-    <div class="modal-body"><label class="form-label" for="rejectReason">Motivo del rechazo <span class="text-red">*</span></label><textarea id="rejectReason" class="form-control" rows="3" placeholder="Explica por que se rechaza esta solicitud..."></textarea></div>
-    <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-danger" type="button">Confirmar rechazo</button></div>
-  </div></div>
-</div>
-
-<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-</body>
-</html>
+  <div class="card section-card">
+    <div class="card-header section-header"><div><h3 class="card-title mb-1">Inscripciones y solicitudes</h3><div class="section-description">Solo las solicitudes pendientes enviadas por colaboradores pueden aprobarse o rechazarse.</div></div></div>
+    <div class="table-responsive"><table class="table table-vcenter card-table mb-0">
+      <thead><tr><th>Colaborador</th><th>Curso</th><th>Origen</th><th>Estado</th><th>Fecha</th><th>Motivo/justificación</th><th class="text-end">Acciones</th></tr></thead>
+      <tbody>
+      <tr th:each="item : ${bandeja.inscripciones}">
+        <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm bg-blue-lt text-blue" th:text="${item.iniciales}">CO</span><div><div class="fw-semibold" th:text="${item.colaborador}">Colaborador</div><div class="text-secondary small" th:text="${item.cargo}">Cargo</div></div></div></td>
+        <td><div class="fw-semibold" th:text="${item.curso}">Curso</div><div class="small text-secondary" th:text="|${item.categoria} · ${#numbers.formatDecimal(item.horas, 1, 2)} h|">Categoría</div></td>
+        <td><span class="badge bg-azure-lt" th:text="${item.origenTexto}">Origen</span></td>
+        <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
+        <td th:text="${#temporals.format(item.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
+        <td class="text-secondary small" th:text="${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta}">—</td>
+        <td class="text-end">
+          <div th:if="${item.pendienteGestionRm}" class="d-flex flex-column gap-2 align-items-end" style="min-width: 230px">
+            <form method="post" th:action="@{/rm/cursos/solicitudes/{id}/aprobar(id=${item.id})}"><button class="btn btn-success btn-sm" type="submit">Aprobar solicitud</button></form>
+            <form class="d-flex gap-2" method="post" th:action="@{/rm/cursos/solicitudes/{id}/rechazar(id=${item.id})}"><input class="form-control form-control-sm" name="motivo" maxlength="500" required placeholder="Motivo obligatorio"><button class="btn btn-outline-danger btn-sm" type="submit">Rechazar</button></form>
+          </div>
+          <a th:if="${!item.pendienteGestionRm}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${item.colaboradorId})}">Ver perfil</a>
+        </td>
+      </tr>
+      <tr th:if="${#lists.isEmpty(bandeja.inscripciones)}"><td colspan="7" class="text-center text-secondary py-5">No se encontraron inscripciones con estos filtros.</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</main></div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+</body></html>

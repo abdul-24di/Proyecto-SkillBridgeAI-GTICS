@@ -6,9 +6,8 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Historias A26/A27 — Tier 3, diferida. `origen` distingue si lo solicitó el
-// colaborador o si el RM lo asignó directamente (p.ej. por bajo cumplimiento
-// de horas — Bloque B punto 5).
+// Historias A26/A27. `origen` distingue si lo solicitó el colaborador o si el
+// RM lo asignó directamente (p.ej. por bajo cumplimiento de horas).
 @Entity
 @Table(name = "colaborador_curso")
 public class ColaboradorCurso {
@@ -47,6 +46,10 @@ public class ColaboradorCurso {
     @Column(name = "fecha_completado")
     private LocalDateTime fechaCompletado;
 
+    // Motivo del rechazo o justificación de una asignación directa del RM.
+    @Column(name = "motivo_respuesta", length = 500)
+    private String motivoRespuesta;
+
     @PrePersist
     protected void onCreate() {
         if (fechaSolicitud == null) fechaSolicitud = LocalDateTime.now();
@@ -78,4 +81,7 @@ public class ColaboradorCurso {
 
     public LocalDateTime getFechaCompletado() { return fechaCompletado; }
     public void setFechaCompletado(LocalDateTime fechaCompletado) { this.fechaCompletado = fechaCompletado; }
+
+    public String getMotivoRespuesta() { return motivoRespuesta; }
+    public void setMotivoRespuesta(String motivoRespuesta) { this.motivoRespuesta = motivoRespuesta; }
 }

@@ -1,0 +1,193 @@
+.explore-tabs {
+    display: flex;
+    gap: 1.5rem;
+    border-bottom: 1px solid #e5eaf0;
+    margin-bottom: 1.1rem;
+}
+
+.explore-tab {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .3rem 0 .8rem;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-weight: 700;
+    font-size: .92rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.explore-tab.active {
+    color: var(--tblr-primary);
+    border-bottom-color: var(--tblr-primary);
+}
+
+.explore-filters {
+    padding: 1rem 1.15rem;
+}
+
+.status-inline-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: .3rem;
+}
+
+/* ---- Proyectos: acordeón ---- */
+.project-accordion-item {
+    border: 1px solid #e3e7ee;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.project-accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    background: #fff;
+}
+
+.project-accordion-header:hover {
+    background: #f8fafc;
+}
+
+.project-accordion-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-weight: 700;
+    color: #182433;
+}
+
+.project-accordion-chevron {
+    transition: transform .18s ease;
+    color: #94a3b8;
+    flex: 0 0 auto;
+}
+
+.project-accordion-item.open .project-accordion-chevron {
+    transform: rotate(90deg);
+}
+
+.project-accordion-body {
+    display: none;
+    padding: 0 1.2rem 1.2rem;
+    border-top: 1px solid #edf0f4;
+}
+
+.project-accordion-item.open .project-accordion-body {
+    display: block;
+    padding-top: 1rem;
+}
+
+.profile-list-line {
+    padding: .3rem 0;
+    font-size: .88rem;
+    color: #303846;
+}
+
+.apply-skill-chip.active {
+    color: #fff;
+    background: var(--tblr-primary);
+    border-color: var(--tblr-primary);
+}
+
+/* ---- Colaboradores ---- */
+.collab-card {
+    border: 1px solid #e3e7ee;
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.collab-card-name {
+    font-weight: 700;
+    font-size: 1.02rem;
+    color: #182433;
+    margin-bottom: .5rem;
+}
+
+.collab-card-role {
+    color: #64748b;
+    font-size: .86rem;
+    margin-bottom: .5rem;
+}
+
+.collab-card-meta {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .84rem;
+    color: #64748b;
+    margin-bottom: .3rem;
+}
+
+.collab-list-view.hide {
+    display: none;
+}
+
+.collab-profile-detail {
+    display: none;
+}
+
+.collab-profile-detail.show {
+    display: block;
+}
+
+/* ---- Cursos ---- */
+.course-card {
+    border: 1px solid #e3e7ee;
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.course-card-title {
+    font-weight: 700;
+    color: #182433;
+    margin-bottom: .3rem;
+}
+
+.course-card-meta {
+    color: #64748b;
+    font-size: .8rem;
+    margin-bottom: .5rem;
+}
+
+.course-card-desc {
+    color: #64748b;
+    font-size: .86rem;
+    max-width: 520px;
+}
+
+.course-card-action {
+    flex: 0 0 auto;
+    text-align: right;
+}
+
+@media (max-width: 767px) {
+    .course-card {
+        flex-direction: column;
+    }
+
+    .course-card-action {
+        text-align: left;
+        width: 100%;
+    }
+
+    .course-card-action .btn {
+        width: 100%;
+    }
+}

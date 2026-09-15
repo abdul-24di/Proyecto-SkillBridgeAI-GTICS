@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Reportes de Proyectos</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+    <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('reportes')}"></header>
+
+    <main class="page-wrap">
+        <div class="container-xl mt-4">
+            <div class="page-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h2 class="page-title">Reportes de Proyectos</h2>
+                        <div class="text-secondary mt-1">Selecciona un proyecto para visualizar sus métricas, estado y desempeño del equipo.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row row-cards">
+                <!-- Reporte Proyecto 1 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-link-pop">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="avatar bg-blue-lt rounded">SI</span>
+                                <h3 class="card-title m-0 ms-3">Sistema de Inventario</h3>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-primary" style="width: 75%" role="progressbar"></div>
+                            </div>
+                            <div class="d-flex justify-content-between text-secondary mb-3 small">
+                                <span>Progreso</span>
+                                <span>75%</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-4">
+                                <span class="badge bg-green-lt">En curso</span>
+                                <a href="pm-reporte-detalle.html" th:href="@{/pm/reportes/detalle}" class="btn btn-outline-primary btn-sm">Ver reporte detallado</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reporte Proyecto 2 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-link-pop">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="avatar bg-green-lt rounded">MC</span>
+                                <h3 class="card-title m-0 ms-3">Módulo de Clientes</h3>
+                            </div>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: 100%" role="progressbar"></div>
+                            </div>
+                            <div class="d-flex justify-content-between text-secondary mb-3 small">
+                                <span>Progreso</span>
+                                <span>100%</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-4">
+                                <span class="badge bg-blue-lt">Finalizado</span>
+                                <a href="pm-reporte-detalle.html" th:href="@{/pm/reportes/detalle}" class="btn btn-outline-primary btn-sm">Ver reporte detallado</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

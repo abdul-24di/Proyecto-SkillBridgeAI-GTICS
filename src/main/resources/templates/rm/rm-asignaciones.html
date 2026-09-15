@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Asignaciones RM</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}" href="../../static/tabler/css/tabler.min.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}" href="../../static/css/rm-css/rm-common.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-asignaciones.css}" href="../../static/css/rm-css/rm-asignaciones.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}" href="../../static/css/rm-css/rm-topbar.css">
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}"></header>
+  <main class="page-wrap">
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan"><span class="text-secondary">Asignaciones</span></nav>
+    <div th:if="${mensajeExito}" class="alert alert-success" role="alert" th:text="${mensajeExito}"></div>
+    <div th:if="${mensajeError}" class="alert alert-danger" role="alert" th:text="${mensajeError}"></div>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div><h1 class="page-title">Asignaciones</h1><div class="text-secondary">Gestiona aprobaciones, propuestas del RM, asignaciones activas e historial.</div></div>
+      <a class="btn btn-primary" th:href="@{/rm/proyectos/proponer-asignacion}">+ Proponer asignación</a>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="summary-label">Pendientes de RM</div><div class="summary-number" th:text="${pendientesRm}">0</div><div class="small text-secondary">Requieren tu decisión</div></div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="summary-label">Pendientes de PM</div><div class="summary-number" th:text="${pendientesPm}">0</div><div class="small text-secondary">Esperando aprobación</div></div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="summary-label">Solicitudes colaborador</div><div class="summary-number" th:text="${solicitudesColaborador}">0</div><div class="small text-secondary">Aún en aprobación</div></div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="summary-label">Asignaciones activas</div><div class="summary-number" th:text="${activas}">0</div><div class="small text-secondary">Actualmente vigentes</div></div></div></div>
+    </div>
+
+    <div class="card assignments-card">
+      <div class="card-header section-header"><div><h3 class="card-title mb-1">Gestión de asignaciones</h3><div class="section-description">El estado se calcula con las aprobaciones registradas en la base de datos.</div></div></div>
+      <div class="assignment-tabs" role="tablist" aria-label="Tipos de asignaciones">
+        <button type="button" class="active" data-tab="pending">Pendientes <span class="tab-count" th:text="${pendientesRm + pendientesPm}">0</span></button>
+        <button type="button" data-tab="active">Activas <span class="tab-count" th:text="${activas}">0</span></button>
+        <button type="button" data-tab="history">Historial <span class="tab-count" th:text="${historial}">0</span></button>
+      </div>
+
+      <div class="filters-wrap">
+        <div class="row g-3 align-items-end">
+          <div class="col-xl-4 col-md-6"><label for="searchInput" class="form-label">Buscar</label><input id="searchInput" class="form-control" placeholder="Colaborador o proyecto"></div>
+          <div class="col-xl-3 col-md-6"><label for="originFilter" class="form-label">Origen</label><select id="originFilter" class="form-select"><option value="all">Todos</option><option value="PM">Project Manager</option><option value="RM">Resource Manager</option><option value="Colaborador">Colaborador</option></select></div>
+          <div class="col-xl-3 col-md-6"><label for="statusFilter" class="form-label">Estado</label><select id="statusFilter" class="form-select"><option value="all">Todos</option></select></div>
+          <div class="col-xl-2 col-md-6 d-grid"><button id="clearFilters" type="button" class="btn btn-outline-secondary">Limpiar filtros</button></div>
+        </div>
+        <div class="filters-note mt-3"><span class="filters-note-icon">i</span><div class="small text-secondary">PM propone → aprueba RM. RM propone → aprueba PM. La solicitud del colaborador requiere ambas aprobaciones.</div></div>
+      </div>
+
+      <div class="table-responsive"><table class="table table-vcenter card-table mb-0">
+        <thead><tr><th>Colaborador</th><th>Proyecto</th><th>Origen</th><th>Horas/sem</th><th>Aprobaciones</th><th>Estado</th><th>Fecha</th><th class="text-end">Acción</th></tr></thead>
+        <tbody id="assignmentBody">
+        <tr th:each="item : ${asignaciones}" class="assignment-row" th:attr="data-group=${item.grupo},data-origin=${item.origenCodigo},data-status=${item.estadoTexto},data-search=|${item.colaboradorNombre} ${item.asignacion.proyecto.nombre}|">
+          <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm-custom bg-blue-lt text-blue" th:text="${item.colaboradorIniciales}">CO</span><span class="fw-semibold" th:text="${item.colaboradorNombre}">Colaborador</span></div></td>
+          <td class="fw-semibold" th:text="${item.asignacion.proyecto.nombre}">Proyecto</td>
+          <td><span class="badge" th:classappend="${item.origenClase}" th:text="${item.origenTexto}">Origen</span></td>
+          <td th:text="|${item.asignacion.horasSemanales} h|">0 h</td>
+          <td><div class="approval-mini"><span class="badge" th:classappend="${item.asignacion.aprobadoPorPm} ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary'">PM</span> <span class="badge" th:classappend="${item.asignacion.aprobadoPorRm} ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary'">RM</span></div></td>
+          <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
+          <td th:text="${#temporals.format(item.asignacion.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
+          <td class="text-end">
+            <a th:if="${item.requiereDecisionRm}" class="btn btn-primary btn-sm" th:href="${item.solicitudColaborador} ? @{/rm/asignaciones/revision-postulacion(id=${item.asignacion.id})} : @{/rm/asignaciones/revision(id=${item.asignacion.id})}">Revisar</a>
+            <a th:if="${item.pendientePm}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/pendiente-pm(id=${item.asignacion.id})}">Ver</a>
+            <a th:if="${item.grupo == 'active' or item.grupo == 'history'}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/activa(id=${item.asignacion.id})}">Ver</a>
+          </td>
+        </tr>
+        <tr id="emptyAssignments" class="d-none"><td colspan="8" class="text-center text-secondary py-5">No se encontraron asignaciones con los filtros seleccionados.</td></tr>
+        </tbody>
+      </table></div>
+      <div class="pagination-wrap"><div id="paginationInfo" class="text-secondary small"></div></div>
+    </div>
+  </main>
+</div>
+<script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
+<script th:src="@{/js/rm-js/rm-navigation.js}" src="../../static/js/rm-js/rm-navigation.js"></script>
+<script th:src="@{/js/rm-js/rm-asignaciones.js}" src="../../static/js/rm-js/rm-asignaciones.js"></script>
+</body>
+</html>

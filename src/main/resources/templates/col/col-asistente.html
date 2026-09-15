@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Asistente</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-asistente.css" th:href="@{/css/col-css/col-asistente.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('asistente')}">
+        <div class="container-xl">
+            <a href="col-dashboard.html" class="brand">SkillBridge AI</a>
+            <nav class="main-nav" aria-label="Navegación principal">
+                <a href="col-dashboard.html">Dashboard</a>
+                <a href="col-proyectos.html">Mis proyectos</a>
+                <a href="col-foros.html">Foros</a>
+                <a href="col-asistente.html" class="active">Asistente</a>
+                <a href="col-perfil.html">Perfil Profesional</a>
+                <a href="col-explorar.html">Explorar</a>
+            </nav>
+            <div class="user-area">
+                <div class="notification-wrap">
+                    <button type="button" class="notification-link position-relative" id="notifBellBtn" aria-label="Notificaciones">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+                            <path d="M9 19a3 3 0 0 0 6 0"/>
+                        </svg>
+                        <span class="badge bg-red notification-dot" id="notifDot"></span>
+                    </button>
+                    <div class="notification-panel" id="notifPanel">
+                        <div class="notification-panel-header">
+                            <span>Notificaciones</span>
+                            <button type="button" class="notification-panel-close" id="notifCloseBtn" aria-label="Cerrar">&times;</button>
+                        </div>
+                        <div class="notification-panel-list">
+                            <a href="../col/col-proyectos.html" class="notification-item">
+                                <span class="notification-item-dot bg-red"></span>
+                                <div><div class="notification-item-title">Asignación a nuevo proyecto</div><div class="notification-item-sub">Proyecto A</div></div>
+                            </a>
+                        </div>
+                        <div class="notification-panel-footer">
+                            <button type="button" class="btn btn-link btn-sm p-0" id="notifMarkAllBtn">Marcar todas como leídas</button>
+                        </div>
+                    </div>
+                </div>
+                <span class="avatar avatar-sm user-avatar">PK</span>
+                <div class="user-meta">
+                    <div class="fw-semibold">Paweł Kuna</div>
+                    <div class="small">Colaborador</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-wrap">
+
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">Asistente SkillBridge</h1>
+                <div class="text-secondary">Tu asistente inteligente para proyectos y desarrollo profesional.</div>
+            </div>
+        </div>
+
+        <div class="ai-layout">
+
+            <aside class="ai-sidebar">
+                <div class="card section-card mb-3">
+                    <div class="card-body assistant-card">
+                        <div class="assistant-logo">AI</div>
+                        <div>
+                            <div class="fw-bold">Asistente SkillBridge</div>
+                            <div class="small text-secondary">Enfocado en tus proyectos y tu perfil</div>
+                        </div>
+                    </div>
+                    <div class="card-body pt-0 text-secondary small">
+                        Puede ayudarte a priorizar tus actividades y mejorar tu perfil. Sus recomendaciones no
+                        te asignan a ningún proyecto: toda asignación requiere aprobación del PM y del RM.
+                    </div>
+                </div>
+
+                <div class="row row-cards mb-3">
+                    <div class="col-6">
+                        <div class="card mini-card"><div class="card-body"><div class="metric-label">Mis proyectos</div><div class="metric-number">3</div></div></div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card mini-card"><div class="card-body"><div class="metric-label">Tareas activas</div><div class="metric-number">20</div></div></div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card mini-card"><div class="card-body"><div class="metric-label">Habilidades</div><div class="metric-number">4</div></div></div>
+                    </div>
+                    <div class="col-6">
+                        <div class="card mini-card"><div class="card-body"><div class="metric-label">Certificados</div><div class="metric-number">1</div></div></div>
+                    </div>
+                </div>
+
+                <div class="card section-card">
+                    <div class="card-header section-header">
+                        <div><h3 class="card-title mb-1">Preguntas sugeridas</h3></div>
+                    </div>
+                    <div class="card-body quick-list">
+                        <button type="button" data-prompt="¿Cuáles son mis actividades pendientes?">📋 ¿Cuáles son mis actividades pendientes?</button>
+                        <button type="button" data-prompt="¿Qué actividad debería priorizar?">🎯 ¿Qué actividad debería priorizar?</button>
+                        <button type="button" data-prompt="¿Cómo puedo mejorar mi perfil profesional?">👤 ¿Cómo puedo mejorar mi perfil profesional?</button>
+                        <button type="button" data-prompt="¿Cuántas horas llevo trabajadas este mes?">🕒 ¿Cuántas horas llevo trabajadas este mes?</button>
+                        <button type="button" data-prompt="¿Qué cursos me ayudarían a avanzar de nivel?">🎓 ¿Qué cursos me ayudarían a avanzar de nivel?</button>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="card section-card ai-chat">
+                <div class="ai-chat-header">
+                    <div>
+                        <div class="fw-bold">Asistente SkillBridge</div>
+                        <div class="small text-success">● En línea</div>
+                    </div>
+                    <select class="form-select context-select">
+                        <option>Contexto general</option>
+                        <option>Proyecto A</option>
+                        <option>Proyecto C</option>
+                    </select>
+                </div>
+                <div id="aiMessages" class="ai-messages">
+                    <div class="ai-message">
+                        <div class="assistant-logo small-logo">AI</div>
+                        <div class="ai-bubble">
+                            Hola, Paweł 👋<br>Soy tu asistente inteligente. ¿En qué puedo ayudarte?
+                        </div>
+                    </div>
+                </div>
+                <form id="aiForm" class="ai-composer">
+                    <input id="aiInput" class="form-control" placeholder="Escribe tu mensaje...">
+                    <button class="btn btn-primary" type="submit">Enviar</button>
+                </form>
+            </section>
+
+        </div>
+
+    </main>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-asistente.js" th:src="@{/js/col-js/col-asistente.js}"></script>
+<script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+</body>
+</html>

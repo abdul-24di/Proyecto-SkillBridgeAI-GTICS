@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Proyectos RM</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
+
+  <!-- Estilos específicos de la vista -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-proyectos.css"
+        th:href="@{/css/rm-css/rm-proyectos.css}">
+
+  <!-- Topbar RM compartida -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR COMPARTIDA -->
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('proyectos')}">
+
+    <!-- Fallback para previsualización directa sin Thymeleaf -->
+    <div class="container-xl">
+
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
+        <a href="rm-proyectos.html" class="active" th:href="@{/rm/proyectos}">Proyectos</a>
+        <a href="rm-colaboradores.html" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
+        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
+        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
+        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
+      </nav>
+
+      <div class="user-area">
+
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="page-wrap">
+
+    <div class="alert alert-warning" role="alert" th:if="${proyectoNoEncontrado}">
+      El proyecto solicitado no existe.
+    </div>
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-wrap"
+         aria-label="Migas de pan">
+
+      <span class="text-secondary">
+        Proyectos
+      </span>
+
+    </nav>
+
+
+    <!-- PAGE HEADER -->
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+
+      <div>
+        <h1 class="page-title">
+          Proyectos
+        </h1>
+
+        <div class="text-secondary">
+          Consulta el estado de los proyectos, sus equipos, vacantes,
+          presupuesto asignado y asignaciones pendientes.
+        </div>
+      </div>
+
+      <a href="rm-asignaciones.html"
+         class="btn btn-primary" th:href="@{/rm/asignaciones}">
+        Ver asignaciones pendientes
+      </a>
+
+    </div>
+
+
+    <!-- SUMMARY -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M4 4h6l2 2h8v14H4z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Total proyectos
+              </div>
+
+              <div class="summary-number"
+                   id="metricTotal" th:text="${totalProyectos}">
+                8
+              </div>
+
+              <div class="small text-secondary">
+                Registrados en la organización.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+                <path d="M19 8v6M16 11h6"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Con vacantes
+              </div>
+
+              <div class="summary-number"
+                   id="metricVacancies" th:text="${totalConVacantes}">
+                4
+              </div>
+
+              <div class="small text-secondary">
+                Proyectos que requieren personal.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Pendientes de RM
+              </div>
+
+              <div class="summary-number"
+                   id="metricPending" th:text="${totalPendientesRm}">
+                4
+              </div>
+
+              <div class="small text-secondary">
+                Asignaciones por revisar.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                En revisión
+              </div>
+
+              <div class="summary-number"
+                   id="metricInReview" th:text="${totalEnRevision}">
+                1
+              </div>
+
+              <div class="small text-secondary">
+                Pendientes de evaluación inicial.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- PROYECTOS -->
+    <div class="card projects-section">
+
+      <div class="card-header section-header">
+
+        <div>
+          <h3 class="card-title mb-1">
+            Proyectos de la organización
+          </h3>
+
+          <div class="section-description">
+            Revisa la composición de cada equipo y utiliza los filtros para localizar
+            rápidamente los proyectos que requieren seguimiento.
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- FILTROS -->
+      <div class="card-body border-bottom">
+
+        <div class="row g-3 align-items-end">
+
+          <div class="col-lg-4 col-md-6">
+
+            <label for="searchInput"
+                   class="form-label">
+              Buscar proyecto
+            </label>
+
+            <input id="searchInput"
+                   class="form-control"
+                   type="text"
+                   placeholder="Nombre del proyecto o Project Manager">
+
+          </div>
+
+
+          <div class="col-lg-2 col-md-6">
+
+            <label for="statusFilter"
+                   class="form-label">
+              Estado
+            </label>
+
+            <select id="statusFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todos los estados
+              </option>
+
+              <option value="EN_REVISION">
+                En revisión
+              </option>
+
+              <option value="ACTIVO">
+                Activo
+              </option>
+
+              <option value="RECHAZADO">
+                Rechazado
+              </option>
+
+              <option value="EN_ESPERA">
+                En espera
+              </option>
+
+              <option value="CANCELADO">
+                Cancelado
+              </option>
+
+              <option value="FINALIZADO">
+                Finalizado
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-lg-2 col-md-6">
+
+            <label for="priorityFilter"
+                   class="form-label">
+              Prioridad
+            </label>
+
+            <select id="priorityFilter"
+                    class="form-select">
+
+              <option value="all">Todas</option>
+              <option value="ALTA">Alta</option>
+              <option value="MEDIA">Media</option>
+              <option value="BAJA">Baja</option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-lg-2 col-md-6">
+
+            <label for="vacancyFilter"
+                   class="form-label">
+              Vacantes
+            </label>
+
+            <select id="vacancyFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todas
+              </option>
+
+              <option value="with">
+                Con vacantes
+              </option>
+
+              <option value="full">
+                Equipo completo
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-lg-2 col-md-6 d-grid">
+
+            <button id="clearFilters"
+                    type="button"
+                    class="btn btn-outline-secondary">
+              Limpiar filtros
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- GRID -->
+      <div class="card-body projects-body">
+
+        <div id="projectGrid"
+             class="row row-cards">
+
+          <div class="col-lg-6 project-item"
+               th:each="item : ${proyectos}"
+               th:attr="data-search=${item.textoBusqueda},
+                        data-status=${item.proyecto.estado},
+                        data-priority=${item.proyecto.prioridad},
+                        data-vacancies=${item.vacantes}">
+            <div class="card project-card">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div>
+                    <h3 class="project-title" th:text="${item.proyecto.nombre}">Proyecto</h3>
+                    <div class="text-secondary small mt-1">
+                      PM: <span class="fw-medium text-body" th:text="${item.pmNombre}">Project Manager</span>
+                    </div>
+                  </div>
+                  <span class="badge" th:classappend="${item.estadoClase}"
+                        th:text="${item.estadoTexto}">Activo</span>
+                </div>
+
+                <div class="project-desc"
+                     th:text="${item.proyecto.descripcion != null and !item.proyecto.descripcion.isBlank() ? item.proyecto.descripcion : 'Sin descripción registrada.'}">
+                  Descripción del proyecto.
+                </div>
+
+                <div class="meta-grid">
+                  <div>
+                    <div class="meta-label">Equipo</div>
+                    <div class="meta-value"
+                         th:text="|${item.integrantesActivos}/${item.proyecto.colaboradoresRequeridos} integrantes|">0/0 integrantes</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Vacantes</div>
+                    <div class="meta-value" th:text="${item.vacantes}">0</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Pendientes del RM</div>
+                    <div class="meta-value" th:text="${item.pendientesRm}">0</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Fin estimado</div>
+                    <div class="meta-value"
+                         th:text="${item.proyecto.fechaFinEstimada != null ? #temporals.format(item.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : 'Sin definir'}">
+                      Sin definir
+                    </div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Prioridad</div>
+                    <div class="meta-value">
+                      <span class="badge priority-badge" th:classappend="${item.prioridadClase}"
+                            th:text="${item.prioridadTexto}">Media</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="project-budget">
+                  <div class="meta-label" th:text="${item.presupuestoEtiqueta}">Presupuesto</div>
+                  <div class="meta-value"
+                       th:text="${item.presupuestoVisible != null ? 'S/ ' + #numbers.formatDecimal(item.presupuestoVisible, 1, 'COMMA', 2, 'POINT') : 'Sin definir'}">
+                    Sin definir
+                  </div>
+                </div>
+
+                <div class="project-footer">
+                  <div>
+                    <span class="badge bg-yellow-lt" th:if="${item.pendientesRm > 0}"
+                          th:text="|${item.pendientesRm} pendiente(s) RM|">Pendientes RM</span>
+                    <span class="badge bg-green-lt" th:if="${item.pendientesRm == 0}">Sin pendientes RM</span>
+                  </div>
+                  <a class="btn btn-primary btn-sm"
+                     th:if="${item.proyecto.estado.name() == 'EN_REVISION'}"
+                     th:href="@{/rm/proyectos/revision(id=${item.proyecto.id})}">Revisar proyecto</a>
+                  <a class="btn btn-outline-primary btn-sm"
+                     th:unless="${item.proyecto.estado.name() == 'EN_REVISION'}"
+                     th:href="@{/rm/proyectos/detalle(id=${item.proyecto.id})}">Ver proyecto</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12" th:if="${#lists.isEmpty(proyectos)}">
+            <div class="card"><div class="empty-state">No hay proyectos registrados.</div></div>
+          </div>
+
+          <div id="noProjectResults" class="col-12 d-none">
+            <div class="card"><div class="empty-state">No se encontraron proyectos con los filtros seleccionados.</div></div>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- PAGINACIÓN -->
+      <div class="pagination-wrap">
+
+        <div id="paginationInfo"
+             class="text-secondary small">
+        </div>
+
+        <ul id="pagination"
+            class="pagination pagination-sm m-0">
+        </ul>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<!-- Tabler -->
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+<!-- Lógica temporal de filtros/paginación -->
+<script src="../../static/js/rm-js/rm-navigation.js"
+        th:src="@{/js/rm-js/rm-navigation.js}">
+</script>
+<script src="../../static/js/rm-js/rm-proyectos.js"
+        th:src="@{/js/rm-js/rm-proyectos.js}">
+</script>
+
+</body>
+</html>

@@ -1,0 +1,30 @@
+/* =========================================================
+   VISTA — GESTIÓN DE USUARIOS (ADMIN)
+   ========================================================= */
+
+.table-warning-row td {
+  background: #fffbeb;
+}
+
+.admin-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  border: 1px dashed #d7dee7;
+  border-radius: 10px;
+  color: #8a94a6;
+  text-align: center;
+  background: #f8fafc;
+}
+
+.info-note-box {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  padding: .75rem 1rem;
+  border: 1px solid #dbe5ef;
+  border-radius: 9px;
+  background: #f6f9fc;
+}

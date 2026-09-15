@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Dashboard RM</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
+
+  <!-- Estilos propios -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-dashboard.css"
+        th:href="@{/css/rm-css/rm-dashboard.css}">
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR -->
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('dashboard')}">
+    <!-- Fallback para previsualización sin Thymeleaf -->
+    <div class="container-xl">
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="rm-dashboard.html" class="active" th:href="@{/rm/dashboard}">Dashboard</a>
+        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
+        <a href="rm-colaboradores.html" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
+        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
+        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
+        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
+      </nav>
+
+      <div class="user-area">
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+  <main class="page-wrap">
+
+    <!-- PAGE HEADER -->
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+
+      <div>
+        <h1 class="page-title">
+          Dashboard de Resource Manager
+        </h1>
+
+        <div class="text-secondary">
+          Resumen de asignaciones, postulaciones, solicitudes de colaboradores
+          y proyectos que requieren atención.
+        </div>
+      </div>
+
+      <a href="rm-asignaciones.html" class="btn btn-primary" th:href="@{/rm/asignaciones}">
+        Ver asignaciones pendientes
+      </a>
+
+    </div>
+
+
+    <!-- SUMMARY CARDS -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Aprobaciones pendientes del RM
+              </div>
+
+              <div class="summary-number">
+                <span th:text="${totalAprobacionesRm}">0</span>
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Requieren tu revisión y decisión.
+              </div>
+
+              <a class="stretched-link" th:href="@{/rm/asignaciones}"
+                 aria-label="Ver aprobaciones pendientes del RM"></a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Esperando aprobación del PM
+              </div>
+
+              <div class="summary-number">
+                <span th:text="${totalEsperandoPm}">0</span>
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Propuestas ya aprobadas por el RM.
+              </div>
+
+              <a class="stretched-link" th:href="@{/rm/asignaciones}"
+                 aria-label="Ver asignaciones pendientes del PM"></a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+                <path d="M19 8v6M16 11h6"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Postulaciones de colaboradores
+              </div>
+
+              <div class="summary-number">
+                <span th:text="${totalPostulaciones}">0</span>
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Solicitudes de participación por revisar.
+              </div>
+
+              <a class="stretched-link" th:href="@{/rm/asignaciones}"
+                 aria-label="Ver postulaciones de colaboradores"></a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M4 4h6l2 2h8v14H4z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Proyectos con vacantes
+              </div>
+
+              <div class="summary-number">
+                <span th:text="${totalProyectosVacantes}">0</span>
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Equipos que todavía necesitan personal.
+              </div>
+
+              <a class="stretched-link" th:href="@{/rm/proyectos}"
+                 aria-label="Ver proyectos con vacantes"></a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-xl">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Proyectos en revisión
+              </div>
+
+              <div class="summary-number">
+                <span th:text="${totalProyectosRevision}">0</span>
+              </div>
+
+              <div class="small text-secondary mt-1">
+                Pendientes de evaluación inicial.
+              </div>
+
+              <a href="rm-revision-proyecto.html"
+                 class="stretched-link"
+                 aria-label="Revisar proyectos pendientes"
+                 th:href="@{/rm/proyectos}"></a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ACCIONES PENDIENTES -->
+    <div class="card section-card mb-4">
+
+      <div class="card-header section-header">
+
+        <div>
+          <h3 class="card-title mb-1">
+            Acciones pendientes
+          </h3>
+
+          <div class="section-description">
+            Asignaciones propuestas y postulaciones que requieren seguimiento
+            o una decisión del Resource Manager.
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="table-responsive">
+
+        <table class="table table-vcenter card-table">
+
+          <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Proyecto</th>
+            <th>Colaborador</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th class="text-end">Acción</th>
+          </tr>
+          </thead>
+
+          <tbody>
+
+          <tr th:each="item : ${accionesPendientes}">
+            <td th:text="${item.solicitudColaborador ? 'Postulación' : 'Asignación propuesta'}">Tipo</td>
+            <td class="fw-semibold" th:text="${item.asignacion.proyecto.nombre}">Proyecto</td>
+            <td th:text="${item.colaboradorNombre}">Colaborador</td>
+            <td>
+              <span class="badge" th:classappend="${item.estadoClase}"
+                    th:text="${item.estadoTexto}">Estado</span>
+            </td>
+            <td th:text="${#temporals.format(item.asignacion.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
+            <td class="text-end">
+              <a th:if="${item.requiereDecisionRm}" class="btn btn-primary btn-sm"
+                 th:href="${item.solicitudColaborador} ? @{/rm/asignaciones/revision-postulacion(id=${item.asignacion.id})} : @{/rm/asignaciones/revision(id=${item.asignacion.id})}">
+                Revisar
+              </a>
+              <a th:if="${item.pendientePm}" class="btn btn-outline-secondary btn-sm"
+                 th:href="@{/rm/asignaciones/pendiente-pm(id=${item.asignacion.id})}">
+                Ver
+              </a>
+            </td>
+          </tr>
+
+          <tr th:if="${#lists.isEmpty(accionesPendientes)}">
+            <td colspan="6" class="text-center text-secondary py-5">
+              No hay acciones pendientes en este momento.
+            </td>
+          </tr>
+
+          </tbody>
+        </table>
+
+      </div>
+
+
+      <div class="card-footer table-footer">
+
+        <div class="text-secondary small"
+             th:text="${totalAccionesPendientes == 0 ? 'Sin acciones pendientes' : 'Mostrando ' + #lists.size(accionesPendientes) + ' de ' + totalAccionesPendientes + ' acciones pendientes'}">
+          Sin acciones pendientes
+        </div>
+
+        <a class="btn btn-outline-primary btn-sm" th:href="@{/rm/asignaciones}">
+          Ver todas las asignaciones
+        </a>
+
+      </div>
+
+    </div>
+
+
+    <!-- SOLICITUDES DE COLABORADORES -->
+    <div class="card section-card mb-4">
+
+      <div class="card-header section-header">
+
+        <div>
+          <h3 class="card-title mb-1">
+            Solicitudes de colaboradores
+          </h3>
+
+          <div class="section-description">
+            Requerimientos de personal enviados por Project Managers
+            que deben ser gestionados por el Resource Manager.
+          </div>
+        </div>
+
+        <a href="rm-solicitudes-colaboradores.html" class="btn btn-sm btn-light section-action" th:href="@{/rm/asignaciones/solicitudes-colaboradores}">
+          Ver todas las solicitudes
+        </a>
+
+      </div>
+
+
+      <div class="table-responsive">
+
+        <table class="table table-vcenter card-table">
+
+          <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Project Manager</th>
+            <th>Solicitados</th>
+            <th>Habilidades requeridas</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th class="text-end">Acción</th>
+          </tr>
+          </thead>
+
+          <tbody>
+          <tr th:each="item : ${solicitudesRecientes}">
+            <td class="fw-semibold" th:text="${item.solicitud.proyecto.nombre}">Proyecto</td>
+            <td th:text="${item.pmNombre}">PM</td>
+            <td><span class="badge bg-blue-lt" th:text="|${item.solicitud.cantidadColaboradores} colaborador(es)|">0</span></td>
+            <td><span th:each="req, stat : ${item.requisitos}" th:if="${stat.index < 3}" class="badge bg-secondary-lt" th:text="${req.habilidad}">Habilidad</span></td>
+            <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
+            <td th:text="${#temporals.format(item.solicitud.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
+            <td class="text-end"><a class="btn btn-sm" th:classappend="${item.pendiente ? 'btn-primary' : (item.enAtencion ? 'btn-outline-primary' : 'btn-outline-secondary')}" th:href="@{/rm/asignaciones/solicitudes-colaboradores/detalle(id=${item.solicitud.id})}" th:text="${item.accionTexto}">Ver</a></td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(solicitudesRecientes)}"><td colspan="7" class="text-center text-secondary py-4">No hay solicitudes de personal registradas.</td></tr>
+          </tbody>
+
+        </table>
+
+      </div>
+
+
+      <div class="card-footer table-footer"><div class="text-secondary small" th:text="|Mostrando ${#lists.size(solicitudesRecientes)} solicitudes recientes|">Solicitudes recientes</div></div>
+
+    </div>
+
+
+    <!-- PROYECTOS + ATENCIÓN -->
+    <div class="row row-cards">
+
+      <div class="col-lg-9">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+
+              <h3 class="card-title mb-1">
+                Proyectos que requieren atención
+              </h3>
+
+              <div class="section-description">
+                Proyectos con vacantes, asignaciones pendientes o prioridad alta
+                que requieren seguimiento del RM.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="table-responsive">
+
+            <table class="table table-vcenter card-table">
+
+              <thead>
+
+              <tr>
+                <th>Proyecto</th>
+                <th>Estado</th>
+                <th>Project Manager</th>
+                <th>Equipo</th>
+                <th>Vacantes</th>
+                <th>Prioridad</th>
+                <th>Pendientes</th>
+                <th class="text-end">Acción</th>
+              </tr>
+
+              </thead>
+
+              <tbody>
+              <tr th:each="item : ${proyectosAtencion}">
+                <td class="fw-semibold" th:text="${item.proyecto.nombre}">Proyecto</td>
+                <td>
+                  <span class="badge" th:classappend="${item.estadoClase}"
+                        th:text="${item.estadoTexto}">Estado</span>
+                </td>
+                <td th:text="${item.pmNombre}">Project Manager</td>
+                <td th:text="|${item.integrantesActivos} / ${item.proyecto.colaboradoresRequeridos}|">0 / 0</td>
+                <td>
+                  <span class="badge"
+                        th:classappend="${item.vacantes > 0 ? 'bg-yellow-lt' : 'bg-green-lt'}"
+                        th:text="${item.vacantes}">0</span>
+                </td>
+                <td>
+                  <span class="badge" th:classappend="${item.prioridadClase}"
+                        th:text="${item.prioridadTexto}">Prioridad</span>
+                </td>
+                <td>
+                  <span class="badge"
+                        th:classappend="${item.pendientesRm > 0 ? 'bg-yellow-lt' : 'bg-secondary-lt'}"
+                        th:text="${item.pendientesRm}">0</span>
+                </td>
+                <td class="text-end">
+                  <a class="btn btn-outline-primary btn-sm"
+                     th:href="@{/rm/proyectos/detalle(id=${item.proyecto.id})}">Ver proyecto</a>
+                </td>
+              </tr>
+
+              <tr th:if="${#lists.isEmpty(proyectosAtencion)}">
+                <td colspan="8" class="text-center text-secondary py-5">
+                  No hay proyectos que requieran atención en este momento.
+                </td>
+              </tr>
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+
+          <div class="card-footer table-footer">
+            <div class="text-secondary small"
+                 th:text="${totalProyectosAtencion == 0 ? 'Sin proyectos pendientes' : 'Mostrando ' + #lists.size(proyectosAtencion) + ' de ' + totalProyectosAtencion + ' proyectos'}">
+              Sin proyectos pendientes
+            </div>
+            <a class="btn btn-outline-primary btn-sm" th:href="@{/rm/proyectos}">Ver todos los proyectos</a>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- REQUIEREN ATENCIÓN -->
+      <div class="col-lg-3">
+
+        <div class="card section-card h-100">
+
+          <div class="card-header section-header">
+
+            <div>
+
+              <h3 class="card-title mb-1">
+                Requieren atención
+              </h3>
+
+              <div class="section-description">
+                Prioridades operativas que pueden afectar
+                asignaciones, vacantes o tiempos del proyecto.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="card-body">
+            <a th:if="${proyectoPrioritario != null}"
+               class="attention-item attention-link border-danger"
+               th:href="@{/rm/proyectos/detalle(id=${proyectoPrioritario.proyecto.id})}">
+              <span class="badge bg-red-lt mb-2">Proyecto prioritario</span>
+              <div class="fw-semibold" th:text="${proyectoPrioritario.proyecto.nombre}">Proyecto</div>
+              <div class="text-secondary small"
+                   th:text="|${proyectoPrioritario.vacantes} vacante(s) y ${proyectoPrioritario.pendientesRm} decisión(es) pendientes del RM.|">
+                Requiere seguimiento.
+              </div>
+            </a>
+
+            <a th:if="${totalSolicitudesAbiertas > 0}"
+               class="attention-item attention-link border-info"
+               th:href="@{/rm/asignaciones/solicitudes-colaboradores}">
+              <span class="badge bg-info-lt mb-2">Solicitudes de personal</span>
+              <div class="fw-semibold" th:text="|${totalSolicitudesAbiertas} solicitud(es) abierta(s)|">0 solicitudes</div>
+              <div class="text-secondary small">Pendientes o actualmente en atención.</div>
+            </a>
+
+            <a th:if="${totalCertificadosPendientes > 0}"
+               class="attention-item attention-link border-warning"
+               th:href="@{/rm/colaboradores/certificados}">
+              <span class="badge bg-yellow-lt mb-2">Certificados</span>
+              <div class="fw-semibold" th:text="|${totalCertificadosPendientes} certificado(s) pendiente(s)|">0 certificados</div>
+              <div class="text-secondary small">Esperan validación del Resource Manager.</div>
+            </a>
+
+            <div th:if="${proyectoPrioritario == null and totalSolicitudesAbiertas == 0 and totalCertificadosPendientes == 0}"
+                 class="empty-attention text-center text-secondary">
+              No hay alertas operativas pendientes.
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+</body>
+</html>

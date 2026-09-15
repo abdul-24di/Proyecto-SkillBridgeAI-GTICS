@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Log de Auditoría</title>
+
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-auditoria.css" th:href="@{/css/admin-css/admin-auditoria.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('auditoria')}">
+    <div class="container-xl">
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
+        <a href="admin-usuarios.html" th:href="@{/admin/usuarios}">Usuarios</a>
+        <a href="admin-habilidades.html" th:href="@{/admin/habilidades}">Habilidades</a>
+        <a href="admin-configuracion.html" th:href="@{/admin/configuracion}">Configuración</a>
+        <a href="admin-auditoria.html" class="active" th:href="@{/admin/auditoria}">Auditoría</a>
+      </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">SA</span>
+        <div class="user-meta">
+          <div class="fw-semibold">Sofía Alarcón</div>
+          <div class="small">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <span class="text-secondary">Auditoría</span>
+    </nav>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <h1 class="page-title">Log de Auditoría</h1>
+        <div class="text-secondary">
+          Registro de acciones sensibles realizadas por cualquier rol de la organización.
+        </div>
+      </div>
+      <button type="button" class="btn btn-outline-primary">Exportar CSV</button>
+    </div>
+
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Acciones registradas</h3>
+          <div class="section-description">Incluye creación de usuarios, activación de cuentas, cambios de rol, aprobaciones/rechazos de asignaciones y certificados, y cambios de configuración.</div>
+        </div>
+      </div>
+
+      <div class="card-body border-bottom">
+        <div class="row g-3 align-items-end">
+          <div class="col-xl-5 col-md-6">
+            <label for="auditSearch" class="form-label">Buscar usuario</label>
+            <input id="auditSearch" class="form-control" type="text" placeholder="Nombre o correo">
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="auditRoleFilter" class="form-label">Rol</label>
+            <select id="auditRoleFilter" class="form-select">
+              <option value="all">Todos</option>
+              <option>Administrador</option>
+              <option>Resource Manager</option>
+              <option>Project Manager</option>
+              <option>Colaborador</option>
+            </select>
+          </div>
+          <div class="col-xl-4 col-md-6">
+            <label for="auditActionFilter" class="form-label">Tipo de acción</label>
+            <select id="auditActionFilter" class="form-select">
+              <option value="all">Todas</option>
+              <option>Gestión de usuarios</option>
+              <option>Activación de cuenta</option>
+              <option>Asignaciones</option>
+              <option>Certificados</option>
+              <option>Configuración</option>
+            </select>
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="auditDateFrom" class="form-label">Desde</label>
+            <input id="auditDateFrom" class="form-control" type="date">
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="auditDateTo" class="form-label">Hasta</label>
+            <input id="auditDateTo" class="form-control" type="date">
+          </div>
+          <div class="col-xl-3 col-md-6 d-grid">
+            <button type="button" class="btn btn-outline-secondary">Limpiar filtros</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Fecha y hora</th>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Acción</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-secondary">06 sep 2026, 09:12</td>
+              <td class="fw-semibold">Sofía Alarcón</td>
+              <td><span class="badge bg-azure-lt text-azure">Administrador</span></td>
+              <td><span class="badge bg-blue-lt text-blue">Gestión de usuarios</span></td>
+              <td class="text-secondary">Creó el usuario camila.rojas@skillbridge.com con rol Colaborador.</td>
+            </tr>
+            <tr>
+              <td class="text-secondary">06 sep 2026, 09:15</td>
+              <td class="fw-semibold">Sistema</td>
+              <td><span class="badge bg-secondary-lt text-secondary">Automático</span></td>
+              <td><span class="badge bg-green-lt text-green">Activación de cuenta</span></td>
+              <td class="text-secondary">Se envió el correo de activación a camila.rojas@skillbridge.com.</td>
+            </tr>
+            <tr>
+              <td class="text-secondary">05 sep 2026, 17:40</td>
+              <td class="fw-semibold">Abraham Ramirez</td>
+              <td><span class="badge bg-green-lt text-green">Resource Manager</span></td>
+              <td><span class="badge bg-purple-lt text-purple">Asignaciones</span></td>
+              <td class="text-secondary">Aprobó la asignación de Jorge Campos al proyecto "Sistema de Inventario".</td>
+            </tr>
+            <tr>
+              <td class="text-secondary">05 sep 2026, 15:02</td>
+              <td class="fw-semibold">Abraham Ramirez</td>
+              <td><span class="badge bg-green-lt text-green">Resource Manager</span></td>
+              <td><span class="badge bg-orange-lt text-orange">Certificados</span></td>
+              <td class="text-secondary">Rechazó el certificado "AWS Cloud Practitioner" de Renato Silva. Motivo: documento ilegible.</td>
+            </tr>
+            <tr>
+              <td class="text-secondary">28 ago 2026, 10:14</td>
+              <td class="fw-semibold">Sofía Alarcón</td>
+              <td><span class="badge bg-azure-lt text-azure">Administrador</span></td>
+              <td><span class="badge bg-red-lt text-red">Configuración</span></td>
+              <td class="text-secondary">Cambió MAX_ASIGNACIONES_POR_COLABORADOR de 2 a 3.</td>
+            </tr>
+            <tr>
+              <td class="text-secondary">27 ago 2026, 08:30</td>
+              <td class="fw-semibold">Paweł Kuna</td>
+              <td><span class="badge bg-yellow-lt text-yellow">Colaborador</span></td>
+              <td><span class="badge bg-green-lt text-green">Activación de cuenta</span></td>
+              <td class="text-secondary">Completó la activación de su cuenta y estableció su contraseña.</td>
+            </tr>
+            <tr>
+              <td class="text-secondary">20 ago 2026, 14:55</td>
+              <td class="fw-semibold">Sofía Alarcón</td>
+              <td><span class="badge bg-azure-lt text-azure">Administrador</span></td>
+              <td><span class="badge bg-blue-lt text-blue">Gestión de usuarios</span></td>
+              <td class="text-secondary">Desactivó al usuario Miguel Torres (miguel.torres@skillbridge.com).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-wrap">
+        <div class="text-secondary small">Mostrando 7 de 214 acciones</div>
+        <ul class="pagination pagination-sm m-0">
+          <li class="page-item disabled"><span class="page-link">Anterior</span></li>
+          <li class="page-item active"><span class="page-link">1</span></li>
+          <li class="page-item"><a class="page-link" href="#">2</a></li>
+          <li class="page-item"><a class="page-link" href="#">3</a></li>
+          <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
+        </ul>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
+</body>
+</html>

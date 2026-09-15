@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Mis Proyectos</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-proyectos.css" th:href="@{/css/pm-css/pm-proyectos.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('proyectos')}">
+    <div class="container-xl">
+      <a href="pm-proyectos.html" class="brand">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal PM">
+      <a href="pm-proyectos.html" class="active">Mis Proyectos</a>
+      <a href="pm-crear-proyecto.html">Crear Proyecto</a>
+      <a href="pm-foro.html">Foro</a>
+      <a href="pm-chat.html">Chat</a>
+      <a href="pm-asistente-ia.html">Asistente IA</a>
+      <a href="pm-reporte-proyecto.html">Reportes</a>
+    </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">AV</span>
+        <div class="user-meta"><div class="fw-semibold">Abdon Vallejo</div><div class="small">Project Manager</div></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <h1 class="page-title">Mis Proyectos</h1>
+        <div class="text-secondary">Gestiona únicamente los proyectos donde eres Project Manager.</div>
+      </div>
+      <a href="pm-crear-proyecto.html" class="btn btn-primary">+ Nuevo Proyecto</a>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Total proyectos</div><div class="metric-number">6</div></div></div></div>
+      <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Activos</div><div class="metric-number">3</div></div></div></div>
+      <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">En revisión</div><div class="metric-number">1</div></div></div></div>
+      <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Finalizados</div><div class="metric-number">1</div></div></div></div>
+    </div>
+
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div><h3 class="card-title mb-1">Portafolio de proyectos</h3><div class="section-description">Estados oficiales: En revisión, Activo, Rechazado, En espera, Cancelado y Finalizado.</div></div>
+      </div>
+      <div class="card-body projects-filters">
+        <div class="row g-3 align-items-end">
+          <div class="col-xl-5 col-md-6"><label class="form-label">Buscar</label><input id="searchInput" class="form-control" placeholder="Nombre, tecnología o habilidad"></div>
+          <div class="col-xl-3 col-md-6"><label class="form-label">Estado</label><select id="statusFilter" class="form-select"><option value="all">Todos</option><option>En revisión</option><option>Activo</option><option>Rechazado</option><option>En espera</option><option>Cancelado</option><option>Finalizado</option></select></div>
+          <div class="col-xl-2 col-md-6"><label class="form-label">Prioridad</label><select id="priorityFilter" class="form-select"><option value="all">Todas</option><option>Alta</option><option>Media</option><option>Baja</option></select></div>
+          <div class="col-xl-2 col-md-6 d-grid"><button id="clearFilters" class="btn btn-outline-secondary" type="button">Limpiar</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="projectGrid" class="row row-cards"></div>
+  </main>
+</div>
+<div class="modal modal-blur fade pm-modal" id="cancelProjectModal" tabindex="-1" aria-labelledby="cancelProjectTitle" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><div><h5 class="modal-title" id="cancelProjectTitle">Cancelar proyecto en revisión</h5><div class="text-secondary small">Esta opción solo está disponible antes de la aprobación del RM.</div></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+    <div class="modal-body"><label class="form-label" for="cancelProjectReason">Motivo de cancelación</label><textarea id="cancelProjectReason" class="form-control" rows="4" placeholder="Indica por qué deseas cancelar el proyecto"></textarea></div>
+    <div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Volver</button><button class="btn btn-danger" type="button">Confirmar cancelación</button></div>
+  </div></div>
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/pm-js/pm-proyectos.js" th:src="@{/js/pm-js/pm-proyectos.js}"></script>
+</body></html>

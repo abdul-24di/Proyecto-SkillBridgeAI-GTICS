@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="page">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Revisión de asignación</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}" href="../../static/tabler/css/tabler.min.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}" href="../../static/css/rm-css/rm-common.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-revision-asignacion.css}" href="../../static/css/rm-css/rm-revision-asignacion.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}" href="../../static/css/rm-css/rm-topbar.css">
+</head>
+<body><div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}"></header>
+  <main class="page-wrap">
+    <div class="page-head page-head-stack-mobile"><div><a class="text-secondary text-decoration-none small" th:href="@{/rm/asignaciones}">← Volver a asignaciones</a><h1 class="page-title mt-2" th:text="${asignacion.solicitudColaborador} ? 'Revisión de solicitud del colaborador' : 'Revisión de propuesta de asignación'">Revisión</h1><div class="text-secondary" th:text="|Asignación #${asignacion.asignacion.id} · ${asignacion.origenTexto}|">Asignación</div></div><span class="badge bg-yellow-lt fs-6 status-badge">Pendiente de aprobación del RM</span></div>
+
+    <div class="row row-cards">
+      <div class="col-lg-6">
+        <div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Proyecto</h3><div class="section-description">Contexto del proyecto solicitado.</div></div></div><div class="card-body">
+          <div class="d-flex justify-content-between gap-3"><div><h3 class="mb-1" th:text="${asignacion.asignacion.proyecto.nombre}">Proyecto</h3><div class="text-secondary" th:text="${asignacion.asignacion.proyecto.descripcion}"></div></div><span class="badge bg-green-lt" th:text="${asignacion.asignacion.proyecto.estado}">Activo</span></div>
+          <div class="info-grid mt-4"><div><div class="label-small">Project Manager</div><div class="value-strong" th:text="${asignacion.projectManagerNombre}">PM</div></div><div><div class="label-small">Equipo actual</div><div class="value-strong" th:text="|${asignacion.equipoActual} / ${asignacion.asignacion.proyecto.colaboradoresRequeridos} integrantes|">0</div></div><div><div class="label-small">Vacantes</div><div class="value-strong" th:text="${asignacion.vacantes}">0</div></div><div><div class="label-small">Presupuesto</div><div class="value-strong" th:text="${asignacion.asignacion.proyecto.presupuesto == null ? 'Sin asignar' : 'S/ ' + asignacion.asignacion.proyecto.presupuesto}">Sin asignar</div></div></div>
+          <a class="btn btn-outline-primary btn-sm mt-4" th:href="@{/rm/proyectos/detalle(id=${asignacion.asignacion.proyecto.id})}">Ver proyecto</a>
+        </div></div>
+
+        <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Datos de la solicitud</h3><div class="section-description">Condiciones registradas por quien inició el flujo.</div></div></div><div class="card-body">
+          <div class="info-grid"><div><div class="label-small">Origen</div><div class="value-strong" th:text="${asignacion.origenTexto}">Origen</div></div><div><div class="label-small">Horas semanales</div><div class="value-strong text-primary" th:text="|${asignacion.asignacion.horasSemanales} h / semana|">0</div></div><div><div class="label-small">Fecha de solicitud</div><div class="value-strong" th:text="${#temporals.format(asignacion.asignacion.fechaSolicitud, 'dd MMM yyyy HH:mm')}">Fecha</div></div></div>
+          <div class="mt-4"><div class="label-small">Justificación o mensaje</div><div class="request-message" th:text="${#strings.isEmpty(asignacion.asignacion.mensajeSolicitud) ? 'Sin mensaje registrado.' : asignacion.asignacion.mensajeSolicitud}">Mensaje</div></div>
+        </div></div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Colaborador</h3><div class="section-description">Disponibilidad y carga antes de tomar la decisión.</div></div></div><div class="card-body">
+          <div class="d-flex align-items-center gap-3"><span class="avatar profile-avatar bg-blue-lt text-blue" th:text="${asignacion.colaboradorIniciales}">CO</span><div><h3 class="mb-1" th:text="${asignacion.colaboradorNombre}">Colaborador</h3><div class="text-secondary" th:text="${asignacion.asignacion.colaborador.cargo ?: 'Cargo sin registrar'}">Cargo</div></div></div>
+          <div class="mt-3"><span th:each="habilidad : ${asignacion.habilidades}" class="badge bg-blue-lt me-1" th:text="${habilidad}">Habilidad</span><span th:if="${#lists.isEmpty(asignacion.habilidades)}" class="text-secondary small">Sin habilidades registradas</span></div>
+          <div class="info-grid mt-4"><div><div class="label-small">Disponibilidad declarada</div><div class="value-strong" th:classappend="${asignacion.superaDisponibilidad} ? 'text-danger' : 'text-success'" th:text="|${asignacion.horasDisponibles} h / semana|">0</div></div><div><div class="label-small">Carga actual</div><div class="value-strong" th:classappend="${asignacion.superaLimite} ? 'text-danger' : ''" th:text="|${asignacion.asignacionesActivas} / ${asignacion.maxAsignaciones} asignaciones|">0</div></div><div><div class="label-small">Horas comprometidas</div><div class="value-strong" th:text="|${asignacion.horasComprometidas} h / semana|">0</div></div><div><div class="label-small">Experiencia</div><div class="value-strong" th:text="${asignacion.asignacion.colaborador.nivelExperiencia ?: 'Sin definir'}">Nivel</div></div></div>
+          <div th:if="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-warning mt-4 mb-0">La asignación supera la disponibilidad declarada o el límite configurado. Puedes aprobarla, pero debes justificar la excepción.</div>
+          <div th:unless="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-success mt-4 mb-0">La carga y disponibilidad están dentro de los límites registrados.</div>
+        </div></div>
+
+        <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Decisión del RM</h3><div class="section-description">El rechazo requiere motivo. La excepción de capacidad requiere justificación.</div></div></div><div class="card-body">
+          <form class="mb-4" method="post" th:action="@{/rm/asignaciones/{id}/aprobar(id=${asignacion.asignacion.id})}">
+            <label for="motivoCapacidad" class="form-label">Justificación de excepción</label><textarea id="motivoCapacidad" name="motivoCapacidad" maxlength="300" rows="3" class="form-control" th:required="${asignacion.superaLimite or asignacion.superaDisponibilidad}" placeholder="Completa este campo si se excede la capacidad."></textarea>
+            <button type="submit" class="btn btn-primary w-100 mt-3">Aprobar asignación</button>
+          </form>
+          <form method="post" th:action="@{/rm/asignaciones/{id}/rechazar(id=${asignacion.asignacion.id})}">
+            <label for="motivo" class="form-label">Motivo del rechazo</label><textarea id="motivo" name="motivo" maxlength="300" rows="3" class="form-control" required placeholder="Explica por qué no se aprueba."></textarea>
+            <button type="submit" class="btn btn-outline-danger w-100 mt-3">Rechazar asignación</button>
+          </form>
+        </div></div>
+      </div>
+    </div>
+  </main>
+</div><script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body>
+</html>

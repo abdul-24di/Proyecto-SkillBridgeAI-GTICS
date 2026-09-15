@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Foros</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+    <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('foro')}"></header>
+
+    <main class="page-wrap">
+        <div class="container-xl mt-4">
+            <div class="page-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h2 class="page-title">Foros de Proyectos</h2>
+                        <div class="text-secondary mt-1">Selecciona un proyecto para acceder a su foro de discusión con el equipo.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row row-cards">
+                <!-- Foro Proyecto 1 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-link-pop">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="avatar bg-blue-lt rounded">SI</span>
+                                <h3 class="card-title m-0 ms-3">Sistema de Inventario</h3>
+                            </div>
+                            <p class="text-secondary mb-3">Foro de consultas técnicas, decisiones de arquitectura y bugs para el equipo del Sistema de Inventario.</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-secondary small">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-primary" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9h8" /><path d="M8 13h6" /><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" /></svg>
+                                    12 Temas activos
+                                </div>
+                                <a href="pm-foro-detalle.html" th:href="@{/pm/foro/detalle}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Foro Proyecto 2 -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card card-link-pop">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="avatar bg-green-lt rounded">MC</span>
+                                <h3 class="card-title m-0 ms-3">Módulo de Clientes</h3>
+                            </div>
+                            <p class="text-secondary mb-3">Discusiones sobre los requerimientos y el desarrollo del nuevo CRM de clientes.</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-secondary small">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-primary" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9h8" /><path d="M8 13h6" /><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" /></svg>
+                                    4 Temas activos
+                                </div>
+                                <a href="pm-foro-detalle.html" th:href="@{/pm/foro/detalle}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

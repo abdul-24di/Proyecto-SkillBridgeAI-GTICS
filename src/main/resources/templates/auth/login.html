@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar sesión | SkillBridge AI</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/auth-css/auth.css" th:href="@{/css/auth-css/auth.css}">
+</head>
+<body class="auth-page">
+<div class="auth-shell">
+
+    <div class="auth-brand">
+        <div class="auth-logo">
+            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/>
+            </svg>
+        </div>
+        <h1>SkillBridge AI</h1>
+        <p>Gestión inteligente de talento y proyectos</p>
+    </div>
+
+    <div class="auth-card">
+
+        <h2 class="auth-title centered">Bienvenido</h2>
+        <p class="auth-subtitle centered">Ingresa tus credenciales para continuar</p>
+
+        <div class="auth-alert error" th:if="${param.error}">Correo o contraseña incorrectos.</div>
+        <div class="auth-alert success" th:if="${param.logout}">Sesión cerrada correctamente.</div>
+        <div class="auth-alert success" th:if="${param.activado}">Cuenta activada. Ya puedes iniciar sesión.</div>
+        <div class="auth-alert success" th:if="${param.recuperado}">Contraseña actualizada. Ya puedes iniciar sesión.</div>
+
+        <form class="auth-form" th:action="@{/login}" action="/login" method="post">
+
+            <div class="mb-3">
+                <label class="form-label" for="loginEmail">Correo electrónico</label>
+                <div class="auth-input-icon">
+                    <span class="auth-input-icon-addon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                    </span>
+                    <input id="loginEmail" type="email" class="form-control" name="username" placeholder="nombre@empresa.com" autocomplete="email" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="loginPassword">Contraseña</label>
+                <div class="auth-input-icon">
+                    <span class="auth-input-icon-addon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                    </span>
+                    <input id="loginPassword" type="password" class="form-control" name="password" placeholder="Ingresa tu contraseña" autocomplete="current-password" required>
+                    <button type="button" class="auth-toggle-visibility" data-toggle-password="loginPassword" aria-label="Mostrar contraseña">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="auth-row-between mb-3">
+                <label class="form-check m-0">
+                    <input type="checkbox" class="form-check-input" name="remember-me">
+                    <span class="form-check-label">Recordar sesión</span>
+                </label>
+                <a href="recuperar-contrasena.html" class="auth-link" th:href="@{/recuperar}">¿Olvidaste tu contraseña?</a>
+            </div>
+
+            <button type="submit" class="auth-submit">Iniciar Sesión</button>
+
+        </form>
+
+        <hr class="auth-divider">
+
+        <!-- ACCESO RAPIDO POR ROL — solo para desarrollo, quitar antes del entregable final -->
+        <div style="background:#f4f6fa;border:1.5px dashed #c8d0dc;border-radius:8px;padding:16px;margin-bottom:8px;">
+            <div style="font-size:11px;font-weight:700;color:#8592a3;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;text-align:center;">
+                🚧 Acceso rápido por rol (solo desarrollo)
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+                <a href="/rm/dashboard" th:href="@{/rm/dashboard}"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #dce1e9;border-radius:6px;text-decoration:none;color:#1d273b;font-size:14px;font-weight:500;transition:border-color .15s;">
+                    <span style="width:28px;height:28px;background:#2fb344;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">RM</span>
+                    <div>
+                        <div style="font-weight:600;">Resource Manager</div>
+                        <div style="font-size:12px;color:#8592a3;">/rm/dashboard</div>
+                    </div>
+                </a>
+                <a href="/pm/proyectos" th:href="@{/pm/proyectos}"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #dce1e9;border-radius:6px;text-decoration:none;color:#1d273b;font-size:14px;font-weight:500;transition:border-color .15s;">
+                    <span style="width:28px;height:28px;background:#4263eb;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">PM</span>
+                    <div>
+                        <div style="font-weight:600;">Project Manager</div>
+                        <div style="font-size:12px;color:#8592a3;">/pm/proyectos</div>
+                    </div>
+                </a>
+                <a href="/colaborador/dashboard" th:href="@{/colaborador/dashboard}"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #dce1e9;border-radius:6px;text-decoration:none;color:#1d273b;font-size:14px;font-weight:500;transition:border-color .15s;">
+                    <span style="width:28px;height:28px;background:#f76707;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">CO</span>
+                    <div>
+                        <div style="font-weight:600;">Colaborador</div>
+                        <div style="font-size:12px;color:#8592a3;">/colaborador/dashboard</div>
+                    </div>
+                </a>
+                <a href="/admin/dashboard" th:href="@{/admin/dashboard}"
+                   style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #dce1e9;border-radius:6px;text-decoration:none;color:#1d273b;font-size:14px;font-weight:500;transition:border-color .15s;">
+                    <span style="width:28px;height:28px;background:#2565a5;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;">AD</span>
+                    <div>
+                        <div style="font-weight:600;">Administrador</div>
+                        <div style="font-size:12px;color:#8592a3;">/admin/dashboard</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="auth-copyright">© 2026 SkillBridge AI — TEL137 PUCP</div>
+
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/auth-js/auth.js" th:src="@{/js/auth-js/auth.js}"></script>
+</body>
+</html>

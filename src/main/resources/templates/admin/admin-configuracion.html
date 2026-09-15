@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Configuración</title>
+
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-configuracion.css" th:href="@{/css/admin-css/admin-configuracion.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('configuracion')}">
+    <div class="container-xl">
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
+        <a href="admin-usuarios.html" th:href="@{/admin/usuarios}">Usuarios</a>
+        <a href="admin-habilidades.html" th:href="@{/admin/habilidades}">Habilidades</a>
+        <a href="admin-configuracion.html" class="active" th:href="@{/admin/configuracion}">Configuración</a>
+        <a href="admin-auditoria.html" th:href="@{/admin/auditoria}">Auditoría</a>
+      </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">SA</span>
+        <div class="user-meta">
+          <div class="fw-semibold">Sofía Alarcón</div>
+          <div class="small">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <span class="text-secondary">Configuración</span>
+    </nav>
+
+    <div class="page-head page-head-stack-mobile">
+      <div>
+        <h1 class="page-title">Configuración de Parámetros Globales</h1>
+        <div class="text-secondary">
+          Estos valores afectan reglas de negocio en toda la organización. Todo cambio queda registrado en el log de auditoría.
+        </div>
+      </div>
+    </div>
+
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Parámetros de asignaciones y recursos</h3>
+          <div class="section-description">Controlan los límites que usan el RM y el PM al proponer y aprobar asignaciones.</div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Parámetro</th>
+              <th>Descripción</th>
+              <th>Valor actual</th>
+              <th>Última modificación</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="fw-semibold">NOMBRE_ORGANIZACION</td>
+              <td class="text-secondary">Nombre de la organización, usado en correos, reportes y encabezados del sistema.</td>
+              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">SkillBridge AI</span></td>
+              <td>—</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal" data-param-name="NOMBRE_ORGANIZACION" data-param-desc="Nombre de la organización, usado en correos, reportes y encabezados del sistema." data-param-value="SkillBridge AI">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td class="fw-semibold">MAX_ASIGNACIONES_POR_COLABORADOR</td>
+              <td class="text-secondary">Número máximo de asignaciones activas simultáneas que puede tener un colaborador.</td>
+              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">3</span></td>
+              <td>28 ago 2026 · Sofía Alarcón</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal" data-param-name="MAX_ASIGNACIONES_POR_COLABORADOR" data-param-desc="Número máximo de asignaciones activas simultáneas que puede tener un colaborador." data-param-value="3">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr>
+              <td class="fw-semibold">TOPE_HORAS_EXTRA_BONO</td>
+              <td class="text-secondary">Máximo de horas extra pagables por mes que se reconocen como bono a un colaborador.</td>
+              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">20</span></td>
+              <td>—</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal" data-param-name="TOPE_HORAS_EXTRA_BONO" data-param-desc="Máximo de horas extra pagables por mes que se reconocen como bono a un colaborador." data-param-value="20">
+                  Editar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Historial reciente de cambios</h3>
+          <div class="section-description">Últimas modificaciones a los parámetros globales del sistema.</div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Parámetro</th>
+              <th>Valor anterior</th>
+              <th>Valor nuevo</th>
+              <th>Modificado por</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>28 ago 2026, 10:14</td>
+              <td class="fw-semibold">MAX_ASIGNACIONES_POR_COLABORADOR</td>
+              <td>2</td>
+              <td>3</td>
+              <td>Sofía Alarcón</td>
+            </tr>
+            <tr>
+              <td>03 jun 2026, 16:40</td>
+              <td class="fw-semibold">MAX_ASIGNACIONES_POR_COLABORADOR</td>
+              <td>3</td>
+              <td>2</td>
+              <td>Sofía Alarcón</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL: EDITAR PARÁMETRO -->
+<div class="modal modal-blur fade admin-modal" id="editParamModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar parámetro</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Parámetro</label>
+          <input type="text" class="form-control" data-admin-source="paramName" readonly disabled>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-control" rows="2" data-admin-source="paramDesc" readonly disabled></textarea>
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="editParamValue">Nuevo valor</label>
+          <input id="editParamValue" type="text" class="form-control" data-admin-source="paramValue" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Guardar cambio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
+<script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
+</body>
+</html>

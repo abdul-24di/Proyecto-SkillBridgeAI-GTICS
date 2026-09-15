@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Detalle de foro RM</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-foro-detalle.css" th:href="@{/css/rm-css/rm-foro-detalle.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('foros')}"></header>
+
+  <main class="page-wrap forum-detail-page">
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <a class="breadcrumb-link" th:href="@{/rm/foros}">Foros</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="text-secondary" th:text="${foro.nombre}">Foro</span>
+    </nav>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h1 class="page-title mb-0" th:text="${foro.nombre}">Foro del proyecto</h1>
+          <span class="badge" th:classappend="${foro.proyectoEstadoClase}"
+                th:text="${foro.proyectoEstado}">Activo</span>
+          <span class="badge bg-azure-lt">Solo lectura RM</span>
+        </div>
+        <div class="text-secondary mt-2">
+          Consulta publicaciones y respuestas. El RM no participa en el foro ni tiene acceso al chat.
+        </div>
+      </div>
+      <a class="btn btn-outline-secondary" th:href="@{/rm/foros}">Volver a foros</a>
+    </div>
+
+    <div class="card section-card forum-context mb-4">
+      <div class="card-body">
+        <div class="forum-context-grid">
+          <div>
+            <div class="info-label">Proyecto</div>
+            <div class="info-value" th:text="${foro.proyectoNombre}">Proyecto</div>
+          </div>
+          <div>
+            <div class="info-label">Project Manager</div>
+            <div class="info-value" th:text="${foro.pmNombre}">Project Manager</div>
+          </div>
+          <div>
+            <div class="info-label">Publicaciones</div>
+            <div class="info-value" th:text="${foro.totalPublicaciones}">0</div>
+          </div>
+          <div>
+            <div class="info-label">Participantes</div>
+            <div class="info-value" th:text="${foro.participantes}">0</div>
+          </div>
+          <div>
+            <div class="info-label">Última actividad</div>
+            <div class="info-value"
+                 th:text="${foro.ultimaActividad == null ? 'Sin actividad' : #temporals.format(foro.ultimaActividad, 'dd/MM/yyyy HH:mm')}">Sin actividad</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap mb-3">
+      <div>
+        <h2 class="h3 mb-1">Publicaciones y respuestas</h2>
+        <div class="text-secondary small">Las respuestas se muestran priorizando las más votadas.</div>
+      </div>
+      <form method="get" th:action="@{/rm/foros/detalle}" class="d-flex align-items-end gap-2">
+        <input type="hidden" name="id" th:value="${foro.id}">
+        <div>
+          <label class="form-label mb-1" for="forumSort">Ordenar publicaciones</label>
+          <select class="form-select form-select-sm" id="forumSort" name="ordenar" onchange="this.form.submit()">
+            <option value="fecha" th:selected="${ordenActual == 'fecha'}">Más recientes</option>
+            <option value="votos" th:selected="${ordenActual == 'votos'}">Más votadas</option>
+          </select>
+        </div>
+      </form>
+    </div>
+
+    <div th:if="${foro.publicaciones.isEmpty()}" class="card section-card">
+      <div class="card-body text-center text-secondary py-5">
+        Este foro todavía no tiene publicaciones.
+      </div>
+    </div>
+
+    <div class="row row-cards" th:unless="${foro.publicaciones.isEmpty()}">
+      <div class="col-lg-8">
+        <article th:each="publicacion : ${foro.publicaciones}"
+                 class="card section-card mb-4" th:id="|publicacion-${publicacion.id}|">
+          <div class="card-header section-header">
+            <div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h3 class="card-title mb-0" th:text="${publicacion.titulo}">Título</h3>
+                <span th:if="${publicacion.etiqueta != null}" class="badge bg-blue-lt"
+                      th:text="${publicacion.etiqueta}">Etiqueta</span>
+              </div>
+              <div class="section-description" th:text="|Publicación #${publicacion.id}|">Publicación</div>
+            </div>
+            <span class="badge bg-secondary-lt" th:text="|Puntaje ${publicacion.puntaje}|">Puntaje 0</span>
+          </div>
+
+          <div class="card-body">
+            <div class="post-author-row">
+              <span class="avatar post-avatar bg-blue-lt text-blue"
+                    th:text="${publicacion.autorIniciales}">US</span>
+              <div class="flex-fill">
+                <div class="fw-semibold" th:text="${publicacion.autorNombre}">Autor</div>
+                <div class="small text-secondary"
+                     th:text="|${publicacion.autorCargo} · ${#temporals.format(publicacion.fechaCreacion, 'dd/MM/yyyy HH:mm')}|">Cargo · fecha</div>
+              </div>
+              <span class="badge bg-azure-lt">Solo lectura</span>
+            </div>
+
+            <div class="post-content mt-3" th:text="${publicacion.contenido}">Contenido</div>
+
+            <div class="post-footer mt-3">
+              <span th:text="|▲ ${publicacion.positivos} · ▼ ${publicacion.negativos} · Puntaje ${publicacion.puntaje}|">Votos</span>
+              <span th:text="|${publicacion.respuestas.size()} respuestas|">0 respuestas</span>
+            </div>
+          </div>
+
+          <div class="card-footer p-0">
+            <div class="px-3 py-2 border-bottom fw-semibold">Respuestas</div>
+            <div th:if="${publicacion.respuestas.isEmpty()}" class="text-secondary px-3 py-4 text-center">
+              Esta publicación aún no tiene respuestas.
+            </div>
+            <div th:each="respuesta : ${publicacion.respuestas}" class="reply-row">
+              <div class="d-flex align-items-start gap-3">
+                <span class="avatar reply-avatar bg-purple-lt text-purple"
+                      th:text="${respuesta.autorIniciales}">US</span>
+                <div class="flex-fill">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <div class="fw-semibold" th:text="${respuesta.autorNombre}">Autor</div>
+                    <span th:if="${respuesta.solucion}" class="badge bg-green-lt">Solución marcada</span>
+                    <span class="badge bg-secondary-lt" th:text="|Puntaje ${respuesta.puntaje}|">Puntaje 0</span>
+                  </div>
+                  <div class="small text-secondary"
+                       th:text="|${respuesta.autorCargo} · ${#temporals.format(respuesta.fechaCreacion, 'dd/MM/yyyy HH:mm')}|">Cargo · fecha</div>
+                  <div class="reply-content mt-2" th:text="${respuesta.contenido}">Respuesta</div>
+                  <div class="small text-secondary mt-2"
+                       th:text="|▲ ${respuesta.positivos} · ▼ ${respuesta.negativos}|">Votos</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <aside class="col-lg-4">
+        <div class="card section-card mb-4">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Contexto</h3>
+              <div class="section-description">Información del foro y del proyecto.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="forum-side-list">
+              <div>
+                <div class="info-label">Tipo y visibilidad</div>
+                <div class="mt-1 d-flex gap-2 flex-wrap">
+                  <span class="badge bg-azure-lt" th:text="${foro.tipo}">Proyecto</span>
+                  <span class="badge" th:classappend="${foro.publico ? 'bg-blue-lt' : 'bg-purple-lt'}"
+                        th:text="${foro.publico ? 'Público' : 'Privado'}">Privado</span>
+                </div>
+              </div>
+              <div th:if="${foro.proyectoId != null}">
+                <div class="info-label">Prioridad</div>
+                <div class="mt-1"><span class="badge" th:classappend="${foro.proyectoPrioridadClase}"
+                                      th:text="${foro.proyectoPrioridad}">Alta</span></div>
+              </div>
+              <div>
+                <div class="info-label">Equipo activo</div>
+                <div class="info-value" th:text="|${foro.integrantesActivos} / ${foro.colaboradoresRequeridos}|">0 / 0</div>
+              </div>
+              <div>
+                <div class="info-label">Etiquetas presentes</div>
+                <div class="forum-side-tags mt-1">
+                  <span th:if="${foro.etiquetas.isEmpty()}" class="text-secondary small">Sin etiquetas</span>
+                  <span th:each="etiqueta : ${foro.etiquetas}" class="badge bg-blue-lt"
+                        th:text="${etiqueta}">Etiqueta</span>
+                </div>
+              </div>
+            </div>
+            <a th:if="${foro.proyectoId != null}" class="btn btn-outline-primary btn-sm w-100 mt-3"
+               th:href="@{/rm/proyectos/detalle(id=${foro.proyectoId})}">Ver proyecto</a>
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Índice de publicaciones</h3>
+              <div class="section-description">Acceso rápido dentro de esta página.</div>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <a th:each="publicacion : ${foro.publicaciones}" class="recent-topic"
+               th:href="|#publicacion-${publicacion.id}|">
+              <div class="fw-semibold" th:text="${publicacion.titulo}">Título</div>
+              <div class="small text-secondary"
+                   th:text="|${publicacion.respuestas.size()} respuestas · puntaje ${publicacion.puntaje}|">Actividad</div>
+            </a>
+          </div>
+        </div>
+
+        <div class="read-only-note mt-4">
+          <strong>Acceso RM:</strong> esta vista es únicamente de consulta.
+          No existen controles para publicar, responder, votar ni abrir el chat.
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

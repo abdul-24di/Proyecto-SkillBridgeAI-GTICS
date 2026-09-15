@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Explorar</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-detalle-proyecto.css" th:href="@{/css/col-css/col-detalle-proyecto.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-explorar.css" th:href="@{/css/col-css/col-explorar.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('explorar')}">
+        <div class="container-xl">
+            <a href="col-dashboard.html" class="brand">SkillBridge AI</a>
+            <nav class="main-nav" aria-label="Navegación principal">
+                <a href="col-dashboard.html">Dashboard</a>
+                <a href="col-proyectos.html">Mis proyectos</a>
+                <a href="col-foros.html">Foros</a>
+                <a href="col-asistente.html">Asistente</a>
+                <a href="col-perfil.html">Perfil Profesional</a>
+                <a href="col-explorar.html" class="active">Explorar</a>
+            </nav>
+            <div class="user-area">
+                <div class="notification-wrap">
+                    <button type="button" class="notification-link position-relative" id="notifBellBtn" aria-label="Notificaciones">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+                        <span class="badge bg-red notification-dot" id="notifDot"></span>
+                    </button>
+                    <div class="notification-panel" id="notifPanel">
+                        <div class="notification-panel-header">
+                            <span>Notificaciones</span>
+                            <button type="button" class="notification-panel-close" id="notifCloseBtn" aria-label="Cerrar">&times;</button>
+                        </div>
+                        <div class="notification-panel-list"></div>
+                        <div class="notification-panel-footer">
+                            <button type="button" class="btn btn-link btn-sm p-0" id="notifMarkAllBtn">Marcar todas como leídas</button>
+                        </div>
+                    </div>
+                </div>
+                <span class="avatar avatar-sm user-avatar">PK</span>
+                <div class="user-meta"><div class="fw-semibold">Paweł Kuna</div><div class="small">Colaborador</div></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="page-wrap">
+
+        <div class="page-head page-head-stack-mobile">
+            <div>
+                <h1 class="page-title">Explorar</h1>
+                <div class="text-secondary">Descubre proyectos, colaboradores y cursos de la organización.</div>
+            </div>
+        </div>
+
+        <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+        <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+
+        <ul class="explore-tabs list-unstyled mb-0">
+            <li><button type="button" class="explore-tab active" data-panel="panelProyectos">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                Proyectos
+            </button></li>
+            <li><button type="button" class="explore-tab" data-panel="panelColaboradores">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M19 8v6M16 11h6"/></svg>
+                Colaboradores
+            </button></li>
+            <li><button type="button" class="explore-tab" data-panel="panelCursos">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 9L12 5 2 9l10 4 10-4v6"/><path d="M6 10.6V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.4"/></svg>
+                Cursos
+            </button></li>
+        </ul>
+
+        <!-- ===== PANEL PROYECTOS ===== -->
+        <div class="explore-panel" id="panelProyectos">
+            <div class="card section-card mb-4">
+                <div class="explore-filters">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-12">
+                            <label class="form-label">Buscar</label>
+                            <div class="input-icon">
+                                <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
+                                <input type="text" id="projectSearch" class="form-control" placeholder="Buscar proyecto...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="projectAccordion">
+                <div th:if="${proyectosDisponibles.isEmpty()}" class="card"><div class="empty-state">No hay proyectos activos con cupos disponibles en este momento.</div></div>
+
+                <div th:each="v : ${proyectosDisponibles}" class="project-accordion-item"
+                     th:attr="data-project-name=${v.proyecto.nombre}">
+                    <div class="project-accordion-header" data-toggle-project>
+                        <div>
+                            <div class="project-accordion-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                                <span th:text="${v.proyecto.nombre}">Proyecto X</span>
+                            </div>
+                            <div class="text-secondary small mt-1">
+                                <span class="status-inline-dot bg-green"></span>Activo
+                                &nbsp;·&nbsp;
+                                <span class="status-inline-dot bg-green"></span>
+                                <span th:text="${v.cuposDisponibles} + ' cupo(s) disponible(s)'">2 cupo(s) disponible(s)</span>
+                            </div>
+                        </div>
+                        <svg class="project-accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+                    </div>
+                    <div class="project-accordion-body">
+                        <p class="text-secondary small" th:text="${v.proyecto.descripcion}">Descripción del proyecto.</p>
+                        <div class="profile-list-line"><strong>PM:</strong> <span th:text="${v.proyecto.pm.nombre} + ' ' + ${v.proyecto.pm.apellido}">Nombre PM</span></div>
+                        <div class="profile-list-line"><strong>Equipo:</strong> <span th:text="${v.colaboradoresActivos} + ' / ' + ${v.proyecto.colaboradoresRequeridos} + ' colaboradores'">2 / 5 colaboradores</span></div>
+                        <div class="profile-list-line"><strong>Horas requeridas:</strong> <span th:text="${v.proyecto.horasSemanalesRequeridas} + ' horas/semana'">20 horas/semana</span></div>
+                        <div class="info-label mt-3 mb-1">Habilidades requeridas</div>
+                        <div th:if="${v.habilidadesRequeridas.isEmpty()}" class="text-secondary small">No se especificaron habilidades para este proyecto.</div>
+                        <div th:unless="${v.habilidadesRequeridas.isEmpty()}">
+                            <span th:each="h : ${v.habilidadesRequeridas}" class="badge bg-blue-lt me-1 mb-1" th:text="${h}">Java</span>
+                        </div>
+                        <div class="info-grid mt-3">
+                            <div><div class="info-label">Fecha de inicio</div><div class="info-value" th:text="${v.proyecto.fechaInicio != null ? v.proyecto.fechaInicio : 'Por definir'}">01/09/2026</div></div>
+                            <div><div class="info-label">Fin estimado</div><div class="info-value" th:text="${v.proyecto.fechaFinEstimada != null ? v.proyecto.fechaFinEstimada : 'Por definir'}">—</div></div>
+                        </div>
+                        <div class="action-bar mt-3 mb-0">
+                            <span th:if="${v.yaTieneSolicitud}" class="badge bg-blue-lt">Ya te postulaste a este proyecto</span>
+                            <span th:if="${!v.yaTieneSolicitud and !v.tieneHorasSuficientes}" class="badge bg-red-lt">No tienes suficientes horas disponibles</span>
+                            <button th:if="${!v.yaTieneSolicitud and v.tieneHorasSuficientes}" type="button" class="btn btn-primary btn-sm" data-open-apply
+                                    th:attr="data-project-id=${v.proyecto.id},data-project-name=${v.proyecto.nombre}">Postularme</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card section-card mt-4">
+                <div class="card-header section-header">
+                    <div>
+                        <h3 class="card-title mb-1">Mis solicitudes enviadas</h3>
+                        <div class="section-description">Estado de las solicitudes de incorporación que has enviado.</div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div th:if="${misSolicitudes.isEmpty()}" class="empty-state">Aún no has enviado ninguna solicitud.</div>
+                    <div th:each="s : ${misSolicitudes}" class="profile-list-line d-flex justify-content-between align-items-center py-2 px-3">
+                        <div>
+                            <div class="fw-semibold" th:text="${s.proyecto.nombre}">Proyecto X</div>
+                            <div class="text-secondary small" th:text="'Solicitado el ' + ${#temporals.format(s.fechaSolicitud, 'dd/MM/yyyy')}">Solicitado el 01/09/2026</div>
+                        </div>
+                        <span class="badge"
+                              th:classappend="${s.estado.name() == 'ACTIVA'} ? 'bg-green-lt' : (${s.estado.name() == 'RECHAZADA'} ? 'bg-red-lt' : (${s.estado.name() == 'FINALIZADA'} ? 'bg-secondary-lt' : 'bg-yellow-lt'))"
+                              th:text="${s.estado.name() == 'ACTIVA'} ? 'Activa' : (${s.estado.name() == 'RECHAZADA'} ? 'Rechazada' : (${s.estado.name() == 'FINALIZADA'} ? 'Finalizada' : 'Pendiente de aprobación'))">Pendiente</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PANEL COLABORADORES ===== -->
+        <div class="explore-panel d-none" id="panelColaboradores">
+
+            <div class="collab-list-view" id="collabListView">
+                <div class="card section-card mb-4">
+                    <div class="explore-filters">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-8">
+                                <label class="form-label">Buscar</label>
+                                <div class="input-icon">
+                                    <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
+                                    <input type="text" id="collabSearch" class="form-control" placeholder="Buscar por nombre, cargo o habilidad...">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Nivel</label>
+                                <select id="collabLevelFilter" class="form-select">
+                                    <option value="all">Todos</option>
+                                    <option>Básico</option>
+                                    <option>Intermedio</option>
+                                    <option>Avanzado</option>
+                                    <option>Experto</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="collabList"></div>
+            </div>
+
+            <div class="collab-profile-detail" id="collabProfileDetail">
+                <button type="button" class="btn btn-link btn-sm px-0 mb-3" id="backToCollabList">&larr; Volver a colaboradores</button>
+                <div class="card section-card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                            <div>
+                                <h4 class="mb-0" id="collabProfileName">—</h4>
+                                <div class="text-secondary" id="collabProfileRole">—</div>
+                            </div>
+                            <div class="availability-pill">
+                                <span class="availability-dot bg-green" id="collabProfileAvailabilityDot"></span>
+                                <span id="collabProfileAvailabilityLabel"></span>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="info-label mb-1">Sobre</div>
+                                <p class="small text-secondary" id="collabProfileBio"></p>
+                                <div class="info-label mb-1">Experiencia</div>
+                                <ul class="small text-secondary ps-3" id="collabProfileExperience"></ul>
+                                <div class="info-label mb-1 mt-3">Proyectos destacados</div>
+                                <ul class="small text-secondary ps-3" id="collabProfileHighlights"></ul>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-label mb-1">Habilidades</div>
+                                <div class="mb-3" id="collabProfileSkills"></div>
+                                <div class="info-label mb-1">Educación</div>
+                                <div class="small text-secondary" id="collabProfileEducation"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ===== PANEL CURSOS ===== -->
+        <div class="explore-panel d-none" id="panelCursos">
+            <div class="card section-card mb-4">
+                <div class="explore-filters">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-8">
+                            <label class="form-label">Buscar</label>
+                            <div class="input-icon">
+                                <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
+                                <input type="text" id="courseSearch" class="form-control" placeholder="Buscar curso...">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Categoría</label>
+                            <select id="courseCategoryFilter" class="form-select">
+                                <option value="all">Todas</option>
+                                <option>Técnico</option>
+                                <option>Habilidades blandas</option>
+                                <option>Certificación</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="courseList"></div>
+        </div>
+
+    </main>
+</div>
+
+<!-- MODAL: POSTULACIÓN A PROYECTO -->
+<div class="modal modal-blur fade col-modal" id="applyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <form th:action="@{/colaborador/proyectos/solicitar}" method="post">
+            <div class="modal-header">
+                <h5 class="modal-title" id="applyModalTitle">Postulación</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="proyectoId" id="applyProyectoId">
+
+                <label class="form-label">¿Por qué te interesa participar?</label>
+                <textarea name="mensaje" id="applyMessageInput" class="form-control" rows="4" maxlength="500" placeholder="Escribe tu respuesta..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" type="submit">Postularme</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+<script src="../../static/js/col-js/col-explorar.js" th:src="@{/js/col-js/col-explorar.js}"></script>
+</body>
+</html>

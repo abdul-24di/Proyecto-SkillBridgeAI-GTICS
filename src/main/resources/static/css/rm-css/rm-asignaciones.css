@@ -1,0 +1,218 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   ASIGNACIONES - RESOURCE MANAGER
+   ========================================================= */
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+.breadcrumb-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  margin-bottom: 16px;
+  font-size: .86rem;
+}
+
+/* =========================================================
+   SUMMARY
+   ========================================================= */
+
+.summary-card {
+  min-height: 116px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.summary-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+}
+
+.summary-label {
+  color: #64748b;
+  font-size: .7rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+}
+
+.summary-number {
+  margin-top: .15rem;
+  color: #182433;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+/* =========================================================
+   MAIN CARD
+   ========================================================= */
+
+.assignments-card {
+  overflow: hidden;
+  border: 1px solid #e1e5eb;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.section-header {
+  min-height: 68px;
+  padding: 13px 17px;
+}
+
+.section-description {
+  max-width: 860px;
+  color: rgba(255, 255, 255, .75);
+  font-size: .79rem;
+  line-height: 1.4;
+}
+
+/* =========================================================
+   TABS
+   ========================================================= */
+
+.assignment-tabs {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid #e6e9ef;
+  background: #ffffff;
+  scrollbar-width: none;
+}
+
+.assignment-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.assignment-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .82rem 1.1rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #667085;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.assignment-tabs button:hover {
+  background: #f8fafc;
+}
+
+.assignment-tabs button.active {
+  border-bottom-color: #206bc4;
+  background: #f8fbff;
+  color: #206bc4;
+}
+
+.tab-count {
+  min-width: 22px;
+  padding: .08rem .38rem;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #5d6978;
+  font-size: .7rem;
+  text-align: center;
+}
+
+.assignment-tabs button.active .tab-count {
+  background: #dfeeff;
+  color: #206bc4;
+}
+
+/* =========================================================
+   FILTERS
+   ========================================================= */
+
+.filters-wrap {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid #edf0f4;
+  background: #ffffff;
+}
+
+.filters-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  padding-top: .9rem;
+  border-top: 1px solid #edf0f4;
+}
+
+.filters-note-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #eef4fb;
+  color: #2565a5;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.table > :not(caption) > * > * {
+  vertical-align: middle;
+}
+
+.table thead th {
+  color: #4f5d6b;
+  background: #f7f9fc;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.avatar-sm-custom {
+  width: 32px;
+  height: 32px;
+  font-size: .72rem;
+}
+
+.approval-mini {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+
+.actions-mini {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: .35rem;
+  flex-wrap: wrap;
+}
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.pagination-wrap {
+  padding: 12px 17px;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 991px) {
+  .page-head {
+    align-items: flex-start;
+  }
+}

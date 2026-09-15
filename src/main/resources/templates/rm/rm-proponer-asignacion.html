@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Proponer asignación</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}" href="../../static/tabler/css/tabler.min.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}" href="../../static/css/rm-css/rm-common.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-proponer-asignacion.css}" href="../../static/css/rm-css/rm-proponer-asignacion.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}" href="../../static/css/rm-css/rm-topbar.css">
+</head>
+<body><div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}"></header>
+  <main class="page-wrap">
+    <nav class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/asignaciones}">Asignaciones</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Proponer asignación</span></nav>
+    <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+    <div class="page-head"><div><div class="d-flex align-items-center gap-2"><h1 class="page-title mb-0">Proponer asignación</h1><span class="badge bg-blue-lt">Nueva propuesta</span></div><div class="text-secondary mt-2">La propuesta quedará aprobada por el RM y pendiente de decisión del PM del proyecto.</div></div></div>
+
+    <div th:if="${#lists.isEmpty(proyectos)}" class="alert alert-warning">No existen proyectos activos o en espera. Primero debe aprobarse o reanudarse un proyecto.</div>
+    <div th:if="${#lists.isEmpty(colaboradores)}" class="alert alert-warning">No existen colaboradores activos disponibles para seleccionar.</div>
+
+    <form method="post" th:action="@{/rm/asignaciones/proponer}">
+      <div class="row row-cards">
+        <div class="col-lg-7"><div class="card section-card">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Datos de la propuesta</h3><div class="section-description">Selecciona el proyecto y el colaborador usando información real de la organización.</div></div></div>
+          <div class="card-body">
+            <div class="mb-3"><label for="proyectoId" class="form-label">Proyecto</label>
+              <select id="proyectoId" name="proyectoId" class="form-select" required>
+                <option value="">Selecciona un proyecto</option>
+                <option th:each="proyecto : ${proyectos}" th:value="${proyecto.id}" th:selected="${proyectoSeleccionadoId != null and proyectoSeleccionadoId == proyecto.id}" th:text="|${proyecto.nombre} — PM: ${proyecto.pm.nombre} ${proyecto.pm.apellido} (${proyecto.estado})|">Proyecto</option>
+              </select>
+            </div>
+            <div class="mb-3"><label for="colaboradorId" class="form-label">Colaborador</label>
+              <select id="colaboradorId" name="colaboradorId" class="form-select" required>
+                <option value="">Selecciona un colaborador</option>
+                <option th:each="colaborador : ${colaboradores}" th:value="${colaborador.id}" th:selected="${colaboradorSeleccionadoId != null and colaboradorSeleccionadoId == colaborador.id}" th:text="|${colaborador.nombreCompleto} — ${colaborador.cargo} — ${colaborador.horasDisponibles} h disponibles — carga ${colaborador.asignacionesActivas}/${colaborador.maxAsignaciones}|">Colaborador</option>
+              </select>
+            </div>
+            <div class="mb-3"><label for="horasSemanales" class="form-label">Horas semanales propuestas</label><div class="input-group"><input id="horasSemanales" name="horasSemanales" type="number" min="0.5" max="168" step="0.5" class="form-control" required><span class="input-group-text">h / semana</span></div></div>
+            <div class="mb-3"><label for="justificacion" class="form-label">Justificación de la propuesta</label><textarea id="justificacion" name="justificacion" class="form-control" rows="4" maxlength="350" placeholder="Explica por qué el colaborador es adecuado para el proyecto."></textarea></div>
+            <div><label for="motivoCapacidad" class="form-label">Justificación de excepción de capacidad</label><textarea id="motivoCapacidad" name="motivoCapacidad" class="form-control" rows="3" maxlength="300" placeholder="Obligatoria solamente si supera su disponibilidad o el máximo de asignaciones."></textarea><div class="form-hint">El RM puede continuar aunque se supere el límite, pero debe dejar el motivo registrado.</div></div>
+          </div>
+        </div></div>
+        <div class="col-lg-5"><div class="card section-card">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Flujo de aprobación</h3><div class="section-description">Reglas aplicadas automáticamente.</div></div></div>
+          <div class="card-body">
+            <div class="approval-step"><span class="approval-dot bg-green-lt text-green">✓</span><div><div class="fw-semibold">Resource Manager</div><div class="small text-secondary">Queda aprobado al enviar la propuesta.</div></div></div>
+            <div class="approval-step"><span class="approval-dot bg-blue-lt text-blue">2</span><div><div class="fw-semibold">Project Manager</div><div class="small text-secondary">Debe aprobar antes de que la asignación quede activa.</div></div></div>
+            <div class="availability-note mt-3"><span class="availability-note-icon">i</span><div class="small text-secondary">No se permite otra propuesta si ya existe una asignación pendiente o activa del mismo colaborador en el proyecto.</div></div>
+          </div>
+        </div></div>
+      </div>
+      <div class="action-bar"><a class="btn btn-outline-secondary" th:href="@{/rm/asignaciones}">Cancelar</a><button class="btn btn-primary" type="submit" th:disabled="${#lists.isEmpty(proyectos) or #lists.isEmpty(colaboradores)}">Enviar propuesta al PM</button></div>
+    </form>
+  </main>
+</div><script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body>
+</html>

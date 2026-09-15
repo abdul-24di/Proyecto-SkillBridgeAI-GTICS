@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Reporte de recursos</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-reporte-recursos.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('reportes')}"></header>
+  <main class="page-wrap">
+    <div class="breadcrumb-wrap"><span class="text-secondary">Reportes</span></div>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <h1 class="page-title">Reporte de recursos</h1>
+        <div class="text-secondary" th:text="|Resumen de proyectos para ${reporte.periodoTexto}.|">Resumen mensual.</div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap export-actions">
+        <a class="btn btn-outline-secondary"
+           th:href="@{/rm/reportes/horas-colaboradores(periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado})}">Horas por colaborador</a>
+        <a class="btn btn-outline-primary"
+           th:href="@{/rm/reportes/recursos/excel(periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado},estado=${reporte.estadoSeleccionado})}">Exportar Excel</a>
+        <a class="btn btn-primary"
+           th:href="@{/rm/reportes/recursos/pdf(periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado},estado=${reporte.estadoSeleccionado})}">Exportar PDF</a>
+      </div>
+    </div>
+
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Periodo y alcance</h3>
+          <div class="section-description">Solo se suman tareas completadas cuya fecha de entrega pertenece al mes elegido.</div>
+        </div>
+      </div>
+      <form class="card-body report-filters" method="get" th:action="@{/rm/reportes/recursos}">
+        <div class="row g-3 align-items-end">
+          <div class="col-lg-3 col-md-6">
+            <label for="periodo" class="form-label">Mes</label>
+            <select id="periodo" name="periodo" class="form-select">
+              <option th:each="opcion : ${periodos}" th:value="${opcion.valor}"
+                      th:text="${opcion.texto}" th:selected="${opcion.valor == reporte.periodoValor}"></option>
+            </select>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <label for="proyecto" class="form-label">Proyecto</label>
+            <select id="proyecto" name="proyecto" class="form-select">
+              <option value="">Todos los proyectos</option>
+              <option th:each="proyecto : ${proyectosFiltro}" th:value="${proyecto.valor}"
+                      th:text="${proyecto.texto}" th:selected="${proyecto.valor == reporte.proyectoSeleccionadoValor}"></option>
+            </select>
+          </div>
+          <div class="col-lg-3 col-md-6">
+            <label for="estado" class="form-label">Estado del proyecto</label>
+            <select id="estado" name="estado" class="form-select">
+              <option value="">Todos</option>
+              <option th:each="opcion : ${estadosFiltro}" th:value="${opcion.valor}"
+                      th:text="${opcion.texto}" th:selected="${opcion.valor == reporte.estadoSeleccionado}"></option>
+            </select>
+          </div>
+          <div class="col-lg-2 col-md-6 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Aplicar</button>
+            <a class="btn btn-outline-secondary" th:href="@{/rm/reportes/recursos}">Limpiar</a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="metric-label">Proyectos incluidos</div><div class="metric-number" th:text="${reporte.totalProyectos}">0</div><div class="small text-secondary">Según filtros</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="metric-label">Presupuesto asignado</div><div class="metric-number metric-money" th:text="|S/ ${#numbers.formatDecimal(reporte.presupuestoTotal, 1, 2)}|">S/ 0.00</div><div class="small text-secondary">Dato informativo</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="metric-label">Horas trabajadas</div><div class="metric-number" th:text="|${#numbers.formatDecimal(reporte.horasTotales, 1, 2)} h|">0 h</div><div class="small text-secondary">Tareas completadas</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="metric-label">Colaboradores involucrados</div><div class="metric-number" th:text="${reporte.colaboradoresInvolucrados}">0</div><div class="small text-secondary">Con tareas completadas</div>
+      </div></div></div>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-lg-8">
+        <div class="card section-card h-100">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Comparación por proyecto</h3><div class="section-description">Presupuesto registrado y horas completadas en el periodo.</div></div></div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table mb-0">
+              <thead><tr><th>Proyecto</th><th>Estado</th><th>Prioridad</th><th>Presupuesto</th><th>Horas</th><th>Colaboradores</th><th class="text-end">Acción</th></tr></thead>
+              <tbody>
+              <tr th:each="item : ${reporte.proyectos}">
+                <td class="fw-semibold" th:text="${item.nombre}">Proyecto</td>
+                <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Activo</span></td>
+                <td><span class="badge" th:classappend="${item.prioridadClase}" th:text="${item.prioridadTexto}">Alta</span></td>
+                <td th:text="|S/ ${#numbers.formatDecimal(item.presupuesto, 1, 2)}|">S/ 0.00</td>
+                <td th:text="|${#numbers.formatDecimal(item.horas, 1, 2)} h|">0 h</td>
+                <td th:text="${item.colaboradores}">0</td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/rm/proyectos/detalle(id=${item.id})}">Ver proyecto</a></td>
+              </tr>
+              <tr th:if="${#lists.isEmpty(reporte.proyectos)}"><td colspan="7" class="text-center text-secondary py-5">No hay proyectos que coincidan con los filtros.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card section-card h-100">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Distribución de horas</h3><div class="section-description">Participación respecto al proyecto con más horas.</div></div></div>
+          <div class="card-body chart-list">
+            <div class="mb-3" th:each="item : ${reporte.proyectos}">
+              <div class="d-flex justify-content-between mb-1"><span class="text-truncate" th:text="${item.nombre}">Proyecto</span><strong th:text="|${#numbers.formatDecimal(item.horas, 1, 2)} h|">0 h</strong></div>
+              <div class="progress progress-sm"><div class="progress-bar bg-primary" th:style="|width: ${item.porcentajeHoras}%|"></div></div>
+            </div>
+            <div class="text-center text-secondary py-4" th:if="${#lists.isEmpty(reporte.proyectos)}">Sin información para graficar.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card section-card">
+      <div class="card-header section-header"><div><h3 class="card-title mb-1">Detalle por colaborador</h3><div class="section-description">Agrupación de tareas completadas por colaborador y proyecto.</div></div></div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead><tr><th>Colaborador</th><th>Proyecto</th><th>Rol</th><th>Horas trabajadas</th><th>Tareas consideradas</th></tr></thead>
+          <tbody>
+          <tr th:each="item : ${reporte.detalles}">
+            <td class="fw-semibold" th:text="${item.colaborador}">Colaborador</td><td th:text="${item.proyecto}">Proyecto</td><td th:text="${item.cargo}">Rol</td>
+            <td th:text="|${#numbers.formatDecimal(item.horas, 1, 2)} h|">0 h</td><td th:text="${item.tareas}">0</td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(reporte.detalles)}"><td colspan="5" class="text-center text-secondary py-5">No hay tareas completadas en este periodo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="report-note"><div class="small text-secondary"><strong>Importante:</strong> el presupuesto es información del proyecto. El RM no visualiza sueldos, bonos ni pagos mensuales.</div></div>
+    </div>
+  </main>
+</div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

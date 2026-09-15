@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Asignar curso</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-asignar-curso.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+<body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('cursos')}"></header>
+<main class="page-wrap">
+  <div class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/cursos}">Cursos</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Asignar curso</span></div>
+  <div class="page-head page-head-stack-mobile page-head-button-mobile"><div><h1 class="page-title">Asignar curso a colaborador</h1><div class="text-secondary">Inscribe directamente a un colaborador en un curso activo.</div></div><a class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Cancelar</a></div>
+
+  <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+
+  <form method="post" th:action="@{/rm/cursos/asignar}">
+    <div class="row row-cards mb-4">
+      <div class="col-lg-7"><div class="card section-card h-100">
+        <div class="card-header section-header"><div><h3 class="card-title mb-1">Datos de la inscripción</h3><div class="section-description">Selecciona el colaborador, el curso y registra la justificación.</div></div></div>
+        <div class="card-body form-panel">
+          <div class="mb-3"><label class="form-label" for="collaboratorSelect">Colaborador <span class="text-red">*</span></label><select id="collaboratorSelect" name="colaboradorId" class="form-select" required><option value="">Seleccionar colaborador</option><option th:each="item : ${colaboradoresCurso}" th:value="${item.id}" th:text="|${item.nombre} — ${item.cargo}|" th:attr="data-nombre=${item.nombre},data-cargo=${item.cargo}" th:selected="${item.id == colaboradorSeleccionado}"></option></select></div>
+          <div class="mb-3"><label class="form-label" for="courseSelect">Curso activo <span class="text-red">*</span></label><select id="courseSelect" name="cursoId" class="form-select" required><option value="">Seleccionar curso</option><option th:each="item : ${cursosActivos}" th:value="${item.id}" th:text="|${item.nombre} — ${#numbers.formatDecimal(item.horas, 1, 2)} h|" th:attr="data-nombre=${item.nombre},data-categoria=${item.categoria}" th:selected="${item.id == cursoSeleccionado}"></option></select></div>
+          <div><label class="form-label" for="reasonInput">Motivo de la asignación <span class="text-red">*</span></label><textarea id="reasonInput" name="motivo" class="form-control" rows="4" maxlength="500" required placeholder="Explica por qué se recomienda esta capacitación."></textarea><div class="form-hint">Quedará guardado para mantener la trazabilidad de la decisión.</div></div>
+        </div>
+      </div></div>
+
+      <div class="col-lg-5"><div class="card section-card h-100">
+        <div class="card-header section-header"><div><h3 class="card-title mb-1">Validaciones automáticas</h3><div class="section-description">Condiciones que se comprobarán antes de inscribir.</div></div></div>
+        <div class="card-body context-panel">
+          <ul class="mb-4 text-secondary"><li>El colaborador debe estar activo y tener el rol Colaborador.</li><li>El curso debe permanecer activo.</li><li>No puede existir otra solicitud pendiente o inscripción activa del mismo curso.</li></ul>
+          <div class="context-note"><div class="fw-semibold mb-1">Notificación</div><div class="small text-secondary">Al confirmar se creará una notificación para el colaborador con el nombre del curso asignado.</div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Resumen de la asignación</h3><div class="section-description">La inscripción directa queda en estado “En curso”.</div></div></div>
+      <div class="card-body summary-panel"><div class="summary-grid"><div><div class="info-label">Colaborador</div><div class="info-value" id="summaryCollaborator">Sin seleccionar</div><div class="small text-secondary" id="summaryCargo"></div></div><div><div class="info-label">Curso</div><div class="info-value" id="summaryCourse">Sin seleccionar</div></div><div><div class="info-label">Estado inicial</div><div class="info-value"><span class="badge bg-blue-lt text-blue">En curso</span></div></div></div>
+        <div class="action-bar"><a class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Cancelar</a><button type="submit" class="btn btn-primary" th:disabled="${#lists.isEmpty(colaboradoresCurso) or #lists.isEmpty(cursosActivos)}">Confirmar inscripción</button></div>
+      </div>
+    </div>
+  </form>
+</main></div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/rm-js/rm-asignar-curso.js}"></script>
+</body></html>

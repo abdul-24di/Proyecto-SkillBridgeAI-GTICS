@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Talent Matching RM</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
+
+  <!-- Estilos específicos de la vista -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-talent-matching.css"
+        th:href="@{/css/rm-css/rm-talent-matching.css}">
+
+  <!-- Topbar RM compartida -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR COMPARTIDA -->
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('talent-matching')}">
+
+    <!-- Fallback para previsualización directa sin Thymeleaf -->
+    <div class="container-xl">
+
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
+        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
+        <a href="rm-colaboradores.html" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
+        <a href="rm-talent-matching.html" class="active" th:href="@{/rm/talent-matching}">Talent Matching</a>
+        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
+        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
+      </nav>
+
+      <div class="user-area">
+
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="page-wrap">
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-wrap"
+         aria-label="Migas de pan">
+
+      <a href="rm-talent-matching.html"
+         class="breadcrumb-link" th:href="@{/rm/talent-matching}">
+        Talent Matching
+      </a>
+
+      <span class="breadcrumb-separator">›</span>
+
+      <span id="breadcrumbProject"
+            class="text-secondary">
+        Clínica AI
+      </span>
+
+    </nav>
+
+
+    <!-- PAGE HEADER -->
+    <div class="page-head">
+
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h1 class="page-title mb-0">
+            Talent Matching
+          </h1>
+
+          <span class="badge bg-blue-lt">
+            Recomendación asistida por IA
+          </span>
+        </div>
+
+        <div class="text-secondary mt-2">
+          Analiza proyectos con vacantes y recomienda colaboradores según habilidades,
+          disponibilidad, carga, experiencia y certificados validados.
+        </div>
+      </div>
+
+    </div>
+
+
+    <div class="row g-4">
+
+      <!-- PANEL IZQUIERDO -->
+      <div class="col-lg-3">
+
+        <div class="sticky-col">
+
+          <!-- PROYECTOS -->
+          <div class="card section-card mb-4">
+
+            <div class="card-header section-header">
+              <div>
+                <h3 class="card-title mb-1">
+                  Proyectos con vacantes
+                </h3>
+
+                <div class="section-description">
+                  Selecciona un proyecto activo.
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body scroll-panel"
+                 id="projectList">
+            </div>
+
+          </div>
+
+
+          <!-- HABILIDADES FALTANTES -->
+          <div class="card section-card">
+
+            <div class="card-header section-header">
+              <div>
+                <h3 class="card-title mb-1">
+                  Habilidades faltantes
+                </h3>
+
+                <div class="section-description">
+                  Del proyecto seleccionado.
+                </div>
+              </div>
+            </div>
+
+            <div class="card-body skill-scroll"
+                 id="missingSkillsBox">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- PANEL DERECHO -->
+      <div class="col-lg-9">
+
+        <!-- PROYECTO SELECCIONADO -->
+        <div class="card section-card selected-project-card mb-4">
+
+          <div class="card-header section-header">
+
+            <div>
+              <h3 class="card-title mb-1">
+                Proyecto seleccionado
+              </h3>
+
+              <div class="section-description">
+                Contexto utilizado para generar las recomendaciones.
+              </div>
+            </div>
+
+          </div>
+
+          <div class="card-body">
+
+            <div class="row g-4 align-items-start">
+
+              <div class="col-lg">
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+
+                  <h2 class="mb-0"
+                      id="selectedProjectName">
+                    Clínica AI
+                  </h2>
+
+                  <span class="badge bg-green-lt"
+                        id="selectedProjectStatus">
+                    Activo
+                  </span>
+
+                  <span class="badge bg-red-lt text-red"
+                        id="selectedProjectPriority">
+                    Prioridad alta
+                  </span>
+
+                </div>
+
+                <div class="text-secondary mt-2"
+                     id="selectedProjectSummary">
+                  Plataforma para gestión clínica y analítica hospitalaria.
+                </div>
+
+                <div class="small text-secondary mt-3">
+                  Project Manager:
+                  <span class="fw-semibold text-body"
+                        id="selectedProjectPM">
+                    Juan Pérez
+                  </span>
+                </div>
+
+              </div>
+
+
+              <div class="col-lg-auto">
+
+                <div class="d-flex flex-wrap gap-2">
+
+                  <a href="rm-detalle-proyecto.html"
+                     class="btn btn-outline-primary" th:href="@{/rm/proyectos/detalle}">
+                    Ver proyecto
+                  </a>
+
+                  <a href="rm-buscar-colaboradores-proyecto.html"
+                     class="btn btn-primary" th:href="@{/rm/proyectos/buscar-colaboradores}">
+                    Buscar manualmente
+                  </a>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- MÉTRICAS -->
+            <div class="row row-cards mt-1">
+
+              <div class="col-sm-6 col-xl-3">
+                <div class="card metric-card">
+
+                  <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="metric-icon bg-blue-lt text-blue">
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           width="23"
+                           height="23"
+                           viewBox="0 0 24 24"
+                           fill="none"
+                           stroke="currentColor"
+                           stroke-width="2"
+                           stroke-linecap="round"
+                           stroke-linejoin="round">
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+                      </svg>
+                    </div>
+
+                    <div>
+                      <div class="metric-label">
+                        Equipo actual
+                      </div>
+
+                      <div class="metric-number"
+                           id="selectedProjectTeam">
+                        4 / 6
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
+
+
+              <div class="col-sm-6 col-xl-3">
+                <div class="card metric-card">
+
+                  <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="metric-icon bg-green-lt text-green">
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           width="23"
+                           height="23"
+                           viewBox="0 0 24 24"
+                           fill="none"
+                           stroke="currentColor"
+                           stroke-width="2"
+                           stroke-linecap="round"
+                           stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5"/>
+                      </svg>
+                    </div>
+
+                    <div>
+                      <div class="metric-label">
+                        Vacantes
+                      </div>
+
+                      <div class="metric-number"
+                           id="selectedProjectVacancies">
+                        2
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
+
+
+              <div class="col-sm-6 col-xl-3">
+                <div class="card metric-card">
+
+                  <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="metric-icon bg-azure-lt text-azure">
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           width="23"
+                           height="23"
+                           viewBox="0 0 24 24"
+                           fill="none"
+                           stroke="currentColor"
+                           stroke-width="2"
+                           stroke-linecap="round"
+                           stroke-linejoin="round">
+                        <path d="M12 1v22"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      </svg>
+                    </div>
+
+                    <div>
+                      <div class="metric-label">
+                        Presupuesto asignado
+                      </div>
+
+                      <div class="metric-number metric-number-budget"
+                           id="selectedProjectBudget">
+                        S/ 40,000
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
+
+
+              <div class="col-sm-6 col-xl-3">
+                <div class="card metric-card">
+
+                  <div class="card-body d-flex align-items-center gap-3">
+
+                    <div class="metric-icon bg-yellow-lt text-yellow">
+                      <svg xmlns="http://www.w3.org/2000/svg"
+                           width="23"
+                           height="23"
+                           viewBox="0 0 24 24"
+                           fill="none"
+                           stroke="currentColor"
+                           stroke-width="2"
+                           stroke-linecap="round"
+                           stroke-linejoin="round">
+                        <path d="M12 9v4"/>
+                        <path d="M12 17h.01"/>
+                        <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/>
+                      </svg>
+                    </div>
+
+                    <div>
+                      <div class="metric-label">
+                        Skills faltantes
+                      </div>
+
+                      <div class="metric-number"
+                           id="selectedProjectMissingCount">
+                        2
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+
+            <!-- EXPLICACIÓN IA -->
+            <div class="ai-note mt-4">
+
+              <span class="ai-note-icon">
+                IA
+              </span>
+
+              <div>
+
+                <div class="fw-semibold mb-1">
+                  Criterios de recomendación
+                </div>
+
+                <div class="small text-secondary">
+                  La IA prioriza coincidencia con habilidades faltantes,
+                  disponibilidad declarada en horas por semana, carga de asignaciones,
+                  nivel Junior/Senior y certificados aprobados. El presupuesto no se usa
+                  para calcular ni bloquear recomendaciones.
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ENCABEZADO RECOMENDACIONES -->
+        <div class="results-head">
+
+          <div>
+            <h3 class="mb-1">
+              Recomendaciones para
+              <span id="recommendationProjectLabel">
+                Clínica AI
+              </span>
+            </h3>
+
+            <div class="text-secondary small">
+              Las recomendaciones cambian según el proyecto seleccionado.
+            </div>
+          </div>
+
+          <span class="badge bg-azure-lt">
+            Top 3 sugerencias de IA
+          </span>
+
+        </div>
+
+
+        <!-- CANDIDATOS -->
+        <div id="candidateGrid"
+             class="row row-cards">
+        </div>
+
+
+        <div class="proposal-note mt-4">
+
+          <span class="proposal-note-icon">
+            i
+          </span>
+
+          <div class="small text-secondary">
+            Talent Matching nunca asigna directamente a un colaborador.
+            El botón <strong>Proponer para el proyecto</strong> inicia una propuesta del RM,
+            que quedará pendiente de aprobación del Project Manager.
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+<script src="../../static/js/rm-js/rm-navigation.js"
+        th:src="@{/js/rm-js/rm-navigation.js}">
+</script>
+<script src="../../static/js/rm-js/rm-talent-matching.js"
+        th:src="@{/js/rm-js/rm-talent-matching.js}">
+</script>
+
+</body>
+</html>

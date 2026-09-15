@@ -1,0 +1,93 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   FOROS - RESOURCE MANAGER
+   ========================================================= */
+
+.forum-metric {
+  min-height: 104px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.forums-panel {
+  overflow: hidden;
+}
+
+.forum-list {
+  background: #ffffff;
+}
+
+.forum-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.8fr) minmax(150px, .8fr) minmax(160px, .8fr) minmax(190px, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: .95rem 1.1rem;
+}
+
+.forum-row + .forum-row {
+  border-top: 1px solid #edf0f4;
+}
+
+.forum-project {
+  color: #253144;
+  font-weight: 700;
+}
+
+.forum-topic {
+  margin-top: .2rem;
+  color: #677384;
+  font-size: .82rem;
+}
+
+.forum-meta-label {
+  color: #8a94a6;
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+
+.forum-meta-value {
+  margin-top: .12rem;
+  color: #344054;
+  font-size: .86rem;
+  font-weight: 600;
+}
+
+.forum-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  margin-top: .4rem;
+}
+
+.forum-empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #667085;
+}
+
+@media (max-width: 991px) {
+  .forum-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .forum-row-action {
+    grid-column: span 2;
+  }
+
+  .forum-row-action .btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .forum-row {
+    grid-template-columns: 1fr;
+  }
+
+  .forum-row-action {
+    grid-column: auto;
+  }
+}

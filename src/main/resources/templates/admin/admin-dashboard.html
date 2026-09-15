@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Dashboard Admin</title>
+
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-dashboard.css" th:href="@{/css/admin-css/admin-dashboard.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('dashboard')}">
+    <div class="container-xl">
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="admin-dashboard.html" class="active" th:href="@{/admin/dashboard}">Dashboard</a>
+        <a href="admin-usuarios.html" th:href="@{/admin/usuarios}">Usuarios</a>
+        <a href="admin-habilidades.html" th:href="@{/admin/habilidades}">Habilidades</a>
+        <a href="admin-configuracion.html" th:href="@{/admin/configuracion}">Configuración</a>
+        <a href="admin-auditoria.html" th:href="@{/admin/auditoria}">Auditoría</a>
+      </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">SA</span>
+        <div class="user-meta">
+          <div class="fw-semibold">Sofía Alarcón</div>
+          <div class="small">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <div class="page-head page-head-stack-mobile">
+      <div>
+        <h1 class="page-title">¡Bienvenida, Sofía!</h1>
+        <div class="text-secondary">Panorama general de usuarios, habilidades y actividad de la organización.</div>
+      </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Usuarios totales</div>
+              <div class="summary-number">42</div>
+              <div class="small text-secondary">4 roles activos.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Pendientes de activación</div>
+              <div class="summary-number">5</div>
+              <div class="small text-secondary">Invitaciones sin completar.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Habilidades activas</div>
+              <div class="summary-number">28</div>
+              <div class="small text-secondary">En el catálogo de la organización.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Acciones auditadas hoy</div>
+              <div class="summary-number">6</div>
+              <div class="small text-secondary">Ver detalle en Auditoría.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row row-cards">
+      <div class="col-xl-6">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Usuarios pendientes de activación</h3>
+              <div class="section-description">Invitaciones enviadas que el usuario aún no ha completado.</div>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table mb-0">
+              <thead>
+                <tr>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>Enviado</th>
+                  <th class="text-end">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>renato.silva@skillbridge.com</td>
+                  <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
+                  <td class="text-secondary">05 sep 2026</td>
+                  <td class="text-end"><button type="button" class="btn btn-outline-secondary btn-sm">Reenviar</button></td>
+                </tr>
+                <tr>
+                  <td>camila.rojas@skillbridge.com</td>
+                  <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
+                  <td class="text-secondary">06 sep 2026</td>
+                  <td class="text-end"><button type="button" class="btn btn-outline-secondary btn-sm">Reenviar</button></td>
+                </tr>
+                <tr>
+                  <td>elena.vargas@skillbridge.com</td>
+                  <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
+                  <td class="text-secondary">31 ago 2026</td>
+                  <td class="text-end"><button type="button" class="btn btn-outline-secondary btn-sm">Reenviar</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-footer text-end">
+            <a href="admin-usuarios.html" class="btn btn-link p-0" th:href="@{/admin/usuarios}">Ver todos los usuarios →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-6">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Últimas acciones de auditoría</h3>
+              <div class="section-description">Actividad reciente de todos los roles de la organización.</div>
+            </div>
+          </div>
+          <div class="card-body audit-feed">
+            <div class="audit-feed-item">
+              <span class="audit-feed-dot bg-blue"></span>
+              <div>
+                <div class="fw-semibold">Sofía Alarcón creó un usuario</div>
+                <div class="text-secondary small">camila.rojas@skillbridge.com · rol Colaborador · hace 3 h</div>
+              </div>
+            </div>
+            <div class="audit-feed-item">
+              <span class="audit-feed-dot bg-green"></span>
+              <div>
+                <div class="fw-semibold">Abraham Ramirez aprobó una asignación</div>
+                <div class="text-secondary small">Jorge Campos → Sistema de Inventario · hace 16 h</div>
+              </div>
+            </div>
+            <div class="audit-feed-item">
+              <span class="audit-feed-dot bg-red"></span>
+              <div>
+                <div class="fw-semibold">Abraham Ramirez rechazó un certificado</div>
+                <div class="text-secondary small">Renato Silva · AWS Cloud Practitioner · hace 18 h</div>
+              </div>
+            </div>
+            <div class="audit-feed-item">
+              <span class="audit-feed-dot bg-azure"></span>
+              <div>
+                <div class="fw-semibold">Sofía Alarcón cambió un parámetro</div>
+                <div class="text-secondary small">MAX_ASIGNACIONES_POR_COLABORADOR: 2 → 3 · hace 9 días</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-end">
+            <a href="admin-auditoria.html" class="btn btn-link p-0" th:href="@{/admin/auditoria}">Ver log completo →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
+</body>
+</html>

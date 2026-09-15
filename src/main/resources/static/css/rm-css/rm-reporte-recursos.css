@@ -1,0 +1,88 @@
+/* =========================================================
+   REPORTE DE RECURSOS - RESOURCE MANAGER
+   ========================================================= */
+
+.report-filters {
+  padding: 1rem 1.15rem;
+}
+
+.export-actions {
+  justify-content: flex-end;
+}
+
+.metric-card {
+  min-height: 108px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.table > :not(caption) > * > * {
+  vertical-align: middle;
+}
+
+.table thead th {
+  color: #4f5d6b;
+  background: #f7f9fc;
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.report-footer {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid #edf0f4;
+}
+
+.chart-list {
+  display: grid;
+  gap: .95rem;
+  padding: 1rem 1.15rem;
+}
+
+.chart-item {
+  display: grid;
+  gap: .35rem;
+}
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: .83rem;
+}
+
+.chart-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf2f7;
+}
+
+.chart-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #206bc4;
+}
+
+.report-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  padding: .85rem 1rem;
+  border-top: 1px solid #edf0f4;
+  background: #f8fafc;
+}
+
+@media (max-width: 767px) {
+  .export-actions {
+    width: 100%;
+  }
+
+  .export-actions .btn {
+    flex: 1;
+  }
+}

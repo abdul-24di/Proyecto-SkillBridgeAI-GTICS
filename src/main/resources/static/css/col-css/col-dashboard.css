@@ -1,0 +1,73 @@
+.welcome-sub {
+    color: #64748b;
+}
+
+.dash-card {
+    min-height: 150px;
+    border: 1px solid #e3e7ee;
+    box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.dash-card .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: 100%;
+}
+
+.dash-card-icon {
+    width: 60px;
+    height: 60px;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+}
+
+.dash-split {
+    display: flex;
+    gap: 1.1rem;
+    margin-top: .55rem;
+}
+
+.dash-split-item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .8rem;
+    color: #64748b;
+}
+
+.dash-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.mini-project-card {
+    border: 1px solid #e3e7ee;
+    border-radius: 10px;
+    padding: .85rem 1rem;
+    margin-bottom: .75rem;
+}
+
+.mini-project-card:last-child {
+    margin-bottom: 0;
+}
+
+.mini-project-progress {
+    height: 6px;
+    border-radius: 99px;
+    background: #e6ecf3;
+    overflow: hidden;
+    margin-top: .5rem;
+}
+
+.mini-project-progress-bar {
+    height: 100%;
+    background: var(--tblr-primary);
+    border-radius: 99px;
+}

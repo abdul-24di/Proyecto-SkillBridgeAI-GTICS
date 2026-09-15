@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Colaboradores RM</title>
+
+  <!-- Tabler local -->
+  <link rel="stylesheet"
+        href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+
+  <!-- Estilos compartidos RM -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
+
+  <!-- Estilos específicos de la vista -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-colaboradores.css"
+        th:href="@{/css/rm-css/rm-colaboradores.css}">
+
+  <!-- Topbar RM compartida -->
+  <link rel="stylesheet"
+        href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+
+<body>
+<div class="app-shell">
+
+  <!-- TOPBAR COMPARTIDA -->
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}">
+
+    <!-- Fallback para previsualización directa sin Thymeleaf -->
+    <div class="container-xl">
+
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
+
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
+        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
+        <a href="rm-colaboradores.html" class="active" th:href="@{/rm/colaboradores}">Colaboradores</a>
+        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
+        <a href="rm-talent-matching.html" th:href="@{/rm/talent-matching}">Talent Matching</a>
+        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
+        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
+      </nav>
+
+      <div class="user-area">
+
+        <a href="#"
+           class="notification-link position-relative"
+           aria-label="Notificaciones">
+
+          <svg xmlns="http://www.w3.org/2000/svg"
+               width="20"
+               height="20"
+               viewBox="0 0 24 24"
+               fill="none"
+               stroke="currentColor"
+               stroke-width="2"
+               stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+            <path d="M9 19a3 3 0 0 0 6 0"/>
+          </svg>
+
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+
+        <span class="avatar avatar-sm user-avatar">AR</span>
+
+        <div class="user-meta">
+          <div class="fw-semibold">Abraham Ramirez</div>
+          <div class="small">Resource Manager</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+  <main class="page-wrap">
+
+    <div class="alert alert-warning" role="alert" th:if="${colaboradorNoEncontrado}">
+      El colaborador solicitado no existe, está inactivo o no tiene el rol de colaborador.
+    </div>
+
+    <!-- BREADCRUMB -->
+    <nav class="breadcrumb-wrap"
+         aria-label="Migas de pan">
+      <span class="text-secondary">
+        Colaboradores
+      </span>
+    </nav>
+
+
+    <!-- PAGE HEADER -->
+    <div class="page-head page-head-stack-mobile">
+
+      <div>
+        <h1 class="page-title">
+          Colaboradores
+        </h1>
+
+        <div class="text-secondary">
+          Consulta habilidades, nivel de experiencia, disponibilidad declarada,
+          carga de asignaciones y certificados validados.
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 flex-wrap">
+        <a href="rm-cursos.html" class="btn btn-outline-primary" th:href="@{/rm/cursos}">
+          Cursos
+        </a>
+        <a href="rm-certificados-pendientes.html" class="btn btn-primary" th:href="@{/rm/colaboradores/certificados}">
+          Certificados pendientes
+        </a>
+      </div>
+
+    </div>
+
+
+    <!-- SUMMARY -->
+    <div class="row row-cards mb-4">
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
+                <path d="M17 11a4 4 0 1 0 0-8"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Colaboradores activos
+              </div>
+
+              <div class="summary-number"
+                   id="metricTotal"
+                   th:text="${totalColaboradores}">
+                12
+              </div>
+
+              <div class="small text-secondary">
+                Registrados en la organización.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Disponibilidad ≥ 16 h
+              </div>
+
+              <div class="summary-number"
+                   id="metricAvailable"
+                   th:text="${totalDisponibles}">
+                0
+              </div>
+
+              <div class="small text-secondary">
+                Horas libres por semana.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-azure-lt text-azure">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                Sin asignaciones
+              </div>
+
+              <div class="summary-number"
+                   id="metricFree"
+                   th:text="${totalSinAsignaciones}">
+                0
+              </div>
+
+              <div class="small text-secondary">
+                Carga actual igual a cero.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-red-lt text-red">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M12 9v4"/>
+                <path d="M12 17h.01"/>
+                <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/>
+              </svg>
+            </div>
+
+            <div>
+              <div class="summary-label">
+                En carga máxima
+              </div>
+
+              <div class="summary-number"
+                   id="metricMaxLoad"
+                   th:text="${totalCargaMaxima}">
+                0
+              </div>
+
+              <div class="small text-secondary">
+                Alcanzaron su límite de asignaciones.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- DIRECTORIO -->
+    <div class="card directory-section">
+
+      <div class="card-header section-header">
+
+        <div>
+          <h3 class="card-title mb-1">
+            Directorio de colaboradores
+          </h3>
+
+          <div class="section-description">
+            Filtra el talento de la organización según disponibilidad semanal,
+            carga de asignaciones y nivel de experiencia.
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- FILTERS -->
+      <div class="card-body border-bottom">
+
+        <div class="row g-3 align-items-end">
+
+          <div class="col-xl-4 col-md-6">
+
+            <label for="searchInput"
+                   class="form-label">
+              Buscar colaborador
+            </label>
+
+            <input id="searchInput"
+                   class="form-control"
+                   type="text"
+                   placeholder="Nombre, cargo o habilidad">
+
+          </div>
+
+
+          <div class="col-xl-2 col-md-6">
+
+            <label for="availabilityFilter"
+                   class="form-label">
+              Disponibilidad
+            </label>
+
+            <select id="availabilityFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todas
+              </option>
+
+              <option value="24">
+                24 h/sem o más
+              </option>
+
+              <option value="16">
+                16 h/sem o más
+              </option>
+
+              <option value="8">
+                8 h/sem o más
+              </option>
+
+              <option value="0">
+                Sin disponibilidad
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-2 col-md-6">
+
+            <label for="loadFilter"
+                   class="form-label">
+              Carga
+            </label>
+
+            <select id="loadFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todas
+              </option>
+
+              <option value="0">
+                0 asignaciones
+              </option>
+
+              <option value="1">
+                1 asignación
+              </option>
+
+              <option value="2">
+                2 asignaciones
+              </option>
+
+              <option value="max">
+                Carga máxima
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-2 col-md-6">
+
+            <label for="levelFilter"
+                   class="form-label">
+              Nivel
+            </label>
+
+            <select id="levelFilter"
+                    class="form-select">
+
+              <option value="all">
+                Todos
+              </option>
+
+              <option value="Junior">
+                Junior
+              </option>
+
+              <option value="Semi Senior">
+                Semi Senior
+              </option>
+
+              <option value="Senior">
+                Senior
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="col-xl-2 d-grid">
+
+            <button id="clearFilters"
+                    type="button"
+                    class="btn btn-outline-secondary">
+              Limpiar filtros
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="filters-note mt-3">
+
+          <span class="filters-note-icon">
+            i
+          </span>
+
+          <div class="small text-secondary">
+            La disponibilidad corresponde a horas libres por semana declaradas por el colaborador.
+            La carga corresponde al número de asignaciones activas sobre el límite configurado.
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- GRID -->
+      <div class="card-body directory-body">
+
+        <div id="collaboratorGrid"
+             class="row row-cards">
+
+          <div class="col-lg-4 col-md-6 collaborator-item"
+               th:each="colaborador : ${colaboradores}"
+               th:attr="data-search=${colaborador.textoBusqueda},
+                        data-hours=${colaborador.horasDisponibles},
+                        data-load=${colaborador.asignacionesActivas},
+                        data-max=${colaborador.maxAsignaciones},
+                        data-level=${colaborador.nivel}">
+
+            <div class="card collab-card">
+              <div class="card-body">
+                <div class="d-flex align-items-start gap-3">
+                  <img th:if="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                       th:src="${colaborador.fotoUrl}"
+                       class="avatar avatar-lg"
+                       alt="Foto del colaborador">
+
+                  <span th:unless="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                        class="avatar avatar-lg bg-blue-lt text-blue"
+                        th:text="${colaborador.iniciales}">CM</span>
+
+                  <div class="flex-fill min-width-0">
+                    <div class="d-flex justify-content-between gap-2 align-items-start">
+                      <div>
+                        <h3 class="collab-name" th:text="${colaborador.nombreCompleto}">Carlos Mendoza</h3>
+                        <div class="text-secondary small" th:text="${colaborador.cargo}">Backend Developer</div>
+                      </div>
+
+                      <span class="badge"
+                            th:classappend="${colaborador.disponibilidadClase}"
+                            th:text="|${colaborador.horasDisponiblesTexto} h/sem|">16 h/sem</span>
+                    </div>
+
+                    <div class="mt-2">
+                      <span class="badge bg-secondary-lt" th:text="${colaborador.nivel}">Senior</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <span class="badge bg-blue-lt skill-badge"
+                        th:each="habilidad : ${colaborador.habilidades}"
+                        th:text="${habilidad}">Java</span>
+                  <span class="small text-secondary"
+                        th:if="${#lists.isEmpty(colaborador.habilidades)}">Sin habilidades registradas.</span>
+                </div>
+
+                <div class="meta-grid">
+                  <div>
+                    <div class="meta-label">Experiencia</div>
+                    <div class="meta-value" th:text="${colaborador.experienciaTexto}">6 años</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Nivel</div>
+                    <div class="meta-value" th:text="${colaborador.nivel}">Senior</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Disponibilidad</div>
+                    <div class="meta-value" th:text="|${colaborador.horasDisponiblesTexto} h / semana|">16 h / semana</div>
+                  </div>
+                  <div>
+                    <div class="meta-label">Carga actual</div>
+                    <div class="meta-value">
+                      <span class="badge"
+                            th:classappend="${colaborador.cargaClase}"
+                            th:text="|${colaborador.asignacionesActivas} / ${colaborador.maxAsignaciones} asignaciones|">
+                        2 / 3 asignaciones
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="certificate-line">
+                  <span class="text-secondary small">Certificados aprobados:</span>
+                  <span class="fw-semibold" th:text="${colaborador.certificadosAprobados}">4</span>
+                </div>
+
+                <div class="card-actions">
+                  <a class="btn btn-outline-secondary btn-sm"
+                     th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.id})}">
+                    Ver asignaciones
+                  </a>
+                  <a class="btn btn-primary btn-sm"
+                     th:href="@{/rm/colaboradores/perfil(id=${colaborador.id})}">
+                    Ver perfil
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12" th:if="${#lists.isEmpty(colaboradores)}">
+            <div class="card">
+              <div class="empty-state">No hay colaboradores activos registrados.</div>
+            </div>
+          </div>
+
+          <div id="noFilterResults" class="col-12 d-none">
+            <div class="card">
+              <div class="empty-state">No se encontraron colaboradores con los filtros seleccionados.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+
+      <!-- PAGINATION -->
+      <div class="pagination-wrap">
+
+        <div id="paginationInfo"
+             class="text-secondary small">
+        </div>
+
+        <ul id="pagination"
+            class="pagination pagination-sm m-0">
+        </ul>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<script src="../../static/tabler/js/tabler.min.js"
+        th:src="@{/tabler/js/tabler.min.js}">
+</script>
+
+<script src="../../static/js/rm-js/rm-navigation.js"
+        th:src="@{/js/rm-js/rm-navigation.js}">
+</script>
+<script src="../../static/js/rm-js/rm-colaboradores.js"
+        th:src="@{/js/rm-js/rm-colaboradores.js}">
+</script>
+
+</body>
+</html>

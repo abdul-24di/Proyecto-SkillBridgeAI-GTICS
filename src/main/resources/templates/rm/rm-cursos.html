@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Cursos RM</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-cursos.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+<body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('cursos')}"></header>
+<main class="page-wrap">
+  <div class="breadcrumb-wrap"><span class="text-secondary">Cursos</span></div>
+  <div class="page-head page-head-stack-mobile page-head-button-mobile">
+    <div><h1 class="page-title">Cursos y capacitaciones</h1><div class="text-secondary">Consulta el catálogo activo y gestiona las inscripciones de colaboradores.</div></div>
+    <div class="d-flex gap-2 flex-wrap course-head-actions">
+      <a class="btn btn-outline-primary" th:href="@{/rm/cursos/solicitudes}">Solicitudes pendientes</a>
+      <a class="btn btn-primary" th:href="@{/rm/cursos/asignar}">Asignar curso</a>
+    </div>
+  </div>
+
+  <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+  <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+
+  <div class="row row-cards mb-4">
+    <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Cursos activos</div><div class="metric-number" th:text="${catalogo.cursosActivos}">0</div><div class="small text-secondary">Disponibles para inscripción</div></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Solicitudes pendientes</div><div class="metric-number" th:text="${catalogo.solicitudesPendientes}">0</div><div class="small text-secondary">Requieren decisión RM</div></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Inscripciones activas</div><div class="metric-number" th:text="${catalogo.inscripcionesActivas}">0</div><div class="small text-secondary">En la organización</div></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Asignados por RM</div><div class="metric-number" th:text="${catalogo.asignadosPorRmEsteMes}">0</div><div class="small text-secondary">Durante este mes</div></div></div></div>
+  </div>
+
+  <div class="card section-card">
+    <div class="card-header section-header"><div><h3 class="card-title mb-1">Catálogo activo</h3><div class="section-description">El Administrador mantiene el catálogo; el RM puede consultarlo y asignar sus cursos.</div></div></div>
+    <form class="card-body catalog-filters border-bottom" method="get" th:action="@{/rm/cursos}">
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-4 col-md-6"><label class="form-label" for="busqueda">Buscar</label><input id="busqueda" name="busqueda" class="form-control" th:value="${busqueda}" placeholder="Nombre, descripción o categoría"></div>
+        <div class="col-lg-3 col-md-6"><label class="form-label" for="categoria">Categoría</label><select id="categoria" name="categoria" class="form-select"><option value="">Todas</option><option th:each="item : ${catalogo.categorias}" th:value="${item}" th:text="${item}" th:selected="${item == categoriaSeleccionada}"></option></select></div>
+        <div class="col-lg-3 col-md-6"><label class="form-label" for="duracion">Duración</label><select id="duracion" name="duracion" class="form-select"><option value="">Todas</option><option value="corta" th:selected="${duracionSeleccionada == 'corta'}">Hasta 12 h</option><option value="media" th:selected="${duracionSeleccionada == 'media'}">13–30 h</option><option value="larga" th:selected="${duracionSeleccionada == 'larga'}">Más de 30 h</option></select></div>
+        <div class="col-lg-2 col-md-6 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit">Aplicar</button><a class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Limpiar</a></div>
+      </div>
+    </form>
+    <div class="card-body catalog-body">
+      <div class="row row-cards">
+        <div class="col-lg-4 col-md-6" th:each="curso : ${catalogo.cursos}">
+          <div class="card course-card"><div class="card-body">
+            <div class="course-category" th:text="${curso.categoria}">Categoría</div>
+            <h3 class="course-title mt-1" th:text="${curso.nombre}">Curso</h3>
+            <div class="text-secondary small" th:text="${curso.descripcion}">Descripción</div>
+            <div class="course-meta"><div><div class="info-label">Duración</div><div class="info-value" th:text="|${#numbers.formatDecimal(curso.horas, 1, 2)} h|">0 h</div></div><div><div class="info-label">Inscritos activos</div><div class="info-value" th:text="${curso.inscritos}">0</div></div></div>
+            <div class="course-actions"><a class="btn btn-primary btn-sm" th:href="@{/rm/cursos/asignar(curso=${curso.id})}">Asignar a colaborador</a></div>
+          </div></div>
+        </div>
+        <div class="col-12" th:if="${#lists.isEmpty(catalogo.cursos)}"><div class="card"><div class="card-body text-center text-secondary py-5">No se encontraron cursos activos con estos filtros.</div></div></div>
+      </div>
+    </div>
+    <div class="pagination-wrap"><div class="text-secondary small" th:text="|${#lists.size(catalogo.cursos)} curso(s) mostrado(s)|">0 cursos</div></div>
+  </div>
+</main></div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+</body></html>

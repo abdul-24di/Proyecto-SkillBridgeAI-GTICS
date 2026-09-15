@@ -1,0 +1,109 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   REVISIÓN DE PROYECTO - RESOURCE MANAGER
+   ========================================================= */
+
+.review-hero .card-body {
+  padding: 1.2rem 1.3rem;
+}
+
+.review-description {
+  max-width: 780px;
+  line-height: 1.5;
+}
+
+.review-skill {
+  margin: .1rem .18rem .1rem 0;
+}
+
+.review-request-meta {
+  min-width: 180px;
+  padding: .8rem 1rem;
+  border: 1px solid #e4e9f0;
+  border-radius: .7rem;
+  background: #f8fafc;
+}
+
+.review-summary-card {
+  min-height: 105px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.review-info-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.review-text-block {
+  padding-top: .85rem;
+  border-top: 1px solid #edf0f4;
+}
+
+.budget-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.budget-value {
+  margin-top: .15rem;
+  color: #182433;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.budget-note,
+.decision-note {
+  padding: .8rem .9rem;
+  border: 1px solid #e3eaf3;
+  border-radius: .65rem;
+  background: #f8fbff;
+  color: #5d6978;
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.requirement-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .85rem 1rem;
+}
+
+.requirement-row + .requirement-row {
+  border-top: 1px solid #edf0f4;
+}
+
+.requirement-tags {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+
+@media (max-width: 991px) {
+  .review-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .review-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .review-request-meta {
+    width: 100%;
+  }
+
+  .requirement-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .requirement-tags {
+    justify-content: flex-start;
+  }
+}

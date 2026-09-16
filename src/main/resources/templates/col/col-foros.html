@@ -12,223 +12,350 @@
 <body>
 <div class="app-shell">
 
-    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('foros')}">
-        <div class="container-xl">
-            <a href="col-dashboard.html" class="brand">SkillBridge AI</a>
-            <nav class="main-nav" aria-label="Navegación principal">
-                <a href="col-dashboard.html">Dashboard</a>
-                <a href="col-proyectos.html">Mis proyectos</a>
-                <a href="col-foros.html" class="active">Foros</a>
-                <a href="col-asistente.html">Asistente</a>
-                <a href="col-perfil.html">Perfil Profesional</a>
-                <a href="col-explorar.html">Explorar</a>
-            </nav>
-
-            <div class="user-area">
-
-                <div class="notification-wrap">
-                    <button type="button" class="notification-link position-relative" id="notifBellBtn" aria-label="Notificaciones">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
-                            <path d="M9 19a3 3 0 0 0 6 0"/>
-                        </svg>
-                        <span class="badge bg-red notification-dot" id="notifDot"></span>
-                    </button>
-                    <div class="notification-panel" id="notifPanel">
-                        <div class="notification-panel-header">
-                            <span>Notificaciones</span>
-                            <button type="button" class="notification-panel-close" id="notifCloseBtn" aria-label="Cerrar">&times;</button>
-                        </div>
-                        <div class="notification-panel-list">
-                            <a href="../col/col-proyectos.html" class="notification-item">
-                                <span class="notification-item-dot bg-red"></span>
-                                <div><div class="notification-item-title">Asignación a nuevo proyecto</div><div class="notification-item-sub">Proyecto A</div></div>
-                            </a>
-                            <a href="../col/col-foros.html" class="notification-item">
-                                <span class="notification-item-dot bg-secondary"></span>
-                                <div><div class="notification-item-title">Respuesta en el foro</div><div class="notification-item-sub">Respondieron tu publicación sobre autenticación</div></div>
-                            </a>
-                        </div>
-                        <div class="notification-panel-footer">
-                            <button type="button" class="btn btn-link btn-sm p-0" id="notifMarkAllBtn">Marcar todas como leídas</button>
-                        </div>
-                    </div>
-                </div>
-
-                <span class="avatar avatar-sm user-avatar">PK</span>
-                <div class="user-meta">
-                    <div class="fw-semibold">Paweł Kuna</div>
-                    <div class="small">Colaborador</div>
-                </div>
-            </div>
-        </div>
-    </header>
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('foros')}"></header>
 
     <main class="page-wrap">
 
-        <div class="page-head page-head-stack-mobile">
-            <div>
-                <h1 class="page-title">Foros</h1>
-                <div class="text-secondary">Comparte conocimiento, preguntas y recomendaciones con la comunidad.</div>
+        <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+        <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+
+        <!-- ============================================================ -->
+        <!-- VISTA: LISTA DE FOROS (Comunidad / Mis proyectos)             -->
+        <!-- ============================================================ -->
+        <div th:if="${vista == 'lista'}">
+            <div class="page-head page-head-stack-mobile">
+                <div>
+                    <h1 class="page-title">Foros</h1>
+                    <div class="text-secondary">Comparte conocimiento, preguntas y recomendaciones con la comunidad.</div>
+                </div>
             </div>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPostModal">+ Nueva publicación</button>
+
+            <ul class="explore-tabs list-unstyled mb-0">
+                <li><button type="button" class="explore-tab active" data-scope="comunidad">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/></svg>
+                    Comunidad
+                </button></li>
+                <li><button type="button" class="explore-tab" data-scope="proyectos">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                    Mis proyectos
+                </button></li>
+            </ul>
+
+            <!-- Comunidad: foros públicos generales -->
+            <section id="comunidadView">
+                <div class="row row-cards mt-1">
+                    <div class="col-md-6 col-xl-4" th:each="foro : ${forosComunidad}">
+                        <div class="card project-forum-card">
+                            <div class="card-body">
+                                <div class="project-forum-icon bg-blue-lt text-blue">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/></svg>
+                                </div>
+                                <div class="fw-bold mt-2" th:text="${foro.nombre}">Comunidad</div>
+                                <div class="project-forum-meta">Foro público de la organización</div>
+                                <a class="btn btn-sm btn-outline-primary mt-3 w-100"
+                                   th:href="@{/colaborador/foros/{id}/publicaciones(id=${foro.id})}">Ver foro →</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="empty-state" th:if="${forosComunidad.isEmpty()}">Todavía no hay foros de comunidad disponibles.</div>
+                </div>
+            </section>
+
+            <!-- Mis proyectos: foros de proyectos con asignación activa -->
+            <section id="proyectosView" class="d-none">
+                <div class="row row-cards mt-1">
+                    <div class="col-md-6 col-xl-4" th:each="foro : ${forosProyectos}">
+                        <div class="card project-forum-card">
+                            <div class="card-body">
+                                <div class="project-forum-icon bg-yellow-lt text-yellow">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                                </div>
+                                <div class="fw-bold mt-2" th:text="${foro.proyecto != null ? foro.proyecto.nombre : foro.nombre}">Proyecto</div>
+                                <div class="project-forum-meta" th:text="${foro.nombre}">Foro</div>
+                                <a class="btn btn-sm btn-outline-primary mt-3 w-100"
+                                   th:href="@{/colaborador/foros/{id}/publicaciones(id=${foro.id})}">Ver foro →</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="empty-state" th:if="${forosProyectos.isEmpty()}">No tienes asignaciones activas en proyectos con foro.</div>
+                </div>
+            </section>
         </div>
 
-        <ul class="explore-tabs list-unstyled mb-0">
-            <li><button type="button" class="explore-tab active" data-scope="comunidad">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/></svg>
-                Comunidad
-            </button></li>
-            <li><button type="button" class="explore-tab" data-scope="proyectos">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
-                Mis proyectos
-            </button></li>
-        </ul>
+        <!-- ============================================================ -->
+        <!-- VISTA: PUBLICACIONES DE UN FORO ESPECÍFICO                    -->
+        <!-- ============================================================ -->
+        <div th:if="${vista == 'publicaciones'}">
+            <div class="breadcrumb-wrap">
+                <a th:href="@{/colaborador/foros}" class="breadcrumb-link">Foros</a>
+                <span class="breadcrumb-separator">›</span>
+                <span class="text-secondary" th:text="${foro != null ? foro.nombre : 'Foro'}">Foro</span>
+            </div>
 
-        <!-- VISTA: COMUNIDAD -->
-        <section id="comunidadView">
-            <div class="card section-card mb-3">
-                <div class="forum-toolbar">
-                    <div class="input-icon forum-search">
-                        <span class="input-icon-addon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg>
-                        </span>
-                        <input id="forumSearch" type="text" class="form-control" placeholder="Buscar publicaciones...">
+            <div class="page-head page-head-stack-mobile page-head-button-mobile">
+                <div>
+                    <h1 class="page-title" th:text="${foro != null ? foro.nombre : 'Foro'}">Foro</h1>
+                    <div class="text-secondary" th:if="${foro != null and foro.proyecto != null}"
+                         th:text="${'Foro interno del proyecto ' + foro.proyecto.nombre}">Foro interno</div>
+                    <div class="text-secondary" th:if="${foro != null and foro.proyecto == null}">
+                        Comparte conocimiento y dudas con toda la comunidad.
                     </div>
-                    <div class="forum-toolbar-selects">
-                        <label class="forum-select-label">Mostrar
-                            <select id="forumShow" class="form-select form-select-sm">
-                                <option value="todas">Todas</option>
-                                <option value="mias">Mis publicaciones</option>
-                                <option value="otros">Publicaciones de otros</option>
-                            </select>
-                        </label>
-                        <label class="forum-select-label">Ordenar
-                            <select id="forumSort" class="form-select form-select-sm">
-                                <option value="date">Más recientes</option>
-                                <option value="votes">Más votadas</option>
-                            </select>
-                        </label>
+                </div>
+                <button th:if="${foro != null}" type="button" class="btn btn-primary"
+                        data-bs-toggle="modal" data-bs-target="#newPostModal">+ Nueva publicación</button>
+            </div>
+
+            <div th:if="${publicaciones != null}">
+                <div class="empty-state" th:if="${publicaciones.isEmpty()}">
+                    Este foro todavía no tiene publicaciones. ¡Sé el primero en publicar!
+                </div>
+
+                <div class="forum-posts">
+                    <article class="card forum-post" th:each="pub : ${publicaciones}">
+                        <div class="forum-post-body">
+                            <div class="flex-fill">
+                                <span class="badge bg-blue-lt" th:if="${pub.etiqueta != null}" th:text="${'#' + pub.etiqueta.nombre}">#Etiqueta</span>
+                                <a class="post-title mt-1 d-block" th:href="@{/colaborador/foros/publicaciones/{id}(id=${pub.id})}"
+                                   th:text="${pub.titulo}">Título</a>
+                                <div class="post-excerpt" th:text="${#strings.abbreviate(pub.contenido, 160)}">Extracto</div>
+                                <div class="post-meta"
+                                     th:text="${pub.autor.nombre + ' ' + pub.autor.apellido + (pub.autor.id == usuarioActual.id ? ' (tú)' : '') + ' · ' + #temporals.format(pub.fechaCreacion, 'dd/MM/yyyy HH:mm')}">
+                                    Meta
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VISTA: DETALLE DE UNA PUBLICACIÓN                             -->
+        <!-- ============================================================ -->
+        <div th:if="${vista == 'detalle'}">
+            <div class="breadcrumb-wrap" th:if="${publicacion != null}">
+                <a th:href="@{/colaborador/foros}" class="breadcrumb-link">Foros</a>
+                <span class="breadcrumb-separator">›</span>
+                <a th:href="@{/colaborador/foros/{id}/publicaciones(id=${publicacion.foro.id})}" class="breadcrumb-link"
+                   th:text="${publicacion.foro.nombre}">Foro</a>
+                <span class="breadcrumb-separator">›</span>
+                <span class="text-secondary" th:text="${publicacion.titulo}">Publicación</span>
+            </div>
+
+            <div class="card section-card mb-4" th:if="${publicacion != null}">
+                <div class="card-body post-detail-body">
+                    <div class="flex-fill">
+                        <div class="post-author-row">
+                            <span class="avatar post-avatar bg-blue-lt text-blue"
+                                  th:text="${(#strings.isEmpty(publicacion.autor.nombre) ? '' : #strings.substring(publicacion.autor.nombre,0,1)) + (#strings.isEmpty(publicacion.autor.apellido) ? '' : #strings.substring(publicacion.autor.apellido,0,1))}">US</span>
+                            <div class="flex-fill">
+                                <div class="fw-semibold"
+                                     th:text="${publicacion.autor.nombre + ' ' + publicacion.autor.apellido + (publicacion.autor.id == usuarioActual.id ? ' (tú)' : '')}">Autor</div>
+                                <div class="small text-secondary" th:text="${#temporals.format(publicacion.fechaCreacion, 'dd/MM/yyyy HH:mm')}">Fecha</div>
+                            </div>
+                            <div class="d-flex gap-2" th:if="${publicacion.autor.id == usuarioActual.id}">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal"
+                                        th:data-bs-target="${'#editPostModal-' + publicacion.id}">Editar</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
+                                        th:data-bs-target="${'#deletePostModal-' + publicacion.id}">Eliminar</button>
+                            </div>
+                        </div>
+                        <div class="post-tags mt-3" th:if="${publicacion.etiqueta != null}">
+                            <span class="badge bg-blue-lt" th:text="${'#' + publicacion.etiqueta.nombre}">#Etiqueta</span>
+                        </div>
+                        <div class="post-content" th:text="${publicacion.contenido}">Contenido</div>
                     </div>
                 </div>
             </div>
 
-            <div id="forumPosts" class="forum-posts"></div>
-        </section>
-
-        <!-- VISTA: MIS PROYECTOS (listado de foros por proyecto) -->
-        <section id="proyectosView" class="d-none">
-            <div class="card section-card mb-3">
-                <div class="card-header section-header">
-                    <div>
-                        <h3 class="card-title mb-1">Foros de mis proyectos</h3>
-                        <div class="section-description">Accede a las conversaciones internas de cada proyecto en el que tienes una asignación activa.</div>
-                    </div>
-                </div>
-            </div>
-            <div id="projectForumGrid" class="row row-cards"></div>
-        </section>
-
-        <!-- VISTA: FORO DE UN PROYECTO ESPECÍFICO -->
-        <section id="proyectoForoView" class="d-none">
-            <div class="breadcrumb-wrap">
-                <a href="#" id="backToProjectForums" class="breadcrumb-link">Mis proyectos</a>
-                <span class="breadcrumb-separator">›</span>
-                <span class="text-secondary" id="proyectoForoNombre">Foro del proyecto</span>
-            </div>
-            <div id="proyectoForumPosts" class="forum-posts"></div>
-        </section>
-
-        <!-- VISTA: DETALLE DE UNA PUBLICACIÓN -->
-        <section id="postDetailView" class="d-none">
-            <div class="breadcrumb-wrap">
-                <a href="#" id="backToForumList" class="breadcrumb-link">Foros</a>
-                <span class="breadcrumb-separator">›</span>
-                <span class="text-secondary" id="postDetailScopeName">Comunidad</span>
-                <span class="breadcrumb-separator">›</span>
-                <span class="text-secondary" id="postDetailTitleCrumb">Publicación</span>
-            </div>
-
-            <div class="card section-card mb-4" id="postDetailCard"></div>
-
-            <div class="card section-card">
+            <div class="card section-card" th:if="${publicacion != null}">
                 <div class="card-header section-header">
                     <div>
                         <h3 class="card-title mb-1">Respuestas</h3>
-                        <div class="section-description" id="postDetailReplyCount">0 respuestas</div>
+                        <div class="section-description" th:text="${respuestas.size() + ' respuestas'}">0 respuestas</div>
                     </div>
-                    <label class="forum-select-label">Ordenar
-                        <select id="replySort" class="form-select form-select-sm">
-                            <option value="date">Más recientes</option>
-                            <option value="votes">Más votadas</option>
-                        </select>
-                    </label>
                 </div>
 
-                <div class="card-body p-0" id="replyList"></div>
+                <div class="card-body p-0">
+                    <div class="empty-replies" th:if="${respuestas.isEmpty()}">Aún no hay respuestas. Sé el primero en responder.</div>
+
+                    <div class="reply-row" th:each="resp : ${respuestas}">
+                        <div class="flex-fill">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="avatar reply-avatar bg-purple-lt text-purple"
+                                      th:text="${(#strings.isEmpty(resp.autor.nombre) ? '' : #strings.substring(resp.autor.nombre,0,1)) + (#strings.isEmpty(resp.autor.apellido) ? '' : #strings.substring(resp.autor.apellido,0,1))}">US</span>
+                                <div class="fw-semibold"
+                                     th:text="${resp.autor.nombre + ' ' + resp.autor.apellido + (resp.autor.id == usuarioActual.id ? ' (tú)' : '')}">Autor</div>
+                                <span class="badge bg-green-lt" th:if="${resp.esSolucion}">Solución marcada</span>
+                            </div>
+                            <div class="small text-secondary" th:text="${#temporals.format(resp.fechaCreacion, 'dd/MM/yyyy HH:mm')}">Fecha</div>
+                            <div class="reply-content" th:text="${resp.contenido}">Respuesta</div>
+                            <div class="d-flex gap-2 mt-2" th:if="${resp.autor.id == usuarioActual.id}">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal"
+                                        th:data-bs-target="${'#editReplyModal-' + resp.id}">Editar</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
+                                        th:data-bs-target="${'#deleteReplyModal-' + resp.id}">Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="card-body reply-form-box">
-                    <label class="form-label">Tu respuesta</label>
-                    <textarea id="replyInput" class="form-control" rows="3" placeholder="Escribe una respuesta..."></textarea>
-                    <div class="d-flex justify-content-end mt-2">
-                        <button type="button" id="submitReplyBtn" class="btn btn-primary">Responder</button>
-                    </div>
+                    <form th:action="@{/colaborador/foros/publicaciones/{id}/respuestas(id=${publicacion.id})}" method="post">
+                        <label class="form-label">Tu respuesta</label>
+                        <textarea name="contenido" class="form-control" rows="3" placeholder="Escribe una respuesta..." required></textarea>
+                        <div class="d-flex justify-content-end mt-2">
+                            <button type="submit" class="btn btn-primary">Responder</button>
+                        </div>
+                    </form>
                 </div>
-            </div>
-        </section>
-
-    </main>
-
-<!-- MODAL: NUEVA PUBLICACIÓN -->
-<div class="modal modal-blur fade col-modal" id="newPostModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nueva publicación</h5>
-                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Publicar en <span class="text-red">*</span></label>
-                    <div class="post-destination-list">
-                        <label class="post-destination-item">
-                            <input class="form-check-input" type="checkbox" value="comunidad" checked>
-                            <span class="scope-dot bg-blue"></span> Comunidad
-                        </label>
-                        <label class="post-destination-item">
-                            <input class="form-check-input" type="checkbox" value="proyectoA">
-                            <span class="scope-dot bg-yellow"></span> Proyecto A
-                        </label>
-                        <label class="post-destination-item">
-                            <input class="form-check-input" type="checkbox" value="proyectoC">
-                            <span class="scope-dot bg-yellow"></span> Proyecto C
-                        </label>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Título <span class="text-red">*</span></label>
-                    <input type="text" class="form-control" placeholder="Ingresa un título...">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Contenido <span class="text-red">*</span></label>
-                    <textarea class="form-control" rows="5" placeholder="Descripción..."></textarea>
-                </div>
-                <div>
-                    <label class="form-label">Etiqueta</label>
-                    <input type="text" class="form-control" placeholder="Ej. Backend, Seguridad, Dudas...">
-                    <div class="form-hint">Una publicación puede tener una sola etiqueta.</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
-                <button class="btn btn-primary" type="button" data-bs-dismiss="modal">Publicar</button>
             </div>
         </div>
+
+    </main>
+</div>
+
+<!-- MODAL: NUEVA PUBLICACIÓN (vista publicaciones) -->
+<div class="modal modal-blur fade col-modal" id="newPostModal" tabindex="-1" aria-hidden="true" th:if="${vista == 'publicaciones' and foro != null}">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <form th:action="@{/colaborador/foros/{id}/publicaciones(id=${foro.id})}" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" th:text="${'Nueva publicación en ' + foro.nombre}">Nueva publicación</h5>
+                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Título <span class="text-red">*</span></label>
+                        <input type="text" name="titulo" class="form-control" placeholder="Ingresa un título..." required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contenido <span class="text-red">*</span></label>
+                        <textarea name="contenido" class="form-control" rows="5" placeholder="Descripción..." required></textarea>
+                    </div>
+                    <div>
+                        <label class="form-label">Etiqueta</label>
+                        <select name="etiquetaId" class="form-select">
+                            <option value="">Sin etiqueta</option>
+                            <option th:each="et : ${etiquetas}" th:value="${et.id}" th:text="${et.nombre}"></option>
+                        </select>
+                        <div class="form-hint">Una publicación puede tener una sola etiqueta.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Publicar</button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
+<!-- MODALES: EDITAR / ELIMINAR PUBLICACIÓN (vista detalle) -->
+<th:block th:if="${vista == 'detalle' and publicacion != null}">
+    <div class="modal modal-blur fade col-modal" th:id="'editPostModal-' + ${publicacion.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <form th:action="@{/colaborador/foros/publicaciones/{id}/editar(id=${publicacion.id})}" method="post">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar publicación</h5>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Título <span class="text-red">*</span></label>
+                            <input type="text" name="titulo" class="form-control" th:value="${publicacion.titulo}" required maxlength="200">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Contenido <span class="text-red">*</span></label>
+                            <textarea name="contenido" class="form-control" rows="5" required th:text="${publicacion.contenido}"></textarea>
+                        </div>
+                        <div>
+                            <label class="form-label">Etiqueta</label>
+                            <select name="etiquetaId" class="form-select">
+                                <option value="">Sin etiqueta</option>
+                                <option th:each="et : ${etiquetas}" th:value="${et.id}" th:text="${et.nombre}"
+                                        th:selected="${publicacion.etiqueta != null and publicacion.etiqueta.id == et.id}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-primary" type="submit">Guardar cambios</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal modal-blur fade col-modal" th:id="'deletePostModal-' + ${publicacion.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form th:action="@{/colaborador/foros/publicaciones/{id}/eliminar(id=${publicacion.id})}" method="post">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Eliminar publicación</h5>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">¿Seguro que deseas eliminar <strong th:text="${publicacion.titulo}"></strong>? Esta acción no se puede deshacer.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-danger" type="submit">Sí, eliminar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODALES: EDITAR / ELIMINAR RESPUESTAS -->
+    <div th:each="resp : ${respuestas}">
+        <div class="modal modal-blur fade col-modal" th:id="'editReplyModal-' + ${resp.id}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <form th:action="@{/colaborador/foros/respuestas/{id}/editar(id=${resp.id})}" method="post">
+                    <input type="hidden" name="publicacionId" th:value="${publicacion.id}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Editar respuesta</h5>
+                            <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">Contenido <span class="text-red">*</span></label>
+                            <textarea name="contenido" class="form-control" rows="4" required th:text="${resp.contenido}"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                            <button class="btn btn-primary" type="submit">Guardar cambios</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal modal-blur fade col-modal" th:id="'deleteReplyModal-' + ${resp.id}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <form th:action="@{/colaborador/foros/respuestas/{id}/eliminar(id=${resp.id})}" method="post">
+                    <input type="hidden" name="publicacionId" th:value="${publicacion.id}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Eliminar respuesta</h5>
+                            <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0">¿Seguro que deseas eliminar esta respuesta? Esta acción no se puede deshacer.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                            <button class="btn btn-danger" type="submit">Sí, eliminar</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/col-js/foro-data.js" th:src="@{/js/col-js/foro-data.js}"></script>
 <script src="../../static/js/col-js/col-foros.js" th:src="@{/js/col-js/col-foros.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
 </body>

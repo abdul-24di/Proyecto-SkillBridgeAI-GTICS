@@ -311,10 +311,13 @@ CREATE TABLE solicitud_personal (
 -- 12. ASIGNACIONES / POSTULACIONES
 -- =====================================================================
 
+
 CREATE TABLE asignacion (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
     proyecto_id         BIGINT NOT NULL,
     colaborador_id      BIGINT NOT NULL,
+    habilidad_solicitada_id BIGINT NULL,
+    habilidades_relevantes VARCHAR(300) NULL,
     horas_semanales     DECIMAL(5,2) NOT NULL,
     origen              VARCHAR(30) NOT NULL,
     mensaje_solicitud   VARCHAR(500) NULL,
@@ -333,6 +336,7 @@ CREATE TABLE asignacion (
 
     CONSTRAINT fk_asignacion_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
     CONSTRAINT fk_asignacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
+    CONSTRAINT fk_asignacion_habilidad_solicitada FOREIGN KEY (habilidad_solicitada_id) REFERENCES habilidad(id),
     CONSTRAINT fk_asignacion_rechazado_por FOREIGN KEY (rechazado_por) REFERENCES usuario(id),
     CONSTRAINT fk_asignacion_desasignado_por FOREIGN KEY (desasignado_por) REFERENCES usuario(id),
 

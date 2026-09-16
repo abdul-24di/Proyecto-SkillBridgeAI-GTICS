@@ -137,10 +137,17 @@
                         <div class="profile-list-line"><strong>Equipo:</strong> <span th:text="${v.colaboradoresActivos} + ' / ' + ${v.proyecto.colaboradoresRequeridos} + ' colaboradores'">2 / 5 colaboradores</span></div>
                         <div class="profile-list-line"><strong>Horas requeridas:</strong> <span th:text="${v.proyecto.horasSemanalesRequeridas} + ' horas/semana'">20 horas/semana</span></div>
                         <div class="info-label mt-3 mb-1">Perfiles que busca</div>
-                        <div th:if="${v.habilidadesRequeridas.isEmpty()}" class="text-secondary small">No se especificaron habilidades para este proyecto.</div>
-                        <div th:unless="${v.habilidadesRequeridas.isEmpty()}">
-                            <span th:each="h : ${v.habilidadesRequeridas}" class="badge bg-blue-lt me-1 mb-1" th:text="${h}">2 × Java</span>
+                        <div th:if="${v.perfiles.isEmpty()}" class="text-secondary small">No se especificaron habilidades para este proyecto.</div>
+                        <div th:unless="${v.perfiles.isEmpty()}">
+                            <span th:each="p : ${v.perfiles}" class="badge me-1 mb-1"
+                                  th:classappend="${p.cuposDisponibles > 0} ? 'bg-blue-lt' : 'bg-secondary-lt'"
+                                  th:text="${p.etiqueta} + (${p.cuposDisponibles > 0} ? (' — ' + ${p.cuposDisponibles} + ' vacante(s)') : ' — agotado')">Java (Intermedio) — 1 vacante(s)</span>
                         </div>
+                        <!-- Opciones de perfil para el modal de postulación de ESTE proyecto (solo lo lee el JS, no se muestra) -->
+                        <template class="perfil-options-template">
+                            <option th:each="p : ${v.perfiles}" th:if="${p.cuposDisponibles > 0}"
+                                    th:value="${p.habilidadId}" th:text="${p.etiqueta}"></option>
+                        </template>
                         <div class="info-grid mt-3">
                             <div><div class="info-label">Fecha de inicio</div><div class="info-value" th:text="${v.proyecto.fechaInicio != null ? v.proyecto.fechaInicio : 'Por definir'}">01/09/2026</div></div>
                             <div><div class="info-label">Fin estimado</div><div class="info-value" th:text="${v.proyecto.fechaFinEstimada != null ? v.proyecto.fechaFinEstimada : 'Por definir'}">—</div></div>
@@ -330,13 +337,27 @@
 <!-- MODAL: POSTULACIÓN A PROYECTO -->
 <div class="modal modal-blur fade col-modal" id="applyModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <form th:action="@{/colaborador/proyectos/solicitar}" method="post">
+        <form th:action="@{/colaborador/proyectos/solicitar}" method="post" id="applyForm">
             <div class="modal-header">
                 <h5 class="modal-title" id="applyModalTitle">Postulación</h5>
                 <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" name="proyectoId" id="applyProyectoId">
+                <input type="hidden" name="habilidadesRelevantes" id="applyHabilidadesRelevantesInput">
+
+                <label class="form-label">Perfil al que deseas postularte <span class="text-red">*</span></label>
+                <select name="habilidadId" id="applyPerfilSelect" class="form-select mb-3" required>
+                    <option value="" selected disabled>Selecciona un perfil...</option>
+                </select>
+
+                <label class="form-label">Tus habilidades</label>
+                <div class="form-hint mb-2">Marca las que consideres relevantes para este proyecto (opcional).</div>
+                <div id="applySkillsWrap" class="d-flex flex-wrap gap-2 mb-3">
+                    <button type="button" th:each="h : ${misHabilidades}" class="btn btn-outline-secondary btn-sm apply-skill-chip"
+                            th:attr="data-skill=${h.habilidad.nombre}" th:text="${h.habilidad.nombre}">Java</button>
+                    <span th:if="${misHabilidades.isEmpty()}" class="text-secondary small">Todavía no tienes habilidades agregadas a tu perfil.</span>
+                </div>
 
                 <label class="form-label">¿Por qué te interesa participar?</label>
                 <textarea name="mensaje" id="applyMessageInput" class="form-control" rows="4" maxlength="500" placeholder="Escribe tu respuesta..."></textarea>

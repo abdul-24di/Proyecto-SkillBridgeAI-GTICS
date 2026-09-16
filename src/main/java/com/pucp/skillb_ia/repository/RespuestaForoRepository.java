@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface RespuestaForoRepository extends JpaRepository<RespuestaForo, Long> {
     List<RespuestaForo> findByPublicacion(PublicacionForo publicacion);
@@ -15,9 +16,11 @@ public interface RespuestaForoRepository extends JpaRepository<RespuestaForo, Lo
             select r from RespuestaForo r
             join fetch r.autor a
             join fetch a.rol
-            where r.publicacion = :publicacion
+            where r.publicacion = :publicacion and r.activo = true
             order by r.fechaCreacion asc
             """)
     List<RespuestaForo> findByPublicacionConAutor(
             @Param("publicacion") PublicacionForo publicacion);
+
+    Optional<RespuestaForo> findByIdAndActivoTrue(Long id);
 }

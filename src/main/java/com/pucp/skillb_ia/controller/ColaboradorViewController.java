@@ -77,6 +77,7 @@ public class ColaboradorViewController {
         Usuario colaborador = principal.getUsuario();
         model.addAttribute("proyectos", colaboradorProyectoService.listarTodosLosProyectos(colaborador));
         model.addAttribute("misSolicitudes", colaboradorProyectoService.listarMisSolicitudes(colaborador));
+        model.addAttribute("misHabilidades", colaboradorPerfilService.listarHabilidades(colaborador));
 
         List<Usuario> colaboradoresExplorar = colaboradorExplorarService.listarColaboradores(colaborador);
         model.addAttribute("colaboradoresExplorar", colaboradoresExplorar);
@@ -88,11 +89,13 @@ public class ColaboradorViewController {
     @PostMapping("/proyectos/solicitar")
     public String solicitarIncorporacion(@AuthenticationPrincipal UsuarioDetails principal,
                                          @RequestParam Long proyectoId,
+                                         @RequestParam Long habilidadId,
                                          @RequestParam(required = false) String mensaje,
+                                         @RequestParam(required = false) String habilidadesRelevantes,
                                          RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
-            colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, mensaje);
+            colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, habilidadId, mensaje, habilidadesRelevantes);
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud fue enviada. Quedará pendiente de aprobación del PM y del RM.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());

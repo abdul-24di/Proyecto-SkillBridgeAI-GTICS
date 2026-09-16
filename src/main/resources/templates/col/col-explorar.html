@@ -79,22 +79,41 @@
             <div class="card section-card mb-4">
                 <div class="explore-filters">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-12">
+                        <div class="col-md-6">
                             <label class="form-label">Buscar</label>
                             <div class="input-icon">
                                 <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
                                 <input type="text" id="projectSearch" class="form-control" placeholder="Buscar proyecto...">
                             </div>
                         </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Estado</label>
+                            <select id="projectStatusFilter" class="form-select">
+                                <option value="all">Todos</option>
+                                <option value="EN_REVISION">En planificación</option>
+                                <option value="ACTIVO">Activo</option>
+                                <option value="EN_ESPERA">Pausado</option>
+                                <option value="FINALIZADO">Completado</option>
+                                <option value="CANCELADO">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Postulaciones</label>
+                            <select id="projectApplicationsFilter" class="form-select">
+                                <option value="all">Todas</option>
+                                <option value="abiertas">Abiertas</option>
+                                <option value="cerradas">Cerradas</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div id="projectAccordion">
-                <div th:if="${proyectosDisponibles.isEmpty()}" class="card"><div class="empty-state">No hay proyectos activos con cupos disponibles en este momento.</div></div>
+                <div th:if="${proyectos.isEmpty()}" class="card"><div class="empty-state">Todavía no hay proyectos registrados en la organización.</div></div>
 
-                <div th:each="v : ${proyectosDisponibles}" class="project-accordion-item"
-                     th:attr="data-project-name=${v.proyecto.nombre}">
+                <div th:each="v : ${proyectos}" class="project-accordion-item"
+                     th:attr="data-project-name=${v.proyecto.nombre},data-estado=${v.proyecto.estado.name()},data-postulaciones=${v.postulacionesAbiertas} ? 'abiertas' : 'cerradas'">
                     <div class="project-accordion-header" data-toggle-project>
                         <div>
                             <div class="project-accordion-title">
@@ -102,10 +121,12 @@
                                 <span th:text="${v.proyecto.nombre}">Proyecto X</span>
                             </div>
                             <div class="text-secondary small mt-1">
-                                <span class="status-inline-dot bg-green"></span>Activo
+                                <span class="status-inline-dot"
+                                      th:classappend="${v.proyecto.estado.name() == 'ACTIVO'} ? 'bg-green' : (${v.proyecto.estado.name() == 'EN_REVISION'} ? 'bg-yellow' : (${v.proyecto.estado.name() == 'EN_ESPERA'} ? 'bg-orange' : (${v.proyecto.estado.name() == 'FINALIZADO'} ? 'bg-blue' : 'bg-red')))"></span>
+                                <span th:text="${v.proyecto.estado.name() == 'ACTIVO'} ? 'Activo' : (${v.proyecto.estado.name() == 'EN_REVISION'} ? 'En planificación' : (${v.proyecto.estado.name() == 'EN_ESPERA'} ? 'Pausado' : (${v.proyecto.estado.name() == 'FINALIZADO'} ? 'Completado' : 'Cancelado')))">Activo</span>
                                 &nbsp;·&nbsp;
-                                <span class="status-inline-dot bg-green"></span>
-                                <span th:text="${v.cuposDisponibles} + ' cupo(s) disponible(s)'">2 cupo(s) disponible(s)</span>
+                                <span class="status-inline-dot" th:classappend="${v.postulacionesAbiertas} ? 'bg-green' : 'bg-secondary'"></span>
+                                <span th:text="${v.postulacionesAbiertas} ? 'Postulaciones abiertas' : 'Postulaciones cerradas'">Postulaciones abiertas</span>
                             </div>
                         </div>
                         <svg class="project-accordion-chevron" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
@@ -115,10 +136,10 @@
                         <div class="profile-list-line"><strong>PM:</strong> <span th:text="${v.proyecto.pm.nombre} + ' ' + ${v.proyecto.pm.apellido}">Nombre PM</span></div>
                         <div class="profile-list-line"><strong>Equipo:</strong> <span th:text="${v.colaboradoresActivos} + ' / ' + ${v.proyecto.colaboradoresRequeridos} + ' colaboradores'">2 / 5 colaboradores</span></div>
                         <div class="profile-list-line"><strong>Horas requeridas:</strong> <span th:text="${v.proyecto.horasSemanalesRequeridas} + ' horas/semana'">20 horas/semana</span></div>
-                        <div class="info-label mt-3 mb-1">Habilidades requeridas</div>
+                        <div class="info-label mt-3 mb-1">Perfiles que busca</div>
                         <div th:if="${v.habilidadesRequeridas.isEmpty()}" class="text-secondary small">No se especificaron habilidades para este proyecto.</div>
                         <div th:unless="${v.habilidadesRequeridas.isEmpty()}">
-                            <span th:each="h : ${v.habilidadesRequeridas}" class="badge bg-blue-lt me-1 mb-1" th:text="${h}">Java</span>
+                            <span th:each="h : ${v.habilidadesRequeridas}" class="badge bg-blue-lt me-1 mb-1" th:text="${h}">2 × Java</span>
                         </div>
                         <div class="info-grid mt-3">
                             <div><div class="info-label">Fecha de inicio</div><div class="info-value" th:text="${v.proyecto.fechaInicio != null ? v.proyecto.fechaInicio : 'Por definir'}">01/09/2026</div></div>
@@ -126,8 +147,9 @@
                         </div>
                         <div class="action-bar mt-3 mb-0">
                             <span th:if="${v.yaTieneSolicitud}" class="badge bg-blue-lt">Ya te postulaste a este proyecto</span>
-                            <span th:if="${!v.yaTieneSolicitud and !v.tieneHorasSuficientes}" class="badge bg-red-lt">No tienes suficientes horas disponibles</span>
-                            <button th:if="${!v.yaTieneSolicitud and v.tieneHorasSuficientes}" type="button" class="btn btn-primary btn-sm" data-open-apply
+                            <span th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas and !v.tieneHorasSuficientes}" class="badge bg-red-lt">No tienes suficientes horas disponibles</span>
+                            <span th:if="${!v.yaTieneSolicitud and !v.postulacionesAbiertas}" class="badge bg-secondary-lt">Postulaciones cerradas</span>
+                            <button th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas and v.tieneHorasSuficientes}" type="button" class="btn btn-primary btn-sm" data-open-apply
                                     th:attr="data-project-id=${v.proyecto.id},data-project-name=${v.proyecto.nombre}">Postularme</button>
                         </div>
                     </div>
@@ -174,47 +196,99 @@
                                 <label class="form-label">Nivel</label>
                                 <select id="collabLevelFilter" class="form-select">
                                     <option value="all">Todos</option>
-                                    <option>Básico</option>
-                                    <option>Intermedio</option>
-                                    <option>Avanzado</option>
-                                    <option>Experto</option>
+                                    <option value="JUNIOR">Junior</option>
+                                    <option value="SEMI_SENIOR">Semi-Senior</option>
+                                    <option value="SENIOR">Senior</option>
                                 </select>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div id="collabList"></div>
+
+                <div id="collabList">
+                    <div th:if="${colaboradoresExplorar.isEmpty()}" class="card">
+                        <div class="empty-state">No hay otros colaboradores registrados todavía.</div>
+                    </div>
+
+                    <div th:each="c : ${colaboradoresExplorar}" class="collab-card"
+                         th:attr="data-nivel=${c.nivelExperiencia != null ? c.nivelExperiencia.name() : ''}">
+                        <div class="collab-card-name" th:text="|${c.nombre} ${c.apellido}|">Nombre Apellido</div>
+                        <div class="collab-card-role" th:text="${c.cargo != null ? c.cargo : 'Sin cargo asignado'}">Cargo</div>
+                        <span th:if="${c.nivelExperiencia != null}" class="badge bg-secondary-lt mb-1"
+                              th:text="${c.nivelExperiencia.name() == 'JUNIOR' ? 'Junior' : (c.nivelExperiencia.name() == 'SEMI_SENIOR' ? 'Semi-Senior' : 'Senior')}">Senior</span>
+                        <div class="collab-card-meta">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                            <span th:if="${!#strings.isEmpty(perfilesExplorar.get(c.id).resumenHabilidades)}"
+                                  th:text="${perfilesExplorar.get(c.id).resumenHabilidades}">Java · Spring Boot</span>
+                            <span th:if="${#strings.isEmpty(perfilesExplorar.get(c.id).resumenHabilidades)}" class="text-secondary">Sin habilidades validadas aún</span>
+                        </div>
+                        <div class="collab-card-meta" th:if="${c.aniosExperiencia != null}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
+                            <span th:text="|${c.aniosExperiencia} años de experiencia|">5 años de experiencia</span>
+                        </div>
+                        <div class="collab-card-meta">
+                            <span class="status-inline-dot" th:classappend="${(c.horasDisponibles != null and c.horasDisponibles.signum() > 0) ? 'bg-green' : 'bg-secondary'}"></span>
+                            <span th:text="${(c.horasDisponibles != null and c.horasDisponibles.signum() > 0) ? 'Disponible' : 'No disponible'}">Disponible</span>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-2" data-view-collab th:attr="data-collab-id=${c.id}">Ver perfil</button>
+                    </div>
+                </div>
             </div>
 
             <div class="collab-profile-detail" id="collabProfileDetail">
                 <button type="button" class="btn btn-link btn-sm px-0 mb-3" id="backToCollabList">&larr; Volver a colaboradores</button>
-                <div class="card section-card">
+
+                <div th:each="c : ${colaboradoresExplorar}" class="card section-card collab-detail-card d-none" th:attr="data-collab-detail=${c.id}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                             <div>
-                                <h4 class="mb-0" id="collabProfileName">—</h4>
-                                <div class="text-secondary" id="collabProfileRole">—</div>
+                                <h4 class="mb-0" th:text="|${c.nombre} ${c.apellido}|">Nombre Apellido</h4>
+                                <div class="text-secondary" th:text="${c.cargo != null ? c.cargo : 'Sin cargo asignado'}">Cargo</div>
                             </div>
                             <div class="availability-pill">
-                                <span class="availability-dot bg-green" id="collabProfileAvailabilityDot"></span>
-                                <span id="collabProfileAvailabilityLabel"></span>
+                                <span class="availability-dot" th:classappend="${(c.horasDisponibles != null and c.horasDisponibles.signum() > 0) ? 'bg-green' : 'bg-secondary'}"></span>
+                                <span th:text="${(c.horasDisponibles != null and c.horasDisponibles.signum() > 0) ? 'Disponible' : 'No disponible'}">Disponible</span>
                             </div>
                         </div>
                         <hr>
                         <div class="row g-4">
                             <div class="col-md-6">
-                                <div class="info-label mb-1">Sobre</div>
-                                <p class="small text-secondary" id="collabProfileBio"></p>
+                                <div class="info-label mb-1" th:text="|Sobre ${c.nombre}|">Sobre</div>
+                                <p class="small text-secondary"
+                                   th:text="${c.descripcion != null and !c.descripcion.isBlank() ? c.descripcion : 'Este colaborador todavía no agregó una descripción.'}">—</p>
+
                                 <div class="info-label mb-1">Experiencia</div>
-                                <ul class="small text-secondary ps-3" id="collabProfileExperience"></ul>
+                                <ul class="small text-secondary ps-3" th:if="${!perfilesExplorar.get(c.id).experiencia.isEmpty()}">
+                                    <li th:each="e : ${perfilesExplorar.get(c.id).experiencia}"
+                                        th:text="${(e.cargo != null ? e.cargo : 'Cargo sin registrar') + ' — ' + (e.empresa != null ? e.empresa : 'Empresa sin registrar') + ': ' + e.descripcion}">Experiencia</li>
+
+                                </ul>
+                                <div class="small text-secondary" th:if="${perfilesExplorar.get(c.id).experiencia.isEmpty()}">Sin experiencia registrada.</div>
+
                                 <div class="info-label mb-1 mt-3">Proyectos destacados</div>
-                                <ul class="small text-secondary ps-3" id="collabProfileHighlights"></ul>
+                                <ul class="small text-secondary ps-3" th:if="${!perfilesExplorar.get(c.id).proyectos.isEmpty()}">
+                                    <li th:each="a : ${perfilesExplorar.get(c.id).proyectos}"
+                                        th:text="|${a.proyecto.nombre}: ${perfilesExplorar.get(c.id).habilidadesPorProyecto.get(a.proyecto.id)}|">Proyecto</li>
+                                </ul>
+                                <div class="small text-secondary" th:if="${perfilesExplorar.get(c.id).proyectos.isEmpty()}">Sin proyectos destacados todavía.</div>
                             </div>
                             <div class="col-md-6">
                                 <div class="info-label mb-1">Habilidades</div>
-                                <div class="mb-3" id="collabProfileSkills"></div>
+                                <div class="mb-3" th:if="${!perfilesExplorar.get(c.id).habilidades.isEmpty()}">
+                                    <div class="skill-row" th:each="h : ${perfilesExplorar.get(c.id).habilidades}">
+                                        <span th:text="${h.habilidad.nombre}">Java</span>
+                                        <span class="text-secondary" th:text="${h.nivelDominio.name() == 'AVANZADO' ? 'Avanzado' : (h.nivelDominio.name() == 'INTERMEDIO' ? 'Intermedio' : 'Básico')}">Avanzado</span>
+                                    </div>
+                                </div>
+                                <div class="small text-secondary mb-3" th:if="${perfilesExplorar.get(c.id).habilidades.isEmpty()}">Sin habilidades validadas todavía.</div>
+
                                 <div class="info-label mb-1">Educación</div>
-                                <div class="small text-secondary" id="collabProfileEducation"></div>
+                                <div th:if="${!perfilesExplorar.get(c.id).educacion.isEmpty()}">
+                                    <div class="small text-secondary" th:each="ed : ${perfilesExplorar.get(c.id).educacion}"
+                                         th:text="${ed.titulo + ' — ' + ed.institucion}">Título — Institución</div>
+
+                                </div>
+                                <div class="small text-secondary" th:if="${perfilesExplorar.get(c.id).educacion.isEmpty()}">Sin educación registrada.</div>
                             </div>
                         </div>
                     </div>

@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.controller;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.security.UsuarioDetails;
+import com.pucp.skillb_ia.service.col.ColaboradorExplorarService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.col.ColaboradorProyectoService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,17 +17,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
+
 @Controller
 @RequestMapping("/colaborador")
 public class ColaboradorViewController {
 
     private final ColaboradorPerfilService colaboradorPerfilService;
     private final ColaboradorProyectoService colaboradorProyectoService;
+    private final ColaboradorExplorarService colaboradorExplorarService;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
-                                     ColaboradorProyectoService colaboradorProyectoService) {
+                                     ColaboradorProyectoService colaboradorProyectoService,
+                                     ColaboradorExplorarService colaboradorExplorarService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
+        this.colaboradorExplorarService = colaboradorExplorarService;
     }
 
     @GetMapping({"", "/"})
@@ -69,8 +75,13 @@ public class ColaboradorViewController {
             return "redirect:/login";
         }
         Usuario colaborador = principal.getUsuario();
-        model.addAttribute("proyectosDisponibles", colaboradorProyectoService.listarProyectosDisponibles(colaborador));
+        model.addAttribute("proyectos", colaboradorProyectoService.listarTodosLosProyectos(colaborador));
         model.addAttribute("misSolicitudes", colaboradorProyectoService.listarMisSolicitudes(colaborador));
+
+        List<Usuario> colaboradoresExplorar = colaboradorExplorarService.listarColaboradores(colaborador);
+        model.addAttribute("colaboradoresExplorar", colaboradoresExplorar);
+        model.addAttribute("perfilesExplorar", colaboradorExplorarService.obtenerPerfiles(colaboradoresExplorar));
+
         return "col/col-explorar";
     }
 

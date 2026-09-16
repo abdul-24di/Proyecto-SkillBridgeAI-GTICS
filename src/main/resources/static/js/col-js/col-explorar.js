@@ -14,14 +14,30 @@ document.querySelectorAll("#projectAccordion [data-toggle-project]").forEach(hea
     header.addEventListener("click", () => header.closest(".project-accordion-item").classList.toggle("open"));
 });
 
-document.getElementById("projectSearch")?.addEventListener("input", (e) => {
-    const q = e.target.value.trim().toLowerCase();
+const projectSearchInput = document.getElementById("projectSearch");
+const projectStatusFilter = document.getElementById("projectStatusFilter");
+const projectApplicationsFilter = document.getElementById("projectApplicationsFilter");
+
+function aplicarFiltrosProyectos() {
+    const q = (projectSearchInput?.value || "").trim().toLowerCase();
+    const estado = projectStatusFilter?.value || "all";
+    const postulaciones = projectApplicationsFilter?.value || "all";
+
     document.querySelectorAll("#projectAccordion .project-accordion-item").forEach(item => {
         const nombre = (item.dataset.projectName || "").toLowerCase();
         const texto = item.textContent.toLowerCase();
-        item.classList.toggle("d-none", q.length > 0 && !nombre.includes(q) && !texto.includes(q));
+
+        const coincideTexto = q.length === 0 || nombre.includes(q) || texto.includes(q);
+        const coincideEstado = estado === "all" || item.dataset.estado === estado;
+        const coincidePostulaciones = postulaciones === "all" || item.dataset.postulaciones === postulaciones;
+
+        item.classList.toggle("d-none", !(coincideTexto && coincideEstado && coincidePostulaciones));
     });
-});
+}
+
+projectSearchInput?.addEventListener("input", aplicarFiltrosProyectos);
+projectStatusFilter?.addEventListener("change", aplicarFiltrosProyectos);
+projectApplicationsFilter?.addEventListener("change", aplicarFiltrosProyectos);
 
 document.querySelectorAll("#projectAccordion [data-open-apply]").forEach(btn => {
     btn.addEventListener("click", (e) => {
@@ -37,97 +53,33 @@ document.querySelectorAll("#projectAccordion [data-open-apply]").forEach(btn => 
 });
 
 /* ================= COLABORADORES ================= */
-const exploreCollaborators = [
-    {
-        id: "jeffie", name: "Jeffie Lewzey", role: "Full Stack Senior", nivel: "Avanzado",
-        skills: ["Java", "Spring Boot", "React", "MySQL"], years: 5, availability: "Disponible", availabilityDot: "bg-green",
-        bio: "Persona especializada en desarrollo full stack y liderazgo técnico de equipos.",
-        experience: ["Senior Full Stack Developer: Desarrollo de aplicaciones web y liderazgo técnico.", "Full Stack Developer: Desarrollo e integración de aplicaciones empresariales."],
-        skillLevels: [["Java", "Avanzado"], ["Spring Boot", "Avanzado"], ["MySQL", "Intermedio"], ["Git", "Básico"]],
-        education: "Ingeniería de Software en Universidad X",
-        highlights: ["Proyecto X: Java · Spring Boot · MySQL"]
-    },
-    {
-        id: "maria", name: "María López", role: "UX/UI Designer", nivel: "Intermedio",
-        skills: ["Figma", "UX Research", "Prototyping"], years: 3, availability: "Disponibilidad limitada", availabilityDot: "bg-yellow",
-        bio: "Diseñadora UX/UI enfocada en investigación de usuarios y prototipado rápido.",
-        experience: ["UX/UI Designer — SkillBridge AI: Diseño de flujos y research con usuarios."],
-        skillLevels: [["Figma", "Avanzado"], ["UX Research", "Intermedio"], ["Prototyping", "Intermedio"]],
-        education: "Diseño Gráfico en Universidad Z",
-        highlights: ["Proyecto Y: Figma · Design System"]
-    },
-    {
-        id: "mallory", name: "Mallory Hulme", role: "Frontend Developer", nivel: "Intermedio",
-        skills: ["React", "JavaScript", "CSS"], years: 2, availability: "Disponible", availabilityDot: "bg-green",
-        bio: "Desarrolladora frontend enfocada en interfaces accesibles y de alto rendimiento.",
-        experience: ["Frontend Developer — SkillBridge AI: Construcción de interfaces con React."],
-        skillLevels: [["React", "Avanzado"], ["JavaScript", "Avanzado"], ["CSS", "Intermedio"]],
-        education: "Ingeniería de Sistemas en Universidad Y",
-        highlights: ["Proyecto A: React · TypeScript"]
-    },
-    {
-        id: "dunn", name: "Dunn Slane", role: "UI/UX Designer", nivel: "Avanzado",
-        skills: ["Figma", "Design System"], years: 4, availability: "No disponible", availabilityDot: "bg-secondary",
-        bio: "Diseñador UI/UX enfocado en investigación de usuarios y sistemas de diseño.",
-        experience: ["UI/UX Designer — SkillBridge AI: Diseño de flujos y sistema de componentes."],
-        skillLevels: [["Figma", "Avanzado"], ["Investigación UX", "Intermedio"]],
-        education: "Diseño Gráfico en Universidad Z",
-        highlights: ["Proyecto A: Figma · Design System"]
-    }
-];
 
-function renderCollaboratorList() {
-    const q = (document.getElementById("collabSearch")?.value || "").trim().toLowerCase();
+function filtrarListaColaboradores() {
+    const texto = (document.getElementById("collabSearch")?.value || "").trim().toLowerCase();
     const nivel = document.getElementById("collabLevelFilter")?.value || "all";
 
-    const filtered = exploreCollaborators.filter(c => {
-        const matchesSearch = (c.name + " " + c.role + " " + c.skills.join(" ")).toLowerCase().includes(q);
-        const matchesNivel = nivel === "all" || c.nivel === nivel;
-        return matchesSearch && matchesNivel;
-    });
-
-    document.getElementById("collabList").innerHTML = filtered.length ? filtered.map(c => `
-        <div class="collab-card">
-            <div class="collab-card-name">${c.name}</div>
-            <div class="collab-card-role">${c.role}</div>
-            <div class="collab-card-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                ${c.skills.join(" · ")}
-            </div>
-            <div class="collab-card-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
-                ${c.years} años de experiencia
-            </div>
-            <div class="collab-card-meta"><span class="status-inline-dot ${c.availabilityDot}"></span>${c.availability}</div>
-            <button type="button" class="btn btn-outline-primary btn-sm mt-2" data-view-collab="${c.id}">Ver perfil</button>
-        </div>`).join("") : `<div class="card"><div class="empty-state">No se encontraron colaboradores.</div></div>`;
-
-    document.getElementById("collabList").querySelectorAll("[data-view-collab]").forEach(btn => {
-        btn.addEventListener("click", () => showCollabProfile(btn.dataset.viewCollab));
+    document.querySelectorAll("#collabList .collab-card").forEach(card => {
+        const contenido = card.textContent.toLowerCase();
+        const nivelCard = card.dataset.nivel || "";
+        const coincideTexto = texto.length === 0 || contenido.includes(texto);
+        const coincideNivel = nivel === "all" || nivelCard === nivel;
+        card.classList.toggle("d-none", !(coincideTexto && coincideNivel));
     });
 }
 
 ["collabSearch", "collabLevelFilter"].forEach(id => {
     const el = document.getElementById(id);
-    el?.addEventListener(el.tagName === "INPUT" ? "input" : "change", renderCollaboratorList);
+    el?.addEventListener(el.tagName === "INPUT" ? "input" : "change", filtrarListaColaboradores);
 });
 
-renderCollaboratorList();
+document.querySelectorAll("#collabList [data-view-collab]").forEach(btn => {
+    btn.addEventListener("click", () => mostrarPerfilColaborador(btn.dataset.collabId));
+});
 
-function showCollabProfile(id) {
-    const c = exploreCollaborators.find(x => x.id === id);
-    if (!c) return;
-
-    document.getElementById("collabProfileName").textContent = c.name;
-    document.getElementById("collabProfileRole").textContent = c.role;
-    document.getElementById("collabProfileAvailabilityDot").className = "availability-dot " + c.availabilityDot;
-    document.getElementById("collabProfileAvailabilityLabel").textContent = c.availability;
-    document.getElementById("collabProfileBio").textContent = c.bio;
-    document.getElementById("collabProfileExperience").innerHTML = c.experience.map(e => `<li>${e}</li>`).join("");
-    document.getElementById("collabProfileSkills").innerHTML = c.skillLevels.map(s => `<div class="skill-row"><span>${s[0]}</span><span class="text-secondary">${s[1]}</span></div>`).join("");
-    document.getElementById("collabProfileEducation").textContent = c.education;
-    document.getElementById("collabProfileHighlights").innerHTML = c.highlights.map(h => `<li>${h}</li>`).join("");
-
+function mostrarPerfilColaborador(colaboradorId) {
+    document.querySelectorAll("#collabProfileDetail .collab-detail-card").forEach(card => {
+        card.classList.toggle("d-none", card.dataset.collabDetail !== colaboradorId);
+    });
     document.getElementById("collabListView").classList.add("hide");
     document.getElementById("collabProfileDetail").classList.add("show");
 }

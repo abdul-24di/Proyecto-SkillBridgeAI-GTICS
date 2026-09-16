@@ -4,6 +4,7 @@ import com.pucp.skillb_ia.model.Proyecto;
 
 import java.util.List;
 
+
 public class ColProyectoDisponibleView {
     private final Proyecto proyecto;
     private final int colaboradoresActivos;
@@ -11,16 +12,18 @@ public class ColProyectoDisponibleView {
     private final List<String> habilidadesRequeridas;
     private final boolean yaTieneSolicitud;
     private final boolean tieneHorasSuficientes;
+    private final boolean postulacionesAbiertas;
 
     public ColProyectoDisponibleView(Proyecto proyecto, int colaboradoresActivos, int cuposDisponibles,
                                      List<String> habilidadesRequeridas, boolean yaTieneSolicitud,
-                                     boolean tieneHorasSuficientes) {
+                                     boolean tieneHorasSuficientes, boolean postulacionesAbiertas) {
         this.proyecto = proyecto;
         this.colaboradoresActivos = colaboradoresActivos;
         this.cuposDisponibles = cuposDisponibles;
         this.habilidadesRequeridas = habilidadesRequeridas;
         this.yaTieneSolicitud = yaTieneSolicitud;
         this.tieneHorasSuficientes = tieneHorasSuficientes;
+        this.postulacionesAbiertas = postulacionesAbiertas;
     }
 
     public Proyecto getProyecto() { return proyecto; }
@@ -29,4 +32,5 @@ public class ColProyectoDisponibleView {
     public List<String> getHabilidadesRequeridas() { return habilidadesRequeridas; }
     public boolean isYaTieneSolicitud() { return yaTieneSolicitud; }
     public boolean isTieneHorasSuficientes() { return tieneHorasSuficientes; }
+    public boolean isPostulacionesAbiertas() { return postulacionesAbiertas; }
 }

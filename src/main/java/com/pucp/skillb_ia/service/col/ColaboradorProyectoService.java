@@ -39,21 +39,23 @@ public class ColaboradorProyectoService {
         this.auditoriaService = auditoriaService;
     }
 
+
+
     // ============================================================
-    // CONSULTA DE PROYECTOS DISPONIBLES
+    // CONSULTA DE PROYECTOS
     // ============================================================
 
-    public List<ColProyectoDisponibleView> listarProyectosDisponibles(Usuario colaborador) {
-        List<Proyecto> proyectosActivos = proyectoRepository.findByEstado(EstadoProyecto.ACTIVO);
-        List<ColProyectoDisponibleView> disponibles = new ArrayList<>();
+    public List<ColProyectoDisponibleView> listarTodosLosProyectos(Usuario colaborador) {
+        List<Proyecto> todosLosProyectos = proyectoRepository.findAllConPmOrderByFechaCreacionDesc();
+        List<ColProyectoDisponibleView> vistas = new ArrayList<>();
 
-        for (Proyecto proyecto : proyectosActivos) {
-            ColProyectoDisponibleView vista = construirVista(proyecto, colaborador);
-            if (vista.getCuposDisponibles() > 0) {
-                disponibles.add(vista);
+        for (Proyecto proyecto : todosLosProyectos) {
+            if (proyecto.getEstado() == EstadoProyecto.RECHAZADO) {
+                continue;
             }
+            vistas.add(construirVista(proyecto, colaborador));
         }
-        return disponibles;
+        return vistas;
     }
 
     private ColProyectoDisponibleView construirVista(Proyecto proyecto, Usuario colaborador) {
@@ -79,13 +81,18 @@ public class ColaboradorProyectoService {
         List<ProyectoHabilidadRequerida> requeridas = proyectoHabilidadRequeridaRepository.findByProyecto(proyecto);
         List<String> habilidades = new ArrayList<>();
         for (ProyectoHabilidadRequerida requerida : requeridas) {
-            habilidades.add(requerida.getHabilidad().getNombre());
+            //Mostramos cuántas personas pide con la habilidad requerida.
+            habilidades.add(requerida.getCantidadPersonas() + " × " + requerida.getHabilidad().getNombre());
         }
 
         int cupos = proyecto.getColaboradoresRequeridos() - activos;
         boolean tieneHorasSuficientes = tieneHorasSuficientes(colaborador, proyecto);
 
-        return new ColProyectoDisponibleView(proyecto, activos, cupos, habilidades, yaTieneSolicitud, tieneHorasSuficientes);
+        //Solo se puede postular si el proyecto está ACTIVO y todavía quedan cupos.
+        boolean postulacionesAbiertas = proyecto.getEstado() == EstadoProyecto.ACTIVO && cupos > 0;
+
+        return new ColProyectoDisponibleView(proyecto, activos, cupos, habilidades, yaTieneSolicitud,
+                tieneHorasSuficientes, postulacionesAbiertas);
     }
 
     //Determinamos si el colaborador tiene horas disponibles para postularse al proyecto de interes

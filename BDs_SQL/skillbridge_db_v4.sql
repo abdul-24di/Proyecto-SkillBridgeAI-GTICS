@@ -7,7 +7,7 @@ CREATE DATABASE IF NOT EXISTS skillbridge_db
 
 USE skillbridge_db;
 
--- Select * from usuario; 
+-- Select * from colaborador_habilidad; 
 -- Contraseña: Colab123!
 -- usuario: colaborador.prueba@skillbridge.com
 

@@ -68,7 +68,56 @@
       </div>
     </div>
 
-    <div id="projectGrid" class="row row-cards"></div>
+    <div id="projectGrid" class="row row-cards">
+      <div th:each="p : ${proyectos}" class="col-xl-6 project-item" 
+           th:data-name="${p.proyecto.nombre.toLowerCase()}" 
+           th:data-desc="${p.proyecto.descripcion != null ? p.proyecto.descripcion.toLowerCase() : ''}"
+           th:data-status="${p.estadoTexto}"
+           th:data-priority="${p.proyecto.prioridad}">
+        <div class="card project-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between gap-3 align-items-start flex-wrap">
+              <div>
+                <div class="project-title" th:text="${p.proyecto.nombre}">Sistema de Inventario</div>
+                <div class="mt-2">
+                  <span class="badge" th:classappend="${p.estadoClase}" th:text="${p.estadoTexto}">Activo</span>
+                  <span class="badge" th:classappend="${p.prioridadClase}" th:text="'Prioridad ' + ${#strings.toLowerCase(p.proyecto.prioridad)}">Prioridad alta</span>
+                </div>
+              </div>
+              <span class="text-secondary small" th:text="${p.proyecto.fechaFinEstimada != null ? #temporals.format(p.proyecto.fechaFinEstimada, 'dd MMM yyyy') : 'Sin fecha'}">15 Dic 2026</span>
+            </div>
+            <div class="project-description mt-3" th:text="${p.proyecto.descripcion}">Descripción...</div>
+            <div class="mt-2">
+              <span th:each="req : ${p.requisitos}" class="badge bg-blue-lt me-1" th:text="${req.habilidad}">Java</span>
+            </div>
+            <div class="project-meta">
+              <div>
+                <div class="info-label">Equipo</div>
+                <div class="info-value" th:text="${p.integrantesActivos + ' / ' + p.proyecto.colaboradoresRequeridos}">5 / 8</div>
+              </div>
+              <div>
+                <div class="info-label">Presupuesto</div>
+                <div class="info-value" th:text="${'$' + p.presupuestoVisible}">$1000</div>
+              </div>
+              <div>
+                <div class="info-label">Actividades</div>
+                <div class="info-value" th:text="${p.actividadesCompletadas + ' / ' + p.totalActividades}">3 / 5</div>
+              </div>
+            </div>
+            <div class="project-actions">
+              <button th:if="${p.puedeCancelar}" type="button" class="btn btn-outline-danger btn-sm cancel-btn" data-bs-toggle="modal" data-bs-target="#cancelProjectModal" th:data-id="${p.proyecto.id}" th:data-name="${p.proyecto.nombre}">Cancelar proyecto</button>
+              <a th:href="@{/pm/proyectos/detalle(id=${p.proyecto.id})}" class="btn btn-outline-primary btn-sm">Ver proyecto</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="emptyState" class="col-12" style="display: none;">
+        <div class="card">
+          <div class="empty-state">No se encontraron proyectos.</div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 <div class="modal modal-blur fade pm-modal" id="cancelProjectModal" tabindex="-1" aria-labelledby="cancelProjectTitle" aria-hidden="true">

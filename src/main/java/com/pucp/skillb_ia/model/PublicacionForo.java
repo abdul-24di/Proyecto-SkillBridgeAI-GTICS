@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Una publicación tiene UNA sola etiqueta (FK directa) — interpretación de la
-// observación del profesor sobre simplificar la relación N:M original; a
-// confirmar con él (consideraciones_bd_v4.md, Parte 2.A).
+
 @Entity
 @Table(name = "publicacion_foro")
 public class PublicacionForo {
@@ -37,6 +35,9 @@ public class PublicacionForo {
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
+    @Column(nullable = false)
+    private boolean activo = true;
+
     @PrePersist
     protected void onCreate() {
         if (fechaCreacion == null) fechaCreacion = LocalDateTime.now();
@@ -62,4 +63,7 @@ public class PublicacionForo {
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
 }

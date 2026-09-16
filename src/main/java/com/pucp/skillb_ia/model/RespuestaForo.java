@@ -4,9 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// El autor de la publicación puede marcar una respuesta como solución
-// (es_solucion) — solo puede existir una activa por publicación; esa regla se
-// aplica en el service.
 @Entity
 @Table(name = "respuesta_foro")
 public class RespuestaForo {
@@ -33,11 +30,13 @@ public class RespuestaForo {
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
+    @Column(nullable = false)
+    private boolean activo = true;
+
     @PrePersist
     protected void onCreate() {
         if (fechaCreacion == null) fechaCreacion = LocalDateTime.now();
     }
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -55,4 +54,7 @@ public class RespuestaForo {
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
 }

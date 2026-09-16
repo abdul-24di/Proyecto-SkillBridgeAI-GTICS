@@ -522,6 +522,7 @@ CREATE TABLE foro (
 
 CREATE TABLE publicacion_foro (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    activo 			BOOLEAN NOT NULL DEFAULT TRUE,
     foro_id         BIGINT NOT NULL,
     autor_id        BIGINT NOT NULL,
     etiqueta_id     BIGINT NULL,
@@ -534,13 +535,13 @@ CREATE TABLE publicacion_foro (
     CONSTRAINT fk_publicacion_etiqueta FOREIGN KEY (etiqueta_id) REFERENCES etiqueta(id)
 ) ENGINE=InnoDB;
 
-
 -- =====================================================================
 -- 21. RESPUESTAS DEL FORO
 -- =====================================================================
 
 CREATE TABLE respuesta_foro (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    activo 			BOOLEAN NOT NULL DEFAULT TRUE,
     publicacion_id  BIGINT NOT NULL,
     autor_id        BIGINT NOT NULL,
     contenido       TEXT NOT NULL,

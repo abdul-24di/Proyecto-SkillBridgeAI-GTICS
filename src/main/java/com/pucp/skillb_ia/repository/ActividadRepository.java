@@ -16,6 +16,14 @@ public interface ActividadRepository extends JpaRepository<Actividad, Long> {
     List<Actividad> findByProyecto(Proyecto proyecto);
     List<Actividad> findByColaborador(Usuario colaborador);
 
+    List<Actividad> findByProyectoOrderByFechaLimiteAsc(Proyecto proyecto);
+
+    List<Actividad> findByProyectoAndEstado(Proyecto proyecto, EstadoActividad estado);
+
+    long countByProyectoAndEstado(Proyecto proyecto, EstadoActividad estado);
+
+    List<Actividad> findByProyectoAndColaborador(Proyecto proyecto, Usuario colaborador);
+
     @Query("""
             select a from Actividad a
             join fetch a.proyecto p

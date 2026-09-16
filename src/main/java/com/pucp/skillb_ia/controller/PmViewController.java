@@ -1,72 +1,446 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.model.Habilidad;
+import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.repository.HabilidadRepository;
+import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.security.UsuarioDetails;
+import com.pucp.skillb_ia.service.pm.PmActividadService;
+import com.pucp.skillb_ia.service.pm.PmAsignacionService;
+import com.pucp.skillb_ia.service.pm.PmForoService;
+import com.pucp.skillb_ia.service.pm.PmPerfilService;
+import com.pucp.skillb_ia.service.pm.PmProyectoService;
+import com.pucp.skillb_ia.service.pm.PmReporteService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 @Controller
 @RequestMapping("/pm")
 public class PmViewController {
+
+    private final PmProyectoService pmProyectoService;
+    private final PmActividadService pmActividadService;
+    private final PmAsignacionService pmAsignacionService;
+    private final PmForoService pmForoService;
+    private final PmReporteService pmReporteService;
+    private final PmPerfilService pmPerfilService;
+    private final HabilidadRepository habilidadRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    public PmViewController(PmProyectoService pmProyectoService,
+                            PmActividadService pmActividadService,
+                            PmAsignacionService pmAsignacionService,
+                            PmForoService pmForoService,
+                            PmReporteService pmReporteService,
+                            PmPerfilService pmPerfilService,
+                            HabilidadRepository habilidadRepository,
+                            UsuarioRepository usuarioRepository) {
+        this.pmProyectoService = pmProyectoService;
+        this.pmActividadService = pmActividadService;
+        this.pmAsignacionService = pmAsignacionService;
+        this.pmForoService = pmForoService;
+        this.pmReporteService = pmReporteService;
+        this.pmPerfilService = pmPerfilService;
+        this.habilidadRepository = habilidadRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // INDEX
+    // ═══════════════════════════════════════════════════════════
 
     @GetMapping({"", "/"})
     public String index() {
         return "redirect:/pm/proyectos";
     }
 
-    
+    // ═══════════════════════════════════════════════════════════
+    // PROYECTOS
+    // ═══════════════════════════════════════════════════════════
 
     @GetMapping({"/proyectos", "/pm-proyectos.html"})
-    public String projects() {
+    public String proyectos(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("proyectos", pmProyectoService.listar(pm));
+        model.addAttribute("pm", pm);
         return "pm/pm-proyectos";
     }
 
-    @GetMapping({"/proyectos/crear", "/pm-crear-proyecto.html"})
-    public String createProject() {
-        return "pm/pm-crear-proyecto";
-    }
-
     @GetMapping({"/proyectos/detalle", "/pm-detalle-proyecto.html"})
-    public String projectDetail() {
+    public String detalleProyecto(@RequestParam("id") Long proyectoId,
+                                  @AuthenticationPrincipal UsuarioDetails principal,
+                                  Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
+        model.addAttribute("pm", pm);
         return "pm/pm-detalle-proyecto";
     }
 
+    @GetMapping({"/proyectos/crear", "/pm-crear-proyecto.html"})
+    public String crearProyectoForm(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        model.addAttribute("habilidades", habilidadRepository.findByActivaTrue());
+        model.addAttribute("pm", principal.getUsuario());
+        return "pm/pm-crear-proyecto";
+    }
+
+    @PostMapping("/proyectos/crear")
+    public String crearProyecto(
+            @RequestParam("nombre") String nombre,
+            @RequestParam(value = "descripcion", required = false) String descripcion,
+            @RequestParam(value = "fechaInicio", required = false) String fechaInicioStr,
+            @RequestParam(value = "fechaFinEstimada", required = false) String fechaFinStr,
+            @RequestParam("prioridad") String prioridad,
+            @RequestParam("justificacionPrioridad") String justificacionPrioridad,
+            @RequestParam(value = "presupuestoSolicitado", required = false) BigDecimal presupuesto,
+            @RequestParam(value = "justificacionPresupuesto", required = false) String justPresupuesto,
+            @RequestParam(value = "colaboradoresRequeridos", defaultValue = "1") int colaboradoresRequeridos,
+            @RequestParam(value = "horasSemanalesRequeridas", required = false) BigDecimal horasSemanales,
+            @RequestParam(value = "habilidadIds", required = false) List<Long> habilidadIds,
+            @RequestParam(value = "nivelesRequeridos", required = false) List<String> niveles,
+            @RequestParam(value = "cantidadesPersonas", required = false) List<Integer> cantidades,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes ra) {
+        try {
+            LocalDate fechaInicio = (fechaInicioStr != null && !fechaInicioStr.isBlank())
+                    ? LocalDate.parse(fechaInicioStr) : null;
+            LocalDate fechaFin = (fechaFinStr != null && !fechaFinStr.isBlank())
+                    ? LocalDate.parse(fechaFinStr) : null;
+
+            var nuevo = pmProyectoService.crear(nombre, descripcion, fechaInicio, fechaFin,
+                    prioridad, justificacionPrioridad, presupuesto, justPresupuesto,
+                    colaboradoresRequeridos, horasSemanales, habilidadIds, niveles, cantidades,
+                    principal.getUsuario());
+            ra.addFlashAttribute("success", "Proyecto creado exitosamente. Está pendiente de revisión por el RM.");
+            return "redirect:/pm/proyectos/detalle?id=" + nuevo.getId();
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/pm/proyectos/crear";
+        }
+    }
+
+    @PostMapping("/proyectos/{id}/cancelar")
+    public String cancelarProyecto(@PathVariable("id") Long proyectoId,
+                                   @AuthenticationPrincipal UsuarioDetails principal,
+                                   RedirectAttributes ra) {
+        try {
+            pmProyectoService.cancelar(proyectoId, principal.getUsuario());
+            ra.addFlashAttribute("success", "Proyecto cancelado correctamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/proyectos";
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ASIGNACIONES
+    // ═══════════════════════════════════════════════════════════
+
     @GetMapping({"/proyectos/asignaciones", "/pm-asignaciones-proyecto.html"})
-    public String projectAssignments() {
+    public String asignaciones(@RequestParam("proyectoId") Long proyectoId,
+                               @AuthenticationPrincipal UsuarioDetails principal,
+                               Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("asignaciones", pmAsignacionService.listarPorProyecto(proyectoId, pm));
+        model.addAttribute("pendientesPm", pmAsignacionService.listarPendientesPm(proyectoId, pm));
+        model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
+        // Colaboradores disponibles para proponer (rol COLABORADOR activos)
+        model.addAttribute("colaboradoresDisponibles",
+                usuarioRepository.findActivosByRolNombre("COLABORADOR"));
+        model.addAttribute("pm", pm);
         return "pm/pm-asignaciones-proyecto";
     }
 
+    @PostMapping("/asignaciones/proponer")
+    public String proponerAsignacion(
+            @RequestParam("proyectoId") Long proyectoId,
+            @RequestParam("colaboradorId") Long colaboradorId,
+            @RequestParam("horasSemanales") BigDecimal horasSemanales,
+            @RequestParam(value = "mensajeSolicitud", required = false) String mensaje,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes ra) {
+        try {
+            pmAsignacionService.proponer(proyectoId, colaboradorId, horasSemanales, mensaje,
+                    principal.getUsuario());
+            ra.addFlashAttribute("success", "Propuesta enviada al RM para aprobación.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/asignaciones/{id}/aprobar")
+    public String aprobarAsignacion(@PathVariable("id") Long asignacionId,
+                                    @RequestParam("proyectoId") Long proyectoId,
+                                    @AuthenticationPrincipal UsuarioDetails principal,
+                                    RedirectAttributes ra) {
+        try {
+            pmAsignacionService.aprobar(asignacionId, principal.getUsuario());
+            ra.addFlashAttribute("success", "Asignación aprobada.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/asignaciones/{id}/rechazar")
+    public String rechazarAsignacion(@PathVariable("id") Long asignacionId,
+                                     @RequestParam("proyectoId") Long proyectoId,
+                                     @RequestParam(value = "motivo", required = false) String motivo,
+                                     @AuthenticationPrincipal UsuarioDetails principal,
+                                     RedirectAttributes ra) {
+        try {
+            pmAsignacionService.rechazar(asignacionId, motivo, principal.getUsuario());
+            ra.addFlashAttribute("success", "Asignación rechazada.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/asignaciones/{id}/finalizar")
+    public String finalizarAsignacion(@PathVariable("id") Long asignacionId,
+                                      @RequestParam("proyectoId") Long proyectoId,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
+                                      RedirectAttributes ra) {
+        try {
+            pmAsignacionService.finalizar(asignacionId, principal.getUsuario());
+            ra.addFlashAttribute("success", "Asignación finalizada.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ACTIVIDADES
+    // ═══════════════════════════════════════════════════════════
+
+    @GetMapping({"/actividades", "/pm-actividades.html"})
+    public String actividades(@RequestParam("proyectoId") Long proyectoId,
+                              @AuthenticationPrincipal UsuarioDetails principal,
+                              Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("actividades", pmActividadService.listarPorProyecto(proyectoId, pm));
+        model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
+        // Colaboradores activos del proyecto para asignar actividades
+        model.addAttribute("colaboradoresActivos",
+                pmAsignacionService.listarPorProyecto(proyectoId, pm)
+                        .stream()
+                        .filter(a -> "Activa".equals(a.getEstadoTexto()))
+                        .toList());
+        model.addAttribute("pm", pm);
+        return "pm/pm-actividades";
+    }
+
+    @PostMapping("/actividades/crear")
+    public String crearActividad(
+            @RequestParam("proyectoId") Long proyectoId,
+            @RequestParam("colaboradorId") Long colaboradorId,
+            @RequestParam("titulo") String titulo,
+            @RequestParam(value = "descripcion", required = false) String descripcion,
+            @RequestParam("horasEstimadas") BigDecimal horasEstimadas,
+            @RequestParam("fechaLimite") String fechaLimiteStr,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes ra) {
+        try {
+            LocalDate fechaLimite = LocalDate.parse(fechaLimiteStr);
+            pmActividadService.crear(proyectoId, colaboradorId, titulo, descripcion,
+                    horasEstimadas, fechaLimite, principal.getUsuario());
+            ra.addFlashAttribute("success", "Actividad creada correctamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/actividades?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/actividades/{id}/confirmar")
+    public String confirmarActividad(@PathVariable("id") Long actividadId,
+                                     @RequestParam("proyectoId") Long proyectoId,
+                                     @AuthenticationPrincipal UsuarioDetails principal,
+                                     RedirectAttributes ra) {
+        try {
+            pmActividadService.confirmar(actividadId, principal.getUsuario());
+            ra.addFlashAttribute("success", "Entrega confirmada exitosamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/actividades?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/actividades/{id}/devolver")
+    public String devolverActividad(@PathVariable("id") Long actividadId,
+                                    @RequestParam("proyectoId") Long proyectoId,
+                                    @RequestParam(value = "comentario", required = false) String comentario,
+                                    @AuthenticationPrincipal UsuarioDetails principal,
+                                    RedirectAttributes ra) {
+        try {
+            pmActividadService.devolver(actividadId, comentario, principal.getUsuario());
+            ra.addFlashAttribute("success", "Actividad devuelta al colaborador.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/actividades?proyectoId=" + proyectoId;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FOROS
+    // ═══════════════════════════════════════════════════════════
+
     @GetMapping({"/foros", "/pm-foros.html"})
-    public String forums() {
+    public String foros(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("foros", pmForoService.listarForosPm(pm));
+        model.addAttribute("pm", pm);
         return "pm/pm-foros";
     }
 
     @GetMapping({"/foro/detalle", "/pm-foro-detalle.html"})
-    public String forumDetail() {
+    public String foroDetalle(@RequestParam("proyectoId") Long proyectoId,
+                              @AuthenticationPrincipal UsuarioDetails principal,
+                              Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("publicaciones", pmForoService.obtenerDetalle(proyectoId, pm));
+        model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
+        model.addAttribute("pm", pm);
         return "pm/pm-foro-detalle";
     }
 
-    @GetMapping({"/chat", "/pm-chat.html"})
-    public String chat() {
-        return "pm/pm-chat";
+    @PostMapping("/foro/publicar")
+    public String publicarForo(@RequestParam("proyectoId") Long proyectoId,
+                               @RequestParam("titulo") String titulo,
+                               @RequestParam("contenido") String contenido,
+                               @AuthenticationPrincipal UsuarioDetails principal,
+                               RedirectAttributes ra) {
+        try {
+            pmForoService.publicar(proyectoId, titulo, contenido, principal.getUsuario());
+            ra.addFlashAttribute("success", "Publicación creada exitosamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 
+    @PostMapping("/foro/responder")
+    public String responderForo(@RequestParam("publicacionId") Long publicacionId,
+                                @RequestParam("proyectoId") Long proyectoId,
+                                @RequestParam("contenido") String contenido,
+                                @AuthenticationPrincipal UsuarioDetails principal,
+                                RedirectAttributes ra) {
+        try {
+            pmForoService.responder(publicacionId, contenido, principal.getUsuario());
+            ra.addFlashAttribute("success", "Respuesta publicada.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // REPORTES
+    // ═══════════════════════════════════════════════════════════
+
     @GetMapping({"/reportes", "/pm-reportes.html"})
-    public String reports() {
+    public String reportes(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("proyectos", pmProyectoService.listar(pm));
+        model.addAttribute("pm", pm);
         return "pm/pm-reportes";
     }
 
     @GetMapping({"/reportes/detalle", "/pm-reporte-detalle.html"})
-    public String reportDetail() {
+    public String reporteDetalle(@RequestParam("proyectoId") Long proyectoId,
+                                 @AuthenticationPrincipal UsuarioDetails principal,
+                                 Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("reporte", pmReporteService.obtener(proyectoId, pm));
+        model.addAttribute("pm", pm);
         return "pm/pm-reporte-detalle";
     }
 
-    @GetMapping({"/asistente", "/pm-asistente-ia.html"})
-    public String assistant() {
-        return "pm/pm-asistente-ia";
+    // ═══════════════════════════════════════════════════════════
+    // PERFIL
+    // ═══════════════════════════════════════════════════════════
+
+    @GetMapping({"/perfil", "/pm-perfil.html"})
+    public String perfil(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
+        model.addAttribute("pm", principal.getUsuario());
+        return "pm/pm-perfil";
     }
 
-    @GetMapping("/perfil")
-    public String perfil() {
-        return "pm/pm-perfil";
+    @PostMapping("/perfil/datos")
+    public String actualizarDatos(
+            @RequestParam("nombre") String nombre,
+            @RequestParam(value = "apellido", required = false) String apellido,
+            @RequestParam(value = "cargo", required = false) String cargo,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes ra) {
+        try {
+            pmPerfilService.actualizarDatos(nombre, apellido, cargo, principal.getUsuario());
+            ra.addFlashAttribute("success", "Datos actualizados correctamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/perfil";
+    }
+
+    @PostMapping("/perfil/foto")
+    public String actualizarFoto(@RequestParam("foto") MultipartFile foto,
+                                 @AuthenticationPrincipal UsuarioDetails principal,
+                                 RedirectAttributes ra) {
+        try {
+            pmPerfilService.actualizarFoto(foto, principal.getUsuario());
+            ra.addFlashAttribute("success", "Foto de perfil actualizada.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/perfil";
+    }
+
+    @PostMapping("/perfil/password")
+    public String actualizarPassword(
+            @RequestParam("passwordActual") String passwordActual,
+            @RequestParam("passwordNueva") String passwordNueva,
+            @RequestParam("passwordConfirm") String passwordConfirm,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes ra) {
+        try {
+            if (!passwordNueva.equals(passwordConfirm)) {
+                throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
+            }
+            pmPerfilService.actualizarPassword(passwordActual, passwordNueva, principal.getUsuario());
+            ra.addFlashAttribute("success", "Contraseña actualizada correctamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/perfil";
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // OTRAS VISTAS (sin lógica específica aún)
+    // ═══════════════════════════════════════════════════════════
+
+    @GetMapping({"/chat", "/pm-chat.html"})
+    public String chat(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        model.addAttribute("pm", principal.getUsuario());
+        return "pm/pm-chat";
+    }
+
+    @GetMapping({"/asistente", "/pm-asistente-ia.html"})
+    public String asistente(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        model.addAttribute("pm", principal.getUsuario());
+        return "pm/pm-asistente-ia";
     }
 }

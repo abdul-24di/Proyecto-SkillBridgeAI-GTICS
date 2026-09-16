@@ -103,11 +103,13 @@ public class ColaboradorViewController {
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("habilidadesColaborador", colaboradorPerfilService.listarHabilidades(colaborador));
         model.addAttribute("habilidadesDisponibles", colaboradorPerfilService.listarHabilidadesDisponibles(colaborador));
-        model.addAttribute("certificadosColaborador", colaboradorPerfilService.listarCertificados(colaborador));
         model.addAttribute("nivelesDominio", NivelDominio.values());
+        model.addAttribute("categoriasHabilidad", colaboradorPerfilService.listarCategoriasHabilidad());
         model.addAttribute("educacionColaborador", colaboradorPerfilService.listarEducacion(colaborador));
         model.addAttribute("porcentajeCompletado", colaboradorPerfilService.calcularPorcentajeCompletado(colaborador));
         model.addAttribute("pendientesCompletar", colaboradorPerfilService.listarPendientesCompletar(colaborador));
+        model.addAttribute("experienciaProfesional", colaboradorPerfilService.listarExperienciaProfesional(colaborador));
+        model.addAttribute("historialProyectos", colaboradorProyectoService.listarHistorialProyectos(colaborador));
 
         return "col/col-perfil";
     }
@@ -140,6 +142,19 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil?tab=cuenta";
     }
 
+    @PostMapping("/perfil/foto/eliminar")
+    public String eliminarFoto(@AuthenticationPrincipal UsuarioDetails principal,
+                               RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorPerfilService.eliminarFoto(principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Tu foto de perfil se eliminó correctamente.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/perfil?tab=cuenta";
+    }
+
     @PostMapping("/perfil/password")
     public String cambiarPassword(@AuthenticationPrincipal UsuarioDetails principal,
                                   @RequestParam String passwordActual,
@@ -158,18 +173,52 @@ public class ColaboradorViewController {
 
     @PostMapping("/perfil/habilidades")
     public String agregarHabilidad(@AuthenticationPrincipal UsuarioDetails principal,
-                                   @RequestParam Long habilidadId,
-                                   @RequestParam NivelDominio nivel,
+                                   @RequestParam(required = false) String habilidadId,
+                                   @RequestParam(required = false) String nuevaHabilidadNombre,
+                                   @RequestParam(required = false) String categoriaId,
+                                   @RequestParam(required = false) String nivel,
+                                   @RequestParam(value = "certificado", required = false) MultipartFile certificado,
                                    RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
-            colaboradorPerfilService.agregarHabilidad(principal.getUsuario(), habilidadId, nivel);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Habilidad agregada a tu perfil.");
+            colaboradorPerfilService.agregarHabilidad(
+                    principal.getUsuario(),
+                    parseIdOpcional(habilidadId),
+                    nuevaHabilidadNombre,
+                    parseIdOpcional(categoriaId),
+                    parseNivel(nivel),
+                    certificado);
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Habilidad agregada. Quedará pendiente de revisión del Resource Manager.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
         return "redirect:/colaborador/perfil";
     }
+
+
+    private Long parseIdOpcional(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(valor.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("El valor enviado no es válido.");
+        }
+    }
+
+    private NivelDominio parseNivel(String valor) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException("Selecciona un nivel.");
+        }
+        try {
+            return NivelDominio.valueOf(valor.trim());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("El nivel seleccionado no es válido.");
+        }
+    }
+
 
     @PostMapping("/perfil/habilidades/{habilidadId}/eliminar")
     public String eliminarHabilidad(@AuthenticationPrincipal UsuarioDetails principal,
@@ -205,11 +254,13 @@ public class ColaboradorViewController {
                                    @RequestParam(required = false) java.time.LocalDate fechaInicio,
                                    @RequestParam(required = false) java.time.LocalDate fechaFin,
                                    @RequestParam(required = false, defaultValue = "false") boolean actual,
+                                   @RequestParam("certificado") MultipartFile certificado,
                                    RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
-            colaboradorPerfilService.agregarEducacion(principal.getUsuario(), institucion, titulo, fechaInicio, fechaFin, actual);
-            redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica agregada. Quedará pendiente de revisión del Administrador.");
+            colaboradorPerfilService.agregarEducacion(
+                    principal.getUsuario(), institucion, titulo, fechaInicio, fechaFin, actual, certificado);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica agregada. Quedará pendiente de revisión.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }

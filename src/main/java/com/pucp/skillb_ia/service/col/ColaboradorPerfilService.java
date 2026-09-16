@@ -4,11 +4,7 @@ import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
-import com.pucp.skillb_ia.repository.CertificadoRepository;
-import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
-import com.pucp.skillb_ia.repository.EducacionRepository;
-import com.pucp.skillb_ia.repository.HabilidadRepository;
-import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,8 +34,14 @@ public class ColaboradorPerfilService {
     private final UsuarioRepository usuarioRepository;
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     private final HabilidadRepository habilidadRepository;
+    private final CategoriaHabilidadRepository categoriaHabilidadRepository;
+
+
+
+
     private final EducacionRepository educacionRepository;
     private final CertificadoRepository certificadoRepository;
+    private final ExperienciaProfesionalRepository experienciaProfesionalRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaService auditoriaService;
     private final String uploadDir;
@@ -47,19 +49,28 @@ public class ColaboradorPerfilService {
     public ColaboradorPerfilService(UsuarioRepository usuarioRepository,
                                     ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                     HabilidadRepository habilidadRepository,
+                                    CategoriaHabilidadRepository categoriaHabilidadRepository,
                                     EducacionRepository educacionRepository,
                                     CertificadoRepository certificadoRepository,
+                                    ExperienciaProfesionalRepository experienciaProfesionalRepository,
                                     PasswordEncoder passwordEncoder,
                                     AuditoriaService auditoriaService,
                                     @Value("${app.upload-dir:uploads}") String uploadDir) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.habilidadRepository = habilidadRepository;
+        this.categoriaHabilidadRepository = categoriaHabilidadRepository;
         this.educacionRepository = educacionRepository;
         this.certificadoRepository = certificadoRepository;
+        this.experienciaProfesionalRepository = experienciaProfesionalRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
         this.uploadDir = uploadDir;
+    }
+
+    //Listado de categorías activas
+    public List<CategoriaHabilidad> listarCategoriasHabilidad() {
+        return categoriaHabilidadRepository.findByActivaTrue();
     }
 
     //Listado de las habilidades activas del colaborador
@@ -192,18 +203,26 @@ public class ColaboradorPerfilService {
         }
     }
 
+    @Transactional
+    public void eliminarFoto(Usuario colaborador) {
+        if (colaborador.getFotoUrl() == null || colaborador.getFotoUrl().isBlank()) {
+            throw new IllegalArgumentException("No tienes una foto de perfil para eliminar.");
+        }
+        colaborador.setFotoUrl(null);
+        usuarioRepository.save(colaborador);
+        auditoriaService.registrar(colaborador, "ACTUALIZAR_PERFIL", "USUARIO", colaborador.getId(),
+                "Eliminó su foto de perfil.");
+    }
+
     // ============================================================
     // CAMBIO DE CONTRASEÑA
     // ============================================================
-
     @Transactional
     public void cambiarPassword(Usuario colaborador, String actual, String nueva, String confirmar) {
         if (actual == null || !passwordEncoder.matches(actual, colaborador.getPasswordHash())) {
             throw new IllegalArgumentException("La contraseña actual no es correcta.");
         }
-        if (nueva == null || nueva.length() < 6) {
-            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 6 caracteres.");
-        }
+        validarPassword(nueva);
         if (!nueva.equals(confirmar)) {
             throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
         }
@@ -213,17 +232,61 @@ public class ColaboradorPerfilService {
                 "Cambió su contraseña desde Ajustes de Cuenta.");
     }
 
+    //Validamos contraseña
+    private void validarPassword(String password) {
+        if (password == null || password.length() < 6) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 6 caracteres.");
+        }
+
+        boolean tieneMayuscula = false;
+        boolean tieneNumero = false;
+        boolean tieneSimbolo = false;
+
+        for (int i = 0; i < password.length(); i++) {
+            char caracter = password.charAt(i);
+            if (Character.isUpperCase(caracter)) {
+                tieneMayuscula = true;
+            } else if (Character.isDigit(caracter)) {
+                tieneNumero = true;
+            } else if (!Character.isLetter(caracter) && !Character.isWhitespace(caracter)) {
+                tieneSimbolo = true;
+            }
+        }
+
+        if (!tieneMayuscula) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos una letra mayúscula.");
+        }
+        if (!tieneNumero) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos un número.");
+        }
+        if (!tieneSimbolo) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos un símbolo (por ejemplo: !@#$%).");
+        }
+    }
+
     // ============================================================
     // HABILIDADES DEL COLABORADOR
     // ============================================================
     @Transactional
-    public void agregarHabilidad(Usuario colaborador, Long habilidadId, NivelDominio nivel) {
-        if (habilidadId == null || nivel == null) {
-            throw new IllegalArgumentException("Selecciona una habilidad y un nivel.");
+    public void agregarHabilidad(Usuario colaborador, Long habilidadId, String nuevaHabilidadNombre,
+                                 Long categoriaId, NivelDominio nivel, MultipartFile certificado) {
+        if (nivel == null) {
+            throw new IllegalArgumentException("Selecciona un nivel.");
+        }
+
+        //Si el colaborador eligió una habilidad del catálogo, la usamos.
+        //Si no, significa que quiere crear una habilidad nueva ya que no la encontró en la lista.
+        Habilidad habilidad;
+        if (habilidadId != null) {
+            habilidad = habilidadRepository.findById(habilidadId)
+                    .filter(Habilidad::isActiva)
+                    .orElseThrow(() -> new IllegalArgumentException("La habilidad seleccionada no existe"));
+        } else {
+            habilidad = crearOReutilizarHabilidad(nuevaHabilidadNombre, categoriaId);
         }
 
         //Creamos el ID compuesto que identifica la relación entre el colaborador y la habilidad
-        ColaboradorHabilidadId id = new ColaboradorHabilidadId(colaborador.getId(), habilidadId);
+        ColaboradorHabilidadId id = new ColaboradorHabilidadId(colaborador.getId(), habilidad.getId());
 
         //Buscamos si ya existe un registro con ese ID compuesto
         Optional<ColaboradorHabilidad> existente = colaboradorHabilidadRepository.findById(id);
@@ -232,30 +295,109 @@ public class ColaboradorPerfilService {
             throw new IllegalArgumentException("Ya tienes esa habilidad agregada.");
         }
 
-        Habilidad habilidad = habilidadRepository.findById(habilidadId)
-                .filter(Habilidad::isActiva)
-                .orElseThrow(() -> new IllegalArgumentException("La habilidad seleccionada no existe o ya no está activa."));
+
+        String archivoUrl = guardarCertificado(certificado, "certificados",
+                "certificado-" + colaborador.getId());
 
         //Evaluamos en caso de que la habilidad ya haya sido registrada anteriormente pero fue borrada
+        ColaboradorHabilidad ch;
         if (existente.isPresent()) {
-
             //Reactivamos la misma fila en lugar de crear una nueva
-            ColaboradorHabilidad ch = existente.get();
+            ch = existente.get();
             ch.setNivelDominio(nivel);
             ch.setActivo(true);
-            colaboradorHabilidadRepository.save(ch);
-        } else {  //En caso de que la habilidad no este presente, la agregamos.
-            ColaboradorHabilidad ch = new ColaboradorHabilidad();
+        } else {
+            ch = new ColaboradorHabilidad();
             ch.setId(id);
             ch.setColaborador(colaborador);
             ch.setHabilidad(habilidad);
             ch.setNivelDominio(nivel);
-            colaboradorHabilidadRepository.save(ch);
         }
 
-        auditoriaService.registrar(colaborador, "AGREGAR_HABILIDAD", "COLABORADOR_HABILIDAD", habilidadId,
-                "Agregó la habilidad \"" + habilidad.getNombre() + "\" (" + nivel + ") a su perfil.");
+        ch.setEstadoValidacion(EstadoValidacion.PENDIENTE);
+        colaboradorHabilidadRepository.save(ch);
+
+        Certificado certificadoEntidad = new Certificado();
+        certificadoEntidad.setColaborador(colaborador);
+        certificadoEntidad.setHabilidad(habilidad);
+        certificadoEntidad.setArchivoUrl(archivoUrl);
+        certificadoEntidad.setEstado(EstadoCertificado.PENDIENTE);
+        certificadoRepository.save(certificadoEntidad);
+
+        auditoriaService.registrar(colaborador, "AGREGAR_HABILIDAD", "COLABORADOR_HABILIDAD", habilidad.getId(),
+                "Agregó la habilidad \"" + habilidad.getNombre() + "\" (" + nivel
+                        + ") a su perfil y envió un certificado a revisión del RM.");
     }
+
+    //En caso de que el colaborador no encuentre una habilidad, tiene la opción de crearla.
+    private Habilidad crearOReutilizarHabilidad(String nombre, Long categoriaId) {
+        if (nombre == null || nombre.isBlank()) {
+            throw new IllegalArgumentException("Escribe el nombre de la nueva habilidad.");
+        }
+        if (categoriaId == null) {
+            throw new IllegalArgumentException("Selecciona una categoría para la nueva habilidad.");
+        }
+        String nombreLimpio = nombre.trim();
+
+        Optional<Habilidad> existente =
+                habilidadRepository.findByNombreIgnoreCaseAndCategoria_Id(nombreLimpio, categoriaId);
+        if (existente.isPresent()) {
+            Habilidad habilidad = existente.get();
+            if (!habilidad.isActiva()) {
+                habilidad.setActiva(true);
+                habilidadRepository.save(habilidad);
+            }
+            return habilidad;
+        }
+
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
+                .filter(CategoriaHabilidad::isActiva)
+                .orElseThrow(() -> new IllegalArgumentException("La categoría seleccionada no existe"));
+
+        Habilidad nueva = new Habilidad();
+        nueva.setNombre(nombreLimpio);
+        nueva.setCategoria(categoria);
+        nueva.setActiva(true);
+        return habilidadRepository.save(nueva);
+    }
+
+
+    //Guardamos certificado
+    private String guardarCertificado(MultipartFile archivo, String carpeta, String prefijoArchivo) {
+        if (archivo == null || archivo.isEmpty()) {
+            throw new IllegalArgumentException("Debes adjuntar un certificado.");
+        }
+        if (!TIPOS_CERTIFICADO_PERMITIDOS.contains(archivo.getContentType())) {
+            throw new IllegalArgumentException("El certificado debe estar en formato PDF, JPG o PNG.");
+        }
+        if (archivo.getSize() > TAMANO_MAXIMO_CERTIFICADO_BYTES) {
+            throw new IllegalArgumentException("El certificado supera el máximo de 10MB.");
+        }
+
+        String extension;
+        if ("application/pdf".equals(archivo.getContentType())) {
+            extension = ".pdf";
+        } else if ("image/png".equals(archivo.getContentType())) {
+            extension = ".png";
+        } else {
+            extension = ".jpg";
+        }
+        String nombreArchivo = prefijoArchivo + "-" + UUID.randomUUID() + extension;
+
+        try {
+            Path carpetaDestino = Path.of(uploadDir, carpeta);
+            Files.createDirectories(carpetaDestino);
+            Files.copy(archivo.getInputStream(), carpetaDestino.resolve(nombreArchivo),
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("No se pudo guardar el certificado. Inténtalo nuevamente.", e);
+        }
+
+        return "/uploads/" + carpeta + "/" + nombreArchivo;
+    }
+
+
+
 
     @Transactional
     public void eliminarHabilidad(Usuario colaborador, Long habilidadId) {
@@ -346,6 +488,13 @@ public class ColaboradorPerfilService {
     }
 
     // ============================================================
+    // EXPERIENCIA PROFESIONAL
+    // ============================================================
+    public List<ExperienciaProfesional> listarExperienciaProfesional(Usuario colaborador) {
+        return experienciaProfesionalRepository.findByColaboradorOrderByFechaInicioDesc(colaborador);
+    }
+
+    // ============================================================
     // EDUCACIÓN
     // ============================================================
 
@@ -357,13 +506,17 @@ public class ColaboradorPerfilService {
     //Agregamos educación
     @Transactional
     public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
-                                 LocalDate fechaInicio, LocalDate fechaFin, boolean actual) {
+                                 LocalDate fechaInicio, LocalDate fechaFin, boolean actual,
+                                 MultipartFile certificado) {
         if (institucion == null || institucion.isBlank()) {
             throw new IllegalArgumentException("Indica la institución.");
         }
         if (titulo == null || titulo.isBlank()) {
             throw new IllegalArgumentException("Indica el título o carrera.");
         }
+
+        String archivoUrl = guardarCertificado(certificado, "certificados-educacion",
+                "educacion-" + colaborador.getId());
 
         Educacion educacion = new Educacion();
         educacion.setColaborador(colaborador);
@@ -372,11 +525,12 @@ public class ColaboradorPerfilService {
         educacion.setFechaInicio(fechaInicio);
         educacion.setFechaFin(actual ? null : fechaFin);
         educacion.setActual(actual);
-        //Guardamos con estado en pendiente por defecto hasta que el adminsitrador lo valide.
+        educacion.setArchivoUrl(archivoUrl);
         educacionRepository.save(educacion);
 
         auditoriaService.registrar(colaborador, "AGREGAR_EDUCACION", "EDUCACION", educacion.getId(),
-                "Agregó la formación académica \"" + titulo.trim() + "\" (" + institucion.trim() + ") a su perfil.");
+                "Agregó la formación académica \"" + titulo.trim() + "\" (" + institucion.trim()
+                        + ") a su perfil y adjuntó un certificado.");
     }
 
 

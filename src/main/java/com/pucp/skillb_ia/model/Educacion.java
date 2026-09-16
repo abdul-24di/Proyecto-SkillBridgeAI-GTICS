@@ -24,6 +24,9 @@ public class Educacion {
     @Column(nullable = false, length = 150)
     private String titulo;
 
+    @Column(name = "archivo_url", length = 500)
+    private String archivoUrl;
+
     @Column(name = "fecha_inicio")
     private LocalDate fechaInicio;
 
@@ -69,6 +72,9 @@ public class Educacion {
 
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
+
+    public String getArchivoUrl() { return archivoUrl; }
+    public void setArchivoUrl(String archivoUrl) { this.archivoUrl = archivoUrl; }
 
     public LocalDate getFechaInicio() { return fechaInicio; }
     public void setFechaInicio(LocalDate fechaInicio) { this.fechaInicio = fechaInicio; }

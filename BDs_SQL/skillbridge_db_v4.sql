@@ -1,4 +1,4 @@
-
+DROP DATABASE IF EXISTS skillbridge_db;
 SET NAMES utf8mb4;
 
 CREATE DATABASE IF NOT EXISTS skillbridge_db
@@ -201,6 +201,7 @@ CREATE TABLE educacion (
     colaborador_id  BIGINT NOT NULL,
     institucion     VARCHAR(150) NOT NULL,
     titulo          VARCHAR(150) NOT NULL,
+    archivo_url 	VARCHAR(500) NULL,
     fecha_inicio    DATE NULL,
     fecha_fin       DATE NULL,
     actual          BOOLEAN NOT NULL DEFAULT FALSE,

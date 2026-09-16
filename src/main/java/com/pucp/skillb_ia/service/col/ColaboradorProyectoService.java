@@ -1,6 +1,7 @@
 package com.pucp.skillb_ia.service.col;
 
-import com.pucp.skillb_ia.dto.ProyectoDisponibleView;
+import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
+import com.pucp.skillb_ia.dto.ColHistorialProyectoView;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.ProyectoHabilidadRequerida;
@@ -42,12 +43,12 @@ public class ColaboradorProyectoService {
     // CONSULTA DE PROYECTOS DISPONIBLES
     // ============================================================
 
-    public List<ProyectoDisponibleView> listarProyectosDisponibles(Usuario colaborador) {
+    public List<ColProyectoDisponibleView> listarProyectosDisponibles(Usuario colaborador) {
         List<Proyecto> proyectosActivos = proyectoRepository.findByEstado(EstadoProyecto.ACTIVO);
-        List<ProyectoDisponibleView> disponibles = new ArrayList<>();
+        List<ColProyectoDisponibleView> disponibles = new ArrayList<>();
 
         for (Proyecto proyecto : proyectosActivos) {
-            ProyectoDisponibleView vista = construirVista(proyecto, colaborador);
+            ColProyectoDisponibleView vista = construirVista(proyecto, colaborador);
             if (vista.getCuposDisponibles() > 0) {
                 disponibles.add(vista);
             }
@@ -55,7 +56,7 @@ public class ColaboradorProyectoService {
         return disponibles;
     }
 
-    private ProyectoDisponibleView construirVista(Proyecto proyecto, Usuario colaborador) {
+    private ColProyectoDisponibleView construirVista(Proyecto proyecto, Usuario colaborador) {
         List<Asignacion> asignacionesDelProyecto = asignacionRepository.findByProyecto(proyecto);
 
         int activos = 0;
@@ -84,7 +85,7 @@ public class ColaboradorProyectoService {
         int cupos = proyecto.getColaboradoresRequeridos() - activos;
         boolean tieneHorasSuficientes = tieneHorasSuficientes(colaborador, proyecto);
 
-        return new ProyectoDisponibleView(proyecto, activos, cupos, habilidades, yaTieneSolicitud, tieneHorasSuficientes);
+        return new ColProyectoDisponibleView(proyecto, activos, cupos, habilidades, yaTieneSolicitud, tieneHorasSuficientes);
     }
 
     //Determinamos si el colaborador tiene horas disponibles para postularse al proyecto de interes
@@ -124,13 +125,6 @@ public class ColaboradorProyectoService {
         return misAsignaciones;
     }
 
-    // ============================================================
-    // SOLICITAR INCORPORACIÓN
-    // ============================================================
-    // OJO: las horas semanales de la asignación YA NO las escribe el
-    // colaborador — las fija el PM al crear el proyecto
-    // (proyecto.horas_semanales_requeridas). Aquí solo validamos que el
-    // colaborador tenga esa cantidad disponible antes de dejarlo postularse.
 
     @Transactional
     public void solicitarIncorporacion(Usuario colaborador, Long proyectoId, String mensaje) {
@@ -182,5 +176,27 @@ public class ColaboradorProyectoService {
 
         auditoriaService.registrar(colaborador, "SOLICITAR_ASIGNACION", "ASIGNACION", guardada.getId(),
                 "Solicitó incorporarse al proyecto \"" + proyecto.getNombre() + "\".");
+    }
+
+    // ============================================================
+    // HISTORIAL DE PROYECTOS FINALIZADOS (Perfil Profesional)
+    // ============================================================
+    public List<ColHistorialProyectoView> listarHistorialProyectos(Usuario colaborador) {
+        List<Asignacion> finalizadas = asignacionRepository
+                .findByColaboradorAndEstadoOrderByFechaFinalizacionDesc(colaborador, EstadoAsignacion.FINALIZADA);
+
+        List<ColHistorialProyectoView> historial = new ArrayList<>();
+        for (Asignacion asignacion : finalizadas) {
+            Proyecto proyecto = asignacion.getProyecto();
+
+            List<ProyectoHabilidadRequerida> requeridas = proyectoHabilidadRequeridaRepository.findByProyecto(proyecto);
+            List<String> habilidades = new ArrayList<>();
+            for (ProyectoHabilidadRequerida requerida : requeridas) {
+                habilidades.add(requerida.getHabilidad().getNombre());
+            }
+
+            historial.add(new ColHistorialProyectoView(proyecto, asignacion, habilidades));
+        }
+        return historial;
     }
 }

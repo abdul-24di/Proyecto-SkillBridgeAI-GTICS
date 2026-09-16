@@ -290,3 +290,16 @@
         justify-content: space-between;
     }
 }
+
+
+/* Modal "Editar Sobre mí" */
+#editAboutModal .modal-dialog {
+    max-width: 700px !important;
+}
+
+#editAboutModal textarea.form-control {
+    width: 100% !important;
+    min-height: 160px !important;
+    resize: vertical;
+    font-size: 0.9rem;
+}

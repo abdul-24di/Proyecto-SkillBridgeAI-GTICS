@@ -21,6 +21,7 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
 
     List<Asignacion> findByColaboradorAndEstado(Usuario colaborador, EstadoAsignacion estado);
 
+    List<Asignacion> findByColaboradorAndEstadoOrderByFechaFinalizacionDesc(Usuario colaborador, EstadoAsignacion estado);
 
     List<Asignacion> findByEstado(EstadoAsignacion estado);
 

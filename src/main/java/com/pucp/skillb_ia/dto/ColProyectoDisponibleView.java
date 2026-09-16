@@ -4,7 +4,7 @@ import com.pucp.skillb_ia.model.Proyecto;
 
 import java.util.List;
 
-public class ProyectoDisponibleView {
+public class ColProyectoDisponibleView {
     private final Proyecto proyecto;
     private final int colaboradoresActivos;
     private final int cuposDisponibles;
@@ -12,9 +12,9 @@ public class ProyectoDisponibleView {
     private final boolean yaTieneSolicitud;
     private final boolean tieneHorasSuficientes;
 
-    public ProyectoDisponibleView(Proyecto proyecto, int colaboradoresActivos, int cuposDisponibles,
-                                  List<String> habilidadesRequeridas, boolean yaTieneSolicitud,
-                                  boolean tieneHorasSuficientes) {
+    public ColProyectoDisponibleView(Proyecto proyecto, int colaboradoresActivos, int cuposDisponibles,
+                                     List<String> habilidadesRequeridas, boolean yaTieneSolicitud,
+                                     boolean tieneHorasSuficientes) {
         this.proyecto = proyecto;
         this.colaboradoresActivos = colaboradoresActivos;
         this.cuposDisponibles = cuposDisponibles;

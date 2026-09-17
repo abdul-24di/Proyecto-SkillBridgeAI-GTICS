@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.controller;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.security.UsuarioDetails;
+import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
 import com.pucp.skillb_ia.service.col.ColaboradorExplorarService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.col.ColaboradorProyectoService;
@@ -30,15 +31,18 @@ public class ColaboradorViewController {
     private final ColaboradorExplorarService colaboradorExplorarService;
     private final ColChatService colChatService;
     private final ColForoService colForoService;
+    private final ColaboradorCursoService colaboradorCursoService;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
                                      ColaboradorProyectoService colaboradorProyectoService,
                                      ColaboradorExplorarService colaboradorExplorarService,
+                                     ColaboradorCursoService colaboradorCursoService,
                                      ColChatService colChatService,
                                      ColForoService colForoService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
         this.colaboradorExplorarService = colaboradorExplorarService;
+        this.colaboradorCursoService = colaboradorCursoService;
         this.colChatService = colChatService;
         this.colForoService = colForoService;
     }
@@ -159,6 +163,12 @@ public class ColaboradorViewController {
         Usuario colaborador = principal.getUsuario();
         model.addAttribute("proyectos", colaboradorProyectoService.listarTodosLosProyectos(colaborador));
         model.addAttribute("misSolicitudes", colaboradorProyectoService.listarMisSolicitudes(colaborador));
+        model.addAttribute("misHabilidades", colaboradorPerfilService.listarHabilidades(colaborador));
+
+        model.addAttribute("cursosDisponibles", colaboradorCursoService.listarCursosDisponibles(colaborador));
+        model.addAttribute("misSolicitudesCursos", colaboradorCursoService.listarMisSolicitudes(colaborador));
+        model.addAttribute("categoriasCurso", colaboradorCursoService.listarCategorias());
+
 
         List<Usuario> colaboradoresExplorar = colaboradorExplorarService.listarColaboradores(colaborador);
         model.addAttribute("colaboradoresExplorar", colaboradoresExplorar);
@@ -170,12 +180,29 @@ public class ColaboradorViewController {
     @PostMapping("/proyectos/solicitar")
     public String solicitarIncorporacion(@AuthenticationPrincipal UsuarioDetails principal,
                                          @RequestParam Long proyectoId,
+                                         @RequestParam Long habilidadId,
                                          @RequestParam(required = false) String mensaje,
+                                         @RequestParam(required = false) String habilidadesRelevantes,
                                          RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
-            colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, mensaje);
+            colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, habilidadId, mensaje, habilidadesRelevantes);
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud fue enviada. Quedará pendiente de aprobación del PM y del RM.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/explorar";
+    }
+
+    @PostMapping("/cursos/solicitar")
+    public String solicitarCurso(@AuthenticationPrincipal UsuarioDetails principal,
+                                 @RequestParam Long cursoId,
+                                 @RequestParam(required = false) String justificacion,
+                                 RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorCursoService.solicitarInscripcion(principal.getUsuario(), cursoId, justificacion);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud de inscripción fue enviada. Quedará pendiente de aprobación del Resource Manager.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }

@@ -42,16 +42,25 @@
       <tbody>
       <tr th:each="item : ${bandeja.inscripciones}">
         <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm bg-blue-lt text-blue" th:text="${item.iniciales}">CO</span><div><div class="fw-semibold" th:text="${item.colaborador}">Colaborador</div><div class="text-secondary small" th:text="${item.cargo}">Cargo</div></div></div></td>
-        <td><div class="fw-semibold" th:text="${item.curso}">Curso</div><div class="small text-secondary" th:text="|${item.categoria} · ${#numbers.formatDecimal(item.horas, 1, 2)} h|">Categoría</div></td>
+
+        <td>
+          <div class="fw-semibold" th:text="${item.curso}">Curso</div>
+          <div class="small text-secondary"
+               th:text="${item.categoria + ' · ' + #numbers.formatDecimal(item.horas, 1, 2) + ' h'}">
+            Categoría
+          </div>
+        </td>
         <td><span class="badge bg-azure-lt" th:text="${item.origenTexto}">Origen</span></td>
         <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
         <td th:text="${#temporals.format(item.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
-        <td class="text-secondary small" th:text="${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta}">—</td>
+
+        <td class="text-secondary small" th:text="${item.pendienteGestionRm} ? (${#strings.isEmpty(item.justificacion) ? 'Sin justificación' : item.justificacion}) : (${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta})">—</td>
         <td class="text-end">
           <div th:if="${item.pendienteGestionRm}" class="d-flex flex-column gap-2 align-items-end" style="min-width: 230px">
             <form method="post" th:action="@{/rm/cursos/solicitudes/{id}/aprobar(id=${item.id})}"><button class="btn btn-success btn-sm" type="submit">Aprobar solicitud</button></form>
-            <form class="d-flex gap-2" method="post" th:action="@{/rm/cursos/solicitudes/{id}/rechazar(id=${item.id})}"><input class="form-control form-control-sm" name="motivo" maxlength="500" required placeholder="Motivo obligatorio"><button class="btn btn-outline-danger btn-sm" type="submit">Rechazar</button></form>
+            <form class="d-flex gap-2" method="post" th:action="@{/rm/cursos/solicitudes/{id}/rechazar(id=${item.id})}"><input class="form-control form-control-sm" name="motivo" placeholder="Motivo obligatorio"><button class="btn btn-outline-danger btn-sm" type="submit">Rechazar</button></form>
           </div>
+
           <a th:if="${!item.pendienteGestionRm}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${item.colaboradorId})}">Ver perfil</a>
         </td>
       </tr>

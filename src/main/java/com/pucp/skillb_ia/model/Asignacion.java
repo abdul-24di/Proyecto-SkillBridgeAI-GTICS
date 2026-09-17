@@ -8,11 +8,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Historia A4 (13 pts) — el corazón del sistema. Triple origen + doble
-// aprobación condicional:
-//   PROPUESTA_PM            -> requiere aprobado_por_rm = true.
-//   PROPUESTA_RM            -> requiere aprobado_por_pm = true.
-//   SOLICITADA_COLABORADOR  -> requiere AMBOS.
 
 @Entity
 @Table(name = "asignacion")
@@ -39,6 +34,13 @@ public class Asignacion {
 
     @Column(name = "mensaje_solicitud", length = 500)
     private String mensajeSolicitud;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "habilidad_solicitada_id")
+    private Habilidad habilidadSolicitada;
+
+    @Column(name = "habilidades_relevantes", length = 300)
+    private String habilidadesRelevantes;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -102,6 +104,12 @@ public class Asignacion {
 
     public String getMensajeSolicitud() { return mensajeSolicitud; }
     public void setMensajeSolicitud(String mensajeSolicitud) { this.mensajeSolicitud = mensajeSolicitud; }
+
+    public Habilidad getHabilidadSolicitada() { return habilidadSolicitada; }
+    public void setHabilidadSolicitada(Habilidad habilidadSolicitada) { this.habilidadSolicitada = habilidadSolicitada; }
+
+    public String getHabilidadesRelevantes() { return habilidadesRelevantes; }
+    public void setHabilidadesRelevantes(String habilidadesRelevantes) { this.habilidadesRelevantes = habilidadesRelevantes; }
 
     public EstadoAsignacion getEstado() { return estado; }
     public void setEstado(EstadoAsignacion estado) { this.estado = estado; }

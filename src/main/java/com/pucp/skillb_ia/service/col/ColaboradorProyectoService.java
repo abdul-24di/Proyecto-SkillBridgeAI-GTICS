@@ -1,15 +1,19 @@
 package com.pucp.skillb_ia.service.col;
 
-import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
 import com.pucp.skillb_ia.dto.ColHistorialProyectoView;
+import com.pucp.skillb_ia.dto.ColPerfilRequeridoView;
+import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
 import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.Habilidad;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.ProyectoHabilidadRequerida;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
+import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
+import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.ProyectoHabilidadRequeridaRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
@@ -27,19 +31,20 @@ public class ColaboradorProyectoService {
     private final ProyectoRepository proyectoRepository;
     private final AsignacionRepository asignacionRepository;
     private final ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository;
+    private final HabilidadRepository habilidadRepository;
     private final AuditoriaService auditoriaService;
 
     public ColaboradorProyectoService(ProyectoRepository proyectoRepository,
                                       AsignacionRepository asignacionRepository,
                                       ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository,
+                                      HabilidadRepository habilidadRepository,
                                       AuditoriaService auditoriaService) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoHabilidadRequeridaRepository = proyectoHabilidadRequeridaRepository;
+        this.habilidadRepository = habilidadRepository;
         this.auditoriaService = auditoriaService;
     }
-
-
 
     // ============================================================
     // CONSULTA DE PROYECTOS
@@ -78,33 +83,56 @@ public class ColaboradorProyectoService {
             }
         }
 
+
         List<ProyectoHabilidadRequerida> requeridas = proyectoHabilidadRequeridaRepository.findByProyecto(proyecto);
-        List<String> habilidades = new ArrayList<>();
+        List<ColPerfilRequeridoView> perfiles = new ArrayList<>();
+        boolean algunPerfilConCupo = false;
+
         for (ProyectoHabilidadRequerida requerida : requeridas) {
-            //Mostramos cuántas personas pide con la habilidad requerida.
-            habilidades.add(requerida.getCantidadPersonas() + " × " + requerida.getHabilidad().getNombre());
+            int ocupadosDeEstePerfil = 0;
+            for (Asignacion asignacion : asignacionesDelProyecto) {
+                boolean esActiva = asignacion.getEstado() == EstadoAsignacion.ACTIVA;
+                boolean esDeEstaHabilidad = asignacion.getHabilidadSolicitada() != null
+                        && asignacion.getHabilidadSolicitada().getId().equals(requerida.getHabilidad().getId());
+                if (esActiva && esDeEstaHabilidad) {
+                    ocupadosDeEstePerfil++;
+                }
+            }
+
+            int cuposPerfil = requerida.getCantidadPersonas() - ocupadosDeEstePerfil;
+            if (cuposPerfil > 0) {
+                algunPerfilConCupo = true;
+            }
+
+            String nivel = requerida.getNivelRequerido() != null ? nombreNivel(requerida.getNivelRequerido()) : null;
+            String etiqueta = requerida.getHabilidad().getNombre() + (nivel != null ? " (" + nivel + ")" : "");
+            perfiles.add(new ColPerfilRequeridoView(requerida.getHabilidad().getId(), etiqueta, cuposPerfil));
         }
 
         int cupos = proyecto.getColaboradoresRequeridos() - activos;
         boolean tieneHorasSuficientes = tieneHorasSuficientes(colaborador, proyecto);
 
-        //Solo se puede postular si el proyecto está ACTIVO y todavía quedan cupos.
-        boolean postulacionesAbiertas = proyecto.getEstado() == EstadoProyecto.ACTIVO && cupos > 0;
+        // Postulaciones abiertas = proyecto activo Y al menos un perfil con cupo.
+        boolean postulacionesAbiertas = proyecto.getEstado() == EstadoProyecto.ACTIVO && algunPerfilConCupo;
 
-        return new ColProyectoDisponibleView(proyecto, activos, cupos, habilidades, yaTieneSolicitud,
+        return new ColProyectoDisponibleView(proyecto, activos, cupos, perfiles, yaTieneSolicitud,
                 tieneHorasSuficientes, postulacionesAbiertas);
     }
 
-    //Determinamos si el colaborador tiene horas disponibles para postularse al proyecto de interes
+    private String nombreNivel(NivelDominio nivel) {
+        if (nivel == NivelDominio.AVANZADO) return "Avanzado";
+        if (nivel == NivelDominio.INTERMEDIO) return "Intermedio";
+        return "Básico";
+    }
+
     private boolean tieneHorasSuficientes(Usuario colaborador, Proyecto proyecto) {
         BigDecimal disponibles = colaborador.getHorasDisponibles();
         if (disponibles == null) {
             return false;
         }
-        return disponibles.compareTo(proyecto.getHorasSemanalesRequeridas()) > 0;
+        return disponibles.compareTo(proyecto.getHorasSemanalesRequeridas()) >= 0;
     }
 
-    //Listamos las solicitudes enviadas
     public List<Asignacion> listarMisSolicitudes(Usuario colaborador) {
         List<Asignacion> todasMisAsignaciones = asignacionRepository.findByColaborador(colaborador);
         List<Asignacion> misSolicitudes = new ArrayList<>();
@@ -115,59 +143,66 @@ public class ColaboradorProyectoService {
             }
         }
 
-        //Listamos de la más reciente a la más antigua.
         misSolicitudes.sort(Comparator.comparing(Asignacion::getFechaSolicitud).reversed());
         return misSolicitudes;
     }
 
-    // ============================================================
-    // Consulta de proyectos ASIGNADOS
-    // ============================================================
     public List<Asignacion> listarMisAsignaciones(Usuario colaborador) {
         List<Asignacion> encontradas = asignacionRepository.findByColaborador(colaborador);
         List<Asignacion> misAsignaciones = new ArrayList<>(encontradas);
-
-        //Listamos de la más reciente a la más antigua.
         misAsignaciones.sort(Comparator.comparing(Asignacion::getFechaSolicitud).reversed());
         return misAsignaciones;
     }
 
-
+    // ============================================================
+    // SOLICITAR INCORPORACIÓN A UN PERFIL ESPECÍFICO DEL PROYECTO
+    // ============================================================
     @Transactional
-    public void solicitarIncorporacion(Usuario colaborador, Long proyectoId, String mensaje) {
+    public void solicitarIncorporacion(Usuario colaborador, Long proyectoId, Long habilidadId,
+                                       String mensaje, String habilidadesRelevantes) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("El proyecto seleccionado no existe."));
 
         if (proyecto.getEstado() != EstadoProyecto.ACTIVO) {
             throw new IllegalArgumentException("Este proyecto ya no está activo.");
         }
-
+        if (habilidadId == null) {
+            throw new IllegalArgumentException("Selecciona el perfil al que deseas postularte.");
+        }
         if (!tieneHorasSuficientes(colaborador, proyecto)) {
             throw new IllegalArgumentException("No tienes suficientes horas disponibles para este proyecto. Se requieren "
                     + proyecto.getHorasSemanalesRequeridas() + " horas/semana.");
         }
 
+        Habilidad habilidad = habilidadRepository.findById(habilidadId)
+                .orElseThrow(() -> new IllegalArgumentException("El perfil seleccionado no es válido."));
+
+        ProyectoHabilidadRequerida requerida = proyectoHabilidadRequeridaRepository
+                .findByProyectoAndHabilidad(proyecto, habilidad)
+                .orElseThrow(() -> new IllegalArgumentException("Ese perfil no pertenece a este proyecto."));
+
         List<Asignacion> asignacionesDelProyecto = asignacionRepository.findByProyecto(proyecto);
 
-        int activos = 0;
+        int ocupadosDeEsePerfil = 0;
         boolean yaTieneSolicitud = false;
 
         for (Asignacion asignacion : asignacionesDelProyecto) {
-            if (asignacion.getEstado() == EstadoAsignacion.ACTIVA) {
-                activos++;
+            boolean esDeEsaHabilidad = asignacion.getHabilidadSolicitada() != null
+                    && asignacion.getHabilidadSolicitada().getId().equals(habilidadId);
+            if (asignacion.getEstado() == EstadoAsignacion.ACTIVA && esDeEsaHabilidad) {
+                ocupadosDeEsePerfil++;
             }
 
             boolean esDeEsteColaborador = asignacion.getColaborador().getId().equals(colaborador.getId());
             boolean estaPendienteOActiva = asignacion.getEstado() == EstadoAsignacion.PENDIENTE
                     || asignacion.getEstado() == EstadoAsignacion.ACTIVA;
-
             if (esDeEsteColaborador && estaPendienteOActiva) {
                 yaTieneSolicitud = true;
             }
         }
 
-        if (activos >= proyecto.getColaboradoresRequeridos()) {
-            throw new IllegalArgumentException("Este proyecto ya no tiene cupos disponibles.");
+        if (ocupadosDeEsePerfil >= requerida.getCantidadPersonas()) {
+            throw new IllegalArgumentException("Ese perfil ya no tiene cupos disponibles.");
         }
         if (yaTieneSolicitud) {
             throw new IllegalArgumentException("Ya tienes una solicitud pendiente o una asignación activa en este proyecto.");
@@ -178,11 +213,15 @@ public class ColaboradorProyectoService {
         asignacion.setColaborador(colaborador);
         asignacion.setHorasSemanales(proyecto.getHorasSemanalesRequeridas());
         asignacion.setOrigen(OrigenAsignacion.SOLICITADA_COLABORADOR);
+        asignacion.setHabilidadSolicitada(habilidad);
+        asignacion.setHabilidadesRelevantes(habilidadesRelevantes == null || habilidadesRelevantes.isBlank()
+                ? null : habilidadesRelevantes.trim());
         asignacion.setMensajeSolicitud(mensaje == null || mensaje.isBlank() ? null : mensaje.trim());
         Asignacion guardada = asignacionRepository.save(asignacion);
 
         auditoriaService.registrar(colaborador, "SOLICITAR_ASIGNACION", "ASIGNACION", guardada.getId(),
-                "Solicitó incorporarse al proyecto \"" + proyecto.getNombre() + "\".");
+                "Solicitó incorporarse al proyecto \"" + proyecto.getNombre() + "\" para el perfil \""
+                        + habilidad.getNombre() + "\".");
     }
 
     // ============================================================

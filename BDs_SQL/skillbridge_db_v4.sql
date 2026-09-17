@@ -533,7 +533,7 @@ CREATE TABLE publicacion_foro (
     autor_id        BIGINT NOT NULL,
     etiqueta_id     BIGINT NULL,
     titulo          VARCHAR(200) NOT NULL,
-    contenido       TEXT NOT NULL,
+    contenido       LONGTEXT NOT NULL,
     fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_publicacion_foro FOREIGN KEY (foro_id) REFERENCES foro(id),
@@ -550,7 +550,7 @@ CREATE TABLE respuesta_foro (
     activo 			BOOLEAN NOT NULL DEFAULT TRUE,
     publicacion_id  BIGINT NOT NULL,
     autor_id        BIGINT NOT NULL,
-    contenido       TEXT NOT NULL,
+    contenido       LONGTEXT NOT NULL,
     es_solucion     BOOLEAN NOT NULL DEFAULT FALSE,
     fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -688,8 +688,6 @@ CREATE TABLE log_auditoria (
     CONSTRAINT fk_log_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 ) ENGINE=InnoDB;
 
-ALTER TABLE publicacion_foro MODIFY contenido LONGTEXT NOT NULL;
-ALTER TABLE respuesta_foro MODIFY contenido LONGTEXT NOT NULL;
 -- =====================================================================
 -- DATOS DE PRUEBA: USUARIOS (contraseña para todos: abc123)
 -- =====================================================================

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
     <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-foros.css" th:href="@{/css/col-css/col-foros.css}">
 </head>
 <body>
 <div class="app-shell">
@@ -16,50 +17,190 @@
 
     <main class="page-wrap">
         <div class="container-xl mt-4">
+
             <div class="page-header mb-4">
                 <div class="row align-items-center">
                     <div class="col">
-                        <h2 class="page-title">Foros de Mis Proyectos</h2>
-                        <div class="text-secondary mt-1">Accede a las conversaciones internas de los proyectos en los que te encuentras asignado.</div>
+                        <h2 class="page-title">Foros</h2>
+                        <div class="text-secondary mt-1">Participa en foros de la comunidad o en los foros de los proyectos donde estás asignado.</div>
+                    </div>
+                    <div class="col-auto" th:if="${not #lists.isEmpty(forosParaPublicar)}">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPostModalGlobal">+ Nueva publicación</button>
                     </div>
                 </div>
             </div>
 
-            <div class="row row-cards">
-                <div th:each="foro : ${foros}" class="col-md-6 col-lg-4">
-                    <div class="card card-link-pop">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <span class="avatar bg-blue-lt rounded" th:text="${foro.proyectoNombre != null and foro.proyectoNombre.length() >= 2 ? foro.proyectoNombre.substring(0,2).toUpperCase() : 'PR'}">SI</span>
-                                <h3 class="card-title m-0 ms-3" th:text="${foro.proyectoNombre}">Sistema de Inventario</h3>
-                            </div>
-                            <p class="text-secondary mb-3">Foro de consultas técnicas, decisiones de arquitectura y coordinación del equipo.</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-secondary small">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-primary" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9h8" /><path d="M8 13h6" /><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" /></svg>
-                                    <span th:text="${foro.totalPublicaciones + ' Temas'}"></span>
+
+
+            <!-- Pestañas: Comunidad / Mis proyectos -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item">
+                    <a href="#tab-comunidad" class="nav-link active d-flex align-items-center gap-2" data-bs-toggle="tab">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/>
+                        </svg>
+                        Comunidad
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#tab-mis-proyectos" class="nav-link d-flex align-items-center gap-2" data-bs-toggle="tab">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+                        </svg>
+                        Mis proyectos
+                    </a>
+                </li>
+            </ul>
+
+
+            <div class="tab-content">
+
+                <div class="input-icon mb-3" style="max-width: 420px;">
+                    <span class="input-icon-addon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg>
+                    </span>
+                    <input type="text" id="forumSearchInput" class="form-control" placeholder="Buscar por nombre de foro o proyecto...">
+                </div>
+
+                <!-- ===================== COMUNIDAD ===================== -->
+                <div class="tab-pane active show" id="tab-comunidad">
+                    <div class="row row-cards">
+                        <div th:each="foro : ${forosComunidad}" class="col-md-6 col-lg-4 forum-card-wrap"
+                             th:attr="data-search=${#strings.toLowerCase(foro.nombre + ' ' + (foro.proyecto != null ? foro.proyecto.nombre : ''))}">
+                            <div class="card project-forum-card card-link-pop">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="project-forum-icon avatar bg-blue-lt rounded"
+                                              th:text="${foro.nombre != null and foro.nombre.length() >= 2 ? foro.nombre.substring(0,2).toUpperCase() : 'FO'}">FO</span>
+                                        <h3 class="card-title m-0 ms-3" th:text="${foro.nombre}">Anuncios generales</h3>
+                                    </div>
+                                    <div class="project-forum-meta" th:if="${foro.proyecto != null}">
+                                        Foro del proyecto <strong th:text="${foro.proyecto.nombre}">Proyecto X</strong> (compartido con la comunidad)
+                                    </div>
+                                    <div class="project-forum-meta" th:if="${foro.proyecto == null}">
+                                        Foro general, abierto a toda la organización.
+                                    </div>
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <a th:href="@{/colaborador/foros/detalle(foroId=${foro.id})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                                    </div>
                                 </div>
-                                <a th:href="@{/colaborador/foros/detalle(proyectoId=${foro.proyectoId})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
                             </div>
-                            <div class="mt-3 small text-secondary" th:if="${foro.tienePublicaciones}">
-                                Última act: <strong th:text="${foro.ultimaPublicacionTitulo}">Título</strong> 
-                                <span th:text="${#temporals.format(foro.ultimaPublicacionFecha, 'dd MMM yyyy')}"></span>
-                            </div>
-                            <div class="mt-3 small text-secondary" th:unless="${foro.tienePublicaciones}">
-                                Aún no hay publicaciones en este foro.
-                            </div>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(forosComunidad)}" class="col-12 text-center text-secondary py-5 border rounded bg-white">
+                            Todavía no hay foros de comunidad disponibles.
                         </div>
                     </div>
                 </div>
 
-                <div th:if="${#lists.isEmpty(foros)}" class="col-12 text-center text-secondary py-5 border rounded bg-white">
-                    No tienes asignaciones activas en proyectos con foro aún.
+                <!-- ===================== MIS PROYECTOS ===================== -->
+                <div class="tab-pane" id="tab-mis-proyectos">
+                    <div class="row row-cards">
+                        <div th:each="foro : ${forosMisProyectos}" class="col-md-6 col-lg-4 forum-card-wrap"
+                             th:attr="data-search=${#strings.toLowerCase(foro.nombre + ' ' + foro.proyecto.nombre)}">
+
+                            <div class="card project-forum-card card-link-pop">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="project-forum-icon avatar bg-green-lt rounded"
+                                              th:text="${foro.proyecto.nombre != null and foro.proyecto.nombre.length() >= 2 ? foro.proyecto.nombre.substring(0,2).toUpperCase() : 'PR'}">PR</span>
+                                        <div class="ms-3">
+                                            <h3 class="card-title m-0" th:text="${foro.proyecto.nombre}">Sistema de Inventario</h3>
+                                            <div class="text-secondary small" th:text="${foro.nombre}">Foro del proyecto</div>
+                                        </div>
+                                    </div>
+                                    <div class="project-forum-meta">Foro privado, solo para colaboradores con asignación activa en este proyecto.</div>
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <a th:href="@{/colaborador/foros/detalle(foroId=${foro.id})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(forosMisProyectos)}" class="col-12 text-center text-secondary py-5 border rounded bg-white">
+                            No tienes asignaciones activas en proyectos con foro aún.
+                        </div>
+                    </div>
                 </div>
+
             </div>
         </div>
+
+
     </main>
 
 </div>
+
+<!-- MODAL NUEVA PUBLICACIÓN (elige a dónde publicar) -->
+<div class="modal modal-blur fade col-modal" id="newPostModalGlobal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva publicación</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form method="POST" th:action="@{/colaborador/foro/publicar}">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Publicar en</label>
+                            <select name="foroId" class="form-select" required>
+                                <option th:each="foro : ${forosParaPublicar}"
+                                        th:value="${foro.id}"
+                                        th:text="${foro.proyecto == null ? foro.nombre + ' (Comunidad)' : foro.nombre + ' (' + foro.proyecto.nombre + ')'}"></option>
+                            </select>
+                            <div class="form-hint">Solo se listan la comunidad general y los proyectos donde tienes una asignación activa.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Título</label>
+                            <input name="titulo" class="form-control" placeholder="Título de la publicación" required maxlength="200">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Etiqueta (opcional)</label>
+                            <select name="etiquetaId" class="form-select">
+                                <option value="">Sin etiqueta</option>
+                                <option th:each="etiqueta : ${etiquetas}" th:value="${etiqueta.id}" th:text="${etiqueta.nombre}"></option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Contenido</label>
+                            <textarea name="contenido" class="form-control" rows="6" placeholder="Escribe tu pregunta o publicación..." required></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Publicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        var input = document.getElementById('forumSearchInput');
+        if (!input) {
+            return;
+        }
+        input.addEventListener('keyup', function () {
+            var texto = input.value.toLowerCase().trim();
+            var tarjetas = document.querySelectorAll('.forum-card-wrap');
+
+            for (var i = 0; i < tarjetas.length; i++) {
+                var tarjeta = tarjetas[i];
+                var contenido = tarjeta.getAttribute('data-search') || '';
+
+                if (contenido.indexOf(texto) !== -1) {
+                    tarjeta.style.display = '';
+                } else {
+                    tarjeta.style.display = 'none';
+                }
+            }
+        });
+    });
+</script>
 </body>
 </html>

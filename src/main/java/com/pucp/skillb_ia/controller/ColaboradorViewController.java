@@ -1,16 +1,11 @@
 package com.pucp.skillb_ia.controller;
 
 import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.Foro;
 import com.pucp.skillb_ia.model.Usuario;
-import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.security.UsuarioDetails;
-import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
-import com.pucp.skillb_ia.service.col.ColaboradorExplorarService;
-import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
-import com.pucp.skillb_ia.service.col.ColaboradorProyectoService;
-import com.pucp.skillb_ia.service.col.ColChatService;
-import com.pucp.skillb_ia.service.col.ColForoService;
+import com.pucp.skillb_ia.service.col.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -22,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -33,7 +27,7 @@ public class ColaboradorViewController {
     private final ColaboradorProyectoService colaboradorProyectoService;
     private final ColaboradorExplorarService colaboradorExplorarService;
     private final ColChatService colChatService;
-    private final ColForoService colForoService;
+    private final ColaboradorForoService colaboradorForoService;
     private final ColaboradorCursoService colaboradorCursoService;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
@@ -41,13 +35,13 @@ public class ColaboradorViewController {
                                      ColaboradorExplorarService colaboradorExplorarService,
                                      ColaboradorCursoService colaboradorCursoService,
                                      ColChatService colChatService,
-                                     ColForoService colForoService) {
+                                     ColaboradorForoService colaboradorForoService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
         this.colaboradorExplorarService = colaboradorExplorarService;
         this.colaboradorCursoService = colaboradorCursoService;
         this.colChatService = colChatService;
-        this.colForoService = colForoService;
+        this.colaboradorForoService = colaboradorForoService;
     }
 
     @GetMapping({"", "/"})
@@ -87,71 +81,143 @@ public class ColaboradorViewController {
         return "col/col-chat";
     }
 
+
+
+
     @GetMapping({"/foros", "/col-foros.html"})
     public String foros(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
-        Usuario colab = principal.getUsuario();
-        model.addAttribute("colaborador", colab);
-        model.addAttribute("foros", colForoService.listarForos(colab));
+        if (principal == null) {
+            return "redirect:/login";
+        }
+        Usuario colaborador = principal.getUsuario();
+        model.addAttribute("colaborador", colaborador);
+        model.addAttribute("forosComunidad", colaboradorForoService.listarForosComunidad());
+        model.addAttribute("forosMisProyectos", colaboradorForoService.listarForosDeMisProyectos(colaborador));
+        model.addAttribute("forosParaPublicar", colaboradorForoService.listarForosParaPublicar(colaborador));
+        model.addAttribute("etiquetas", colaboradorForoService.listarEtiquetas());
         return "col/col-foros";
     }
 
     @GetMapping({"/foros/detalle", "/col-foro-detalle.html"})
-    public String foroDetalle(@RequestParam("proyectoId") Long proyectoId,
+    public String foroDetalle(@RequestParam("foroId") Long foroId,
                               @AuthenticationPrincipal UsuarioDetails principal, Model model) {
-        Usuario colab = principal.getUsuario();
-        model.addAttribute("colaborador", colab);
-        model.addAttribute("publicaciones", colForoService.obtenerDetalleForo(proyectoId, colab));
-        model.addAttribute("proyectoIdSeleccionado", proyectoId);
-        
-        // También necesitamos el proyecto actual para mostrar el nombre.
-        // Lo sacamos de la lista de asignaciones activas:
-        colaboradorProyectoService.listarMisAsignaciones(colab).stream()
-            .filter(a -> a.getProyecto().getId().equals(proyectoId))
-            .findFirst()
-            .ifPresent(a -> model.addAttribute("proyecto", a.getProyecto()));
-            
-        return "col/col-foro-detalle";
+        if (principal == null) {
+            return "redirect:/login";
+        }
+        Usuario colaborador = principal.getUsuario();
+        try {
+            Foro foro = colaboradorForoService.obtenerForo(colaborador, foroId);
+            model.addAttribute("colaborador", colaborador);
+            model.addAttribute("foro", foro);
+            model.addAttribute("publicaciones", colaboradorForoService.listarPublicacionesConRespuestas(colaborador, foroId));
+            model.addAttribute("etiquetas", colaboradorForoService.listarEtiquetas());
+            model.addAttribute("puedeParticipar", colaboradorForoService.puedeParticipar(colaborador, foro));
+            return "col/col-foro-detalle";
+        } catch (IllegalArgumentException e) {
+            return "redirect:/colaborador/foros";
+        }
     }
 
     @PostMapping("/foro/publicar")
-    public String publicarForo(@RequestParam("proyectoId") Long proyectoId,
+    public String publicarForo(@RequestParam("foroId") Long foroId,
                                @RequestParam("titulo") String titulo,
                                @RequestParam("contenido") String contenido,
+                               @RequestParam(value = "etiquetaId", required = false) Long etiquetaId,
                                @AuthenticationPrincipal UsuarioDetails principal,
-                               RedirectAttributes ra) {
+                               RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
         try {
-            colForoService.publicar(proyectoId, titulo, contenido, principal.getUsuario());
-            ra.addFlashAttribute("success", "Publicación creada exitosamente.");
-        } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            colaboradorForoService.crearPublicacion(principal.getUsuario(), foroId, titulo, contenido, etiquetaId);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Publicación creada correctamente.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
-        return "redirect:/colaborador/foros/detalle?proyectoId=" + proyectoId;
+        return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
+    }
+
+    @PostMapping("/foro/publicacion/{publicacionId}/eliminar")
+    public String eliminarPublicacionForo(@PathVariable Long publicacionId,
+                                          @RequestParam("foroId") Long foroId,
+                                          @AuthenticationPrincipal UsuarioDetails principal,
+                                          RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorForoService.eliminarPublicacion(principal.getUsuario(), publicacionId);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Publicación eliminada.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
     @PostMapping("/foro/responder")
     public String responderForo(@RequestParam("publicacionId") Long publicacionId,
-                                @RequestParam("proyectoId") Long proyectoId,
+                                @RequestParam("foroId") Long foroId,
                                 @RequestParam("contenido") String contenido,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes ra) {
+                                RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
         try {
-            colForoService.responder(publicacionId, contenido, principal.getUsuario());
-            ra.addFlashAttribute("success", "Respuesta publicada.");
-        } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            colaboradorForoService.crearRespuesta(principal.getUsuario(), publicacionId, contenido);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Respuesta publicada.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
-        return "redirect:/colaborador/foros/detalle?proyectoId=" + proyectoId;
+        return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
+    }
+
+    @PostMapping("/foro/respuesta/{respuestaId}/eliminar")
+    public String eliminarRespuestaForo(@PathVariable Long respuestaId,
+                                        @RequestParam("foroId") Long foroId,
+                                        @AuthenticationPrincipal UsuarioDetails principal,
+                                        RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorForoService.eliminarRespuesta(principal.getUsuario(), respuestaId);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Respuesta eliminada.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
+    }
+
+    @PostMapping("/foro/publicacion/{publicacionId}/like")
+    public String likePublicacion(@PathVariable Long publicacionId,
+                                  @RequestParam("foroId") Long foroId,
+                                  @AuthenticationPrincipal UsuarioDetails principal,
+                                  RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorForoService.alternarLikePublicacion(principal.getUsuario(), publicacionId);
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
+    }
+
+    @PostMapping("/foro/respuesta/{respuestaId}/like")
+    public String likeRespuesta(@PathVariable Long respuestaId,
+                                @RequestParam("foroId") Long foroId,
+                                @AuthenticationPrincipal UsuarioDetails principal,
+                                RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorForoService.alternarLikeRespuesta(principal.getUsuario(), respuestaId);
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
     @PostMapping("/foro/upload-imagen")
     @org.springframework.web.bind.annotation.ResponseBody
     public java.util.Map<String, String> uploadImagenForo(@RequestParam("image") MultipartFile image) {
         try {
-            String url = colForoService.subirImagen(image);
+            String url = colaboradorForoService.subirImagenForo(image);
             return java.util.Map.of("url", url);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             throw new org.springframework.web.server.ResponseStatusException(
-                org.springframework.http.HttpStatus.BAD_REQUEST, e.getMessage());
+                    org.springframework.http.HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 

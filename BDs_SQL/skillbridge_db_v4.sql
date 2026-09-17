@@ -361,8 +361,6 @@ CREATE TABLE asignacion (
 -- 13. ACTIVIDADES
 -- =====================================================================
 
-
-
 CREATE TABLE actividad (
     id                      BIGINT AUTO_INCREMENT PRIMARY KEY,
     proyecto_id             BIGINT NOT NULL,
@@ -671,10 +669,31 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion) VALUES
     ('MAX_ASIGNACIONES_POR_COLABORADOR', '3', 'Límite de asignaciones activas simultáneas por colaborador'),
     ('TOPE_HORAS_EXTRA_BONO', '20', 'Máximo de horas extra pagables como bono por mes'),
     ('NOMBRE_ORGANIZACION', 'SkillBridge AI', 'Nombre visible de la organización');
+    
+-- =====================================================================
+-- 27. Documentos de proyectos
+-- =====================================================================    
+    
+CREATE TABLE documento (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    proyecto_id     BIGINT NOT NULL,
+    subido_por_id   BIGINT NOT NULL,
+    nombre          VARCHAR(200) NOT NULL,
+    categoria       VARCHAR(20) NOT NULL,
+    archivo_url     VARCHAR(500) NOT NULL,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_documento_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
+    CONSTRAINT fk_documento_subido_por FOREIGN KEY (subido_por_id) REFERENCES usuario(id),
+
+    CONSTRAINT chk_documento_categoria
+        CHECK (categoria IN ('PDF','EXCEL','WORD','IMAGEN','DISENO','OTRO'))
+) ENGINE=InnoDB;
 
 
 -- =====================================================================
--- 27. AUDITORÍA
+-- 28. AUDITORÍA
 -- =====================================================================
 
 CREATE TABLE log_auditoria (

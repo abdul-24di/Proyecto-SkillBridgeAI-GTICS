@@ -115,7 +115,9 @@ public class ColaboradorViewController {
 
         try {
             Usuario colaborador = principal.getUsuario();
+            model.addAttribute("colaborador", colaborador);
             var detalle = colaboradorProyectoService.obtenerDetalleProyecto(colaborador, asignacionId);
+
             model.addAttribute("proyecto", detalle.getProyecto());
             model.addAttribute("asignacion", detalle.getAsignacion());
             model.addAttribute("integrantes", detalle.getIntegrantes());
@@ -591,7 +593,7 @@ public class ColaboradorViewController {
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
-        return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId;
+        return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=actividades";
     }
 
 

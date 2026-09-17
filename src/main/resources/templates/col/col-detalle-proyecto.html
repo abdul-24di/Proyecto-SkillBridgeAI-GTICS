@@ -188,6 +188,7 @@
                                 <td colspan="5" class="empty-state">Aún no tienes actividades asignadas en este proyecto.</td>
                             </tr>
                             <tr th:each="act : ${misActividades}" class="activity-row"
+                                onclick="mostrarDetalleActividad(this)"
                                 th:attr="data-id=${act.id},
                                          data-titulo=${act.titulo},
                                          data-descripcion=${act.descripcion},
@@ -222,6 +223,7 @@
                     <div class="card-body">
                         <form method="get" th:action="@{/colaborador/proyectos/detalle}" class="row g-2 align-items-end mb-3">
                             <input type="hidden" name="asignacionId" th:value="${asignacion.id}"/>
+                            <input type="hidden" name="tab" value="documentos"/>
                             <div class="col-md-6">
                                 <label class="form-label">Buscar documento</label>
                                 <input type="text" name="busquedaDoc" class="form-control" placeholder="Buscar documento..." th:value="${filtroBusquedaDoc}">
@@ -256,15 +258,16 @@
                                     <td th:text="${doc.subidoPor.nombre} + ' ' + ${doc.subidoPor.apellido}">Autor</td>
                                     <td th:text="${#temporals.format(doc.fechaCreacion, 'dd/MM/yyyy')}">—</td>
                                     <td class="text-end">
-                                        <a th:href="${doc.archivoUrl}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Descargar">
+
+                                        <a th:href="${doc.archivoUrl}" th:attr="download=${doc.nombre}" class="btn btn-sm btn-outline-secondary" title="Descargar">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 11l5 5 5-5M12 4v12"/></svg>
                                         </a>
-                                        <form th:if="${doc.subidoPor.id == colaborador.id or colaborador.rol.nombre == 'ADMINISTRADOR'}"
-                                              method="POST" th:action="@{/colaborador/proyectos/documentos/{id}/eliminar(id=${doc.id})}" style="display:inline"
-                                              onsubmit="return confirm('¿Seguro que quieres eliminar este documento?');">
-                                            <input type="hidden" name="asignacionId" th:value="${asignacion.id}"/>
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
-                                        </form>
+
+                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                th:if="${(doc.subidoPor != null and doc.subidoPor.id == colaborador.id) or (colaborador != null and colaborador.rol != null and colaborador.rol.nombre == 'ADMINISTRADOR')}"
+                                                data-bs-toggle="modal" th:attr="data-bs-target='#deleteDocModal-' + ${doc.id}">Eliminar</button>
+
+
                                     </td>
                                 </tr>
                                 </tbody>
@@ -321,6 +324,30 @@
         </div>
 
     </main>
+</div>
+
+<!-- MODALES: CONFIRMAR ELIMINAR DOCUMENTO -->
+<div th:each="doc : ${documentos}">
+    <div class="modal modal-blur fade col-modal" th:id="'deleteDocModal-' + ${doc.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form th:action="@{/colaborador/proyectos/documentos/{id}/eliminar(id=${doc.id})}" method="post">
+                <input type="hidden" name="asignacionId" th:value="${asignacion.id}"/>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Eliminar documento</h5>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">¿Seguro que deseas eliminar <strong th:text="${doc.nombre}"></strong>?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-danger" type="submit">Sí, eliminar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 
@@ -418,59 +445,52 @@
         }
     }
 
-    const filasActividad = document.querySelectorAll(".activity-row");
+    function mostrarDetalleActividad(fila) {
+        const modalDetalleActividad = new bootstrap.Modal(document.getElementById("detalleActividadModal"));
+        const id = fila.dataset.id;
+        const estado = fila.dataset.estado;
 
-    const modalDetalleActividad = new bootstrap.Modal(document.getElementById("detalleActividadModal"));
+        document.getElementById("detalleActividadTitulo").textContent = fila.dataset.titulo;
+        document.getElementById("detalleActividadHoras").textContent = fila.dataset.horas + " hrs";
+        document.getElementById("detalleActividadFecha").textContent = fila.dataset.fecha;
+        document.getElementById("detalleActividadDescripcion").textContent = fila.dataset.descripcion || "Sin descripción.";
 
-    for (let i = 0; i < filasActividad.length; i++) {
-        const fila = filasActividad[i];
+        const alertaDevuelta = document.getElementById("detalleActividadDevueltaAlert");
+        if (fila.dataset.comentarioDevolucion && fila.dataset.comentarioDevolucion !== "null" && fila.dataset.comentarioDevolucion !== "") {
+            document.getElementById("detalleActividadComentarioDevolucion").textContent = fila.dataset.comentarioDevolucion;
+            alertaDevuelta.style.display = "";
+        } else {
+            alertaDevuelta.style.display = "none";
+        }
 
-        fila.addEventListener("click", () => {
-            const id = fila.dataset.id;
-            const estado = fila.dataset.estado;
+        const bloqueEnRevision = document.getElementById("detalleActividadEnRevisionBlock");
+        const bloqueCompletada = document.getElementById("detalleActividadCompletadaBlock");
+        const formulario = document.getElementById("detalleActividadForm");
+        const botonEnviar = document.getElementById("detalleActividadSubmitBtn");
 
-            document.getElementById("detalleActividadTitulo").textContent = fila.dataset.titulo;
-            document.getElementById("detalleActividadHoras").textContent = fila.dataset.horas + " hrs";
-            document.getElementById("detalleActividadFecha").textContent = fila.dataset.fecha;
-            document.getElementById("detalleActividadDescripcion").textContent = fila.dataset.descripcion || "Sin descripción.";
+        if (estado === "EN_REVISION") {
+            bloqueEnRevision.style.display = "";
+            bloqueCompletada.style.display = "none";
+            formulario.style.display = "none";
+            botonEnviar.style.display = "none";
+            document.getElementById("detalleActividadComentarioColaborador").textContent =
+                (fila.dataset.comentarioColaborador && fila.dataset.comentarioColaborador !== "null")
+                    ? fila.dataset.comentarioColaborador : "Sin comentario.";
+            document.getElementById("detalleActividadEvidenciaLink").href = fila.dataset.evidenciaUrl || "#";
+        } else if (estado === "COMPLETADA") {
+            bloqueEnRevision.style.display = "none";
+            bloqueCompletada.style.display = "";
+            formulario.style.display = "none";
+            botonEnviar.style.display = "none";
+        } else {
+            bloqueEnRevision.style.display = "none";
+            bloqueCompletada.style.display = "none";
+            formulario.style.display = "";
+            botonEnviar.style.display = "";
+            formulario.action = "/colaborador/proyectos/actividades/" + id + "/marcar-listo?asignacionId=" + asignacionIdActual;
+        }
 
-            const alertaDevuelta = document.getElementById("detalleActividadDevueltaAlert");
-            if (fila.dataset.comentarioDevolucion && fila.dataset.comentarioDevolucion !== "null" && fila.dataset.comentarioDevolucion !== "") {
-                document.getElementById("detalleActividadComentarioDevolucion").textContent = fila.dataset.comentarioDevolucion;
-                alertaDevuelta.style.display = "";
-            } else {
-                alertaDevuelta.style.display = "none";
-            }
-
-            const bloqueEnRevision = document.getElementById("detalleActividadEnRevisionBlock");
-            const bloqueCompletada = document.getElementById("detalleActividadCompletadaBlock");
-            const formulario = document.getElementById("detalleActividadForm");
-            const botonEnviar = document.getElementById("detalleActividadSubmitBtn");
-
-            if (estado === "EN_REVISION") {
-                bloqueEnRevision.style.display = "";
-                bloqueCompletada.style.display = "none";
-                formulario.style.display = "none";
-                botonEnviar.style.display = "none";
-                document.getElementById("detalleActividadComentarioColaborador").textContent =
-                    (fila.dataset.comentarioColaborador && fila.dataset.comentarioColaborador !== "null")
-                        ? fila.dataset.comentarioColaborador : "Sin comentario.";
-                document.getElementById("detalleActividadEvidenciaLink").href = fila.dataset.evidenciaUrl || "#";
-            } else if (estado === "COMPLETADA") {
-                bloqueEnRevision.style.display = "none";
-                bloqueCompletada.style.display = "";
-                formulario.style.display = "none";
-                botonEnviar.style.display = "none";
-            } else {
-                bloqueEnRevision.style.display = "none";
-                bloqueCompletada.style.display = "none";
-                formulario.style.display = "";
-                botonEnviar.style.display = "";
-                formulario.action = "/colaborador/proyectos/actividades/" + id + "/marcar-listo?asignacionId=" + asignacionIdActual;
-            }
-
-            modalDetalleActividad.show();
-        });
+        modalDetalleActividad.show();
     }
 </script>
 </body>

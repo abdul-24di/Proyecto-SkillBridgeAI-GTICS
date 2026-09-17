@@ -37,11 +37,24 @@ La sección de reportes pasó de ser visualizaciones estáticas a mostrar datos 
 *   Se solucionó el error **Whitelabel Error (500)** en la vista "Gestionar Asignaciones" causado por un campo SpEL incorrecto (`fechaAsignacion` en lugar de `fechaActivacion`).
 *   Se corrigieron validaciones de vistas donde se crasheaba si un proyecto todavía no poseía un "Foro" o "Chat" creado en la base de datos (ahora se instancian on-demand o manejan el `null` suavemente).
 
-## 5. Solución de Pruebas Unitarias y Seguridad (Configuración Roles)
-*   **Fallo de pruebas en GitHub Actions:** Se solucionó el error al ejecutar ./mvnw test en el servidor de integración continua. El error Model attribute 'certificadosColaborador' does not exist se arregló agregando la variable faltante en el método correspondiente de ColaboradorViewController.java al listar el perfil del colaborador.
-*   **Seguridad de Control de Accesos:** Se actualizó SecurityConfig.java para reemplazar la configuración .anyRequest().permitAll(), la cual presentaba una vulnerabilidad de acceso cruzado. Ahora se aplican reglas de autorización estrictas por prefijo de URL y rol:
-    *   /admin/** -> Requiere rol ADMIN
-    *   /pm/** -> Requiere rol PM
-    *   /rm/** -> Requiere rol RM
-    *   /colaborador/** -> Requiere rol COLABORADOR
-    *   Se mantuvieron públicas las rutas estáticas (/css, /js, /img, /uploads) y de autenticación (/login, /auth/**).
+## 5. Solución de Pruebas Unitarias y Seguridad
+*   **Pruebas Unitarias (GitHub Actions):** Se arregló el error de compilación en el pipeline CI que impedía el build. Faltaba inyectar `certificadosColaborador` en el endpoint de perfil del Colaborador (`ColaboradorViewController.java`).
+*   **Seguridad por Roles (`SecurityConfig.java`):** Se sustituyó el `permitAll()` global por restricciones estrictas de URL por rol:
+    *   `/admin/**` → solo `ADMINISTRADOR`
+    *   `/pm/**` → solo `PROJECT_MANAGER`
+    *   `/rm/**` → solo `RESOURCE_MANAGER`
+    *   `/colaborador/**` → solo `COLABORADOR`
+*   Se agregaron las rutas de recursos estáticos de Tabler (`/tabler/**`, `/documentos/**`, `/plantillas/**`) a la lista de acceso público para evitar que el CSS del login se rompa.
+
+## 6. Sincronización Base de Datos y Corrección de Login (17 Sep 2026)
+*   **Error 403 Forbidden al hacer Login:** Los nombres de roles en `SecurityConfig.java` estaban abreviados (`PM`, `RM`, `ADMIN`) pero la base de datos los guarda completos (`PROJECT_MANAGER`, `RESOURCE_MANAGER`, `ADMINISTRADOR`). Se corrigieron para que coincidan.
+*   **Error SQL `Select Habilidad;`:** Se eliminó una línea SQL inválida que fue escrita por error en `skillbridge_db_v4.sql` antes de la definición de la tabla `habilidad`, la cual interrumpía toda ejecución del script.
+*   **Columnas faltantes en la BD (Error 500 al hacer Login):** El modelo Java (`Proyecto.java`, `Asignacion.java`, `Actividad.java`) tenía campos que no existían en el script SQL. Se corrigieron agregando las columnas al script y usando `ddl-auto=update` temporalmente para que Hibernate las creara automáticamente en la BD local:
+    *   `proyecto.horas_semanales_requeridas`
+    *   `asignacion.habilidades_relevantes`
+    *   `asignacion.habilidad_solicitada_id`
+    *   `actividad.evidencia_url`
+    *   `actividad.comentario_colaborador`
+*   **Despliegue en AWS EC2:** Se configuraron las credenciales de base de datos como variables de entorno en el servidor (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`) para conectar Spring Boot a AWS RDS de forma segura sin exponer credenciales en el código.
+*   **Puerto 8080 en AWS:** Se habilitó la regla de entrada en el Security Group de EC2 para el puerto `8080` (TCP, `0.0.0.0/0`).
+

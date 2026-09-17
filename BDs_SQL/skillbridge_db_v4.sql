@@ -207,6 +207,7 @@ CREATE TABLE proyecto (
     justificacion_presupuesto   VARCHAR(500)  NULL,
     presupuesto                 DECIMAL(12,2) NULL,
     colaboradores_requeridos    INT NOT NULL DEFAULT 1,
+    horas_semanales_requeridas  DECIMAL(5,2) NOT NULL DEFAULT 20,
     pm_id                       BIGINT NOT NULL,
     rm_revisor_id               BIGINT NULL,
     fecha_creacion              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -257,6 +258,7 @@ CREATE TABLE asignacion (
     proyecto_id         BIGINT NOT NULL,
     colaborador_id      BIGINT NOT NULL,
     horas_semanales     DECIMAL(5,2) NOT NULL,
+    habilidades_relevantes VARCHAR(500) NULL,
     origen              VARCHAR(30) NOT NULL,
     mensaje_solicitud   VARCHAR(500) NULL,
     estado              VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE',
@@ -625,6 +627,7 @@ CREATE TABLE log_auditoria (
 -- DATOS DE PRUEBA: USUARIOS (contraseña para todos: abc123)
 -- Hash generado con BCrypt $ (compatible con Spring Security Java)
 -- =====================================================================
+
 
 INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES
   ('admin@skillbridge.com',  '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Admin',   'Sistema',  1, 1, NULL, NULL),

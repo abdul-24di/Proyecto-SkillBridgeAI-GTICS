@@ -378,7 +378,9 @@
 
 
 <!-- MODAL: DETALLE DE ACTIVIDAD -->
+<button type="button" id="abrirDetalleActividadModalBtn" data-bs-toggle="modal" data-bs-target="#detalleActividadModal" style="display:none;" aria-hidden="true"></button>
 <div class="modal modal-blur fade col-modal" id="detalleActividadModal" tabindex="-1" aria-hidden="true">
+
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
@@ -441,13 +443,13 @@
     if (tabSolicitada) {
         const botonTab = document.querySelector('#projectTabs button[data-bs-target="#tab-' + tabSolicitada + '"]');
         if (botonTab) {
-            new bootstrap.Tab(botonTab).show();
+            botonTab.click();
         }
     }
 
     function mostrarDetalleActividad(fila) {
-        const modalDetalleActividad = new bootstrap.Modal(document.getElementById("detalleActividadModal"));
         const id = fila.dataset.id;
+
         const estado = fila.dataset.estado;
 
         document.getElementById("detalleActividadTitulo").textContent = fila.dataset.titulo;
@@ -490,7 +492,7 @@
             formulario.action = "/colaborador/proyectos/actividades/" + id + "/marcar-listo?asignacionId=" + asignacionIdActual;
         }
 
-        modalDetalleActividad.show();
+        document.getElementById("abrirDetalleActividadModalBtn").click();
     }
 </script>
 </body>

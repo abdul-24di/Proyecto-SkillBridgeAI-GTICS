@@ -46,6 +46,9 @@
       <span class="text-secondary">Configuración</span>
     </nav>
 
+    <div class="alert alert-success" th:if="${mensajeOk}" th:text="${mensajeOk}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
     <div class="page-head page-head-stack-mobile">
       <div>
         <h1 class="page-title">Configuración de Parámetros Globales</h1>
@@ -75,38 +78,20 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="fw-semibold">NOMBRE_ORGANIZACION</td>
-              <td class="text-secondary">Nombre de la organización, usado en correos, reportes y encabezados del sistema.</td>
-              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">SkillBridge AI</span></td>
-              <td>—</td>
+            <tr th:each="p : ${parametros}">
+              <td class="fw-semibold" th:text="${p.clave()}">NOMBRE_ORGANIZACION</td>
+              <td class="text-secondary" th:text="${p.descripcion()}">Nombre de la organización...</td>
+              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2" th:text="${p.valor()}">SkillBridge AI</span></td>
+              <td th:text="${p.ultimaModificacion()}">—</td>
               <td class="text-end">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal" data-param-name="NOMBRE_ORGANIZACION" data-param-desc="Nombre de la organización, usado en correos, reportes y encabezados del sistema." data-param-value="SkillBridge AI">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal"
+                        th:attr="data-param-id=${p.id()},data-param-name=${p.clave()},data-param-desc=${p.descripcion()},data-param-value=${p.valor()}">
                   Editar
                 </button>
               </td>
             </tr>
-            <tr>
-              <td class="fw-semibold">MAX_ASIGNACIONES_POR_COLABORADOR</td>
-              <td class="text-secondary">Número máximo de asignaciones activas simultáneas que puede tener un colaborador.</td>
-              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">3</span></td>
-              <td>28 ago 2026 · Sofía Alarcón</td>
-              <td class="text-end">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal" data-param-name="MAX_ASIGNACIONES_POR_COLABORADOR" data-param-desc="Número máximo de asignaciones activas simultáneas que puede tener un colaborador." data-param-value="3">
-                  Editar
-                </button>
-              </td>
-            </tr>
-            <tr>
-              <td class="fw-semibold">TOPE_HORAS_EXTRA_BONO</td>
-              <td class="text-secondary">Máximo de horas extra pagables por mes que se reconocen como bono a un colaborador.</td>
-              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2">20</span></td>
-              <td>—</td>
-              <td class="text-end">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal" data-param-name="TOPE_HORAS_EXTRA_BONO" data-param-desc="Máximo de horas extra pagables por mes que se reconocen como bono a un colaborador." data-param-value="20">
-                  Editar
-                </button>
-              </td>
+            <tr th:if="${#lists.isEmpty(parametros)}">
+              <td colspan="5" class="text-center text-secondary py-4">No hay parámetros configurados.</td>
             </tr>
           </tbody>
         </table>
@@ -132,19 +117,15 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>28 ago 2026, 10:14</td>
-              <td class="fw-semibold">MAX_ASIGNACIONES_POR_COLABORADOR</td>
-              <td>2</td>
-              <td>3</td>
-              <td>Sofía Alarcón</td>
+            <tr th:each="h : ${historial}">
+              <td th:text="${h.fecha()}">28 ago 2026, 10:14</td>
+              <td class="fw-semibold" th:text="${h.clave()}">MAX_ASIGNACIONES_POR_COLABORADOR</td>
+              <td th:text="${h.valorAnterior()}">2</td>
+              <td th:text="${h.valorNuevo()}">3</td>
+              <td th:text="${h.modificadoPor()}">Sofía Alarcón</td>
             </tr>
-            <tr>
-              <td>03 jun 2026, 16:40</td>
-              <td class="fw-semibold">MAX_ASIGNACIONES_POR_COLABORADOR</td>
-              <td>3</td>
-              <td>2</td>
-              <td>Sofía Alarcón</td>
+            <tr th:if="${#lists.isEmpty(historial)}">
+              <td colspan="5" class="text-center text-secondary py-4">Todavía no hay cambios registrados.</td>
             </tr>
           </tbody>
         </table>
@@ -162,7 +143,9 @@
         <h5 class="modal-title">Editar parámetro</h5>
         <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
+      <form th:action="@{/admin/configuracion/editar}" method="post">
       <div class="modal-body">
+        <input type="hidden" name="parametroId" data-admin-source="paramId">
         <div class="mb-3">
           <label class="form-label">Parámetro</label>
           <input type="text" class="form-control" data-admin-source="paramName" readonly disabled>
@@ -173,13 +156,14 @@
         </div>
         <div class="mb-1">
           <label class="form-label" for="editParamValue">Nuevo valor</label>
-          <input id="editParamValue" type="text" class="form-control" data-admin-source="paramValue" required>
+          <input id="editParamValue" name="valor" type="text" class="form-control" data-admin-source="paramValue" required>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Guardar cambio</button>
+        <button type="submit" class="btn btn-primary">Guardar cambio</button>
       </div>
+      </form>
     </div>
   </div>
 </div>

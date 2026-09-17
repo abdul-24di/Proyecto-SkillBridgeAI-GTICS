@@ -1,12 +1,43 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.security.UsuarioDetails;
+import com.pucp.skillb_ia.service.AdminAuditoriaService;
+import com.pucp.skillb_ia.service.AdminConfiguracionService;
+import com.pucp.skillb_ia.service.AdminHabilidadService;
+import com.pucp.skillb_ia.service.AdminUsuarioService;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.io.IOException;
+import java.time.LocalDate;
+import java.util.List;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminViewController {
+
+    private final AdminUsuarioService adminUsuarioService;
+    private final AdminHabilidadService adminHabilidadService;
+    private final AdminConfiguracionService adminConfiguracionService;
+    private final AdminAuditoriaService adminAuditoriaService;
+
+    public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
+                                AdminConfiguracionService adminConfiguracionService,
+                                AdminAuditoriaService adminAuditoriaService) {
+        this.adminUsuarioService = adminUsuarioService;
+        this.adminHabilidadService = adminHabilidadService;
+        this.adminConfiguracionService = adminConfiguracionService;
+        this.adminAuditoriaService = adminAuditoriaService;
+    }
 
     @GetMapping({"", "/"})
     public String index() {
@@ -18,23 +49,290 @@ public class AdminViewController {
         return "admin/admin-dashboard";
     }
 
+    // ============================================================
+    // USUARIOS (Épica 5)
+    // ============================================================
+
     @GetMapping({"/usuarios", "/admin-usuarios.html"})
-    public String users() {
+    public String users(Model model) {
+        model.addAttribute("usuarios", adminUsuarioService.listar());
+        model.addAttribute("resumen", adminUsuarioService.resumen());
+        model.addAttribute("rolesDisponibles", AdminUsuarioService.etiquetasRoles());
+        model.addAttribute("rolesAsignables", AdminUsuarioService.etiquetasRolesAsignables());
         return "admin/admin-usuarios";
     }
 
+    @PostMapping("/usuarios")
+    public String crearUsuario(@RequestParam String correo, @RequestParam String rol,
+                                @AuthenticationPrincipal UsuarioDetails principal,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            adminUsuarioService.crear(correo, rol, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el usuario " + correo + " y se envió su correo de invitación.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/usuarios";
+    }
+
+    @PostMapping("/usuarios/carga-masiva")
+    public String cargaMasivaUsuarios(@RequestParam("archivo") MultipartFile archivo,
+                                       @AuthenticationPrincipal UsuarioDetails principal,
+                                       RedirectAttributes redirectAttributes) {
+        if (archivo.isEmpty()) {
+            redirectAttributes.addFlashAttribute("mensajeError", "Selecciona un archivo CSV para la carga masiva.");
+            return "redirect:/admin/usuarios";
+        }
+        try {
+            AdminUsuarioService.ResultadoCargaMasiva resultado =
+                    adminUsuarioService.cargaMasiva(archivo, principal.getUsuario());
+            if (resultado.tieneErrores()) {
+                redirectAttributes.addFlashAttribute("cargaErrores", resultado.errores());
+            } else {
+                redirectAttributes.addFlashAttribute("mensajeOk",
+                        "Se crearon " + resultado.creados() + " usuario(s) desde el archivo.");
+            }
+        } catch (IOException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", "No se pudo leer el archivo: " + e.getMessage());
+        }
+        return "redirect:/admin/usuarios";
+    }
+
+    @PostMapping("/usuarios/cambiar-rol")
+    public String cambiarRolUsuario(@RequestParam Long usuarioId, @RequestParam String rol,
+                                     @AuthenticationPrincipal UsuarioDetails principal,
+                                     RedirectAttributes redirectAttributes) {
+        try {
+            adminUsuarioService.cambiarRol(usuarioId, rol, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el rol del usuario.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/usuarios";
+    }
+
+    @PostMapping("/usuarios/desactivar")
+    public String desactivarUsuario(@RequestParam Long usuarioId,
+                                     @AuthenticationPrincipal UsuarioDetails principal,
+                                     RedirectAttributes redirectAttributes) {
+        try {
+            adminUsuarioService.desactivar(usuarioId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó el usuario.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/usuarios";
+    }
+
+    @PostMapping("/usuarios/reactivar")
+    public String reactivarUsuario(@RequestParam Long usuarioId,
+                                    @AuthenticationPrincipal UsuarioDetails principal,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            adminUsuarioService.reactivar(usuarioId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó el usuario.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/usuarios";
+    }
+
+    @PostMapping("/usuarios/reenviar")
+    public String reenviarActivacion(@RequestParam Long usuarioId,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            adminUsuarioService.reenviarActivacion(usuarioId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se reenvió el enlace de activación.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/usuarios";
+    }
+
+    // ============================================================
+    // HABILIDADES (Épica 5)
+    // ============================================================
+
     @GetMapping({"/habilidades", "/admin-habilidades.html"})
-    public String skills() {
+    public String skills(Model model) {
+        model.addAttribute("habilidades", adminHabilidadService.listar());
+        model.addAttribute("resumen", adminHabilidadService.resumen());
+        model.addAttribute("categorias", adminHabilidadService.listarCategoriasActivas());
         return "admin/admin-habilidades";
     }
 
+    @PostMapping("/habilidades")
+    public String crearHabilidad(@RequestParam String nombre, @RequestParam Long categoriaId,
+                                  @AuthenticationPrincipal UsuarioDetails principal,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            adminHabilidadService.crear(nombre, categoriaId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se creó la habilidad \"" + nombre + "\".");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/habilidades";
+    }
+
+    @PostMapping("/habilidades/editar")
+    public String editarHabilidad(@RequestParam Long habilidadId, @RequestParam String nombre,
+                                   @RequestParam Long categoriaId,
+                                   @AuthenticationPrincipal UsuarioDetails principal,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            adminHabilidadService.editar(habilidadId, nombre, categoriaId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó la habilidad.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/habilidades";
+    }
+
+    @PostMapping("/habilidades/desactivar")
+    public String desactivarHabilidad(@RequestParam Long habilidadId,
+                                       @AuthenticationPrincipal UsuarioDetails principal,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            adminHabilidadService.desactivar(habilidadId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó la habilidad.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/habilidades";
+    }
+
+    @PostMapping("/habilidades/reactivar")
+    public String reactivarHabilidad(@RequestParam Long habilidadId,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            adminHabilidadService.reactivar(habilidadId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó la habilidad.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/habilidades";
+    }
+
+    // ============================================================
+    // CONFIGURACIÓN (Épica 5, C10)
+    // ============================================================
+
     @GetMapping({"/configuracion", "/admin-configuracion.html"})
-    public String configuration() {
+    public String configuration(Model model) {
+        model.addAttribute("parametros", adminConfiguracionService.listar());
+        model.addAttribute("historial", adminConfiguracionService.historialReciente());
         return "admin/admin-configuracion";
     }
 
+    @PostMapping("/configuracion/editar")
+    public String editarConfiguracion(@RequestParam Long parametroId, @RequestParam String valor,
+                                       @AuthenticationPrincipal UsuarioDetails principal,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            adminConfiguracionService.editar(parametroId, valor, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el parámetro.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/configuracion";
+    }
+
+    // ============================================================
+    // AUDITORÍA (Épica 5, solo lectura)
+    // ============================================================
+
     @GetMapping({"/auditoria", "/admin-auditoria.html"})
-    public String audit() {
+    public String audit(@RequestParam(required = false) String texto,
+                         @RequestParam(required = false) String rol,
+                         @RequestParam(required = false) String accion,
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                         Model model) {
+        AdminAuditoriaService.FiltrosAuditoria filtros =
+                new AdminAuditoriaService.FiltrosAuditoria(texto, rol, accion, desde, hasta);
+        model.addAttribute("logs", adminAuditoriaService.listar(filtros));
+        model.addAttribute("tiposAccion", adminAuditoriaService.tiposDeAccionDisponibles());
+        model.addAttribute("rolesDisponibles", AdminUsuarioService.etiquetasRoles());
+        model.addAttribute("texto", texto);
+        model.addAttribute("rol", rol);
+        model.addAttribute("accion", accion);
+        model.addAttribute("desde", desde);
+        model.addAttribute("hasta", hasta);
         return "admin/admin-auditoria";
+    }
+
+    @GetMapping("/auditoria/exportar")
+    public void exportarAuditoria(@RequestParam(required = false) String texto,
+                                   @RequestParam(required = false) String rol,
+                                   @RequestParam(required = false) String accion,
+                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                                   HttpServletResponse response) throws IOException {
+        List<AdminAuditoriaService.LogFila> logs = adminAuditoriaService.listar(
+                new AdminAuditoriaService.FiltrosAuditoria(texto, rol, accion, desde, hasta));
+
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=\"auditoria.csv\"");
+
+        java.io.OutputStream out = response.getOutputStream();
+        out.write(0xEF);
+        out.write(0xBB);
+        out.write(0xBF);
+
+        StringBuilder csv = new StringBuilder("Fecha y hora,Usuario,Rol,Tipo de accion,Detalle\n");
+        for (AdminAuditoriaService.LogFila log : logs) {
+            csv.append(csvEscapar(log.fecha())).append(',')
+                    .append(csvEscapar(log.usuarioNombre())).append(',')
+                    .append(csvEscapar(log.rolEtiqueta())).append(',')
+                    .append(csvEscapar(log.accionEtiqueta())).append(',')
+                    .append(csvEscapar(log.detalle())).append('\n');
+        }
+        out.write(csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        out.flush();
+    }
+
+    @GetMapping("/auditoria/exportar-excel")
+    public void exportarAuditoriaExcel(@RequestParam(required = false) String texto,
+                                        @RequestParam(required = false) String rol,
+                                        @RequestParam(required = false) String accion,
+                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                                        HttpServletResponse response) throws IOException {
+        List<AdminAuditoriaService.LogFila> logs = adminAuditoriaService.listar(
+                new AdminAuditoriaService.FiltrosAuditoria(texto, rol, accion, desde, hasta));
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"auditoria.xlsx\"");
+
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook libro = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            org.apache.poi.ss.usermodel.Sheet hoja = libro.createSheet("Auditoria");
+            String[] encabezados = {"Fecha y hora", "Usuario", "Rol", "Tipo de accion", "Detalle"};
+            org.apache.poi.ss.usermodel.Row filaEncabezado = hoja.createRow(0);
+            for (int i = 0; i < encabezados.length; i++) {
+                filaEncabezado.createCell(i).setCellValue(encabezados[i]);
+            }
+
+            int numeroFila = 1;
+            for (AdminAuditoriaService.LogFila log : logs) {
+                org.apache.poi.ss.usermodel.Row fila = hoja.createRow(numeroFila++);
+                fila.createCell(0).setCellValue(log.fecha());
+                fila.createCell(1).setCellValue(log.usuarioNombre());
+                fila.createCell(2).setCellValue(log.rolEtiqueta());
+                fila.createCell(3).setCellValue(log.accionEtiqueta());
+                fila.createCell(4).setCellValue(log.detalle() != null ? log.detalle() : "");
+            }
+            for (int i = 0; i < encabezados.length; i++) {
+                hoja.autoSizeColumn(i);
+            }
+
+            libro.write(response.getOutputStream());
+        }
+    }
+
+    private String csvEscapar(String valor) {
+        if (valor == null) return "";
+        return "\"" + valor.replace("\"", "\"\"") + "\"";
     }
 }

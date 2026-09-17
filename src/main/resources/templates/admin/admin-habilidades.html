@@ -46,6 +46,9 @@
       <span class="text-secondary">Habilidades</span>
     </nav>
 
+    <div class="alert alert-success" th:if="${mensajeOk}" th:text="${mensajeOk}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
     <div class="page-head page-head-stack-mobile page-head-button-mobile">
       <div>
         <h1 class="page-title">Catálogo de Habilidades</h1>
@@ -67,7 +70,7 @@
             </div>
             <div>
               <div class="summary-label">Habilidades activas</div>
-              <div class="summary-number">28</div>
+              <div class="summary-number" th:text="${resumen.activas()}">28</div>
               <div class="small text-secondary">Visibles para RM y colaboradores.</div>
             </div>
           </div>
@@ -81,7 +84,7 @@
             </div>
             <div>
               <div class="summary-label">Categorías</div>
-              <div class="summary-number">4</div>
+              <div class="summary-number" th:text="${resumen.categorias()}">4</div>
               <div class="small text-secondary">Técnico, blandas, certificación, herramientas.</div>
             </div>
           </div>
@@ -95,8 +98,8 @@
             </div>
             <div>
               <div class="summary-label">Más solicitada</div>
-              <div class="summary-number-budget">Java</div>
-              <div class="small text-secondary">32 colaboradores la registran.</div>
+              <div class="summary-number-budget" th:text="${resumen.masSolicitadaNombre()}">Java</div>
+              <div class="small text-secondary" th:text="${resumen.masSolicitadaCount()} + ' colaboradores la registran.'">32 colaboradores la registran.</div>
             </div>
           </div>
         </div>
@@ -109,7 +112,7 @@
             </div>
             <div>
               <div class="summary-label">Desactivadas</div>
-              <div class="summary-number">3</div>
+              <div class="summary-number" th:text="${resumen.desactivadas()}">3</div>
               <div class="small text-secondary">Ya no aparecen para nuevos registros.</div>
             </div>
           </div>
@@ -135,22 +138,19 @@
             <label for="skillCategoryFilter" class="form-label">Categoría</label>
             <select id="skillCategoryFilter" class="form-select">
               <option value="all">Todas</option>
-              <option>Técnico</option>
-              <option>Habilidades blandas</option>
-              <option>Certificación</option>
-              <option>Herramientas</option>
+              <option th:each="cat : ${categorias}" th:value="${cat.nombre}" th:text="${cat.nombre}"></option>
             </select>
           </div>
           <div class="col-xl-2 col-md-6">
             <label for="skillStatusFilter" class="form-label">Estado</label>
             <select id="skillStatusFilter" class="form-select">
               <option value="all">Todas</option>
-              <option>Activas</option>
-              <option>Desactivadas</option>
+              <option value="Activa">Activas</option>
+              <option value="Desactivada">Desactivadas</option>
             </select>
           </div>
           <div class="col-xl-2 d-grid">
-            <button type="button" class="btn btn-outline-secondary">Limpiar</button>
+            <button type="button" id="clearSkillFiltersBtn" class="btn btn-outline-secondary">Limpiar</button>
           </div>
         </div>
       </div>
@@ -167,77 +167,40 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="fw-semibold">Java</td>
-              <td><span class="badge bg-blue-lt text-blue">Técnico</span></td>
-              <td>32</td>
-              <td><span class="badge bg-green-lt"><span class="status-dot bg-green"></span>Activa</span></td>
+            <tr th:each="h : ${habilidades}" th:classappend="${!h.activa()} ? 'opacity-75' : ''"
+                th:attr="data-search=${#strings.toLowerCase(h.nombre())},data-category=${h.categoriaNombre()},data-status=${h.activa() ? 'Activa' : 'Desactivada'}">
+              <td class="fw-semibold" th:text="${h.nombre()}">Java</td>
+              <td><span class="badge" th:classappend="${h.categoriaBadgeClase()}" th:text="${h.categoriaNombre()}">Técnico</span></td>
+              <td th:text="${h.colaboradores()}">32</td>
+              <td>
+                <span class="badge" th:classappend="${h.activa()} ? 'bg-green-lt' : 'bg-secondary-lt'">
+                  <span class="status-dot" th:classappend="${h.activa()} ? 'bg-green' : 'bg-secondary'"></span><span th:text="${h.activa()} ? 'Activa' : 'Desactivada'">Activa</span>
+                </span>
+              </td>
               <td class="text-end">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSkillModal" data-skill-name="Java" data-skill-category="Técnico">Editar</button>
-                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateSkillModal" data-skill-name="Java">Desactivar</button>
+                <span th:if="${h.activa()}">
+                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSkillModal"
+                          th:attr="data-skill-id=${h.id()},data-skill-name=${h.nombre()},data-skill-category=${h.categoriaId()}">Editar</button>
+                  <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateSkillModal"
+                          th:attr="data-skill-id=${h.id()},data-skill-name=${h.nombre()}">Desactivar</button>
+                </span>
+                <span th:if="${!h.activa()}">
+                  <form th:action="@{/admin/habilidades/reactivar}" method="post" class="d-inline">
+                    <input type="hidden" name="habilidadId" th:value="${h.id()}">
+                    <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                  </form>
+                </span>
               </td>
             </tr>
-            <tr>
-              <td class="fw-semibold">Spring Boot</td>
-              <td><span class="badge bg-blue-lt text-blue">Técnico</span></td>
-              <td>24</td>
-              <td><span class="badge bg-green-lt"><span class="status-dot bg-green"></span>Activa</span></td>
-              <td class="text-end">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSkillModal" data-skill-name="Spring Boot" data-skill-category="Técnico">Editar</button>
-                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateSkillModal" data-skill-name="Spring Boot">Desactivar</button>
-              </td>
-            </tr>
-            <tr>
-              <td class="fw-semibold">React</td>
-              <td><span class="badge bg-blue-lt text-blue">Técnico</span></td>
-              <td>19</td>
-              <td><span class="badge bg-green-lt"><span class="status-dot bg-green"></span>Activa</span></td>
-              <td class="text-end">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSkillModal" data-skill-name="React" data-skill-category="Técnico">Editar</button>
-                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateSkillModal" data-skill-name="React">Desactivar</button>
-              </td>
-            </tr>
-            <tr>
-              <td class="fw-semibold">Comunicación efectiva</td>
-              <td><span class="badge bg-purple-lt text-purple">Habilidades blandas</span></td>
-              <td>15</td>
-              <td><span class="badge bg-green-lt"><span class="status-dot bg-green"></span>Activa</span></td>
-              <td class="text-end">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSkillModal" data-skill-name="Comunicación efectiva" data-skill-category="Habilidades blandas">Editar</button>
-                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateSkillModal" data-skill-name="Comunicación efectiva">Desactivar</button>
-              </td>
-            </tr>
-            <tr>
-              <td class="fw-semibold">AWS Certified Developer</td>
-              <td><span class="badge bg-orange-lt text-orange">Certificación</span></td>
-              <td>8</td>
-              <td><span class="badge bg-green-lt"><span class="status-dot bg-green"></span>Activa</span></td>
-              <td class="text-end">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSkillModal" data-skill-name="AWS Certified Developer" data-skill-category="Certificación">Editar</button>
-                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateSkillModal" data-skill-name="AWS Certified Developer">Desactivar</button>
-              </td>
-            </tr>
-            <tr class="opacity-75">
-              <td class="fw-semibold">jQuery</td>
-              <td><span class="badge bg-secondary-lt text-secondary">Herramientas</span></td>
-              <td>3</td>
-              <td><span class="badge bg-secondary-lt"><span class="status-dot bg-secondary"></span>Desactivada</span></td>
-              <td class="text-end">
-                <button type="button" class="btn btn-outline-success btn-sm">Reactivar</button>
-              </td>
+            <tr th:if="${#lists.isEmpty(habilidades)}">
+              <td colspan="5" class="text-center text-secondary py-4">No hay habilidades registradas todavía.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="pagination-wrap">
-        <div class="text-secondary small">Mostrando 6 de 28 habilidades</div>
-        <ul class="pagination pagination-sm m-0">
-          <li class="page-item disabled"><span class="page-link">Anterior</span></li>
-          <li class="page-item active"><span class="page-link">1</span></li>
-          <li class="page-item"><a class="page-link" href="#">2</a></li>
-          <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
-        </ul>
+        <div class="text-secondary small" th:text="'Mostrando ' + ${#lists.size(habilidades)} + ' habilidad(es)'">Mostrando 6 de 28 habilidades</div>
       </div>
     </div>
 
@@ -252,23 +215,18 @@
         <h5 class="modal-title">Nueva habilidad</h5>
         <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <form class="admin-modal-form" novalidate>
+      <form th:action="@{/admin/habilidades}" method="post">
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label" for="newSkillName">Nombre</label>
-            <input id="newSkillName" type="text" class="form-control" placeholder="Ej. Kubernetes" required>
-            <div class="invalid-feedback">Ingresa el nombre de la habilidad.</div>
+            <input id="newSkillName" name="nombre" type="text" class="form-control" placeholder="Ej. Kubernetes" required>
           </div>
           <div class="mb-1">
             <label class="form-label" for="newSkillCategory">Categoría</label>
-            <select id="newSkillCategory" class="form-select" required>
+            <select id="newSkillCategory" name="categoriaId" class="form-select" required>
               <option value="">Seleccionar categoría</option>
-              <option>Técnico</option>
-              <option>Habilidades blandas</option>
-              <option>Certificación</option>
-              <option>Herramientas</option>
+              <option th:each="cat : ${categorias}" th:value="${cat.id}" th:text="${cat.nombre}"></option>
             </select>
-            <div class="invalid-feedback">Selecciona una categoría.</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -288,25 +246,25 @@
         <h5 class="modal-title">Editar habilidad</h5>
         <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
+      <form th:action="@{/admin/habilidades/editar}" method="post">
       <div class="modal-body">
+        <input type="hidden" name="habilidadId" data-admin-source="skillId">
         <div class="mb-3">
-          <label class="form-label">Nombre</label>
-          <input type="text" class="form-control" data-admin-source="skillName">
+          <label class="form-label" for="editSkillName">Nombre</label>
+          <input id="editSkillName" name="nombre" type="text" class="form-control" data-admin-source="skillName">
         </div>
         <div class="mb-1">
           <label class="form-label" for="editSkillCategory">Categoría</label>
-          <select id="editSkillCategory" class="form-select">
-            <option>Técnico</option>
-            <option>Habilidades blandas</option>
-            <option>Certificación</option>
-            <option>Herramientas</option>
+          <select id="editSkillCategory" name="categoriaId" class="form-select" data-admin-source="skillCategory">
+            <option th:each="cat : ${categorias}" th:value="${cat.id}" th:text="${cat.nombre}"></option>
           </select>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Guardar cambios</button>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
       </div>
+      </form>
     </div>
   </div>
 </div>
@@ -319,13 +277,16 @@
         <h5 class="modal-title">Desactivar habilidad</h5>
         <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
+      <form th:action="@{/admin/habilidades/desactivar}" method="post">
       <div class="modal-body">
+        <input type="hidden" name="habilidadId" data-admin-source="skillId">
         <p>¿Deseas desactivar <strong data-admin-source="skillName">esta habilidad</strong>? Dejará de estar disponible para nuevos registros, pero se conserva en los perfiles existentes.</p>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Confirmar desactivación</button>
+        <button type="submit" class="btn btn-danger">Confirmar desactivación</button>
       </div>
+      </form>
     </div>
   </div>
 </div>
@@ -333,5 +294,6 @@
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
 <script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
+<script src="../../static/js/admin-js/admin-habilidades.js" th:src="@{/js/admin-js/admin-habilidades.js}"></script>
 </body>
 </html>

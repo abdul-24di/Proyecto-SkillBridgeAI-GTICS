@@ -21,4 +21,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             order by u.nombre asc, u.apellido asc
             """)
     List<Usuario> findActivosByRolNombre(@Param("rolNombre") String rolNombre);
+
+    @Query("""
+            select u
+            from Usuario u
+            join fetch u.rol r
+            order by u.fechaCreacion desc
+            """)
+    List<Usuario> findAllWithRol();
 }

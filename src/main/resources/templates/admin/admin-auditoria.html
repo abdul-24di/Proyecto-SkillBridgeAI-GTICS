@@ -53,7 +53,10 @@
           Registro de acciones sensibles realizadas por cualquier rol de la organización.
         </div>
       </div>
-      <button type="button" class="btn btn-outline-primary">Exportar CSV</button>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" form="auditFiltersForm" formaction="/admin/auditoria/exportar" th:formaction="@{/admin/auditoria/exportar}" class="btn btn-outline-primary">Exportar CSV</button>
+        <button type="submit" form="auditFiltersForm" formaction="/admin/auditoria/exportar-excel" th:formaction="@{/admin/auditoria/exportar-excel}" class="btn btn-outline-primary">Exportar Excel</button>
+      </div>
     </div>
 
     <div class="card section-card">
@@ -65,44 +68,42 @@
       </div>
 
       <div class="card-body border-bottom">
+        <form id="auditFiltersForm" method="get" th:action="@{/admin/auditoria}">
         <div class="row g-3 align-items-end">
           <div class="col-xl-5 col-md-6">
             <label for="auditSearch" class="form-label">Buscar usuario</label>
-            <input id="auditSearch" class="form-control" type="text" placeholder="Nombre o correo">
+            <input id="auditSearch" name="texto" class="form-control" type="text" placeholder="Nombre o correo" th:value="${texto}">
           </div>
           <div class="col-xl-3 col-md-6">
             <label for="auditRoleFilter" class="form-label">Rol</label>
-            <select id="auditRoleFilter" class="form-select">
+            <select id="auditRoleFilter" name="rol" class="form-select">
               <option value="all">Todos</option>
-              <option>Administrador</option>
-              <option>Resource Manager</option>
-              <option>Project Manager</option>
-              <option>Colaborador</option>
+              <option th:each="r : ${rolesDisponibles}" th:value="${r}" th:text="${r}" th:selected="${r == rol}"></option>
             </select>
           </div>
           <div class="col-xl-4 col-md-6">
             <label for="auditActionFilter" class="form-label">Tipo de acción</label>
-            <select id="auditActionFilter" class="form-select">
+            <select id="auditActionFilter" name="accion" class="form-select">
               <option value="all">Todas</option>
-              <option>Gestión de usuarios</option>
-              <option>Activación de cuenta</option>
-              <option>Asignaciones</option>
-              <option>Certificados</option>
-              <option>Configuración</option>
+              <option th:each="t : ${tiposAccion}" th:value="${t.valor()}" th:text="${t.etiqueta()}" th:selected="${t.valor() == accion}"></option>
             </select>
           </div>
           <div class="col-xl-3 col-md-6">
             <label for="auditDateFrom" class="form-label">Desde</label>
-            <input id="auditDateFrom" class="form-control" type="date">
+            <input id="auditDateFrom" name="desde" class="form-control" type="date" th:value="${desde}">
           </div>
           <div class="col-xl-3 col-md-6">
             <label for="auditDateTo" class="form-label">Hasta</label>
-            <input id="auditDateTo" class="form-control" type="date">
+            <input id="auditDateTo" name="hasta" class="form-control" type="date" th:value="${hasta}">
           </div>
           <div class="col-xl-3 col-md-6 d-grid">
-            <button type="button" class="btn btn-outline-secondary">Limpiar filtros</button>
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+          </div>
+          <div class="col-xl-3 col-md-6 d-grid">
+            <a class="btn btn-outline-secondary" th:href="@{/admin/auditoria}">Limpiar filtros</a>
           </div>
         </div>
+        </form>
       </div>
 
       <div class="table-responsive">
@@ -117,68 +118,22 @@
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="text-secondary">06 sep 2026, 09:12</td>
-              <td class="fw-semibold">Sofía Alarcón</td>
-              <td><span class="badge bg-azure-lt text-azure">Administrador</span></td>
-              <td><span class="badge bg-blue-lt text-blue">Gestión de usuarios</span></td>
-              <td class="text-secondary">Creó el usuario camila.rojas@skillbridge.com con rol Colaborador.</td>
+            <tr th:each="log : ${logs}">
+              <td class="text-secondary" th:text="${log.fecha()}">06 sep 2026, 09:12</td>
+              <td class="fw-semibold" th:text="${log.usuarioNombre()}">Sofía Alarcón</td>
+              <td><span class="badge" th:classappend="${log.rolBadgeClase()}" th:text="${log.rolEtiqueta()}">Administrador</span></td>
+              <td><span class="badge" th:classappend="${log.accionBadgeClase()}" th:text="${log.accionEtiqueta()}">Gestión de usuarios</span></td>
+              <td class="text-secondary" th:text="${log.detalle()}">Detalle...</td>
             </tr>
-            <tr>
-              <td class="text-secondary">06 sep 2026, 09:15</td>
-              <td class="fw-semibold">Sistema</td>
-              <td><span class="badge bg-secondary-lt text-secondary">Automático</span></td>
-              <td><span class="badge bg-green-lt text-green">Activación de cuenta</span></td>
-              <td class="text-secondary">Se envió el correo de activación a camila.rojas@skillbridge.com.</td>
-            </tr>
-            <tr>
-              <td class="text-secondary">05 sep 2026, 17:40</td>
-              <td class="fw-semibold">Abraham Ramirez</td>
-              <td><span class="badge bg-green-lt text-green">Resource Manager</span></td>
-              <td><span class="badge bg-purple-lt text-purple">Asignaciones</span></td>
-              <td class="text-secondary">Aprobó la asignación de Jorge Campos al proyecto "Sistema de Inventario".</td>
-            </tr>
-            <tr>
-              <td class="text-secondary">05 sep 2026, 15:02</td>
-              <td class="fw-semibold">Abraham Ramirez</td>
-              <td><span class="badge bg-green-lt text-green">Resource Manager</span></td>
-              <td><span class="badge bg-orange-lt text-orange">Certificados</span></td>
-              <td class="text-secondary">Rechazó el certificado "AWS Cloud Practitioner" de Renato Silva. Motivo: documento ilegible.</td>
-            </tr>
-            <tr>
-              <td class="text-secondary">28 ago 2026, 10:14</td>
-              <td class="fw-semibold">Sofía Alarcón</td>
-              <td><span class="badge bg-azure-lt text-azure">Administrador</span></td>
-              <td><span class="badge bg-red-lt text-red">Configuración</span></td>
-              <td class="text-secondary">Cambió MAX_ASIGNACIONES_POR_COLABORADOR de 2 a 3.</td>
-            </tr>
-            <tr>
-              <td class="text-secondary">27 ago 2026, 08:30</td>
-              <td class="fw-semibold">Paweł Kuna</td>
-              <td><span class="badge bg-yellow-lt text-yellow">Colaborador</span></td>
-              <td><span class="badge bg-green-lt text-green">Activación de cuenta</span></td>
-              <td class="text-secondary">Completó la activación de su cuenta y estableció su contraseña.</td>
-            </tr>
-            <tr>
-              <td class="text-secondary">20 ago 2026, 14:55</td>
-              <td class="fw-semibold">Sofía Alarcón</td>
-              <td><span class="badge bg-azure-lt text-azure">Administrador</span></td>
-              <td><span class="badge bg-blue-lt text-blue">Gestión de usuarios</span></td>
-              <td class="text-secondary">Desactivó al usuario Miguel Torres (miguel.torres@skillbridge.com).</td>
+            <tr th:if="${#lists.isEmpty(logs)}">
+              <td colspan="5" class="text-center text-secondary py-4">No hay acciones registradas con estos filtros.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <div class="pagination-wrap">
-        <div class="text-secondary small">Mostrando 7 de 214 acciones</div>
-        <ul class="pagination pagination-sm m-0">
-          <li class="page-item disabled"><span class="page-link">Anterior</span></li>
-          <li class="page-item active"><span class="page-link">1</span></li>
-          <li class="page-item"><a class="page-link" href="#">2</a></li>
-          <li class="page-item"><a class="page-link" href="#">3</a></li>
-          <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
-        </ul>
+        <div class="text-secondary small" th:text="'Mostrando ' + ${#lists.size(logs)} + ' acción(es)'">Mostrando 7 de 214 acciones</div>
       </div>
     </div>
 
@@ -187,5 +142,20 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
+<script th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var desde = document.getElementById("auditDateFrom");
+    var hasta = document.getElementById("auditDateTo");
+    if (!desde || !hasta) return;
+
+    function sincronizarRango() {
+      hasta.min = desde.value || "";
+      desde.max = hasta.value || "";
+    }
+    desde.addEventListener("change", sincronizarRango);
+    hasta.addEventListener("change", sincronizarRango);
+    sincronizarRango();
+  });
+</script>
 </body>
 </html>

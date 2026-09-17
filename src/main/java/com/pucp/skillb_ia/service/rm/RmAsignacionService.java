@@ -37,6 +37,7 @@ public class RmAsignacionService {
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     private final ConfiguracionSistemaRepository configuracionSistemaRepository;
     private final AuditoriaService auditoriaService;
+    private final RmPresupuestoService presupuestoService;
 
     public RmAsignacionService(
             AsignacionRepository asignacionRepository,
@@ -44,13 +45,15 @@ public class RmAsignacionService {
             UsuarioRepository usuarioRepository,
             ColaboradorHabilidadRepository colaboradorHabilidadRepository,
             ConfiguracionSistemaRepository configuracionSistemaRepository,
-            AuditoriaService auditoriaService) {
+            AuditoriaService auditoriaService,
+            RmPresupuestoService presupuestoService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.configuracionSistemaRepository = configuracionSistemaRepository;
         this.auditoriaService = auditoriaService;
+        this.presupuestoService = presupuestoService;
     }
 
     @Transactional(readOnly = true)
@@ -97,6 +100,9 @@ public class RmAsignacionService {
         Proyecto proyecto = obtenerProyectoAsignable(proyectoId);
         Usuario colaborador = obtenerColaborador(colaboradorId);
         validarHoras(horasSemanales);
+        // A20 / sección 13: nunca se propone sin presupuesto suficiente — el RM
+        // reserva el costo de inmediato porque proponerDesdeRm() auto-aprueba por el RM.
+        presupuestoService.validarPresupuestoSuficiente(proyecto, colaborador, horasSemanales);
 
         boolean yaTieneAsignacion = asignacionRepository
                 .existsByProyectoAndColaboradorAndEstadoIn(
@@ -135,6 +141,9 @@ public class RmAsignacionService {
         Usuario rm = obtenerRm(rmId);
         Asignacion asignacion = obtenerEntidad(asignacionId);
         validarDecisionRm(asignacion);
+        // Al aprobar, el RM reserva el costo de esta asignación (sección 6/7.1).
+        presupuestoService.validarPresupuestoSuficiente(
+                asignacion.getProyecto(), asignacion.getColaborador(), asignacion.getHorasSemanales());
 
         int activas = (int) asignacionRepository.countByColaboradorAndEstado(
                 asignacion.getColaborador(), EstadoAsignacion.ACTIVA);

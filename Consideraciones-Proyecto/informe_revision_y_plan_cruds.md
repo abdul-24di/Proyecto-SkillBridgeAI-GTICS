@@ -11,9 +11,20 @@ Enfoque acordado: **corregir-y-construir por épica**, no "corregir todo primero
 - Fundamento de backend: 28 entidades JPA + 28 repositories + Spring Security + `AuditoriaService`.
 - Auth real de punta a punta: login contra BD con redirección por rol, activación de cuenta con token, recuperación de contraseña con código, logout — todo probado en el navegador contra la BD real.
 
-**Siguiente al retomar: Fase 4** — conectar Usuarios/Habilidades/Configuración/Auditoría del Admin al backend real (el modal "Nuevo usuario" ya tiene el método `AuthService.invitarUsuario(...)` esperándolo). Ver "Próximos pasos inmediatos" al final de la sección 2.
+**Fase 4 — en curso**: CRUD de **Usuarios** y de **Habilidades** del Admin ya están construidos y verificados en el navegador.
+- Usuarios: crear individual, carga masiva CSV/Excel con validación estricta (todo-o-nada, sin cargas parciales), cambiar rol, desactivar/reactivar, reenviar activación. El rol Administrador está bloqueado por seguridad — no se puede crear ni asignar desde esta pantalla, ni desde el backend aunque se fuerce el request; solo existe por seed directo en la BD.
+- Habilidades: crear/editar/desactivar/reactivar, con validación de nombre duplicado dentro de la misma categoría. Las categorías son un catálogo fijo (igual que los roles) — se sembraron las 4 que ya mostraba el mockup (Técnico, Habilidades blandas, Certificación, Herramientas) directo en `skillbridge_db_v4.sql`, porque no había ninguna cargada.
 
-**Pendiente sin tocar todavía**: revisión de vistas PM/RM (checklist en la sección 3), y todo lo que dependa de eso (Fase 6 — Épica 4, la pieza más grande).
+- Configuración: los 3 parámetros globales se editan de verdad, con validación (si el valor actual es numérico, rechaza texto). "Última modificación" y el historial de cambios se arman a partir de `log_auditoria` real, sin agregar columnas nuevas.
+- Auditoría: lista real de `log_auditoria` con filtros por usuario, rol, **acción específica** (~45 códigos de acción mapeados a etiquetas legibles, ej. "Creó usuario", "Aprobó proyecto") y rango de fechas (con validación de que "Desde" no pueda ser posterior a "Hasta"). Exporta a CSV y a Excel, respetando los filtros aplicados.
+
+**Los 4 CRUDs del Admin quedaron completos y verificados en el navegador.** Épica 5 (Administración del Sistema) cerrada.
+
+Próximo paso: retomar el bug del sueldo del RM (ver especificación funcional de presupuesto que trajo el equipo) o, si el equipo prefiere, avanzar directo a Fase 5/6 (Colaborador/Proyectos), a decidir con el equipo.
+
+**Bug grande de infraestructura encontrado y corregido**: el equipo llevaba tiempo con **schema drift** entre el código Java (JPA) y el script `BDs_SQL/skillbridge_db_v4.sql` — varios compañeros habían agregado campos a las entidades sin actualizar el SQL, y viceversa. Esto causaba errores intermitentes tipo `Unknown column 'x' in 'field list'` que dependían de qué BD local tenía cada quien. Se hizo una auditoría completa comparando las 34 entidades contra el schema y se corrigieron **3 tablas enteras que faltaban** (`documento`, `educacion`, `solicitud_personal` — esta última ya tenía una migración escrita pero nunca aplicada) y **8 columnas faltantes** en tablas existentes. `skillbridge_db_v4.sql` ya quedó actualizado con todo esto, así que quien clone el repo desde cero y lo corra ya no debería toparse con este problema. Recomendación para el equipo: si alguien agrega un campo nuevo a una entidad, actualizar `skillbridge_db_v4.sql` en el mismo commit.
+
+**Pendiente sin tocar todavía**: revisión de vistas PM/RM (checklist en la sección 3), y todo lo que dependa de eso (Fase 6 — Épica 4, la pieza más grande). También quedó pendiente el bug reportado por el equipo de que el RM no podía ver el sueldo de los colaboradores en las pantallas de asignación/presupuesto (documentado por un compañero en una especificación funcional aparte) — se retoma después de terminar los CRUDs del Admin.
 
 ---
 
@@ -81,8 +92,8 @@ Orden propuesto, a validar en equipo. Cada fase corrige su parte de las vistas j
 | **1** | Corregir las correcciones de Auth, Colaborador y Admin de este informe (Auth primero — es estructural) | ✅ Hecho y verificado en el navegador |
 | **2** | Fundamento de backend: entidades JPA + repositories alineados al schema v4 (28 tablas — `rol`, `usuario`, `token_usuario`, `proyecto`, `asignacion`, `habilidad`, `certificado`, `foro`, `notificacion`, `log_auditoria`, etc.), Spring Security, `AuditoriaService` reutilizable | ✅ Hecho y verificado |
 | **3** | Épica 2 real: login contra BD, sesión, activación de cuenta con token de un solo uso, recuperación de contraseña con código | ✅ Hecho y verificado |
-| **4** | Épica 5 básica: usuarios (individual + carga masiva), catálogo de habilidades, configuración de parámetros, log de auditoría conectado de verdad | ▶️ Siguiente |
-| **5** | Épica 3: perfil del colaborador, habilidades (desde el catálogo del Admin), experiencia, disponibilidad, consulta de colaboradores para PM/RM | Por hacer |
+| **4** | Épica 5 básica: usuarios (individual + carga masiva), catálogo de habilidades, configuración de parámetros, log de auditoría conectado de verdad | ✅ Hecho y verificado |
+| **5** | Épica 3: perfil del colaborador, habilidades (desde el catálogo del Admin), experiencia, disponibilidad, consulta de colaboradores para PM/RM | ▶️ Siguiente (ya construido en gran parte por el equipo — ver nota abajo) |
 | **6** | Épica 4 — la pieza más grande: info y estado del proyecto, triple origen de asignación con doble aprobación (A4), solicitudes del colaborador (A2/A3), desasignación (A18), presupuesto (A20). Depende de que se corrijan las vistas de PM/RM primero | Por hacer |
 | **7** | Foro/Chat básico (sin votos) + AI Talent Matching con explicación — cierre del alcance Tier 1 | Por hacer |
 
@@ -127,12 +138,21 @@ src/main/java/com/pucp/skillb_ia/
 
 Además: `pom.xml` con `spring-boot-starter-security` agregado.
 
+### Qué se construyó en la Fase 4
+
+- **`AdminUsuarioService`** — crear individual (delega en `AuthService.invitarUsuario`), carga masiva por CSV o Excel (Apache POI) con roles por número (1=Colaborador, 2=Project Manager, 3=Resource Manager) y validación todo-o-nada, cambiar rol, desactivar/reactivar, reenviar activación. El rol Administrador está bloqueado por seguridad en el service (no solo oculto en la UI) — no se puede crear ni asignar desde esta pantalla.
+- **`AdminHabilidadService`** — CRUD de habilidades del catálogo (crear/editar/desactivar/reactivar) sobre categorías fijas (Técnico, Habilidades blandas, Certificación, Herramientas), sembradas en `skillbridge_db_v4.sql` porque no existían.
+- **`AdminConfiguracionService`** — edición de los 3 parámetros globales con validación de tipo, historial y "última modificación" armados desde `log_auditoria` real (sin columnas nuevas).
+- **`AdminAuditoriaService`** — listado filtrable por usuario, rol y ~45 códigos de acción específicos (con etiquetas legibles), exportación a CSV y Excel respetando los filtros aplicados.
+- **Bug de infraestructura encontrado y corregido**: schema drift entre las entidades JPA y `skillbridge_db_v4.sql` — 3 tablas completas (`documento`, `educacion`, `solicitud_personal`) y 8 columnas faltaban en el script SQL aunque el código Java ya las esperaba. Se corrigió el script para que una instalación nueva desde cero ya no tenga este problema.
+
 ### Próximos pasos inmediatos
 1. ~~Corregir Auth, Colaborador y Admin~~ — ✅ hecho y verificado.
 2. ~~Fase 2: entidades + repositories + Security~~ — ✅ hecho y verificado.
 3. ~~Fase 3: Auth real (login, activación, recuperación)~~ — ✅ hecho y verificado.
-4. Asignar la revisión de PM/RM usando el checklist de la sección 3 (sigue pendiente).
-5. Arrancar la Fase 4 (Épica 5 básica: usuarios, habilidades, configuración, auditoría conectados de verdad) — es lo que sigue en el plan. Ahí se conecta el modal "Nuevo usuario" del Admin a `AuthService.invitarUsuario(...)`, que ya existe y está probado.
+4. ~~Fase 4: Épica 5 — usuarios, habilidades, configuración, auditoría~~ — ✅ hecho y verificado.
+5. Retomar el bug del sueldo del RM (ver especificación funcional de presupuesto adjunta por el equipo) — pendiente de decidir alcance.
+6. Asignar la revisión de PM/RM usando el checklist de la sección 3 (sigue pendiente).
 
 ---
 

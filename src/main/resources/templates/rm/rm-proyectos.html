@@ -504,6 +504,17 @@
                        th:text="${item.presupuestoVisible != null ? 'S/ ' + #numbers.formatDecimal(item.presupuestoVisible, 1, 'COMMA', 2, 'POINT') : 'Sin definir'}">
                     Sin definir
                   </div>
+                  <div th:if="${item.proyecto.presupuesto != null}" class="mt-2">
+                    <div class="progress" style="height: 8px;">
+                      <div class="progress-bar" role="progressbar"
+                           th:style="'width: ' + ${item.resumenPresupuesto.porcentajeConsumido} + '%'"
+                           th:classappend="${item.resumenPresupuesto.porcentajeConsumido >= 90} ? 'bg-red' : (${item.resumenPresupuesto.porcentajeConsumido >= 70} ? 'bg-yellow' : 'bg-green')"></div>
+                    </div>
+                    <div class="small text-secondary mt-1"
+                         th:text="'Disponible: S/ ' + ${item.resumenPresupuesto.disponible} + ' (' + ${item.resumenPresupuesto.porcentajeConsumido} + '% consumido)'">
+                      Disponible
+                    </div>
+                  </div>
                 </div>
 
                 <div class="project-footer">

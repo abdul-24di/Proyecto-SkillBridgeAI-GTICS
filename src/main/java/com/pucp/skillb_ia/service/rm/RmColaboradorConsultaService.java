@@ -6,6 +6,7 @@ import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.ColaboradorHabilidad;
 import com.pucp.skillb_ia.model.Educacion;
 import com.pucp.skillb_ia.model.ExperienciaProfesional;
+import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
@@ -38,6 +39,7 @@ public class RmColaboradorConsultaService {
     private final ConfiguracionSistemaRepository configuracionSistemaRepository;
     private final ExperienciaProfesionalRepository experienciaProfesionalRepository;
     private final EducacionRepository educacionRepository;
+    private final RmPresupuestoService presupuestoService;
 
     public RmColaboradorConsultaService(
             UsuarioRepository usuarioRepository,
@@ -46,7 +48,8 @@ public class RmColaboradorConsultaService {
             CertificadoRepository certificadoRepository,
             ConfiguracionSistemaRepository configuracionSistemaRepository,
             ExperienciaProfesionalRepository experienciaProfesionalRepository,
-            EducacionRepository educacionRepository) {
+            EducacionRepository educacionRepository,
+            RmPresupuestoService presupuestoService) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.asignacionRepository = asignacionRepository;
@@ -54,6 +57,42 @@ public class RmColaboradorConsultaService {
         this.configuracionSistemaRepository = configuracionSistemaRepository;
         this.experienciaProfesionalRepository = experienciaProfesionalRepository;
         this.educacionRepository = educacionRepository;
+        this.presupuestoService = presupuestoService;
+    }
+
+    // Candidato + costo estimado para un proyecto concreto (sección 11 de la
+    // especificación de presupuesto). Solo se usa en la pantalla de búsqueda
+    // de candidatos del RM — el listado general de colaboradores no expone sueldo.
+    public record CandidatoConCosto(RmColaboradorResumen resumen, java.math.BigDecimal sueldoBase,
+                                     java.math.BigDecimal horasContratadas,
+                                     RmPresupuestoService.CostoAsignacion costoEstimado, boolean cabeEnPresupuesto) {
+    }
+
+    // Usado por la pantalla "Proponer asignación" para calcular el costo en
+    // vivo en el navegador (JS) al elegir colaborador + horas.
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, BigDecimal> mapaSueldosBase() {
+        return usuarioRepository.findActivosByRolNombre(ROL_COLABORADOR).stream()
+                .collect(java.util.stream.Collectors.toMap(Usuario::getId,
+                        u -> u.getSueldoBase() == null ? BigDecimal.ZERO : u.getSueldoBase()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<CandidatoConCosto> listarCandidatosParaProyecto(Proyecto proyecto) {
+        int maxAsignaciones = obtenerMaxAsignaciones();
+        RmPresupuestoService.ResumenPresupuesto resumenPresupuesto = presupuestoService.calcularResumen(proyecto);
+
+        return usuarioRepository.findActivosByRolNombre(ROL_COLABORADOR).stream()
+                .map(colaborador -> {
+                    RmColaboradorResumen resumen = crearResumen(colaborador, maxAsignaciones);
+                    RmPresupuestoService.CostoAsignacion costo = presupuestoService.calcularCosto(
+                            proyecto, colaborador, proyecto.getHorasSemanalesRequeridas());
+                    boolean cabe = costo.calculable()
+                            && costo.costoTotal().compareTo(resumenPresupuesto.disponible()) <= 0;
+                    return new CandidatoConCosto(resumen, colaborador.getSueldoBase(),
+                            colaborador.getHorasContratadasSemana(), costo, cabe);
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)

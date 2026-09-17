@@ -1,6 +1,7 @@
 package com.pucp.skillb_ia.dto;
 
 import com.pucp.skillb_ia.model.Proyecto;
+import com.pucp.skillb_ia.service.rm.RmPresupuestoService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,10 +17,12 @@ public class RmProyectoView {
     private final int pendientesRm;
     private final List<MiembroEquipo> equipo;
     private final List<RequisitoTalento> requisitos;
+    private final RmPresupuestoService.ResumenPresupuesto resumenPresupuesto;
 
     public RmProyectoView(Proyecto proyecto, String pmNombre, String estadoTexto, String prioridadTexto,
                           int integrantesActivos, int vacantes, int pendientesRm,
-                          List<MiembroEquipo> equipo, List<RequisitoTalento> requisitos) {
+                          List<MiembroEquipo> equipo, List<RequisitoTalento> requisitos,
+                          RmPresupuestoService.ResumenPresupuesto resumenPresupuesto) {
         this.proyecto = proyecto;
         this.pmNombre = pmNombre;
         this.estadoTexto = estadoTexto;
@@ -29,7 +32,10 @@ public class RmProyectoView {
         this.pendientesRm = pendientesRm;
         this.equipo = List.copyOf(equipo);
         this.requisitos = List.copyOf(requisitos);
+        this.resumenPresupuesto = resumenPresupuesto;
     }
+
+    public RmPresupuestoService.ResumenPresupuesto getResumenPresupuesto() { return resumenPresupuesto; }
 
     public Proyecto getProyecto() { return proyecto; }
     public String getPmNombre() { return pmNombre; }
@@ -86,15 +92,22 @@ public class RmProyectoView {
         private final String cargo;
         private final String nivel;
         private final BigDecimal horasSemanales;
+        private final BigDecimal costoSemanal;
+        private final BigDecimal costoTotal;
+        private final boolean costoCalculable;
 
         public MiembroEquipo(Long id, String nombre, String iniciales, String cargo,
-                             String nivel, BigDecimal horasSemanales) {
+                             String nivel, BigDecimal horasSemanales,
+                             BigDecimal costoSemanal, BigDecimal costoTotal, boolean costoCalculable) {
             this.id = id;
             this.nombre = nombre;
             this.iniciales = iniciales;
             this.cargo = cargo;
             this.nivel = nivel;
             this.horasSemanales = horasSemanales;
+            this.costoSemanal = costoSemanal;
+            this.costoTotal = costoTotal;
+            this.costoCalculable = costoCalculable;
         }
 
         public Long getId() { return id; }
@@ -103,6 +116,9 @@ public class RmProyectoView {
         public String getCargo() { return cargo; }
         public String getNivel() { return nivel; }
         public BigDecimal getHorasSemanales() { return horasSemanales; }
+        public BigDecimal getCostoSemanal() { return costoSemanal; }
+        public BigDecimal getCostoTotal() { return costoTotal; }
+        public boolean isCostoCalculable() { return costoCalculable; }
     }
 
     public static class RequisitoTalento {

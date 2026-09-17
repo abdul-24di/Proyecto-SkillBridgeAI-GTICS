@@ -19,13 +19,16 @@ public class RmProyectoConsultaService {
     private final ProyectoRepository proyectoRepository;
     private final AsignacionRepository asignacionRepository;
     private final ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository;
+    private final RmPresupuestoService presupuestoService;
 
     public RmProyectoConsultaService(ProyectoRepository proyectoRepository,
                                      AsignacionRepository asignacionRepository,
-                                     ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository) {
+                                     ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository,
+                                     RmPresupuestoService presupuestoService) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.habilidadRequeridaRepository = habilidadRequeridaRepository;
+        this.presupuestoService = presupuestoService;
     }
 
     @Transactional(readOnly = true)
@@ -54,7 +57,7 @@ public class RmProyectoConsultaService {
                 .count();
 
         List<RmProyectoView.MiembroEquipo> equipo = activas.stream()
-                .map(a -> crearMiembro(a.getColaborador(), a))
+                .map(a -> crearMiembro(a.getColaborador(), a, proyecto))
                 .toList();
 
         List<RmProyectoView.RequisitoTalento> requisitos = habilidadRequeridaRepository.findByProyecto(proyecto)
@@ -75,7 +78,8 @@ public class RmProyectoConsultaService {
                 vacantes,
                 pendientesRm,
                 equipo,
-                requisitos);
+                requisitos,
+                presupuestoService.calcularResumen(proyecto));
     }
 
     private boolean requiereDecisionRm(Asignacion asignacion) {
@@ -84,18 +88,23 @@ public class RmProyectoConsultaService {
                 || asignacion.getOrigen() == OrigenAsignacion.SOLICITADA_COLABORADOR;
     }
 
-    private RmProyectoView.MiembroEquipo crearMiembro(Usuario usuario, Asignacion asignacion) {
+    private RmProyectoView.MiembroEquipo crearMiembro(Usuario usuario, Asignacion asignacion, Proyecto proyecto) {
         String nivel = usuario.getNivelExperiencia() == null
                 ? "Sin definir"
                 : (usuario.getNivelExperiencia().name().equals("SEMI_SENIOR")
                     ? "Semi Senior" : textoEnum(usuario.getNivelExperiencia().name()));
+        RmPresupuestoService.CostoAsignacion costo =
+                presupuestoService.calcularCosto(proyecto, usuario, asignacion.getHorasSemanales());
         return new RmProyectoView.MiembroEquipo(
                 usuario.getId(),
                 nombreCompleto(usuario),
                 iniciales(usuario),
                 valor(usuario.getCargo(), "Cargo sin registrar"),
                 nivel,
-                asignacion.getHorasSemanales());
+                asignacion.getHorasSemanales(),
+                costo.costoSemanal(),
+                costo.costoTotal(),
+                costo.calculable());
     }
 
     private String nombreCompleto(Usuario usuario) {

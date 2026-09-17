@@ -79,6 +79,28 @@
       </div></div></div>
     </div>
 
+    <div class="card mb-4" th:if="${proyecto.proyecto.presupuesto != null}">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Resumen financiero</h3>
+          <div class="section-description">Presupuesto total, comprometido, reservado y disponible del proyecto.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="project-info-grid mb-3">
+          <div><div class="info-label">Presupuesto total</div><div class="info-value" th:text="'S/ ' + ${resumen.total}">S/ 0</div></div>
+          <div><div class="info-label">Comprometido (activas)</div><div class="info-value" th:text="'S/ ' + ${resumen.comprometido}">S/ 0</div></div>
+          <div><div class="info-label">Reservado (pendientes RM)</div><div class="info-value" th:text="'S/ ' + ${resumen.reservado}">S/ 0</div></div>
+          <div><div class="info-label">Disponible</div><div class="info-value text-success" th:text="'S/ ' + ${resumen.disponible}">S/ 0</div></div>
+        </div>
+        <div class="progress" style="height: 10px;">
+          <div class="progress-bar" role="progressbar" th:style="'width: ' + ${resumen.porcentajeConsumido} + '%'"
+               th:classappend="${resumen.porcentajeConsumido >= 90} ? 'bg-red' : (${resumen.porcentajeConsumido >= 70} ? 'bg-yellow' : 'bg-green')"></div>
+        </div>
+        <div class="small text-secondary mt-1" th:text="${resumen.porcentajeConsumido} + '% consumido'">0% consumido</div>
+      </div>
+    </div>
+
     <div class="card mb-4"
          th:if="${proyecto.proyecto.estado.name() == 'ACTIVO' or proyecto.proyecto.estado.name() == 'EN_ESPERA'}">
       <div class="card-header section-header">
@@ -148,12 +170,14 @@
             <div class="section-description">Colaboradores con una asignación activa.</div></div></div>
           <div class="table-responsive" th:if="${!#lists.isEmpty(proyecto.equipo)}">
             <table class="table table-vcenter card-table">
-              <thead><tr><th>Colaborador</th><th>Nivel</th><th>Horas/sem</th><th></th></tr></thead>
+              <thead><tr><th>Colaborador</th><th>Nivel</th><th>Horas/sem</th><th>Costo/sem</th><th>Costo total</th><th></th></tr></thead>
               <tbody><tr th:each="miembro : ${proyecto.equipo}">
                 <td><div class="d-flex align-items-center gap-2"><span class="avatar team-avatar bg-blue-lt text-blue" th:text="${miembro.iniciales}">CO</span>
                   <div><div class="fw-semibold" th:text="${miembro.nombre}">Nombre</div><div class="small text-secondary" th:text="${miembro.cargo}">Cargo</div></div></div></td>
                 <td th:text="${miembro.nivel}">Nivel</td>
                 <td th:text="|${miembro.horasSemanales} h|">0 h</td>
+                <td th:text="${miembro.costoCalculable} ? ('S/ ' + ${miembro.costoSemanal}) : '—'">S/ 0</td>
+                <td th:text="${miembro.costoCalculable} ? ('S/ ' + ${miembro.costoTotal}) : '—'">S/ 0</td>
                 <td><a class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${miembro.id})}">Ver</a></td>
               </tr></tbody>
             </table>

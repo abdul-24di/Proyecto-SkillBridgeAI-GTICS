@@ -65,6 +65,7 @@ class RmAsignacionTests {
         colaborador.setCargo("Backend Developer");
         colaborador.setHorasDisponibles(new BigDecimal("20.00"));
         colaborador.setHorasContratadasSemana(new BigDecimal("40.00"));
+        colaborador.setSueldoBase(new BigDecimal("4800.00"));
         usuarioRepository.save(colaborador);
 
         proyecto = new Proyecto();
@@ -75,6 +76,11 @@ class RmAsignacionTests {
         proyecto.setJustificacionPrioridad("Validación del flujo de asignaciones.");
         proyecto.setColaboradoresRequeridos(3);
         proyecto.setPm(pm);
+        // Presupuesto y fechas necesarios para que RmPresupuestoService pueda
+        // calcular costo y validar suficiencia (feature de presupuesto del RM).
+        proyecto.setPresupuesto(new BigDecimal("100000.00"));
+        proyecto.setFechaInicio(java.time.LocalDate.now());
+        proyecto.setFechaFinEstimada(java.time.LocalDate.now().plusMonths(3));
         proyecto = proyectoRepository.save(proyecto);
     }
 
@@ -202,7 +208,7 @@ class RmAsignacionTests {
                         .param("proyectoId", proyecto.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("rm/rm-buscar-colaboradores-proyecto"))
-                .andExpect(model().attributeExists("proyecto", "colaboradores"));
+                .andExpect(model().attributeExists("proyecto", "candidatos"));
 
         Asignacion pendientePm = guardarPendiente(
                 OrigenAsignacion.PROPUESTA_RM, false, true, "8");

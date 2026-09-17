@@ -26,13 +26,13 @@
             <div class="mb-3"><label for="proyectoId" class="form-label">Proyecto</label>
               <select id="proyectoId" name="proyectoId" class="form-select" required>
                 <option value="">Selecciona un proyecto</option>
-                <option th:each="proyecto : ${proyectos}" th:value="${proyecto.id}" th:selected="${proyectoSeleccionadoId != null and proyectoSeleccionadoId == proyecto.id}" th:text="|${proyecto.nombre} — PM: ${proyecto.pm.nombre} ${proyecto.pm.apellido} (${proyecto.estado})|">Proyecto</option>
+                <option th:each="proyecto : ${proyectos}" th:value="${proyecto.id}" th:selected="${proyectoSeleccionadoId != null and proyectoSeleccionadoId == proyecto.id}" th:text="|${proyecto.nombre} — PM: ${proyecto.pm.nombre} ${proyecto.pm.apellido} (${proyecto.estado})|" th:attr="data-fecha-inicio=${proyecto.fechaInicio},data-fecha-fin=${proyecto.fechaFinEstimada},data-disponible=${disponiblePorProyecto.get(proyecto.id)}">Proyecto</option>
               </select>
             </div>
             <div class="mb-3"><label for="colaboradorId" class="form-label">Colaborador</label>
               <select id="colaboradorId" name="colaboradorId" class="form-select" required>
                 <option value="">Selecciona un colaborador</option>
-                <option th:each="colaborador : ${colaboradores}" th:value="${colaborador.id}" th:selected="${colaboradorSeleccionadoId != null and colaboradorSeleccionadoId == colaborador.id}" th:text="|${colaborador.nombreCompleto} — ${colaborador.cargo} — ${colaborador.horasDisponibles} h disponibles — carga ${colaborador.asignacionesActivas}/${colaborador.maxAsignaciones}|">Colaborador</option>
+                <option th:each="colaborador : ${colaboradores}" th:value="${colaborador.id}" th:selected="${colaboradorSeleccionadoId != null and colaboradorSeleccionadoId == colaborador.id}" th:text="|${colaborador.nombreCompleto} — ${colaborador.cargo} — ${colaborador.horasDisponibles} h disponibles — carga ${colaborador.asignacionesActivas}/${colaborador.maxAsignaciones}|" th:attr="data-sueldo=${sueldosPorColaborador.get(colaborador.id)}">Colaborador</option>
               </select>
             </div>
             <div class="mb-3"><label for="horasSemanales" class="form-label">Horas semanales propuestas</label><div class="input-group"><input id="horasSemanales" name="horasSemanales" type="number" min="0.5" max="168" step="0.5" class="form-control" required><span class="input-group-text">h / semana</span></div></div>
@@ -40,7 +40,14 @@
             <div><label for="motivoCapacidad" class="form-label">Justificación de excepción de capacidad</label><textarea id="motivoCapacidad" name="motivoCapacidad" class="form-control" rows="3" maxlength="300" placeholder="Obligatoria solamente si supera su disponibilidad o el máximo de asignaciones."></textarea><div class="form-hint">El RM puede continuar aunque se supere el límite, pero debe dejar el motivo registrado.</div></div>
           </div>
         </div></div>
-        <div class="col-lg-5"><div class="card section-card">
+        <div class="col-lg-5">
+        <div class="card section-card mb-3">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Impacto en el presupuesto</h3><div class="section-description">Se actualiza al elegir proyecto, colaborador y horas.</div></div></div>
+          <div class="card-body" id="impactoPresupuesto">
+            <div class="small text-secondary">Selecciona un proyecto y un colaborador para calcular el costo.</div>
+          </div>
+        </div>
+        <div class="card section-card">
           <div class="card-header section-header"><div><h3 class="card-title mb-1">Flujo de aprobación</h3><div class="section-description">Reglas aplicadas automáticamente.</div></div></div>
           <div class="card-body">
             <div class="approval-step"><span class="approval-dot bg-green-lt text-green">✓</span><div><div class="fw-semibold">Resource Manager</div><div class="small text-secondary">Queda aprobado al enviar la propuesta.</div></div></div>
@@ -49,8 +56,82 @@
           </div>
         </div></div>
       </div>
-      <div class="action-bar"><a class="btn btn-outline-secondary" th:href="@{/rm/asignaciones}">Cancelar</a><button class="btn btn-primary" type="submit" th:disabled="${#lists.isEmpty(proyectos) or #lists.isEmpty(colaboradores)}">Enviar propuesta al PM</button></div>
+      <div class="action-bar"><a class="btn btn-outline-secondary" th:href="@{/rm/asignaciones}">Cancelar</a><button id="submitPropuestaBtn" class="btn btn-primary" type="submit" th:disabled="${#lists.isEmpty(proyectos) or #lists.isEmpty(colaboradores)}">Enviar propuesta al PM</button></div>
     </form>
   </main>
-</div><script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body>
+</div><script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
+<script th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var proyectoSelect = document.getElementById("proyectoId");
+    var colaboradorSelect = document.getElementById("colaboradorId");
+    var horasInput = document.getElementById("horasSemanales");
+    var panel = document.getElementById("impactoPresupuesto");
+    var submitBtn = document.getElementById("submitPropuestaBtn");
+    if (!proyectoSelect || !colaboradorSelect || !horasInput || !panel) return;
+
+    function numero(valor) {
+      var n = parseFloat(valor);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function formatoSoles(n) {
+      return "S/ " + n.toFixed(2);
+    }
+
+    function calcular() {
+      var opcionProyecto = proyectoSelect.options[proyectoSelect.selectedIndex];
+      var opcionColaborador = colaboradorSelect.options[colaboradorSelect.selectedIndex];
+
+      if (!opcionProyecto || !opcionProyecto.value || !opcionColaborador || !opcionColaborador.value) {
+        panel.innerHTML = '<div class="small text-secondary">Selecciona un proyecto y un colaborador para calcular el costo.</div>';
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+
+      var sueldo = numero(opcionColaborador.dataset.sueldo);
+      var horas = numero(horasInput.value);
+      var disponible = numero(opcionProyecto.dataset.disponible);
+      var fechaInicio = opcionProyecto.dataset.fechaInicio;
+      var fechaFin = opcionProyecto.dataset.fechaFin;
+
+      if (!sueldo || !fechaInicio || !fechaFin) {
+        panel.innerHTML = '<div class="small text-danger">No se puede calcular: falta el sueldo base del colaborador o las fechas del proyecto.</div>';
+        if (submitBtn) submitBtn.disabled = true;
+        return;
+      }
+      if (horas <= 0) {
+        panel.innerHTML = '<div class="small text-secondary">Ingresa las horas semanales para ver el costo.</div>';
+        return;
+      }
+
+      var dias = (new Date(fechaFin) - new Date(fechaInicio)) / (1000 * 60 * 60 * 24);
+      var duracionSemanas = Math.max(dias, 0) / 7;
+      var valorHora = sueldo / 160;
+      var costoSemanal = valorHora * horas;
+      var costoTotal = costoSemanal * duracionSemanas;
+      var disponibleDespues = disponible - costoTotal;
+      var suficiente = disponibleDespues >= 0;
+
+      panel.innerHTML =
+        '<div class="d-flex justify-content-between"><span class="text-secondary">Valor por hora</span><strong>' + formatoSoles(valorHora) + '</strong></div>' +
+        '<div class="d-flex justify-content-between"><span class="text-secondary">Costo semanal</span><strong>' + formatoSoles(costoSemanal) + '</strong></div>' +
+        '<div class="d-flex justify-content-between"><span class="text-secondary">Duración del proyecto</span><strong>' + duracionSemanas.toFixed(1) + ' semanas</strong></div>' +
+        '<div class="d-flex justify-content-between"><span class="text-secondary">Costo total estimado</span><strong>' + formatoSoles(costoTotal) + '</strong></div>' +
+        '<hr class="my-2">' +
+        '<div class="d-flex justify-content-between"><span class="text-secondary">Disponible antes</span><span>' + formatoSoles(disponible) + '</span></div>' +
+        '<div class="d-flex justify-content-between"><span class="text-secondary">Disponible después</span><strong class="' + (suficiente ? 'text-success' : 'text-danger') + '">' + formatoSoles(Math.max(disponibleDespues, 0)) + '</strong></div>' +
+        (suficiente
+          ? '<div class="alert alert-success mt-2 mb-0 py-2 small">Presupuesto suficiente.</div>'
+          : '<div class="alert alert-danger mt-2 mb-0 py-2 small">Presupuesto insuficiente: faltan ' + formatoSoles(Math.abs(disponibleDespues)) + '.</div>');
+
+      if (submitBtn) submitBtn.disabled = !suficiente;
+    }
+
+    proyectoSelect.addEventListener("change", calcular);
+    colaboradorSelect.addEventListener("change", calcular);
+    horasInput.addEventListener("input", calcular);
+    calcular();
+  });
+</script>
+</body>
 </html>

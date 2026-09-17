@@ -72,6 +72,7 @@ class RmDashboardTests {
         RmReporteService reporteService = mock(RmReporteService.class);
         RmReporteExportService reporteExportService = mock(RmReporteExportService.class);
         RmCursoService cursoService = mock(RmCursoService.class);
+        RmPresupuestoService presupuestoService = mock(RmPresupuestoService.class);
 
         RmAsignacionView postulacion = asignacion(
                 OrigenAsignacion.SOLICITADA_COLABORADOR, false, true);
@@ -94,7 +95,7 @@ class RmDashboardTests {
         RmViewController controller = new RmViewController(
                 perfilService, colaboradorService, proyectoService, revisionService,
                 asignacionService, solicitudService, certificadoService, foroService,
-                reporteService, reporteExportService, cursoService);
+                reporteService, reporteExportService, cursoService, presupuestoService);
         ConcurrentModel model = new ConcurrentModel();
 
         assertEquals("rm/rm-dashboard", controller.dashboard(model));
@@ -136,8 +137,10 @@ class RmDashboardTests {
                                     Prioridad prioridad, int integrantes,
                                     int vacantes, int pendientesRm) {
         Proyecto proyecto = entidadProyecto(nombre, estado, prioridad, integrantes + vacantes);
+        RmPresupuestoService.ResumenPresupuesto resumen = new RmPresupuestoService.ResumenPresupuesto(
+                BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0);
         return new RmProyectoView(proyecto, "PM Test", nombreEstado(estado),
-                prioridad.name(), integrantes, vacantes, pendientesRm, List.of(), List.of());
+                prioridad.name(), integrantes, vacantes, pendientesRm, List.of(), List.of(), resumen);
     }
 
     private Proyecto entidadProyecto(String nombre, EstadoProyecto estado,

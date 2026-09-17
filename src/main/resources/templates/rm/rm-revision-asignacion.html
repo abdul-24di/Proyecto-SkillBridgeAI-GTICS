@@ -36,10 +36,22 @@
           <div th:unless="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-success mt-4 mb-0">La carga y disponibilidad están dentro de los límites registrados.</div>
         </div></div>
 
+        <div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Impacto en el presupuesto</h3><div class="section-description">Costo estimado de esta asignación para el proyecto.</div></div></div><div class="card-body">
+          <div th:if="${!impacto.costo.calculable}" class="alert alert-warning mb-0">No se puede calcular el costo: falta el sueldo base del colaborador o las fechas de inicio/fin del proyecto.</div>
+          <div th:if="${impacto.costo.calculable}">
+            <div class="info-grid"><div><div class="label-small">Valor por hora</div><div class="value-strong" th:text="'S/ ' + ${impacto.costo.valorHora}">S/ 0</div></div><div><div class="label-small">Costo semanal</div><div class="value-strong" th:text="'S/ ' + ${impacto.costo.costoSemanal}">S/ 0</div></div><div><div class="label-small">Duración del proyecto</div><div class="value-strong" th:text="${impacto.costo.duracionSemanas} + ' semanas'">0</div></div><div><div class="label-small">Costo total estimado</div><div class="value-strong" th:text="'S/ ' + ${impacto.costo.costoTotal}">S/ 0</div></div></div>
+            <hr>
+            <div class="d-flex justify-content-between"><span class="text-secondary">Presupuesto disponible antes</span><span th:text="'S/ ' + ${impacto.resumen.disponible}">S/ 0</span></div>
+            <div class="d-flex justify-content-between"><span class="text-secondary">Presupuesto disponible después</span><strong th:classappend="${impacto.suficiente} ? 'text-success' : 'text-danger'" th:text="'S/ ' + ${impacto.disponibleDespues}">S/ 0</strong></div>
+            <div th:if="${impacto.suficiente}" class="alert alert-success mt-3 mb-0">Hay presupuesto suficiente para aprobar.</div>
+            <div th:unless="${impacto.suficiente}" class="alert alert-danger mt-3 mb-0" th:text="'Presupuesto insuficiente: faltan S/ ' + ${impacto.deficit} + '. No se puede aprobar hasta aumentar el presupuesto del proyecto.'">Insuficiente</div>
+          </div>
+        </div></div>
+
         <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Decisión del RM</h3><div class="section-description">El rechazo requiere motivo. La excepción de capacidad requiere justificación.</div></div></div><div class="card-body">
           <form class="mb-4" method="post" th:action="@{/rm/asignaciones/{id}/aprobar(id=${asignacion.asignacion.id})}">
             <label for="motivoCapacidad" class="form-label">Justificación de excepción</label><textarea id="motivoCapacidad" name="motivoCapacidad" maxlength="300" rows="3" class="form-control" th:required="${asignacion.superaLimite or asignacion.superaDisponibilidad}" placeholder="Completa este campo si se excede la capacidad."></textarea>
-            <button type="submit" class="btn btn-primary w-100 mt-3">Aprobar asignación</button>
+            <button type="submit" class="btn btn-primary w-100 mt-3" th:disabled="${!impacto.suficiente}">Aprobar asignación</button>
           </form>
           <form method="post" th:action="@{/rm/asignaciones/{id}/rechazar(id=${asignacion.asignacion.id})}">
             <label for="motivo" class="form-label">Motivo del rechazo</label><textarea id="motivo" name="motivo" maxlength="300" rows="3" class="form-control" required placeholder="Explica por qué no se aprueba."></textarea>

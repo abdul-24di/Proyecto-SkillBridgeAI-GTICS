@@ -119,6 +119,14 @@ CREATE TABLE categoria_habilidad (
     activa      BOOLEAN NOT NULL DEFAULT TRUE
 ) ENGINE=InnoDB;
 
+-- Categorías fijas del catálogo (igual que `rol`, no se crean desde la UI del
+-- Admin — solo se gestionan las habilidades dentro de ellas).
+INSERT INTO categoria_habilidad (nombre, descripcion) VALUES
+    ('Técnico', 'Lenguajes, frameworks y tecnologías'),
+    ('Habilidades blandas', 'Comunicación, liderazgo, trabajo en equipo'),
+    ('Certificación', 'Certificaciones profesionales'),
+    ('Herramientas', 'Herramientas y software de apoyo');
+
 CREATE TABLE habilidad (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     nombre          VARCHAR(100) NOT NULL,
@@ -142,6 +150,7 @@ CREATE TABLE colaborador_habilidad (
     habilidad_id        BIGINT NOT NULL,
     nivel_dominio       VARCHAR(20) NOT NULL,
     estado_validacion   VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    activo              BOOLEAN NOT NULL DEFAULT TRUE,
 
     PRIMARY KEY (colaborador_id, habilidad_id),
 
@@ -261,6 +270,7 @@ CREATE TABLE asignacion (
     habilidades_relevantes VARCHAR(500) NULL,
     origen              VARCHAR(30) NOT NULL,
     mensaje_solicitud   VARCHAR(500) NULL,
+    habilidad_solicitada_id BIGINT NULL,
     estado              VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE',
     aprobado_por_pm     BOOLEAN NOT NULL DEFAULT FALSE,
     aprobado_por_rm     BOOLEAN NOT NULL DEFAULT FALSE,
@@ -278,6 +288,7 @@ CREATE TABLE asignacion (
     CONSTRAINT fk_asignacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
     CONSTRAINT fk_asignacion_rechazado_por FOREIGN KEY (rechazado_por) REFERENCES usuario(id),
     CONSTRAINT fk_asignacion_desasignado_por FOREIGN KEY (desasignado_por) REFERENCES usuario(id),
+    CONSTRAINT fk_asignacion_habilidad_solicitada FOREIGN KEY (habilidad_solicitada_id) REFERENCES habilidad(id),
 
     CONSTRAINT chk_asignacion_origen
         CHECK (origen IN ('PROPUESTA_PM','PROPUESTA_RM','SOLICITADA_COLABORADOR')),
@@ -314,6 +325,8 @@ CREATE TABLE actividad (
     estado_entrega          VARCHAR(10) NULL,
     veces_devuelta          INT NOT NULL DEFAULT 0,
     comentario_devolucion   VARCHAR(300) NULL,
+    evidencia_url           VARCHAR(500) NULL,
+    comentario_colaborador  VARCHAR(300) NULL,
     estado                  VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
     creado_por              BIGINT NOT NULL,
 
@@ -361,6 +374,8 @@ CREATE TABLE colaborador_curso (
     origen              VARCHAR(25) NOT NULL,
     estado              VARCHAR(20) NOT NULL DEFAULT 'SOLICITADO',
     asignado_por        BIGINT NULL,
+    motivo_respuesta            VARCHAR(500) NULL,
+    justificacion_colaborador   VARCHAR(500) NULL,
     fecha_solicitud     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_respuesta     DATETIME NULL,
     fecha_completado    DATETIME NULL,
@@ -469,6 +484,7 @@ CREATE TABLE publicacion_foro (
     etiqueta_id     BIGINT NULL,
     titulo          VARCHAR(200) NOT NULL,
     contenido       TEXT NOT NULL,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_publicacion_foro FOREIGN KEY (foro_id) REFERENCES foro(id),
@@ -487,6 +503,7 @@ CREATE TABLE respuesta_foro (
     autor_id        BIGINT NOT NULL,
     contenido       TEXT NOT NULL,
     es_solucion     BOOLEAN NOT NULL DEFAULT FALSE,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_respuesta_publicacion FOREIGN KEY (publicacion_id) REFERENCES publicacion_foro(id),
@@ -602,6 +619,78 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion) VALUES
     ('MAX_ASIGNACIONES_POR_COLABORADOR', '3', 'Límite de asignaciones activas simultáneas por colaborador'),
     ('TOPE_HORAS_EXTRA_BONO', '20', 'Máximo de horas extra pagables como bono por mes'),
     ('NOMBRE_ORGANIZACION', 'SkillBridge AI', 'Nombre visible de la organización');
+
+
+-- =====================================================================
+-- 25A. DOCUMENTOS DEL PROYECTO
+-- =====================================================================
+
+CREATE TABLE documento (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    proyecto_id     BIGINT NOT NULL,
+    subido_por_id   BIGINT NOT NULL,
+    nombre          VARCHAR(200) NOT NULL,
+    categoria       VARCHAR(20) NOT NULL,
+    archivo_url     VARCHAR(500) NOT NULL,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_documento_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
+    CONSTRAINT fk_documento_usuario FOREIGN KEY (subido_por_id) REFERENCES usuario(id)
+) ENGINE=InnoDB;
+
+
+-- =====================================================================
+-- 25B. EDUCACIÓN DEL COLABORADOR
+-- =====================================================================
+
+CREATE TABLE educacion (
+    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    colaborador_id  BIGINT NOT NULL,
+    institucion     VARCHAR(150) NOT NULL,
+    titulo          VARCHAR(150) NOT NULL,
+    archivo_url     VARCHAR(500) NULL,
+    fecha_inicio    DATE NULL,
+    fecha_fin       DATE NULL,
+    actual          BOOLEAN NOT NULL DEFAULT FALSE,
+    estado          VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    motivo_rechazo  VARCHAR(300) NULL,
+    revisado_por    BIGINT NULL,
+    activo          BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_revision  DATETIME NULL,
+
+    CONSTRAINT fk_educacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
+    CONSTRAINT fk_educacion_revisor FOREIGN KEY (revisado_por) REFERENCES usuario(id)
+) ENGINE=InnoDB;
+
+
+-- =====================================================================
+-- 25C. SOLICITUDES DE PERSONAL (PM -> RM)
+-- Antes vivía en BDs_SQL/migracion_solicitud_personal.sql como migración
+-- aparte para BDs ya creadas; una instalación nueva la recibe aquí directo.
+-- =====================================================================
+
+CREATE TABLE solicitud_personal (
+    id                       BIGINT AUTO_INCREMENT PRIMARY KEY,
+    proyecto_id              BIGINT NOT NULL,
+    cantidad_colaboradores   INT NOT NULL,
+    perfiles_requeridos      VARCHAR(1000) NULL,
+    mensaje_pm               VARCHAR(1000) NULL,
+    estado                   VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
+    rm_responsable_id        BIGINT NULL,
+    fecha_solicitud          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_inicio_atencion    DATETIME NULL,
+    fecha_atencion           DATETIME NULL,
+
+    CONSTRAINT fk_solpersonal_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
+    CONSTRAINT fk_solpersonal_rm FOREIGN KEY (rm_responsable_id) REFERENCES usuario(id),
+    CONSTRAINT chk_solpersonal_cantidad CHECK (cantidad_colaboradores > 0),
+    CONSTRAINT chk_solpersonal_estado CHECK (estado IN ('PENDIENTE','EN_ATENCION','ATENDIDA','CANCELADA')),
+
+    INDEX idx_solpersonal_estado_fecha (estado, fecha_solicitud),
+    INDEX idx_solpersonal_proyecto (proyecto_id)
+) ENGINE=InnoDB;
 
 
 -- =====================================================================

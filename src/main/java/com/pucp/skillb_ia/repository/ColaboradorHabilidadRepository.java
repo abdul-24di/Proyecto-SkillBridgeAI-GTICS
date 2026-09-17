@@ -18,4 +18,6 @@ public interface ColaboradorHabilidadRepository extends JpaRepository<Colaborado
     Optional<ColaboradorHabilidad> findByColaboradorAndHabilidad(
             Usuario colaborador, Habilidad habilidad);
 
+    long countByHabilidadAndActivoTrue(Habilidad habilidad);
+
 }

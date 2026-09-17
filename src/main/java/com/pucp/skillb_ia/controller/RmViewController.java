@@ -29,6 +29,7 @@ import com.pucp.skillb_ia.service.rm.RmForoConsultaService;
 import com.pucp.skillb_ia.service.rm.RmReporteExportService;
 import com.pucp.skillb_ia.service.rm.RmReporteService;
 import com.pucp.skillb_ia.service.rm.RmCursoService;
+import com.pucp.skillb_ia.service.rm.RmPresupuestoService;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -61,6 +62,7 @@ public class RmViewController {
     private final RmReporteService rmReporteService;
     private final RmReporteExportService rmReporteExportService;
     private final RmCursoService rmCursoService;
+    private final RmPresupuestoService rmPresupuestoService;
 
     public RmViewController(
             RmPerfilService rmPerfilService,
@@ -73,7 +75,8 @@ public class RmViewController {
             RmForoConsultaService rmForoConsultaService,
             RmReporteService rmReporteService,
             RmReporteExportService rmReporteExportService,
-            RmCursoService rmCursoService) {
+            RmCursoService rmCursoService,
+            RmPresupuestoService rmPresupuestoService) {
         this.rmPerfilService = rmPerfilService;
         this.rmColaboradorConsultaService = rmColaboradorConsultaService;
         this.rmProyectoConsultaService = rmProyectoConsultaService;
@@ -85,6 +88,7 @@ public class RmViewController {
         this.rmReporteService = rmReporteService;
         this.rmReporteExportService = rmReporteExportService;
         this.rmCursoService = rmCursoService;
+        this.rmPresupuestoService = rmPresupuestoService;
     }
 
     @GetMapping({"", "/"})
@@ -177,7 +181,9 @@ public class RmViewController {
             Model model) {
         if (proyectoId == null) return "redirect:/rm/proyectos";
         try {
-            model.addAttribute("proyecto", rmProyectoConsultaService.obtener(proyectoId));
+            RmProyectoView proyecto = rmProyectoConsultaService.obtener(proyectoId);
+            model.addAttribute("proyecto", proyecto);
+            model.addAttribute("resumen", proyecto.getResumenPresupuesto());
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/proyectos?noEncontrado=true";
         }
@@ -292,7 +298,8 @@ public class RmViewController {
                 return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
             }
             model.addAttribute("proyecto", proyecto);
-            model.addAttribute("colaboradores", rmColaboradorConsultaService.listarColaboradoresActivos());
+            model.addAttribute("candidatos",
+                    rmColaboradorConsultaService.listarCandidatosParaProyecto(proyecto.getProyecto()));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/proyectos?noEncontrado=true";
         }
@@ -304,8 +311,15 @@ public class RmViewController {
             @RequestParam(name = "proyectoId", required = false) Long proyectoId,
             @RequestParam(name = "colaboradorId", required = false) Long colaboradorId,
             Model model) {
-        model.addAttribute("proyectos", rmAsignacionService.listarProyectosAsignables());
+        List<com.pucp.skillb_ia.model.Proyecto> proyectos = rmAsignacionService.listarProyectosAsignables();
+        java.util.Map<Long, BigDecimal> disponiblePorProyecto = proyectos.stream()
+                .collect(java.util.stream.Collectors.toMap(com.pucp.skillb_ia.model.Proyecto::getId,
+                        p -> rmPresupuestoService.calcularResumen(p).disponible()));
+
+        model.addAttribute("proyectos", proyectos);
         model.addAttribute("colaboradores", rmColaboradorConsultaService.listarColaboradoresActivos());
+        model.addAttribute("sueldosPorColaborador", rmColaboradorConsultaService.mapaSueldosBase());
+        model.addAttribute("disponiblePorProyecto", disponiblePorProyecto);
         model.addAttribute("proyectoSeleccionadoId", proyectoId);
         model.addAttribute("colaboradorSeleccionadoId", colaboradorId);
         return "rm/rm-proponer-asignacion";
@@ -612,6 +626,9 @@ public class RmViewController {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
             if (!asignacion.isRequiereDecisionRm()) return redirectDetalleAsignacion(asignacion);
             model.addAttribute("asignacion", asignacion);
+            model.addAttribute("impacto", rmPresupuestoService.calcularImpacto(
+                    asignacion.getAsignacion().getProyecto(), asignacion.getAsignacion().getColaborador(),
+                    asignacion.getAsignacion().getHorasSemanales()));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
@@ -627,6 +644,9 @@ public class RmViewController {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
             if (!asignacion.isRequiereDecisionRm()) return redirectDetalleAsignacion(asignacion);
             model.addAttribute("asignacion", asignacion);
+            model.addAttribute("impacto", rmPresupuestoService.calcularImpacto(
+                    asignacion.getAsignacion().getProyecto(), asignacion.getAsignacion().getColaborador(),
+                    asignacion.getAsignacion().getHorasSemanales()));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }

@@ -34,9 +34,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/css/**", "/js/**", "/img/**", "/uploads/**", "/favicon.ico", "/tabler/**", "/documentos/**", "/plantillas/**").permitAll()
                 .requestMatchers("/login", "/auth/**", "/reset-password", "/activate").permitAll()
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .requestMatchers("/pm/**").hasRole("PM")
-                .requestMatchers("/rm/**").hasRole("RM")
+                .requestMatchers("/admin/**").hasRole("ADMINISTRADOR")
+                .requestMatchers("/pm/**").hasRole("PROJECT_MANAGER")
+                .requestMatchers("/rm/**").hasRole("RESOURCE_MANAGER")
                 .requestMatchers("/colaborador/**").hasRole("COLABORADOR")
                 .anyRequest().authenticated()
             )

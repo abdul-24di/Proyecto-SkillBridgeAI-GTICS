@@ -29,7 +29,7 @@ public class PublicacionForo {
     private String titulo;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String contenido;
 
     @Column(name = "fecha_creacion", nullable = false, updatable = false)

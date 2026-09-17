@@ -1,14 +1,150 @@
-<!doctype html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SkillBridge AI — Reporte de Proyecto</title><link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}"><link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}"><link rel="stylesheet" href="../../static/css/pm-css/pm-reporte-proyecto.css" th:href="@{/css/pm-css/pm-reporte-proyecto.css}"><link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}"></head>
-<body><div class="app-shell"><header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('reportes')}"></header><main class="page-wrap">
-<div class="breadcrumb-wrap"><a th:href="@{/pm/proyectos}" class="breadcrumb-link">Mis Proyectos</a><span class="breadcrumb-separator">›</span><a th:href="@{/pm/proyectos/detalle(id=${reporte.proyecto.id})}" class="breadcrumb-link" th:text="${reporte.proyecto.nombre}">Sistema de Inventario</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Reporte</span></div>
-<div class="page-head page-head-stack-mobile"><div><h1 class="page-title">Reporte del Proyecto</h1><div class="text-secondary">Sistema de Inventario · Septiembre 2026</div></div><div class="report-actions"><button class="btn btn-outline-primary">Exportar Excel</button><button class="btn btn-primary">Exportar PDF</button></div></div>
-<div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Filtros del reporte</h3><div class="section-description">Consulta las horas trabajadas por periodo y colaborador.</div></div></div><div class="card-body report-filters"><div class="row g-3 align-items-end"><div class="col-lg-4 col-md-6"><label class="form-label" for="reportMonth">Mes</label><input id="reportMonth" type="month" class="form-control" value="2026-09"></div><div class="col-lg-5 col-md-6"><label class="form-label" for="reportCollaborator">Colaborador</label><select id="reportCollaborator" class="form-select"><option>Todos los colaboradores</option><option>Ana Torres</option><option>Luis Paredes</option><option>María Ruiz</option><option>Pedro Díaz</option><option>Rosa López</option></select></div><div class="col-lg-3 d-grid"><button class="btn btn-primary" type="button">Aplicar filtros</button></div></div></div></div>
-<div class="row row-cards mb-4"><div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Integrantes</div><div class="metric-number">5 / 8</div><div class="small text-secondary">3 vacantes</div></div></div></div><div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Skills cubiertas</div><div class="metric-number">4 / 6</div><div class="small text-secondary">2 por cubrir</div></div></div></div><div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Horas trabajadas</div><div class="metric-number">468 h</div><div class="small text-secondary">Solo tareas entregadas del mes</div></div></div></div><div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Días restantes</div><div class="metric-number">101</div><div class="small text-secondary">Fin: 15 Dic 2026</div></div></div></div></div>
-<div class="row row-cards mb-4"><div class="col-xl-7"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Habilidades requeridas vs. cubiertas</h3><div class="section-description">Cobertura funcional del equipo actual.</div></div></div><div class="card-body skill-coverage">
-<div class="skill-row"><span>Java</span><div class="coverage-track"><div class="coverage-fill full"></div></div><strong>100%</strong><span class="text-success">Cubierta</span></div><div class="skill-row"><span>Spring Boot</span><div class="coverage-track"><div class="coverage-fill full"></div></div><strong>100%</strong><span class="text-success">Cubierta</span></div><div class="skill-row"><span>React</span><div class="coverage-track"><div class="coverage-fill full"></div></div><strong>100%</strong><span class="text-success">Cubierta</span></div><div class="skill-row"><span>MySQL</span><div class="coverage-track"><div class="coverage-fill full"></div></div><strong>100%</strong><span class="text-success">Cubierta</span></div><div class="skill-row"><span>Docker</span><div class="coverage-track"><div class="coverage-fill half"></div></div><strong>50%</strong><span class="text-warning">Parcial</span></div><div class="skill-row"><span>AWS</span><div class="coverage-track"><div class="coverage-fill none"></div></div><strong>0%</strong><span class="text-secondary">Sin cubrir</span></div>
-</div></div></div><div class="col-xl-5"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Resumen de horas del mes</h3><div class="section-description">Horas derivadas únicamente de tareas entregadas.</div></div></div><div class="card-body hours-summary"><div class="hours-item"><span>Ana Torres</span><strong>126 h</strong></div><div class="hours-item"><span>Luis Paredes</span><strong>98 h</strong></div><div class="hours-item"><span>María Ruiz</span><strong>82 h</strong></div><div class="hours-item"><span>Pedro Díaz</span><strong>92 h</strong></div><div class="hours-item"><span>Rosa López</span><strong>70 h</strong></div><div class="hours-total"><span>Total del proyecto</span><strong>468 h</strong></div></div></div></div></div>
-<div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Integrantes del Proyecto</h3><div class="section-description">Disponibilidad, carga y horas trabajadas son métricas distintas.</div></div></div><div class="table-responsive"><table class="table table-vcenter card-table mb-0"><thead><tr><th>Colaborador</th><th>Rol</th><th>Skills aportadas</th><th>Disponibilidad</th><th>Carga</th><th>Horas trabajadas del mes</th></tr></thead><tbody>
-<tr><td class="fw-semibold">Ana Torres</td><td>Backend Developer</td><td><span class="badge bg-blue-lt">Java</span> <span class="badge bg-blue-lt">Spring Boot</span></td><td>12 h/sem</td><td>2 / 3</td><td>126 h</td></tr><tr><td class="fw-semibold">Luis Paredes</td><td>Frontend Developer</td><td><span class="badge bg-blue-lt">React</span></td><td>20 h/sem</td><td>1 / 3</td><td>98 h</td></tr><tr><td class="fw-semibold">María Ruiz</td><td>DevOps Engineer</td><td><span class="badge bg-blue-lt">Docker</span> <span class="badge bg-blue-lt">AWS</span></td><td>8 h/sem</td><td>2 / 3</td><td>82 h</td></tr><tr><td class="fw-semibold">Pedro Díaz</td><td>QA Engineer</td><td><span class="badge bg-blue-lt">Java</span> <span class="badge bg-blue-lt">MySQL</span></td><td>16 h/sem</td><td>1 / 3</td><td>92 h</td></tr><tr><td class="fw-semibold">Rosa López</td><td>Backend Developer</td><td><span class="badge bg-blue-lt">Python</span></td><td>24 h/sem</td><td>1 / 3</td><td>70 h</td></tr>
-</tbody></table></div><div class="report-note"><span class="report-note-icon">i</span><div class="small text-secondary">El PM no visualiza sueldo, bono, pago mensual ni costo del colaborador. El presupuesto del proyecto es solo informativo.</div></div></div>
-<div class="action-bar"><a th:href="@{/pm/proyectos/detalle(id=${reporte.proyecto.id})}" class="btn btn-outline-secondary">Volver al Proyecto</a></div>
-</main></div><script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script></body></html>
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Reporte de Proyecto</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-reporte-proyecto.css" th:href="@{/css/pm-css/pm-reporte-proyecto.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+<header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('reportes')}"></header>
+<main class="page-wrap">
+<div class="breadcrumb-wrap">
+  <a th:href="@{/pm/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
+  <span class="breadcrumb-separator">›</span>
+  <a th:href="@{/pm/proyectos/detalle(id=${reporte.proyecto.id})}" class="breadcrumb-link" th:text="${reporte.proyecto.nombre}">Proyecto</a>
+  <span class="breadcrumb-separator">›</span>
+  <span class="text-secondary">Reporte</span>
+</div>
+
+<div class="page-head page-head-stack-mobile">
+  <div>
+    <h1 class="page-title">Reporte del Proyecto</h1>
+    <div class="text-secondary" th:text="${reporte.proyecto.nombre + ' — Métricas Actuales'}"></div>
+  </div>
+  <div class="report-actions">
+    <button class="btn btn-outline-primary" onclick="window.print()">Exportar PDF</button>
+  </div>
+</div>
+
+<div class="row row-cards mb-4">
+  <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body">
+    <div class="metric-label">Integrantes</div>
+    <div class="metric-number"><span th:text="${reporte.integrantesActivos}"></span> / <span th:text="${reporte.proyecto.colaboradoresRequeridos}"></span></div>
+    <div class="small text-secondary" th:text="${(reporte.proyecto.colaboradoresRequeridos - reporte.integrantesActivos) + ' vacantes'}"></div>
+  </div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body">
+    <div class="metric-label">Progreso (Tareas)</div>
+    <div class="metric-number"><span th:text="${reporte.progresoPorc + '%'}"></span></div>
+    <div class="small text-secondary" th:text="${reporte.actividadesCompletadas + ' de ' + reporte.totalActividades + ' completadas'}"></div>
+  </div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body">
+    <div class="metric-label">Horas Totales Estimadas</div>
+    <div class="metric-number"><span th:text="${reporte.horasTotalesEstimadas != null ? reporte.horasTotalesEstimadas + ' h' : '0 h'}"></span></div>
+    <div class="small text-secondary">Basado en tareas creadas</div>
+  </div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body">
+    <div class="metric-label">Presupuesto</div>
+    <div class="metric-number"><span th:text="${reporte.presupuestoVisible != null ? '$' + reporte.presupuestoVisible : 'No definido'}"></span></div>
+    <div class="small text-secondary">Aprobado / Solicitado</div>
+  </div></div></div>
+</div>
+
+<div class="row row-cards mb-4">
+  <div class="col-xl-6"><div class="card section-card h-100">
+    <div class="card-header section-header">
+      <div><h3 class="card-title mb-1">Estado de Actividades</h3><div class="section-description">Desglose del avance general del proyecto.</div></div>
+    </div>
+    <div class="card-body skill-coverage">
+      <div class="skill-row">
+        <span>Completadas</span>
+        <div class="coverage-track"><div class="coverage-fill full" th:style="${'width: ' + (reporte.totalActividades > 0 ? (reporte.actividadesCompletadas * 100 / reporte.totalActividades) : 0) + '%'}"></div></div>
+        <strong th:text="${reporte.actividadesCompletadas}"></strong>
+      </div>
+      <div class="skill-row">
+        <span>En Revisión</span>
+        <div class="coverage-track"><div class="coverage-fill half" th:style="${'width: ' + (reporte.totalActividades > 0 ? (reporte.actividadesEnRevision * 100 / reporte.totalActividades) : 0) + '%'}"></div></div>
+        <strong th:text="${reporte.actividadesEnRevision}"></strong>
+      </div>
+      <div class="skill-row">
+        <span>En Progreso</span>
+        <div class="coverage-track"><div class="coverage-fill half" th:style="${'width: ' + (reporte.totalActividades > 0 ? (reporte.actividadesEnProgreso * 100 / reporte.totalActividades) : 0) + '%'}"></div></div>
+        <strong th:text="${reporte.actividadesEnProgreso}"></strong>
+      </div>
+      <div class="skill-row">
+        <span>Pendientes</span>
+        <div class="coverage-track"><div class="coverage-fill none" th:style="${'width: ' + (reporte.totalActividades > 0 ? (reporte.actividadesPendientes * 100 / reporte.totalActividades) : 0) + '%'}"></div></div>
+        <strong th:text="${reporte.actividadesPendientes}"></strong>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="col-xl-6"><div class="card section-card h-100">
+    <div class="card-header section-header">
+      <div><h3 class="card-title mb-1">Rendimiento por Colaborador</h3><div class="section-description">Porcentaje de tareas completadas de las que tienen asignadas.</div></div>
+    </div>
+    <div class="card-body hours-summary">
+      <div th:each="colab : ${reporte.colaboradores}" class="hours-item">
+        <span th:text="${colab.nombre}"></span>
+        <strong th:text="${colab.rendimientoPorc + '%'}"></strong>
+      </div>
+      <div th:if="${#lists.isEmpty(reporte.colaboradores)}" class="text-center text-secondary">
+        No hay colaboradores asignados aún.
+      </div>
+    </div>
+  </div></div>
+</div>
+
+<div class="card section-card">
+  <div class="card-header section-header">
+    <div><h3 class="card-title mb-1">Métricas de Colaboradores</h3><div class="section-description">Detalle de asignación de actividades y horas propuestas.</div></div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table mb-0">
+      <thead>
+        <tr>
+          <th>Colaborador</th>
+          <th>Horas Semanales</th>
+          <th>Tareas Asignadas</th>
+          <th>Tareas Completadas</th>
+          <th>Rendimiento</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="colab : ${reporte.colaboradores}">
+          <td class="fw-semibold" th:text="${colab.nombre}">Ana Torres</td>
+          <td th:text="${colab.horasSemanales + ' h/sem'}">12 h/sem</td>
+          <td th:text="${colab.actividadesAsignadas}">5</td>
+          <td th:text="${colab.actividadesCompletadas}">3</td>
+          <td>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-primary" th:style="${'width: ' + colab.rendimientoPorc + '%'}"></div>
+            </div>
+            <div class="small text-secondary mt-1" th:text="${colab.rendimientoPorc + '% completado'}"></div>
+          </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(reporte.colaboradores)}">
+          <td colspan="5" class="text-center text-secondary py-3">No hay colaboradores con métricas.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="report-note">
+    <span class="report-note-icon">i</span>
+    <div class="small text-secondary">El PM no visualiza sueldo, bono, pago mensual ni costo del colaborador. El presupuesto del proyecto es solo informativo.</div>
+  </div>
+</div>
+
+<div class="action-bar">
+  <a th:href="@{/pm/proyectos/detalle(id=${reporte.proyecto.id})}" class="btn btn-outline-secondary">Volver al Proyecto</a>
+</div>
+
+</main>
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

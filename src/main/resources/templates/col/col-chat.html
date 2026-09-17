@@ -5,18 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI — Chat</title>
     <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
-    <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
     <link rel="stylesheet" href="../../static/css/pm-css/pm-chat.css" th:href="@{/css/pm-css/pm-chat.css}">
-    <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
 </head>
 <body>
 <div class="app-shell">
 
-<header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('chat')}"></header>
+<header class="topbar" th:replace="~{fragments/col-topbar :: topbar('chat')}"></header>
 
 <main class="page-wrap">
     <div class="breadcrumb-wrap">
-        <a th:href="@{/pm/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
+        <a th:href="@{/colaborador/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
         <span class="breadcrumb-separator">›</span>
         <span class="text-secondary">Chat</span>
     </div>
@@ -39,7 +39,7 @@
                 </button>
                 
                 <div th:if="${#lists.isEmpty(proyectos)}" class="text-secondary small p-3 text-center">
-                    No gestionas ningún proyecto actualmente.
+                    No estás asignado a ningún proyecto actualmente.
                 </div>
             </div>
         </aside>
@@ -102,8 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     channelButtons.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Redirect instead of full SPA logic to keep Thymeleaf logic simple and maintain state easily
-            window.location.href = `/pm/chat?proyectoId=${this.dataset.channelId}`;
+            window.location.href = `/colaborador/chat?proyectoId=${this.dataset.channelId}`;
         });
     });
 
@@ -119,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('proyectoId', activeProjectId);
             formData.append('contenido', text);
 
-            fetch('/pm/api/chat/enviar', {
+            fetch('/colaborador/api/chat/enviar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -148,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadMessages() {
         if(!activeProjectId) return;
         
-        fetch(`/pm/api/chat/mensajes?proyectoId=${activeProjectId}`)
+        fetch(`/colaborador/api/chat/mensajes?proyectoId=${activeProjectId}`)
         .then(res => res.json())
         .then(data => {
             renderMessages(data);

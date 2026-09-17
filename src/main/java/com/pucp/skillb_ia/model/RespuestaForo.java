@@ -21,7 +21,7 @@ public class RespuestaForo {
     private Usuario autor;
 
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "LONGTEXT")
     private String contenido;
 
     @Column(name = "es_solucion", nullable = false)

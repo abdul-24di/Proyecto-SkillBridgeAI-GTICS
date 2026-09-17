@@ -9,6 +9,8 @@ import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
 import com.pucp.skillb_ia.service.col.ColaboradorExplorarService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.col.ColaboradorProyectoService;
+import com.pucp.skillb_ia.service.col.ColChatService;
+import com.pucp.skillb_ia.service.col.ColForoService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -30,16 +32,22 @@ public class ColaboradorViewController {
     private final ColaboradorPerfilService colaboradorPerfilService;
     private final ColaboradorProyectoService colaboradorProyectoService;
     private final ColaboradorExplorarService colaboradorExplorarService;
+    private final ColChatService colChatService;
+    private final ColForoService colForoService;
     private final ColaboradorCursoService colaboradorCursoService;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
                                      ColaboradorProyectoService colaboradorProyectoService,
+                                     ColaboradorExplorarService colaboradorExplorarService,
                                      ColaboradorCursoService colaboradorCursoService,
-                                     ColaboradorExplorarService colaboradorExplorarService) {
+                                     ColChatService colChatService,
+                                     ColForoService colForoService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
         this.colaboradorExplorarService = colaboradorExplorarService;
         this.colaboradorCursoService = colaboradorCursoService;
+        this.colChatService = colChatService;
+        this.colForoService = colForoService;
     }
 
     @GetMapping({"", "/"})
@@ -68,9 +76,83 @@ public class ColaboradorViewController {
         return "col/col-detalle-proyecto";
     }
 
+    @GetMapping({"/chat", "/col-chat.html"})
+    public String chat(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                       @AuthenticationPrincipal UsuarioDetails principal, 
+                       Model model) {
+        Usuario colaborador = principal.getUsuario();
+        model.addAttribute("colaborador", colaborador);
+        model.addAttribute("proyectos", colChatService.listarProyectosActivos(colaborador));
+        model.addAttribute("proyectoIdSeleccionado", proyectoId);
+        return "col/col-chat";
+    }
+
     @GetMapping({"/foros", "/col-foros.html"})
-    public String forums() {
+    public String foros(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        Usuario colab = principal.getUsuario();
+        model.addAttribute("colaborador", colab);
+        model.addAttribute("foros", colForoService.listarForos(colab));
         return "col/col-foros";
+    }
+
+    @GetMapping({"/foros/detalle", "/col-foro-detalle.html"})
+    public String foroDetalle(@RequestParam("proyectoId") Long proyectoId,
+                              @AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        Usuario colab = principal.getUsuario();
+        model.addAttribute("colaborador", colab);
+        model.addAttribute("publicaciones", colForoService.obtenerDetalleForo(proyectoId, colab));
+        model.addAttribute("proyectoIdSeleccionado", proyectoId);
+        
+        // También necesitamos el proyecto actual para mostrar el nombre.
+        // Lo sacamos de la lista de asignaciones activas:
+        colaboradorProyectoService.listarMisAsignaciones(colab).stream()
+            .filter(a -> a.getProyecto().getId().equals(proyectoId))
+            .findFirst()
+            .ifPresent(a -> model.addAttribute("proyecto", a.getProyecto()));
+            
+        return "col/col-foro-detalle";
+    }
+
+    @PostMapping("/foro/publicar")
+    public String publicarForo(@RequestParam("proyectoId") Long proyectoId,
+                               @RequestParam("titulo") String titulo,
+                               @RequestParam("contenido") String contenido,
+                               @AuthenticationPrincipal UsuarioDetails principal,
+                               RedirectAttributes ra) {
+        try {
+            colForoService.publicar(proyectoId, titulo, contenido, principal.getUsuario());
+            ra.addFlashAttribute("success", "Publicación creada exitosamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/colaborador/foros/detalle?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/foro/responder")
+    public String responderForo(@RequestParam("publicacionId") Long publicacionId,
+                                @RequestParam("proyectoId") Long proyectoId,
+                                @RequestParam("contenido") String contenido,
+                                @AuthenticationPrincipal UsuarioDetails principal,
+                                RedirectAttributes ra) {
+        try {
+            colForoService.responder(publicacionId, contenido, principal.getUsuario());
+            ra.addFlashAttribute("success", "Respuesta publicada.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/colaborador/foros/detalle?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/foro/upload-imagen")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public java.util.Map<String, String> uploadImagenForo(@RequestParam("image") MultipartFile image) {
+        try {
+            String url = colForoService.subirImagen(image);
+            return java.util.Map.of("url", url);
+        } catch (Exception e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @GetMapping({"/asistente", "/col-asistente.html"})
@@ -145,6 +227,7 @@ public class ColaboradorViewController {
 
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("habilidadesColaborador", colaboradorPerfilService.listarHabilidades(colaborador));
+        model.addAttribute("certificadosColaborador", colaboradorPerfilService.listarCertificados(colaborador));
         model.addAttribute("habilidadesDisponibles", colaboradorPerfilService.listarHabilidadesDisponibles(colaborador));
         model.addAttribute("nivelesDominio", NivelDominio.values());
         model.addAttribute("categoriasHabilidad", colaboradorPerfilService.listarCategoriasHabilidad());

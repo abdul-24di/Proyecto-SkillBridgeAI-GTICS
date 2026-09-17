@@ -688,6 +688,8 @@ CREATE TABLE log_auditoria (
     CONSTRAINT fk_log_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 ) ENGINE=InnoDB;
 
+ALTER TABLE publicacion_foro MODIFY contenido LONGTEXT NOT NULL;
+ALTER TABLE respuesta_foro MODIFY contenido LONGTEXT NOT NULL;
 -- =====================================================================
 -- DATOS DE PRUEBA: USUARIOS (contraseña para todos: abc123)
 -- =====================================================================

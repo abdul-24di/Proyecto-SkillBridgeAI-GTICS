@@ -25,44 +25,34 @@
             </div>
 
             <div class="row row-cards">
-                <!-- Foro Proyecto 1 -->
-                <div class="col-md-6 col-lg-4">
+                <div th:each="foro : ${foros}" class="col-md-6 col-lg-4">
                     <div class="card card-link-pop">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
-                                <span class="avatar bg-blue-lt rounded">SI</span>
-                                <h3 class="card-title m-0 ms-3">Sistema de Inventario</h3>
+                                <span class="avatar bg-blue-lt rounded" th:text="${foro.proyectoNombre != null and foro.proyectoNombre.length() >= 2 ? foro.proyectoNombre.substring(0,2).toUpperCase() : 'PR'}">SI</span>
+                                <h3 class="card-title m-0 ms-3" th:text="${foro.proyectoNombre}">Sistema de Inventario</h3>
                             </div>
-                            <p class="text-secondary mb-3">Foro de consultas técnicas, decisiones de arquitectura y bugs para el equipo del Sistema de Inventario.</p>
+                            <p class="text-secondary mb-3">Foro de consultas técnicas, decisiones de arquitectura y coordinación del equipo.</p>
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="text-secondary small">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-primary" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9h8" /><path d="M8 13h6" /><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" /></svg>
-                                    12 Temas activos
+                                    <span th:text="${foro.totalPublicaciones + ' Temas'}"></span>
                                 </div>
-                                <a href="pm-foro-detalle.html" th:href="@{/pm/foro/detalle}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                                <a th:href="@{/pm/foro/detalle(proyectoId=${foro.proyectoId})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                            </div>
+                            <div class="mt-3 small text-secondary" th:if="${foro.tienePublicaciones}">
+                                Última act: <strong th:text="${foro.ultimaPublicacionTitulo}">Título</strong> 
+                                <span th:text="${#temporals.format(foro.ultimaPublicacionFecha, 'dd MMM yyyy')}"></span>
+                            </div>
+                            <div class="mt-3 small text-secondary" th:unless="${foro.tienePublicaciones}">
+                                Aún no hay publicaciones en este foro.
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Foro Proyecto 2 -->
-                <div class="col-md-6 col-lg-4">
-                    <div class="card card-link-pop">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center mb-3">
-                                <span class="avatar bg-green-lt rounded">MC</span>
-                                <h3 class="card-title m-0 ms-3">Módulo de Clientes</h3>
-                            </div>
-                            <p class="text-secondary mb-3">Discusiones sobre los requerimientos y el desarrollo del nuevo CRM de clientes.</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div class="text-secondary small">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-primary" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9h8" /><path d="M8 13h6" /><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" /></svg>
-                                    4 Temas activos
-                                </div>
-                                <a href="pm-foro-detalle.html" th:href="@{/pm/foro/detalle}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
-                            </div>
-                        </div>
-                    </div>
+
+                <div th:if="${#lists.isEmpty(foros)}" class="col-12 text-center text-secondary py-5">
+                    No tienes proyectos activos con foros asignados aún.
                 </div>
             </div>
         </div>

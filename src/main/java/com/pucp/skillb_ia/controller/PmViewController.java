@@ -7,6 +7,7 @@ import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.pm.PmActividadService;
 import com.pucp.skillb_ia.service.pm.PmAsignacionService;
+import com.pucp.skillb_ia.service.pm.PmChatService;
 import com.pucp.skillb_ia.service.pm.PmForoService;
 import com.pucp.skillb_ia.service.pm.PmPerfilService;
 import com.pucp.skillb_ia.service.pm.PmProyectoService;
@@ -36,6 +37,7 @@ public class PmViewController {
     private final PmForoService pmForoService;
     private final PmReporteService pmReporteService;
     private final PmPerfilService pmPerfilService;
+    private final PmChatService pmChatService;
     private final HabilidadRepository habilidadRepository;
     private final UsuarioRepository usuarioRepository;
 
@@ -45,6 +47,7 @@ public class PmViewController {
                             PmForoService pmForoService,
                             PmReporteService pmReporteService,
                             PmPerfilService pmPerfilService,
+                            PmChatService pmChatService,
                             HabilidadRepository habilidadRepository,
                             UsuarioRepository usuarioRepository) {
         this.pmProyectoService = pmProyectoService;
@@ -53,6 +56,7 @@ public class PmViewController {
         this.pmForoService = pmForoService;
         this.pmReporteService = pmReporteService;
         this.pmPerfilService = pmPerfilService;
+        this.pmChatService = pmChatService;
         this.habilidadRepository = habilidadRepository;
         this.usuarioRepository = usuarioRepository;
     }
@@ -347,6 +351,18 @@ public class PmViewController {
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 
+    @PostMapping("/foro/upload-imagen")
+    @org.springframework.web.bind.annotation.ResponseBody
+    public java.util.Map<String, String> uploadImagenForo(@RequestParam("image") org.springframework.web.multipart.MultipartFile image) {
+        try {
+            String url = pmForoService.subirImagen(image);
+            return java.util.Map.of("url", url);
+        } catch (Exception e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════
     // REPORTES
     // ═══════════════════════════════════════════════════════════
@@ -433,8 +449,13 @@ public class PmViewController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping({"/chat", "/pm-chat.html"})
-    public String chat(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
-        model.addAttribute("pm", principal.getUsuario());
+    public String chat(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                       @AuthenticationPrincipal UsuarioDetails principal, 
+                       Model model) {
+        Usuario pm = principal.getUsuario();
+        model.addAttribute("pm", pm);
+        model.addAttribute("proyectos", pmChatService.listarProyectosDelPm(pm));
+        model.addAttribute("proyectoIdSeleccionado", proyectoId);
         return "pm/pm-chat";
     }
 

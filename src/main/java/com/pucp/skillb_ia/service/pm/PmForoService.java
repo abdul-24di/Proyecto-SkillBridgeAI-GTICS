@@ -22,8 +22,21 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+import java.util.Set;
+
 @Service
 public class PmForoService {
+
+    private static final Set<String> TIPOS_IMAGEN_PERMITIDOS = Set.of("image/jpeg", "image/png", "image/gif", "image/webp");
+    private static final long TAMANO_MAXIMO_FOTO_BYTES = 5L * 1024 * 1024; // 5 MB
 
     private final ForoRepository foroRepository;
     private final PublicacionForoRepository publicacionRepository;
@@ -31,19 +44,50 @@ public class PmForoService {
     private final AsignacionRepository asignacionRepository;
     private final ProyectoRepository proyectoRepository;
     private final AuditoriaService auditoriaService;
+    private final String uploadDir;
 
     public PmForoService(ForoRepository foroRepository,
                          PublicacionForoRepository publicacionRepository,
                          RespuestaForoRepository respuestaRepository,
                          AsignacionRepository asignacionRepository,
                          ProyectoRepository proyectoRepository,
-                         AuditoriaService auditoriaService) {
+                         AuditoriaService auditoriaService,
+                         @Value("${app.upload-dir:uploads}") String uploadDir) {
         this.foroRepository = foroRepository;
         this.publicacionRepository = publicacionRepository;
         this.respuestaRepository = respuestaRepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.auditoriaService = auditoriaService;
+        this.uploadDir = uploadDir;
+    }
+
+    public String subirImagen(MultipartFile foto) {
+        if (foto == null || foto.isEmpty()) {
+            throw new IllegalArgumentException("La imagen no puede estar vacía.");
+        }
+        if (!TIPOS_IMAGEN_PERMITIDOS.contains(foto.getContentType())) {
+            throw new IllegalArgumentException("Solo se permiten imágenes JPEG, PNG, GIF o WEBP.");
+        }
+        if (foto.getSize() > TAMANO_MAXIMO_FOTO_BYTES) {
+            throw new IllegalArgumentException("La imagen no puede superar los 5 MB.");
+        }
+
+        try {
+            Path carpeta = Path.of(uploadDir, "foro");
+            Files.createDirectories(carpeta);
+            String extension = ".jpg";
+            if ("image/png".equals(foto.getContentType())) extension = ".png";
+            else if ("image/gif".equals(foto.getContentType())) extension = ".gif";
+            else if ("image/webp".equals(foto.getContentType())) extension = ".webp";
+            
+            String nombreArchivo = "foro-" + UUID.randomUUID() + extension;
+            Path destino = carpeta.resolve(nombreArchivo);
+            Files.copy(foto.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
+            return "/uploads/foro/" + nombreArchivo;
+        } catch (IOException e) {
+            throw new UncheckedIOException("No se pudo guardar la imagen del foro.", e);
+        }
     }
 
     /** Lista los foros de todos los proyectos que gestiona el PM. */
@@ -68,18 +112,16 @@ public class PmForoService {
     @Transactional(readOnly = true)
     public List<PmPublicacionView> obtenerDetalle(Long proyectoId, Usuario pm) {
         Proyecto proyecto = obtenerProyectoDelPm(proyectoId, pm);
-        Foro foro = foroRepository.findByProyecto(proyecto)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Este proyecto no tiene un foro creado todavía."));
-
-        return publicacionRepository.findByForoConDetalle(foro)
-                .stream()
-                .map(pub -> {
-                    List<RespuestaForo> respuestas =
-                            respuestaRepository.findByPublicacionConAutor(pub);
-                    return new PmPublicacionView(pub, respuestas);
-                })
-                .toList();
+        
+        return foroRepository.findByProyecto(proyecto)
+                .map(foro -> publicacionRepository.findByForoConDetalle(foro)
+                        .stream()
+                        .map(pub -> {
+                            List<RespuestaForo> respuestas = respuestaRepository.findByPublicacionConAutor(pub);
+                            return new PmPublicacionView(pub, respuestas);
+                        })
+                        .toList())
+                .orElse(java.util.Collections.emptyList());
     }
 
     /** Crea una publicación en el foro del proyecto. Crea el Foro si aún no existe. */

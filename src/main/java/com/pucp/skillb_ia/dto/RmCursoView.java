@@ -98,7 +98,10 @@ public final class RmCursoView {
         private final String estadoCodigo;
         private final String estadoTexto;
         private final String estadoClase;
+
+
         private final LocalDateTime fechaSolicitud;
+        private final String justificacion;
         private final String motivoRespuesta;
         private final boolean pendienteGestionRm;
 
@@ -107,7 +110,7 @@ public final class RmCursoView {
                                String curso, String categoria, BigDecimal horas,
                                String origenCodigo, String origenTexto,
                                String estadoCodigo, String estadoTexto, String estadoClase,
-                               LocalDateTime fechaSolicitud, String motivoRespuesta,
+                               LocalDateTime fechaSolicitud, String justificacion, String motivoRespuesta,
                                boolean pendienteGestionRm) {
             this.id = id;
             this.colaboradorId = colaboradorId;
@@ -124,6 +127,7 @@ public final class RmCursoView {
             this.estadoTexto = estadoTexto;
             this.estadoClase = estadoClase;
             this.fechaSolicitud = fechaSolicitud;
+            this.justificacion = justificacion;
             this.motivoRespuesta = motivoRespuesta;
             this.pendienteGestionRm = pendienteGestionRm;
         }
@@ -143,6 +147,7 @@ public final class RmCursoView {
         public String getEstadoTexto() { return estadoTexto; }
         public String getEstadoClase() { return estadoClase; }
         public LocalDateTime getFechaSolicitud() { return fechaSolicitud; }
+        public String getJustificacion() { return justificacion; }
         public String getMotivoRespuesta() { return motivoRespuesta; }
         public boolean isPendienteGestionRm() { return pendienteGestionRm; }
     }

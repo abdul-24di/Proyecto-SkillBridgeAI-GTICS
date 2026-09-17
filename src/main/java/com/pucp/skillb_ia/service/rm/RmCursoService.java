@@ -254,7 +254,7 @@ public class RmCursoService {
                 curso.getId(), curso.getNombre(), valor(curso.getCategoria(), "Sin categoría"),
                 curso.getHoras(), item.getOrigen().name(), textoOrigen(item.getOrigen()),
                 item.getEstado().name(), textoEstado(item.getEstado()), claseEstado(item.getEstado()),
-                item.getFechaSolicitud(), item.getMotivoRespuesta(), esSolicitudPendiente(item));
+                item.getFechaSolicitud(), item.getJustificacion(), item.getMotivoRespuesta(), esSolicitudPendiente(item));
     }
 
     private boolean esSolicitudPendiente(ColaboradorCurso item) {

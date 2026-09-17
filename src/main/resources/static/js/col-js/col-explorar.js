@@ -114,55 +114,42 @@ document.getElementById("backToCollabList")?.addEventListener("click", () => {
     document.getElementById("collabListView").classList.remove("hide");
 });
 
+
+
+
 /* ================= CURSOS ================= */
-const courses = [
-    { id: 1, nombre: "Spring Security Avanzado", categoria: "Técnico", horas: 12, descripcion: "Aprende a proteger APIs REST con autenticación y autorización robustas.", estado: null },
-    { id: 2, nombre: "Comunicación Efectiva en Equipos Ágiles", categoria: "Habilidades blandas", horas: 6, descripcion: "Mejora la comunicación dentro de equipos multidisciplinarios y ágiles.", estado: "Pendiente" },
-    { id: 3, nombre: "AWS Certified Developer — Preparación", categoria: "Certificación", horas: 20, descripcion: "Preparación guiada para la certificación AWS enfocada en desarrolladores.", estado: "Aprobada" },
-    { id: 4, nombre: "React Avanzado", categoria: "Técnico", horas: 10, descripcion: "Patrones avanzados, rendimiento y testing en aplicaciones React.", estado: "Rechazada" }
-];
-
-function courseStateMarkup(course) {
-    if (course.estado === "Pendiente") return `<span class="badge bg-yellow-lt">Solicitud pendiente</span>`;
-    if (course.estado === "Aprobada") return `<span class="badge bg-green-lt">Inscrito</span>`;
-    if (course.estado === "Rechazada") return `
-        <span class="badge bg-red-lt text-red mb-2 d-block">Solicitud rechazada</span>
-        <button type="button" class="btn btn-outline-primary btn-sm" data-request-course="${course.id}">Volver a solicitar</button>`;
-    return `<button type="button" class="btn btn-primary btn-sm" data-request-course="${course.id}">Solicitar inscripción</button>`;
-}
-
-function renderCourses() {
-    const q = (document.getElementById("courseSearch")?.value || "").trim().toLowerCase();
-    const cat = document.getElementById("courseCategoryFilter")?.value || "all";
-
-    const filtered = courses.filter(c => {
-        const matchesSearch = (c.nombre + " " + c.descripcion).toLowerCase().includes(q);
-        const matchesCat = cat === "all" || c.categoria === cat;
-        return matchesSearch && matchesCat;
-    });
-
-    document.getElementById("courseList").innerHTML = filtered.length ? filtered.map(c => `
-        <div class="course-card">
-            <div>
-                <div class="course-card-title">${c.nombre}</div>
-                <div class="course-card-meta"><span class="badge bg-blue-lt me-2">${c.categoria}</span>${c.horas} horas</div>
-                <div class="course-card-desc">${c.descripcion}</div>
-            </div>
-            <div class="course-card-action">${courseStateMarkup(c)}</div>
-        </div>`).join("") : `<div class="card"><div class="empty-state">No se encontraron cursos.</div></div>`;
-
-    document.getElementById("courseList").querySelectorAll("[data-request-course]").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const course = courses.find(x => x.id === Number(btn.dataset.requestCourse));
-            course.estado = "Pendiente";
-            renderCourses();
-        });
-    });
-}
-
-["courseSearch", "courseCategoryFilter"].forEach(id => {
-    const el = document.getElementById(id);
-    el?.addEventListener(el.tagName === "INPUT" ? "input" : "change", renderCourses);
+document.querySelectorAll("#courseAccordion [data-toggle-course]").forEach(header => {
+    header.addEventListener("click", () => header.closest(".project-accordion-item").classList.toggle("open"));
 });
 
-renderCourses();
+function filtrarCursos() {
+    const texto = (document.getElementById("courseSearch")?.value || "").trim().toLowerCase();
+    const categoria = document.getElementById("courseCategoryFilter")?.value || "all";
+
+    document.querySelectorAll("#courseAccordion .project-accordion-item").forEach(item => {
+        const nombre = (item.dataset.courseName || "").toLowerCase();
+        const categoriaCurso = item.dataset.courseCategory || "";
+        const contenido = item.textContent.toLowerCase();
+
+        const coincideTexto = texto.length === 0 || nombre.includes(texto) || contenido.includes(texto);
+        const coincideCategoria = categoria === "all" || categoriaCurso === categoria;
+
+        item.classList.toggle("d-none", !(coincideTexto && coincideCategoria));
+    });
+}
+
+document.getElementById("courseSearch")?.addEventListener("input", filtrarCursos);
+document.getElementById("courseCategoryFilter")?.addEventListener("change", filtrarCursos);
+
+document.querySelectorAll("#courseAccordion [data-open-request-course]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        document.getElementById("requestCourseModalTitle").textContent = "Solicitar " + btn.dataset.courseName;
+        document.getElementById("requestCourseId").value = btn.dataset.courseId;
+        document.getElementById("requestCourseMessageInput").value = "";
+
+        const modalEl = document.getElementById("requestCourseModal");
+        const Modal = window.bootstrap?.Modal || window.tabler?.bootstrap?.Modal;
+        Modal.getOrCreateInstance(modalEl).show();
+    });
+});

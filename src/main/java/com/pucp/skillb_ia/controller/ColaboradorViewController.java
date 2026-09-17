@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.controller;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.security.UsuarioDetails;
+import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
 import com.pucp.skillb_ia.service.col.ColaboradorExplorarService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.col.ColaboradorProyectoService;
@@ -26,13 +27,16 @@ public class ColaboradorViewController {
     private final ColaboradorPerfilService colaboradorPerfilService;
     private final ColaboradorProyectoService colaboradorProyectoService;
     private final ColaboradorExplorarService colaboradorExplorarService;
+    private final ColaboradorCursoService colaboradorCursoService;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
                                      ColaboradorProyectoService colaboradorProyectoService,
+                                     ColaboradorCursoService colaboradorCursoService,
                                      ColaboradorExplorarService colaboradorExplorarService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
         this.colaboradorExplorarService = colaboradorExplorarService;
+        this.colaboradorCursoService = colaboradorCursoService;
     }
 
     @GetMapping({"", "/"})
@@ -79,6 +83,11 @@ public class ColaboradorViewController {
         model.addAttribute("misSolicitudes", colaboradorProyectoService.listarMisSolicitudes(colaborador));
         model.addAttribute("misHabilidades", colaboradorPerfilService.listarHabilidades(colaborador));
 
+        model.addAttribute("cursosDisponibles", colaboradorCursoService.listarCursosDisponibles(colaborador));
+        model.addAttribute("misSolicitudesCursos", colaboradorCursoService.listarMisSolicitudes(colaborador));
+        model.addAttribute("categoriasCurso", colaboradorCursoService.listarCategorias());
+
+
         List<Usuario> colaboradoresExplorar = colaboradorExplorarService.listarColaboradores(colaborador);
         model.addAttribute("colaboradoresExplorar", colaboradoresExplorar);
         model.addAttribute("perfilesExplorar", colaboradorExplorarService.obtenerPerfiles(colaboradoresExplorar));
@@ -97,6 +106,21 @@ public class ColaboradorViewController {
         try {
             colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, habilidadId, mensaje, habilidadesRelevantes);
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud fue enviada. Quedará pendiente de aprobación del PM y del RM.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/explorar";
+    }
+
+    @PostMapping("/cursos/solicitar")
+    public String solicitarCurso(@AuthenticationPrincipal UsuarioDetails principal,
+                                 @RequestParam Long cursoId,
+                                 @RequestParam(required = false) String justificacion,
+                                 RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorCursoService.solicitarInscripcion(principal.getUsuario(), cursoId, justificacion);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud de inscripción fue enviada. Quedará pendiente de aprobación del Resource Manager.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }

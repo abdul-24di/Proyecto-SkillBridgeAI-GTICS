@@ -6,8 +6,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Historias A26/A27. `origen` distingue si lo solicitó el colaborador o si el
-// RM lo asignó directamente (p.ej. por bajo cumplimiento de horas).
+
 @Entity
 @Table(name = "colaborador_curso")
 public class ColaboradorCurso {
@@ -32,7 +31,6 @@ public class ColaboradorCurso {
     @Column(nullable = false, length = 20)
     private EstadoColaboradorCurso estado = EstadoColaboradorCurso.SOLICITADO;
 
-    // El RM, cuando el origen es ASIGNADO_POR_RM.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asignado_por")
     private Usuario asignadoPor;
@@ -49,6 +47,10 @@ public class ColaboradorCurso {
     // Motivo del rechazo o justificación de una asignación directa del RM.
     @Column(name = "motivo_respuesta", length = 500)
     private String motivoRespuesta;
+
+    //Justificación del por qué el colaborador quiere llevar el curso
+    @Column(name = "justificacion_colaborador", length = 500)
+    private String justificacion;
 
     @PrePersist
     protected void onCreate() {
@@ -84,4 +86,7 @@ public class ColaboradorCurso {
 
     public String getMotivoRespuesta() { return motivoRespuesta; }
     public void setMotivoRespuesta(String motivoRespuesta) { this.motivoRespuesta = motivoRespuesta; }
+
+    public String getJustificacion() { return justificacion; }
+    public void setJustificacion(String justificacion) { this.justificacion = justificacion; }
 }

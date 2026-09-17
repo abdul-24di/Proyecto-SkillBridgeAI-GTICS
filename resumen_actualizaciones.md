@@ -36,3 +36,12 @@ La sección de reportes pasó de ser visualizaciones estáticas a mostrar datos 
 ## 4. Limpieza de Errores y Excepciones
 *   Se solucionó el error **Whitelabel Error (500)** en la vista "Gestionar Asignaciones" causado por un campo SpEL incorrecto (`fechaAsignacion` en lugar de `fechaActivacion`).
 *   Se corrigieron validaciones de vistas donde se crasheaba si un proyecto todavía no poseía un "Foro" o "Chat" creado en la base de datos (ahora se instancian on-demand o manejan el `null` suavemente).
+
+## 5. Solución de Pruebas Unitarias y Seguridad (Configuración Roles)
+*   **Fallo de pruebas en GitHub Actions:** Se solucionó el error al ejecutar ./mvnw test en el servidor de integración continua. El error Model attribute 'certificadosColaborador' does not exist se arregló agregando la variable faltante en el método correspondiente de ColaboradorViewController.java al listar el perfil del colaborador.
+*   **Seguridad de Control de Accesos:** Se actualizó SecurityConfig.java para reemplazar la configuración .anyRequest().permitAll(), la cual presentaba una vulnerabilidad de acceso cruzado. Ahora se aplican reglas de autorización estrictas por prefijo de URL y rol:
+    *   /admin/** -> Requiere rol ADMIN
+    *   /pm/** -> Requiere rol PM
+    *   /rm/** -> Requiere rol RM
+    *   /colaborador/** -> Requiere rol COLABORADOR
+    *   Se mantuvieron públicas las rutas estáticas (/css, /js, /img, /uploads) y de autenticación (/login, /auth/**).

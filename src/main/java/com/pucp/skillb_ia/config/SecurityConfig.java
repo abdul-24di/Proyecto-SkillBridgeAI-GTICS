@@ -31,7 +31,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, RoleRedirectSuccessHandler successHandler) throws Exception {
         http
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/css/**", "/js/**", "/img/**", "/uploads/**", "/favicon.ico").permitAll()
+                .requestMatchers("/login", "/auth/**", "/reset-password", "/activate").permitAll()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/pm/**").hasRole("PM")
+                .requestMatchers("/rm/**").hasRole("RM")
+                .requestMatchers("/colaborador/**").hasRole("COLABORADOR")
+                .anyRequest().authenticated()
+            )
             // Simplificación deliberada: los formularios existentes (auth, admin,
             // etc.) todavía no llevan el campo oculto de token CSRF. Retomar esto
             // cuando se agregue CSRF a todos los forms del proyecto, no solo a Auth.

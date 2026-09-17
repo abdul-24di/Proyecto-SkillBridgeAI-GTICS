@@ -222,6 +222,7 @@ public class ColaboradorViewController {
 
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("habilidadesColaborador", colaboradorPerfilService.listarHabilidades(colaborador));
+        model.addAttribute("certificadosColaborador", colaboradorPerfilService.listarCertificados(colaborador));
         model.addAttribute("habilidadesDisponibles", colaboradorPerfilService.listarHabilidadesDisponibles(colaborador));
         model.addAttribute("nivelesDominio", NivelDominio.values());
         model.addAttribute("categoriasHabilidad", colaboradorPerfilService.listarCategoriasHabilidad());

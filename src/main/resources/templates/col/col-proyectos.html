@@ -82,6 +82,12 @@
             </div>
         </div>
 
+
+
+
+
+
+
         <div class="card section-card mb-4">
             <div class="search-bar-wrap">
                 <div class="input-icon">
@@ -91,17 +97,82 @@
                     <input id="searchInput" type="text" class="form-control" placeholder="Buscar proyecto...">
                 </div>
             </div>
+
             <div class="filter-tabs">
                 <button type="button" class="filter-tab active" data-filter="Todos">Todos</button>
-                <button type="button" class="filter-tab" data-filter="Activos">Activos</button>
-                <button type="button" class="filter-tab" data-filter="Terminados">Terminados</button>
-                <button type="button" class="filter-tab" data-filter="Cancelados">Cancelados</button>
+                <button type="button" class="filter-tab" data-filter="ACTIVA">Activos</button>
+                <button type="button" class="filter-tab" data-filter="PENDIENTE">Pendientes</button>
+                <button type="button" class="filter-tab" data-filter="FINALIZADA">Finalizados</button>
+                <button type="button" class="filter-tab" data-filter="RECHAZADA">Rechazados</button>
+            </div>
+
+
+        </div>
+
+
+        <div class="row row-cards">
+            <div th:if="${misAsignaciones.isEmpty()}" class="col-12">
+                <div class="card"><div class="empty-state">Aún no tienes proyectos ni solicitudes registradas.</div></div>
+            </div>
+
+            <div th:each="asig : ${misAsignaciones}" class="col-sm-6 col-xl-4 project-card-wrap"
+                 th:attr="data-status=${asig.estado.name()}">
+                <div class="card project-card">
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div class="project-title" th:text="${asig.proyecto.nombre}">Proyecto</div>
+
+                            <span th:if="${asig.estado.name() == 'ACTIVA'}" class="badge bg-green-lt">Activa</span>
+                            <span th:if="${asig.estado.name() == 'PENDIENTE'}" class="badge bg-yellow-lt">Pendiente</span>
+                            <span th:if="${asig.estado.name() == 'FINALIZADA'}" class="badge bg-blue-lt">Finalizada</span>
+                            <span th:if="${asig.estado.name() == 'RECHAZADA'}" class="badge bg-red-lt">Rechazada</span>
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'ACTIVA'}" class="text-secondary small mt-1"
+                             th:text="${asig.horasSemanales} + ' hrs/semana'">40 hrs/semana</div>
+
+                        <div th:if="${asig.estado.name() == 'PENDIENTE'}" class="text-secondary small mt-1"
+                             th:text="${asig.aprobadoPorPm} ? 'Falta aprobación del RM' : (${asig.aprobadoPorRm} ? 'Falta aprobación del PM' : 'Falta aprobación de PM y RM')">
+                            Falta aprobación
+                        </div>
+
+                        <div class="project-description mt-2"
+                             th:text="${asig.estado.name() == 'RECHAZADA'} ? (${asig.motivoRechazo != null} ? ${asig.motivoRechazo} : 'Sin motivo especificado.') : ${asig.proyecto.descripcion}">
+                            Descripción
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'ACTIVA'}" class="project-meta">
+                            <div><div class="info-label">Inicio</div><div class="info-value" th:text="${asig.proyecto.fechaInicio != null ? #temporals.format(asig.proyecto.fechaInicio, 'dd/MM/yyyy') : '—'}">—</div></div>
+                            <div><div class="info-label">Fin estimado</div><div class="info-value" th:text="${asig.proyecto.fechaFinEstimada != null ? #temporals.format(asig.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : '—'}">—</div></div>
+                            <div><div class="info-label">Desde</div><div class="info-value" th:text="${asig.fechaActivacion != null ? #temporals.format(asig.fechaActivacion, 'dd/MM/yyyy') : '—'}">—</div></div>
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'PENDIENTE'}" class="project-meta">
+                            <div><div class="info-label">Solicitada el</div><div class="info-value" th:text="${#temporals.format(asig.fechaSolicitud, 'dd/MM/yyyy')}">—</div></div>
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'FINALIZADA'}" class="project-meta">
+                            <div><div class="info-label">Finalizó el</div><div class="info-value" th:text="${asig.fechaFinalizacion != null ? #temporals.format(asig.fechaFinalizacion, 'dd/MM/yyyy') : '—'}">—</div></div>
+                            <div><div class="info-label">Motivo</div><div class="info-value" th:text="${asig.motivoFinalizacion != null ? asig.motivoFinalizacion : '—'}">—</div></div>
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'ACTIVA' or asig.estado.name() == 'FINALIZADA'}" class="project-actions">
+                            <a th:href="@{/colaborador/proyectos/detalle}" class="btn btn-outline-primary btn-sm">Ver proyecto</a>
+                        </div>
+
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div id="projectGrid" class="row row-cards"></div>
+        <div id="emptyFiltroState" class="card" style="display:none">
+            <div class="empty-state" id="emptyFiltroMensaje">No tienes proyectos en esta sección.</div>
+        </div>
 
     </main>
+
+
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>

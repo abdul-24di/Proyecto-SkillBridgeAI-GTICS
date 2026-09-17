@@ -1,6 +1,8 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -54,7 +57,9 @@ public class ColaboradorViewController {
         if (principal == null) {
             return "redirect:/login";
         }
-        model.addAttribute("misAsignaciones", colaboradorProyectoService.listarMisAsignaciones(principal.getUsuario()));
+
+        List<Asignacion> misAsignaciones = colaboradorProyectoService.listarMisAsignaciones(principal.getUsuario());
+        model.addAttribute("misAsignaciones", misAsignaciones);
         return "col/col-proyectos";
     }
 

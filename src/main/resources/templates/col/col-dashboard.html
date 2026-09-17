@@ -77,7 +77,7 @@
 
         <div class="page-head page-head-stack-mobile">
             <div>
-                <h1 class="page-title">¡Bienvenido, Paweł!</h1>
+                <h1 class="page-title" th:text="${usuarioActual != null ? ('¡Bienvenido, ' + usuarioActual.nombre + '!') : '¡Bienvenido!'}">¡Bienvenido, Paweł!</h1>
                 <div class="welcome-sub">Revisa tus proyectos y actividades.</div>
             </div>
         </div>
@@ -89,10 +89,10 @@
                     <div class="card-body">
                         <div>
                             <div class="metric-label">Mis proyectos</div>
-                            <div class="metric-number">5</div>
+                            <div class="metric-number" th:text="${totalProyectos}">5</div>
                             <div class="dash-split">
-                                <span class="dash-split-item"><span class="dash-dot bg-green"></span>Activos <strong>3</strong></span>
-                                <span class="dash-split-item"><span class="dash-dot bg-red"></span>Terminados <strong>2</strong></span>
+                                <span class="dash-split-item"><span class="dash-dot bg-green"></span>Activos <strong th:text="${proyectosActivos}">3</strong></span>
+                                <span class="dash-split-item"><span class="dash-dot bg-red"></span>Terminados <strong th:text="${proyectosFinalizados}">2</strong></span>
                             </div>
                         </div>
                         <div class="dash-card-icon bg-blue-lt text-blue">
@@ -107,7 +107,7 @@
                     <div class="card-body">
                         <div>
                             <div class="metric-label">Tareas activas</div>
-                            <div class="metric-number">20</div>
+                            <div class="metric-number" th:text="${totalActividadesPendientes}">20</div>
                             <div class="small text-secondary mt-1">Repartidas en tus proyectos activos.</div>
                         </div>
                         <div class="dash-card-icon bg-yellow-lt text-yellow">
@@ -124,8 +124,8 @@
                             <div class="metric-label">Perfil</div>
                             <div class="small text-secondary mt-1">Completa tu perfil profesional.</div>
                         </div>
-                        <div class="progress-ring" style="--value:78">
-                            <div class="progress-ring-value">78%<small>Completado</small></div>
+                        <div class="progress-ring" th:style="'--value:' + ${porcentajePerfil}">
+                            <div class="progress-ring-value"><span th:text="${porcentajePerfil} + '%'">78%</span><small>Completado</small></div>
                         </div>
                     </div>
                 </div>
@@ -147,15 +147,24 @@
                         <table class="table table-vcenter card-table mb-0">
                             <thead><tr><th>Actividad</th><th>Proyecto</th><th>Fecha límite</th><th>Estado</th></tr></thead>
                             <tbody>
-                            <tr><td class="fw-semibold">Implementar login</td><td>Proyecto A</td><td>10 Sep 2026</td><td><span class="badge bg-yellow-lt">En progreso</span></td></tr>
-                            <tr><td class="fw-semibold">Configurar BD</td><td>Proyecto A</td><td>12 Sep 2026</td><td><span class="badge bg-secondary-lt">Pendiente</span></td></tr>
-                            <tr><td class="fw-semibold">Documentar API</td><td>Proyecto E</td><td>15 Sep 2026</td><td><span class="badge bg-blue-lt">En revisión</span></td></tr>
-                            <tr><td class="fw-semibold">Pruebas unitarias</td><td>Proyecto B</td><td>18 Sep 2026</td><td><span class="badge bg-secondary-lt">Pendiente</span></td></tr>
+                            <tr th:if="${actividadesPendientes.isEmpty()}">
+                                <td colspan="4" class="empty-state">No tienes actividades pendientes por ahora.</td>
+                            </tr>
+                            <tr th:each="a, iter : ${actividadesPendientes}" th:if="${iter.index < 4}">
+                                <td class="fw-semibold" th:text="${a.titulo}">Implementar login</td>
+                                <td th:text="${a.proyecto.nombre}">Proyecto A</td>
+                                <td th:text="${#temporals.format(a.fechaLimite, 'dd MMM yyyy')}">10 Sep 2026</td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${a.estado.name() == 'EN_PROGRESO'} ? 'bg-yellow-lt' : (${a.estado.name() == 'EN_REVISION'} ? 'bg-blue-lt' : 'bg-secondary-lt')"
+                                          th:text="${a.estado.name() == 'EN_PROGRESO'} ? 'En progreso' : (${a.estado.name() == 'EN_REVISION'} ? 'En revisión' : 'Pendiente')">En progreso</span>
+                                </td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
                     <div class="card-footer table-footer">
-                        <div class="text-secondary small">Mostrando 4 de 20 tareas activas</div>
+                        <div class="text-secondary small" th:text="'Mostrando ' + (${totalActividadesPendientes} > 4 ? 4 : ${totalActividadesPendientes}) + ' de ' + ${totalActividadesPendientes} + ' tareas activas'">Mostrando 4 de 20 tareas activas</div>
                         <a href="col-proyectos.html" class="btn btn-sm btn-light" th:href="@{/colaborador/proyectos}">Ver mis proyectos</a>
                     </div>
                 </div>
@@ -164,20 +173,13 @@
             <div class="col-lg-4">
                 <div class="card section-card h-100">
                     <div class="card-header section-header">
-                        <div><h3 class="card-title mb-1">Proyectos activos</h3><div class="section-description">Avance general de cada equipo.</div></div>
+                        <div><h3 class="card-title mb-1">Proyectos activos</h3><div class="section-description">Avance según tus actividades asignadas.</div></div>
                     </div>
                     <div class="card-body">
-                        <div class="mini-project-card">
-                            <div class="d-flex justify-content-between"><span class="fw-semibold">Proyecto A</span><span class="text-secondary small">78%</span></div>
-                            <div class="mini-project-progress"><div class="mini-project-progress-bar" style="width:78%"></div></div>
-                        </div>
-                        <div class="mini-project-card">
-                            <div class="d-flex justify-content-between"><span class="fw-semibold">Proyecto B</span><span class="text-secondary small">45%</span></div>
-                            <div class="mini-project-progress"><div class="mini-project-progress-bar" style="width:45%"></div></div>
-                        </div>
-                        <div class="mini-project-card">
-                            <div class="d-flex justify-content-between"><span class="fw-semibold">Proyecto E</span><span class="text-secondary small">92%</span></div>
-                            <div class="mini-project-progress"><div class="mini-project-progress-bar" style="width:92%"></div></div>
+                        <div th:if="${proyectosConAvance.isEmpty()}" class="empty-state">No tienes proyectos activos por ahora.</div>
+                        <div th:each="p : ${proyectosConAvance}" class="mini-project-card">
+                            <div class="d-flex justify-content-between"><span class="fw-semibold" th:text="${p.proyecto.nombre}">Proyecto A</span><span class="text-secondary small" th:text="${p.porcentajeAvance} + '%'">78%</span></div>
+                            <div class="mini-project-progress"><div class="mini-project-progress-bar" th:style="'width:' + ${p.porcentajeAvance} + '%'"></div></div>
                         </div>
                     </div>
                 </div>

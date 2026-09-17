@@ -29,19 +29,22 @@ public class ColaboradorViewController {
     private final ColChatService colChatService;
     private final ColaboradorForoService colaboradorForoService;
     private final ColaboradorCursoService colaboradorCursoService;
+    private final ColaboradorActividadService colaboradorActividadService;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
                                      ColaboradorProyectoService colaboradorProyectoService,
                                      ColaboradorExplorarService colaboradorExplorarService,
                                      ColaboradorCursoService colaboradorCursoService,
                                      ColChatService colChatService,
-                                     ColaboradorForoService colaboradorForoService) {
+                                     ColaboradorForoService colaboradorForoService,
+                                     ColaboradorActividadService colaboradorActividadService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
         this.colaboradorExplorarService = colaboradorExplorarService;
         this.colaboradorCursoService = colaboradorCursoService;
         this.colChatService = colChatService;
         this.colaboradorForoService = colaboradorForoService;
+        this.colaboradorActividadService = colaboradorActividadService;
     }
 
     @GetMapping({"", "/"})
@@ -50,7 +53,34 @@ public class ColaboradorViewController {
     }
 
     @GetMapping({"/dashboard", "/col-dashboard.html"})
-    public String dashboard() {
+    public String dashboard(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        if (principal == null) {
+            return "redirect:/login";
+        }
+        Usuario colaborador = principal.getUsuario();
+
+        List<Asignacion> misAsignaciones = colaboradorProyectoService.listarMisAsignaciones(colaborador);
+        int proyectosActivos = 0;
+        int proyectosFinalizados = 0;
+        for (Asignacion asignacion : misAsignaciones) {
+            if (asignacion.getEstado() == com.pucp.skillb_ia.model.enums.EstadoAsignacion.ACTIVA) {
+                proyectosActivos++;
+            }
+            if (asignacion.getEstado() == com.pucp.skillb_ia.model.enums.EstadoAsignacion.FINALIZADA) {
+                proyectosFinalizados++;
+            }
+        }
+
+        List<com.pucp.skillb_ia.model.Actividad> actividadesPendientes = colaboradorActividadService.listarActividadesPendientes(colaborador);
+
+        model.addAttribute("proyectosActivos", proyectosActivos);
+        model.addAttribute("proyectosFinalizados", proyectosFinalizados);
+        model.addAttribute("totalProyectos", proyectosActivos + proyectosFinalizados);
+        model.addAttribute("actividadesPendientes", actividadesPendientes);
+        model.addAttribute("totalActividadesPendientes", actividadesPendientes.size());
+        model.addAttribute("porcentajePerfil", colaboradorPerfilService.calcularPorcentajeCompletado(colaborador));
+        model.addAttribute("proyectosConAvance", colaboradorActividadService.listarProyectosActivosConAvance(colaborador, misAsignaciones));
+
         return "col/col-dashboard";
     }
 
@@ -82,6 +112,7 @@ public class ColaboradorViewController {
             model.addAttribute("proyecto", detalle.getProyecto());
             model.addAttribute("asignacion", detalle.getAsignacion());
             model.addAttribute("integrantes", detalle.getIntegrantes());
+            model.addAttribute("actividadesDelProyecto", detalle.getActividadesDelProyecto());
             model.addAttribute("misActividades", detalle.getMisActividades());
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());

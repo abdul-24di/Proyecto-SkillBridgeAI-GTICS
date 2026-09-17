@@ -275,6 +275,6 @@ public class ColaboradorProyectoService {
             }
         }
 
-        return new ColProyectoDetalleView(proyecto, asignacion, integrantes, misActividades);
+        return new ColProyectoDetalleView(proyecto, asignacion, integrantes, todasLasActividades, misActividades);
     }
 }

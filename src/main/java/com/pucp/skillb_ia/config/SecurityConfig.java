@@ -32,7 +32,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http, RoleRedirectSuccessHandler successHandler) throws Exception {
         http
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/js/**", "/img/**", "/uploads/**", "/favicon.ico").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/img/**", "/uploads/**", "/favicon.ico", "/tabler/**", "/documentos/**", "/plantillas/**").permitAll()
                 .requestMatchers("/login", "/auth/**", "/reset-password", "/activate").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/pm/**").hasRole("PM")

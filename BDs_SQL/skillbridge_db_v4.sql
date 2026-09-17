@@ -1,4 +1,3 @@
-DROP DATABASE IF EXISTS skillbridge_db;
 SET NAMES utf8mb4;
 
 CREATE DATABASE IF NOT EXISTS skillbridge_db
@@ -6,10 +5,6 @@ CREATE DATABASE IF NOT EXISTS skillbridge_db
     COLLATE utf8mb4_unicode_ci;
 
 USE skillbridge_db;
-
--- Select * from colaborador_habilidad; 
--- Contraseña: Colab123!
--- usuario: colaborador.prueba@skillbridge.com
 
 
 -- =====================================================================
@@ -75,6 +70,7 @@ CREATE TABLE usuario (
 -- 3. TOKEN DE USUARIO (unifica activación + recuperación)
 -- =====================================================================
 
+-- Contraseña: 123456!
 
 CREATE TABLE token_usuario (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -146,7 +142,6 @@ CREATE TABLE colaborador_habilidad (
     habilidad_id        BIGINT NOT NULL,
     nivel_dominio       VARCHAR(20) NOT NULL,
     estado_validacion   VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
-    activo               BOOLEAN NOT NULL DEFAULT TRUE,
 
     PRIMARY KEY (colaborador_id, habilidad_id),
 
@@ -193,32 +188,9 @@ CREATE TABLE certificado (
         CHECK (estado IN ('PENDIENTE','APROBADO','RECHAZADO'))
 ) ENGINE=InnoDB;
 
--- =====================================================================
--- 8. EDUCACIÓN
--- =====================================================================
-CREATE TABLE educacion (
-    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    colaborador_id  BIGINT NOT NULL,
-    institucion     VARCHAR(150) NOT NULL,
-    titulo          VARCHAR(150) NOT NULL,
-    archivo_url 	VARCHAR(500) NULL,
-    fecha_inicio    DATE NULL,
-    fecha_fin       DATE NULL,
-    actual          BOOLEAN NOT NULL DEFAULT FALSE,
-    estado          VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
-    motivo_rechazo  VARCHAR(300) NULL,
-    revisado_por    BIGINT NULL,
-    activo          BOOLEAN NOT NULL DEFAULT TRUE,
-    fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_revision  DATETIME NULL,
 
-    CONSTRAINT fk_educacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
-    CONSTRAINT fk_educacion_revisor FOREIGN KEY (revisado_por) REFERENCES usuario(id),
-    CONSTRAINT chk_educacion_estado CHECK (estado IN ('PENDIENTE','APROBADO','RECHAZADO')) 
-  
-) ENGINE=InnoDB; 
 -- =====================================================================
--- 9. PROYECTOS
+-- 8. PROYECTOS
 -- =====================================================================
 
 CREATE TABLE proyecto (
@@ -235,7 +207,6 @@ CREATE TABLE proyecto (
     justificacion_presupuesto   VARCHAR(500)  NULL,
     presupuesto                 DECIMAL(12,2) NULL,
     colaboradores_requeridos    INT NOT NULL DEFAULT 1,
-    horas_semanales_requeridas  DECIMAL(5,2)  NOT NULL DEFAULT 20,
     pm_id                       BIGINT NOT NULL,
     rm_revisor_id               BIGINT NULL,
     fecha_creacion              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -255,7 +226,7 @@ CREATE TABLE proyecto (
 
 
 -- =====================================================================
--- 10. HABILIDADES REQUERIDAS POR PROYECTO
+-- 9. HABILIDADES REQUERIDAS POR PROYECTO
 -- =====================================================================
 
 CREATE TABLE proyecto_habilidad_requerida (
@@ -278,46 +249,13 @@ CREATE TABLE proyecto_habilidad_requerida (
 
 
 -- =====================================================================
--- 11. SOLICITUDES DE PERSONAL
+-- 10. ASIGNACIONES / POSTULACIONES
 -- =====================================================================
-
-CREATE TABLE solicitud_personal (
-    id                       BIGINT AUTO_INCREMENT PRIMARY KEY,
-    proyecto_id              BIGINT NOT NULL,
-    cantidad_colaboradores   INT NOT NULL,
-    perfiles_requeridos      VARCHAR(1000) NULL,
-    mensaje_pm               VARCHAR(1000) NULL,
-    estado                   VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
-    rm_responsable_id        BIGINT NULL,
-    fecha_solicitud          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_inicio_atencion    DATETIME NULL,
-    fecha_atencion           DATETIME NULL,
-
-    CONSTRAINT fk_solpersonal_proyecto
-        FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
-    CONSTRAINT fk_solpersonal_rm
-        FOREIGN KEY (rm_responsable_id) REFERENCES usuario(id),
-    CONSTRAINT chk_solpersonal_cantidad
-        CHECK (cantidad_colaboradores > 0),
-    CONSTRAINT chk_solpersonal_estado
-        CHECK (estado IN ('PENDIENTE','EN_ATENCION','ATENDIDA','CANCELADA')),
-
-    INDEX idx_solpersonal_estado_fecha (estado, fecha_solicitud),
-    INDEX idx_solpersonal_proyecto (proyecto_id)
-) ENGINE=InnoDB;
-
-
--- =====================================================================
--- 12. ASIGNACIONES / POSTULACIONES
--- =====================================================================
-
 
 CREATE TABLE asignacion (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
     proyecto_id         BIGINT NOT NULL,
     colaborador_id      BIGINT NOT NULL,
-    habilidad_solicitada_id BIGINT NULL,
-    habilidades_relevantes VARCHAR(300) NULL,
     horas_semanales     DECIMAL(5,2) NOT NULL,
     origen              VARCHAR(30) NOT NULL,
     mensaje_solicitud   VARCHAR(500) NULL,
@@ -336,7 +274,6 @@ CREATE TABLE asignacion (
 
     CONSTRAINT fk_asignacion_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
     CONSTRAINT fk_asignacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
-    CONSTRAINT fk_asignacion_habilidad_solicitada FOREIGN KEY (habilidad_solicitada_id) REFERENCES habilidad(id),
     CONSTRAINT fk_asignacion_rechazado_por FOREIGN KEY (rechazado_por) REFERENCES usuario(id),
     CONSTRAINT fk_asignacion_desasignado_por FOREIGN KEY (desasignado_por) REFERENCES usuario(id),
 
@@ -358,7 +295,7 @@ CREATE TABLE asignacion (
 
 
 -- =====================================================================
--- 13. ACTIVIDADES
+-- 11. ACTIVIDADES 
 -- =====================================================================
 
 CREATE TABLE actividad (
@@ -377,8 +314,6 @@ CREATE TABLE actividad (
     comentario_devolucion   VARCHAR(300) NULL,
     estado                  VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
     creado_por              BIGINT NOT NULL,
-    evidencia_url           VARCHAR(500) NULL,
-    comentario_colaborador  VARCHAR(300) NULL,
 
     CONSTRAINT fk_actividad_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
     CONSTRAINT fk_actividad_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
@@ -395,7 +330,7 @@ CREATE TABLE actividad (
 
 
 -- =====================================================================
--- 14. CURSOS
+-- 12. CURSOS
 -- =====================================================================
 
 CREATE TABLE curso (
@@ -414,9 +349,8 @@ CREATE TABLE curso (
 
 
 -- =====================================================================
--- 15. SOLICITUDES / ASIGNACIONES DE CURSOS
+-- 13. SOLICITUDES / ASIGNACIONES DE CURSOS
 -- =====================================================================
-
 
 CREATE TABLE colaborador_curso (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -428,8 +362,6 @@ CREATE TABLE colaborador_curso (
     fecha_solicitud     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_respuesta     DATETIME NULL,
     fecha_completado    DATETIME NULL,
-    motivo_respuesta    VARCHAR(500) NULL,
-    justificacion_colaborador VARCHAR(500) NULL,
 
     CONSTRAINT fk_colcurso_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
     CONSTRAINT fk_colcurso_curso FOREIGN KEY (curso_id) REFERENCES curso(id),
@@ -444,7 +376,7 @@ CREATE TABLE colaborador_curso (
 
 
 -- =====================================================================
--- 16. PENALIZACIONES
+-- 14. PENALIZACIONES
 -- =====================================================================
 
 CREATE TABLE penalizacion (
@@ -469,7 +401,7 @@ CREATE TABLE penalizacion (
 
 
 -- =====================================================================
--- 17. NÓMINA MENSUAL
+-- 15. NÓMINA MENSUAL
 -- =====================================================================
 
 CREATE TABLE nomina_mensual (
@@ -496,7 +428,7 @@ CREATE TABLE nomina_mensual (
 
 
 -- =====================================================================
--- 18. ETIQUETAS
+-- 16. ETIQUETAS 
 -- =====================================================================
 
 CREATE TABLE etiqueta (
@@ -506,7 +438,7 @@ CREATE TABLE etiqueta (
 
 
 -- =====================================================================
--- 19. FOROS
+-- 17. FOROS
 -- =====================================================================
 
 
@@ -524,18 +456,17 @@ CREATE TABLE foro (
 
 
 -- =====================================================================
--- 20. PUBLICACIONES DEL FORO
+-- 18. PUBLICACIONES DEL FORO
 -- =====================================================================
 
 
 CREATE TABLE publicacion_foro (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    activo 			BOOLEAN NOT NULL DEFAULT TRUE,
     foro_id         BIGINT NOT NULL,
     autor_id        BIGINT NOT NULL,
     etiqueta_id     BIGINT NULL,
     titulo          VARCHAR(200) NOT NULL,
-    contenido       LONGTEXT NOT NULL,
+    contenido       TEXT NOT NULL,
     fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_publicacion_foro FOREIGN KEY (foro_id) REFERENCES foro(id),
@@ -543,16 +474,16 @@ CREATE TABLE publicacion_foro (
     CONSTRAINT fk_publicacion_etiqueta FOREIGN KEY (etiqueta_id) REFERENCES etiqueta(id)
 ) ENGINE=InnoDB;
 
+
 -- =====================================================================
--- 21. RESPUESTAS DEL FORO
+-- 19. RESPUESTAS DEL FORO
 -- =====================================================================
 
 CREATE TABLE respuesta_foro (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    activo 			BOOLEAN NOT NULL DEFAULT TRUE,
     publicacion_id  BIGINT NOT NULL,
     autor_id        BIGINT NOT NULL,
-    contenido       LONGTEXT NOT NULL,
+    contenido       TEXT NOT NULL,
     es_solucion     BOOLEAN NOT NULL DEFAULT FALSE,
     fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -562,7 +493,7 @@ CREATE TABLE respuesta_foro (
 
 
 -- =====================================================================
--- 22. VOTOS DE PUBLICACIONES
+-- 20. VOTOS DE PUBLICACIONES
 -- =====================================================================
 
 CREATE TABLE voto_publicacion (
@@ -579,7 +510,7 @@ CREATE TABLE voto_publicacion (
 
 
 -- =====================================================================
--- 23. VOTOS DE RESPUESTAS
+-- 21. VOTOS DE RESPUESTAS
 -- =====================================================================
 
 CREATE TABLE voto_respuesta (
@@ -596,7 +527,7 @@ CREATE TABLE voto_respuesta (
 
 
 -- =====================================================================
--- 24. CONVERSACIONES / CHAT
+-- 22. CONVERSACIONES / CHAT
 -- =====================================================================
 
 CREATE TABLE conversacion (
@@ -632,7 +563,7 @@ CREATE TABLE mensaje (
 
 
 -- =====================================================================
--- 25. NOTIFICACIONES
+-- 23. NOTIFICACIONES
 -- =====================================================================
 
 CREATE TABLE notificacion (
@@ -655,7 +586,7 @@ CREATE TABLE notificacion (
 
 
 -- =====================================================================
--- 26. CONFIGURACIÓN DEL SISTEMA
+-- 24. CONFIGURACIÓN DEL SISTEMA
 -- =====================================================================
 
 CREATE TABLE configuracion_sistema (
@@ -669,31 +600,10 @@ INSERT INTO configuracion_sistema (clave, valor, descripcion) VALUES
     ('MAX_ASIGNACIONES_POR_COLABORADOR', '3', 'Límite de asignaciones activas simultáneas por colaborador'),
     ('TOPE_HORAS_EXTRA_BONO', '20', 'Máximo de horas extra pagables como bono por mes'),
     ('NOMBRE_ORGANIZACION', 'SkillBridge AI', 'Nombre visible de la organización');
-    
--- =====================================================================
--- 27. Documentos de proyectos
--- =====================================================================    
-    
-CREATE TABLE documento (
-    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    proyecto_id     BIGINT NOT NULL,
-    subido_por_id   BIGINT NOT NULL,
-    nombre          VARCHAR(200) NOT NULL,
-    categoria       VARCHAR(20) NOT NULL,
-    archivo_url     VARCHAR(500) NOT NULL,
-    activo          BOOLEAN NOT NULL DEFAULT TRUE,
-    fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_documento_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
-    CONSTRAINT fk_documento_subido_por FOREIGN KEY (subido_por_id) REFERENCES usuario(id),
-
-    CONSTRAINT chk_documento_categoria
-        CHECK (categoria IN ('PDF','EXCEL','WORD','IMAGEN','DISENO','OTRO'))
-) ENGINE=InnoDB;
 
 
 -- =====================================================================
--- 28. AUDITORÍA
+-- 25. AUDITORÍA
 -- =====================================================================
 
 CREATE TABLE log_auditoria (
@@ -713,11 +623,11 @@ CREATE TABLE log_auditoria (
 
 -- =====================================================================
 -- DATOS DE PRUEBA: USUARIOS (contraseña para todos: abc123)
+-- Hash generado con BCrypt $ (compatible con Spring Security Java)
 -- =====================================================================
-  
-  
-  INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES
-  ('admin@skillbridge.com',  '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Admin',   'Sistema',  (SELECT id FROM rol WHERE nombre='ADMINISTRADOR'), 1, NULL, NULL),
-  ('rm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Ricardo', 'Mendez',   (SELECT id FROM rol WHERE nombre='RESOURCE_MANAGER'), 1, NULL, NULL),
-  ('pm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Pedro',   'Martinez', (SELECT id FROM rol WHERE nombre='PROJECT_MANAGER'), 1, NULL, NULL),
-  ('col@skillbridge.com',    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Carlos',  'Lopez',    (SELECT id FROM rol WHERE nombre='COLABORADOR'), 1, 'Backend Developer', 40);
+
+INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES
+  ('admin@skillbridge.com',  '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Admin',   'Sistema',  1, 1, NULL, NULL),
+  ('rm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Ricardo', 'Mendez',   3, 1, NULL, NULL),
+  ('pm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Pedro',   'Martinez', 2, 1, NULL, NULL),
+  ('col@skillbridge.com',    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Carlos',  'Lopez',    4, 1, 'Backend Developer', 40);

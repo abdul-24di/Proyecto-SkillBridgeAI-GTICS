@@ -66,7 +66,28 @@ public class ColaboradorViewController {
     }
 
     @GetMapping({"/proyectos/detalle", "/col-detalle-proyecto.html"})
-    public String projectDetail() {
+    public String projectDetail(@AuthenticationPrincipal UsuarioDetails principal,
+                                @RequestParam(required = false) Long asignacionId,
+                                Model model,
+                                RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+
+        if (asignacionId == null) {
+            redirectAttributes.addFlashAttribute("mensajeError", "No se indicó qué proyecto quieres ver.");
+            return "redirect:/colaborador/proyectos";
+        }
+
+        try {
+            var detalle = colaboradorProyectoService.obtenerDetalleProyecto(principal.getUsuario(), asignacionId);
+            model.addAttribute("proyecto", detalle.getProyecto());
+            model.addAttribute("asignacion", detalle.getAsignacion());
+            model.addAttribute("integrantes", detalle.getIntegrantes());
+            model.addAttribute("misActividades", detalle.getMisActividades());
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            return "redirect:/colaborador/proyectos";
+        }
+
         return "col/col-detalle-proyecto";
     }
 

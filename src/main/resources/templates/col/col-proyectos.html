@@ -158,7 +158,7 @@
                         </div>
 
                         <div th:if="${asig.estado.name() == 'ACTIVA' or asig.estado.name() == 'FINALIZADA'}" class="project-actions">
-                            <a th:href="@{/colaborador/proyectos/detalle}" class="btn btn-outline-primary btn-sm">Ver proyecto</a>
+                            <a th:href="@{/colaborador/proyectos/detalle(asignacionId=${asig.id})}" class="btn btn-outline-primary btn-sm">Ver proyecto</a>
                         </div>
 
                     </div>

@@ -2,20 +2,14 @@ package com.pucp.skillb_ia.service.col;
 
 import com.pucp.skillb_ia.dto.ColHistorialProyectoView;
 import com.pucp.skillb_ia.dto.ColPerfilRequeridoView;
+import com.pucp.skillb_ia.dto.ColProyectoDetalleView;
 import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
-import com.pucp.skillb_ia.model.Asignacion;
-import com.pucp.skillb_ia.model.Habilidad;
-import com.pucp.skillb_ia.model.Proyecto;
-import com.pucp.skillb_ia.model.ProyectoHabilidadRequerida;
-import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
-import com.pucp.skillb_ia.repository.AsignacionRepository;
-import com.pucp.skillb_ia.repository.HabilidadRepository;
-import com.pucp.skillb_ia.repository.ProyectoHabilidadRequeridaRepository;
-import com.pucp.skillb_ia.repository.ProyectoRepository;
+import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,17 +26,20 @@ public class ColaboradorProyectoService {
     private final AsignacionRepository asignacionRepository;
     private final ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository;
     private final HabilidadRepository habilidadRepository;
+    private final ActividadRepository actividadRepository;
     private final AuditoriaService auditoriaService;
 
     public ColaboradorProyectoService(ProyectoRepository proyectoRepository,
                                       AsignacionRepository asignacionRepository,
                                       ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository,
                                       HabilidadRepository habilidadRepository,
+                                      ActividadRepository actividadRepository,
                                       AuditoriaService auditoriaService) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoHabilidadRequeridaRepository = proyectoHabilidadRequeridaRepository;
         this.habilidadRepository = habilidadRepository;
+        this.actividadRepository = actividadRepository;
         this.auditoriaService = auditoriaService;
     }
 
@@ -244,5 +241,40 @@ public class ColaboradorProyectoService {
             historial.add(new ColHistorialProyectoView(proyecto, asignacion, habilidades));
         }
         return historial;
+    }
+
+    // ============================================================
+    // DETALLE DE UN PROYECTO (Resumen/ Integrantes/ Actividades)
+    // ============================================================
+    public ColProyectoDetalleView obtenerDetalleProyecto(Usuario colaborador, Long asignacionId) {
+        Asignacion asignacion = asignacionRepository.findByIdConDetalle(asignacionId)
+                .orElseThrow(() -> new IllegalArgumentException("El proyecto que buscas no existe."));
+
+        if (!asignacion.getColaborador().getId().equals(colaborador.getId())) {
+            throw new IllegalArgumentException("No tienes acceso a este proyecto.");
+        }
+
+        boolean esActiva = asignacion.getEstado() == EstadoAsignacion.ACTIVA;
+        boolean esFinalizada = asignacion.getEstado() == EstadoAsignacion.FINALIZADA;
+
+        if (!esActiva && !esFinalizada) {
+            throw new IllegalArgumentException("Todavía no tienes acceso a los detalles de este proyecto.");
+        }
+
+        Proyecto proyecto = asignacion.getProyecto();
+
+        //Listamos a los integrantes que son colaboradores con asignación ACTIVA en ese proyecto
+        List<Asignacion> integrantes = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+
+        //Listamos las actividades del colaborador que está viendo el proyecto
+        List<Actividad> todasLasActividades = actividadRepository.findByProyecto(proyecto);
+        List<Actividad> misActividades = new ArrayList<>();
+        for (Actividad actividad : todasLasActividades) {
+            if (actividad.getColaborador().getId().equals(colaborador.getId())) {
+                misActividades.add(actividad);
+            }
+        }
+
+        return new ColProyectoDetalleView(proyecto, asignacion, integrantes, misActividades);
     }
 }

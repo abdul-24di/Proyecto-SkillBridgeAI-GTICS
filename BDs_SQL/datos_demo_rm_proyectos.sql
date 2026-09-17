@@ -9,6 +9,9 @@
 --   * /rm/proyectos
 --   * detalle de proyecto
 --   * revision, aprobacion y rechazo
+--   * sueldo base, costo semanal y costo total de cada asignacion
+--   * presupuesto comprometido, reservado y disponible
+--   * asignaciones con presupuesto suficiente e insuficiente
 --   * asignacion y actualizacion de presupuesto
 --   * equipo, vacantes, habilidades y pendientes del RM
 --   * foros, publicaciones, respuestas, soluciones y votos de solo lectura
@@ -41,7 +44,7 @@ START TRANSACTION;
 -- 1. Roles requeridos
 -- --------------------------------------------------------------------------
 INSERT INTO rol (nombre) VALUES
-    ('ADMIN'),
+    ('ADMINISTRADOR'),
     ('RESOURCE_MANAGER'),
     ('PROJECT_MANAGER'),
     ('COLABORADOR')
@@ -55,49 +58,56 @@ ON DUPLICATE KEY UPDATE nombre = nuevo.nombre;
 INSERT INTO usuario (
     correo, password_hash, nombre, apellido, telefono, descripcion,
     rol_id, activo, cargo, horas_contratadas_semana, horas_disponibles,
-    anios_experiencia, nivel_experiencia, fecha_contratacion
+    sueldo_base, anios_experiencia, nivel_experiencia, fecha_contratacion
 ) VALUES
 (
     'demo.admin@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Adriana', 'Campos', '999000111', 'Administradora de demostracion.',
-    (SELECT id FROM rol WHERE nombre = 'ADMIN'),
-    TRUE, NULL, NULL, NULL, NULL, NULL, NULL
+    (SELECT id FROM rol WHERE nombre = 'ADMINISTRADOR'),
+    TRUE, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 ),
 (
     'demo.rm@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Rosa', 'Mendoza', '999111222', 'Resource Manager de demostracion.',
     (SELECT id FROM rol WHERE nombre = 'RESOURCE_MANAGER'),
-    TRUE, NULL, NULL, NULL, NULL, NULL, NULL
+    TRUE, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 ),
 (
     'demo.pm@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Pablo', 'Morales', '999222333', 'Project Manager de demostracion.',
     (SELECT id FROM rol WHERE nombre = 'PROJECT_MANAGER'),
-    TRUE, NULL, NULL, NULL, NULL, NULL, NULL
+    TRUE, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 ),
 (
     'demo.colaborador1@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Carla', 'Rojas', '999333444', 'Especialista backend para datos de prueba.',
     (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
-    TRUE, 'Backend Developer', 40.00, 16.00, 5.0, 'SENIOR', '2023-03-20'
+    TRUE, 'Backend Developer', 40.00, 16.00, 7600.00, 5.0, 'SENIOR', '2023-03-20'
 ),
 (
     'demo.colaborador2@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Diego', 'Salazar', '999444555', 'Especialista cloud para datos de prueba.',
     (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
-    TRUE, 'Cloud Engineer', 40.00, 20.00, 4.0, 'SEMI_SENIOR', '2023-08-10'
+    TRUE, 'Cloud Engineer', 40.00, 20.00, 8000.00, 4.0, 'SEMI_SENIOR', '2023-08-10'
 ),
 (
     'demo.colaborador3@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Elena', 'Torres', '999555666', 'Analista de datos para datos de prueba.',
     (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
-    TRUE, 'Data Analyst', 40.00, 32.00, 2.0, 'JUNIOR', '2024-05-06'
+    TRUE, 'Data Analyst', 40.00, 32.00, 4800.00, 2.0, 'JUNIOR', '2024-05-06'
+),
+(
+    'demo.colaborador4@skillbridge.local',
+    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
+    'Mateo', 'Vega', '999666777', 'Especialista DevOps con sueldo alto para probar el bloqueo presupuestario.',
+    (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
+    TRUE, 'DevOps Engineer', 40.00, 40.00, 10000.00, 6.0, 'SENIOR', '2022-11-14'
 ) AS nuevo
 ON DUPLICATE KEY UPDATE
     password_hash = nuevo.password_hash,
@@ -110,6 +120,7 @@ ON DUPLICATE KEY UPDATE
     cargo = nuevo.cargo,
     horas_contratadas_semana = nuevo.horas_contratadas_semana,
     horas_disponibles = nuevo.horas_disponibles,
+    sueldo_base = nuevo.sueldo_base,
     anios_experiencia = nuevo.anios_experiencia,
     nivel_experiencia = nuevo.nivel_experiencia,
     fecha_contratacion = nuevo.fecha_contratacion;
@@ -157,6 +168,18 @@ INSERT INTO colaborador_habilidad (
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
      WHERE h.nombre = 'Docker' AND c.nombre = '[DEMO] Tecnologia'),
     'INTERMEDIO', 'VALIDADA', TRUE
+),
+(
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador4@skillbridge.local'),
+    (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
+     WHERE h.nombre = 'Docker' AND c.nombre = '[DEMO] Tecnologia'),
+    'AVANZADO', 'VALIDADA', TRUE
+),
+(
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador4@skillbridge.local'),
+    (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
+     WHERE h.nombre = 'AWS' AND c.nombre = '[DEMO] Tecnologia'),
+    'AVANZADO', 'VALIDADA', TRUE
 ),
 (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
@@ -259,7 +282,7 @@ SELECT
     '2026-09-01', '2027-01-31', 'ACTIVO', 'ALTA',
     'Reduce riesgos operativos y costos de infraestructura local.',
     58000.00, 'Servicios cloud, soporte y automatizacion.',
-    60000.00, 3, 20.00,
+    60000.00, 4, 20.00,
     (SELECT id FROM usuario WHERE correo = 'demo.pm@skillbridge.local'),
     (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
     CURRENT_TIMESTAMP - INTERVAL 20 DAY
@@ -334,7 +357,7 @@ LIMIT 1;
 
 UPDATE proyecto SET
     estado = 'ACTIVO', presupuesto = 60000.00, motivo_rechazo = NULL,
-    rm_revisor_id = @demo_rm_id
+    colaboradores_requeridos = 4, rm_revisor_id = @demo_rm_id
 WHERE id = @demo_migracion_id
 LIMIT 1;
 
@@ -501,6 +524,12 @@ LIMIT 1;
 
 -- --------------------------------------------------------------------------
 -- 7. Asignaciones: ejemplos para cada bandeja del RM
+--
+-- Escenarios financieros principales:
+--   * Migracion Cloud: tres asignaciones activas consumen mas del 90 %.
+--   * Migracion Cloud / Mateo: pendiente del RM y bloqueada por deficit.
+--   * Analitica Comercial / Diego: presupuesto reservado, pendiente del PM.
+--   * Portal de Atencion / Elena: no puede aprobarse sin presupuesto asignado.
 -- --------------------------------------------------------------------------
 INSERT INTO asignacion (
     proyecto_id, colaborador_id, horas_semanales, origen, mensaje_solicitud,
@@ -523,6 +552,21 @@ INSERT INTO asignacion (
     'ACTIVA', TRUE, TRUE, CURRENT_TIMESTAMP - INTERVAL 15 DAY,
     CURRENT_TIMESTAMP - INTERVAL 16 DAY, NULL, NULL, NULL, NULL,
     CURRENT_TIMESTAMP - INTERVAL 17 DAY, CURRENT_TIMESTAMP - INTERVAL 15 DAY, NULL
+),
+(
+    (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
+    20.00, 'PROPUESTA_PM', 'Asignacion activa que deja el presupuesto del proyecto en estado critico.',
+    'ACTIVA', TRUE, TRUE, CURRENT_TIMESTAMP - INTERVAL 12 DAY,
+    CURRENT_TIMESTAMP - INTERVAL 11 DAY, NULL, NULL, NULL, NULL,
+    CURRENT_TIMESTAMP - INTERVAL 13 DAY, CURRENT_TIMESTAMP - INTERVAL 11 DAY, NULL
+),
+(
+    (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador4@skillbridge.local'),
+    10.00, 'PROPUESTA_PM', 'Solicitud pendiente que debe bloquearse por presupuesto insuficiente.',
+    'PENDIENTE', TRUE, FALSE, CURRENT_TIMESTAMP - INTERVAL 1 DAY,
+    NULL, NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP - INTERVAL 2 DAY, NULL, NULL
 ),
 (
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Portal de Atencion'),
@@ -1035,7 +1079,7 @@ COMMIT;
 
 -- --------------------------------------------------------------------------
 -- 11. Comprobacion rapida
--- Debe devolver proyectos, foros, actividades y cursos de demostracion.
+-- Debe devolver proyectos, costos, foros, actividades y cursos de demostracion.
 -- --------------------------------------------------------------------------
 SELECT
     p.id,
@@ -1049,6 +1093,60 @@ FROM proyecto p
 JOIN usuario pm ON pm.id = p.pm_id
 WHERE p.nombre LIKE '[DEMO]%'
 ORDER BY p.fecha_creacion DESC;
+
+-- Costos que utiliza RmPresupuestoService. Permite comprobar los escenarios
+-- ACTIVA (comprometido), PENDIENTE aprobada por RM (reservado) y pendiente RM.
+SELECT
+    p.nombre AS proyecto,
+    CONCAT(u.nombre, ' ', u.apellido) AS colaborador,
+    u.sueldo_base,
+    a.horas_semanales,
+    a.estado,
+    a.aprobado_por_pm,
+    a.aprobado_por_rm,
+    ROUND(u.sueldo_base / 160, 2) AS valor_hora,
+    ROUND(DATEDIFF(p.fecha_fin_estimada, p.fecha_inicio) / 7, 2) AS duracion_semanas,
+    ROUND(
+        ROUND(u.sueldo_base / 160, 2)
+        * ROUND(a.horas_semanales * ROUND(DATEDIFF(p.fecha_fin_estimada, p.fecha_inicio) / 7, 2), 2),
+        2
+    ) AS costo_total
+FROM asignacion a
+JOIN proyecto p ON p.id = a.proyecto_id
+JOIN usuario u ON u.id = a.colaborador_id
+WHERE p.nombre LIKE '[DEMO]%'
+ORDER BY p.nombre, a.estado, colaborador;
+
+-- Resumen presupuestario esperado por proyecto, usando las mismas reglas de
+-- comprometido y reservado que la aplicacion.
+SELECT
+    p.nombre AS proyecto,
+    p.presupuesto AS presupuesto_total,
+    ROUND(SUM(CASE
+        WHEN a.estado = 'ACTIVA' THEN
+            ROUND(u.sueldo_base / 160, 2)
+            * ROUND(a.horas_semanales * ROUND(DATEDIFF(p.fecha_fin_estimada, p.fecha_inicio) / 7, 2), 2)
+        ELSE 0 END), 2) AS comprometido,
+    ROUND(SUM(CASE
+        WHEN a.estado = 'PENDIENTE' AND a.aprobado_por_rm = TRUE THEN
+            ROUND(u.sueldo_base / 160, 2)
+            * ROUND(a.horas_semanales * ROUND(DATEDIFF(p.fecha_fin_estimada, p.fecha_inicio) / 7, 2), 2)
+        ELSE 0 END), 2) AS reservado,
+    GREATEST(
+        COALESCE(p.presupuesto, 0) - ROUND(SUM(CASE
+            WHEN a.estado = 'ACTIVA'
+                 OR (a.estado = 'PENDIENTE' AND a.aprobado_por_rm = TRUE) THEN
+                ROUND(u.sueldo_base / 160, 2)
+                * ROUND(a.horas_semanales * ROUND(DATEDIFF(p.fecha_fin_estimada, p.fecha_inicio) / 7, 2), 2)
+            ELSE 0 END), 2),
+        0
+    ) AS disponible
+FROM proyecto p
+LEFT JOIN asignacion a ON a.proyecto_id = p.id
+LEFT JOIN usuario u ON u.id = a.colaborador_id
+WHERE p.nombre LIKE '[DEMO]%'
+GROUP BY p.id, p.nombre, p.presupuesto
+ORDER BY p.nombre;
 
 SELECT
     f.id,

@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/colaborador")
@@ -30,6 +31,7 @@ public class ColaboradorViewController {
     private final ColaboradorForoService colaboradorForoService;
     private final ColaboradorCursoService colaboradorCursoService;
     private final ColaboradorActividadService colaboradorActividadService;
+    private final ColaboradorDocumentoService colaboradorDocumentoService;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
                                      ColaboradorProyectoService colaboradorProyectoService,
@@ -37,7 +39,8 @@ public class ColaboradorViewController {
                                      ColaboradorCursoService colaboradorCursoService,
                                      ColChatService colChatService,
                                      ColaboradorForoService colaboradorForoService,
-                                     ColaboradorActividadService colaboradorActividadService) {
+                                     ColaboradorActividadService colaboradorActividadService,
+                                     ColaboradorDocumentoService colaboradorDocumentoService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
         this.colaboradorExplorarService = colaboradorExplorarService;
@@ -45,6 +48,7 @@ public class ColaboradorViewController {
         this.colChatService = colChatService;
         this.colaboradorForoService = colaboradorForoService;
         this.colaboradorActividadService = colaboradorActividadService;
+        this.colaboradorDocumentoService = colaboradorDocumentoService;
     }
 
     @GetMapping({"", "/"})
@@ -97,9 +101,11 @@ public class ColaboradorViewController {
 
     @GetMapping({"/proyectos/detalle", "/col-detalle-proyecto.html"})
     public String projectDetail(@AuthenticationPrincipal UsuarioDetails principal,
-                                @RequestParam(required = false) Long asignacionId,
-                                Model model,
-                                RedirectAttributes redirectAttributes) {
+                                     @RequestParam(required = false) Long asignacionId,
+                                     @RequestParam(required = false) String categoriaDoc,
+                                     @RequestParam(required = false) String busquedaDoc,
+                                     Model model,
+                                     RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
 
         if (asignacionId == null) {
@@ -108,18 +114,64 @@ public class ColaboradorViewController {
         }
 
         try {
-            var detalle = colaboradorProyectoService.obtenerDetalleProyecto(principal.getUsuario(), asignacionId);
+            Usuario colaborador = principal.getUsuario();
+            var detalle = colaboradorProyectoService.obtenerDetalleProyecto(colaborador, asignacionId);
             model.addAttribute("proyecto", detalle.getProyecto());
             model.addAttribute("asignacion", detalle.getAsignacion());
             model.addAttribute("integrantes", detalle.getIntegrantes());
             model.addAttribute("actividadesDelProyecto", detalle.getActividadesDelProyecto());
             model.addAttribute("misActividades", detalle.getMisActividades());
+
+            //Pestaña Documentos
+            model.addAttribute("documentos", colaboradorDocumentoService.listarDocumentos(
+                    colaborador, detalle.getProyecto().getId(), categoriaDoc, busquedaDoc));
+            model.addAttribute("filtroCategoriaDoc", categoriaDoc == null ? "" : categoriaDoc);
+            model.addAttribute("filtroBusquedaDoc", busquedaDoc == null ? "" : busquedaDoc);
+
+            //Pestaña Foro, solo de un proyecto en especifico, no todos los foros
+            Optional<Foro> foroOpt = colaboradorForoService.obtenerForoDeProyecto(detalle.getProyecto());
+            if (foroOpt.isPresent()) {
+                model.addAttribute("foroDelProyecto", foroOpt.get());
+                model.addAttribute("publicacionesForoProyecto",
+                        colaboradorForoService.listarPublicacionesConRespuestas(colaborador, foroOpt.get().getId()));
+            }
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
             return "redirect:/colaborador/proyectos";
         }
 
         return "col/col-detalle-proyecto";
+    }
+
+    @PostMapping("/proyectos/documentos/subir")
+    public String subirDocumentoProyecto(@AuthenticationPrincipal UsuarioDetails principal,
+                                         @RequestParam Long proyectoId,
+                                         @RequestParam Long asignacionId,
+                                         @RequestParam("archivo") MultipartFile archivo,
+                                         RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorDocumentoService.subirDocumento(principal.getUsuario(), proyectoId, archivo);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Documento subido correctamente.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=documentos";
+    }
+
+    @PostMapping("/proyectos/documentos/{documentoId}/eliminar")
+    public String eliminarDocumentoProyecto(@AuthenticationPrincipal UsuarioDetails principal,
+                                            @PathVariable Long documentoId,
+                                            @RequestParam Long asignacionId,
+                                            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorDocumentoService.eliminarDocumento(principal.getUsuario(), documentoId);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Documento eliminado.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=documentos";
     }
 
     @GetMapping({"/chat", "/col-chat.html"})
@@ -524,4 +576,23 @@ public class ColaboradorViewController {
         }
         return "redirect:/colaborador/perfil";
     }
+
+    @PostMapping("/proyectos/actividades/{actividadId}/marcar-listo")
+    public String marcarActividadListaParaRevision(@AuthenticationPrincipal UsuarioDetails principal,
+                                                   @PathVariable Long actividadId,
+                                                   @RequestParam Long asignacionId,
+                                                   @RequestParam(required = false) MultipartFile evidencia,
+                                                   @RequestParam(required = false) String comentario,
+                                                   RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorProyectoService.marcarActividadListaParaRevision(principal.getUsuario(), actividadId, evidencia, comentario);
+            redirectAttributes.addFlashAttribute("mensajeExito", "Actividad marcada como lista para revisión. El PM la revisará pronto.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId;
+    }
+
+
 }

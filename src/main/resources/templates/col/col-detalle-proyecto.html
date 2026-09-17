@@ -18,6 +18,8 @@
     <main class="page-wrap">
 
         <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+        <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+
 
         <div class="breadcrumb-wrap">
             <a th:href="@{/colaborador/proyectos}" class="breadcrumb-link">Mis proyectos</a>
@@ -176,46 +178,128 @@
 
                 <div class="card section-card">
                     <div class="card-header section-header">
-                        <div><h3 class="card-title mb-1">Mis actividades</h3><div class="section-description">Solo las actividades que te asignaron a ti en este proyecto.</div></div>
+                        <div><h3 class="card-title mb-1">Mis actividades</h3><div class="section-description">Haz clic en una actividad para ver el detalle. Si aún no la entregaste, podrás adjuntar tu evidencia.</div></div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table mb-0">
-                            <thead><tr><th>Actividad</th><th>Horas estimadas</th><th>Fecha límite</th><th>Estado</th></tr></thead>
+                            <thead><tr><th>Actividad</th><th>Horas estimadas</th><th>Fecha límite</th><th>Estado</th><th></th></tr></thead>
                             <tbody>
                             <tr th:if="${misActividades.isEmpty()}">
-                                <td colspan="4" class="empty-state">Aún no tienes actividades asignadas en este proyecto.</td>
+                                <td colspan="5" class="empty-state">Aún no tienes actividades asignadas en este proyecto.</td>
                             </tr>
-                            <tr th:each="act : ${misActividades}">
+                            <tr th:each="act : ${misActividades}" class="activity-row"
+                                th:attr="data-id=${act.id},
+                                         data-titulo=${act.titulo},
+                                         data-descripcion=${act.descripcion},
+                                         data-horas=${act.horasEstimadas},
+                                         data-fecha=${#temporals.format(act.fechaLimite, 'dd/MM/yyyy')},
+                                         data-estado=${act.estado.name()},
+                                         data-comentario-devolucion=${act.comentarioDevolucion},
+                                         data-evidencia-url=${act.evidenciaUrl},
+                                         data-comentario-colaborador=${act.comentarioColaborador}">
                                 <td class="fw-semibold" th:text="${act.titulo}">Título</td>
                                 <td th:text="${act.horasEstimadas}">0</td>
                                 <td th:text="${#temporals.format(act.fechaLimite, 'dd/MM/yyyy')}">—</td>
                                 <td><span class="badge bg-azure-lt" th:text="${act.estado.name()}">PENDIENTE</span></td>
+                                <td class="text-secondary small">Ver detalle →</td>
                             </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
+
+
             </div>
 
-            <!-- ===== DOCUMENTOS (próximamente) ===== -->
+            <!-- ===== DOCUMENTOS ===== -->
             <div class="tab-pane fade" id="tab-documentos" role="tabpanel">
                 <div class="card section-card">
                     <div class="card-header section-header">
                         <div><h3 class="card-title mb-1">Documentos</h3><div class="section-description">Archivos compartidos del proyecto.</div></div>
+                        <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#subirDocumentoModal">+ Subir archivo</button>
                     </div>
                     <div class="card-body">
-                        <div class="empty-state">Esta sección todavía está en desarrollo. Próximamente podrás ver y subir documentos del proyecto aquí.</div>
+                        <form method="get" th:action="@{/colaborador/proyectos/detalle}" class="row g-2 align-items-end mb-3">
+                            <input type="hidden" name="asignacionId" th:value="${asignacion.id}"/>
+                            <div class="col-md-6">
+                                <label class="form-label">Buscar documento</label>
+                                <input type="text" name="busquedaDoc" class="form-control" placeholder="Buscar documento..." th:value="${filtroBusquedaDoc}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Categoría</label>
+                                <select name="categoriaDoc" class="form-select">
+                                    <option value="" th:selected="${filtroCategoriaDoc == ''}">Todos</option>
+                                    <option value="PDF" th:selected="${filtroCategoriaDoc == 'PDF'}">PDF</option>
+                                    <option value="WORD" th:selected="${filtroCategoriaDoc == 'WORD'}">Word</option>
+                                    <option value="EXCEL" th:selected="${filtroCategoriaDoc == 'EXCEL'}">Excel</option>
+                                    <option value="IMAGEN" th:selected="${filtroCategoriaDoc == 'IMAGEN'}">Imagen</option>
+                                    <option value="DISENO" th:selected="${filtroCategoriaDoc == 'DISENO'}">Diseño</option>
+                                    <option value="OTRO" th:selected="${filtroCategoriaDoc == 'OTRO'}">Otro</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-outline-primary w-100">Filtrar</button>
+                            </div>
+                        </form>
+
+                        <div class="table-responsive">
+                            <table class="table table-vcenter card-table mb-0">
+                                <thead><tr><th>Nombre</th><th>Tipo</th><th>Subido por</th><th>Fecha</th><th></th></tr></thead>
+                                <tbody>
+                                <tr th:if="${documentos.isEmpty()}">
+                                    <td colspan="5" class="empty-state">No se encontraron documentos con esos filtros.</td>
+                                </tr>
+                                <tr th:each="doc : ${documentos}">
+                                    <td class="fw-semibold" th:text="${doc.nombre}">Requerimientos.pdf</td>
+                                    <td><span class="badge bg-azure-lt" th:text="${doc.categoria.name()}">PDF</span></td>
+                                    <td th:text="${doc.subidoPor.nombre} + ' ' + ${doc.subidoPor.apellido}">Autor</td>
+                                    <td th:text="${#temporals.format(doc.fechaCreacion, 'dd/MM/yyyy')}">—</td>
+                                    <td class="text-end">
+                                        <a th:href="${doc.archivoUrl}" target="_blank" class="btn btn-sm btn-outline-secondary" title="Descargar">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 11l5 5 5-5M12 4v12"/></svg>
+                                        </a>
+                                        <form th:if="${doc.subidoPor.id == colaborador.id or colaborador.rol.nombre == 'ADMINISTRADOR'}"
+                                              method="POST" th:action="@{/colaborador/proyectos/documentos/{id}/eliminar(id=${doc.id})}" style="display:inline"
+                                              onsubmit="return confirm('¿Seguro que quieres eliminar este documento?');">
+                                            <input type="hidden" name="asignacionId" th:value="${asignacion.id}"/>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== FORO (próximamente) ===== -->
+            <!-- ===== FORO (solo el foro de este proyecto) ===== -->
             <div class="tab-pane fade" id="tab-foro" role="tabpanel">
                 <div class="card section-card">
+                    <div class="card-header section-header">
+                        <div><h3 class="card-title mb-1">Foro del proyecto</h3><div class="section-description">Solo publicaciones de este proyecto.</div></div>
+                        <a th:if="${foroDelProyecto != null}" th:href="@{/colaborador/foros/detalle(foroId=${foroDelProyecto.id})}" class="btn btn-primary btn-sm">Abrir foro completo</a>
+                    </div>
                     <div class="card-body">
-                        <h3 class="card-title mb-1">Foro del proyecto</h3>
-                        <div class="empty-state">Esta sección todavía está en desarrollo. Próximamente podrás ver y participar en el foro del proyecto aquí.</div>
+                        <div th:if="${foroDelProyecto == null}" class="empty-state">Todavía no se ha creado el foro de este proyecto.</div>
+
+                        <div th:if="${foroDelProyecto != null and #lists.isEmpty(publicacionesForoProyecto)}" class="empty-state">
+                            Este foro todavía no tiene publicaciones. Sé el primero en escribir algo.
+                        </div>
+
+                        <div th:if="${foroDelProyecto != null}" th:each="pub : ${publicacionesForoProyecto}" class="mb-3 pb-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="fw-semibold" th:text="${pub.publicacion.titulo}">Título</div>
+                                <span th:if="${pub.publicacion.etiqueta != null}" class="badge bg-blue-lt" th:text="${pub.publicacion.etiqueta.nombre}">Etiqueta</span>
+                            </div>
+                            <div class="text-secondary small mb-1">
+                                <span th:text="${pub.publicacion.autor.nombre} + ' ' + ${pub.publicacion.autor.apellido}">Autor</span>
+                                · <span th:text="${#temporals.format(pub.publicacion.fechaCreacion, 'dd/MM/yyyy HH:mm')}">Fecha</span>
+                                · <span th:text="${pub.totalRespuestas} + ' respuesta(s)'">0 respuestas</span>
+                            </div>
+                            <div th:utext="${pub.publicacion.contenido}">Contenido</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -239,7 +323,155 @@
     </main>
 </div>
 
+
+<!-- MODAL: SUBIR DOCUMENTO -->
+<div class="modal modal-blur fade col-modal" id="subirDocumentoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Subir documento</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form method="POST" th:action="@{/colaborador/proyectos/documentos/subir}" enctype="multipart/form-data">
+                <input type="hidden" name="proyectoId" th:value="${proyecto.id}"/>
+                <input type="hidden" name="asignacionId" th:value="${asignacion.id}"/>
+                <div class="modal-body">
+                    <label class="form-label">Archivo</label>
+                    <input type="file" name="archivo" class="form-control" required>
+                    <div class="form-hint mt-2">Formatos aceptados: PDF, Word, Excel, imágenes y archivos de diseño. Máximo 20 MB.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Subir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- MODAL: DETALLE DE ACTIVIDAD -->
+<div class="modal modal-blur fade col-modal" id="detalleActividadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detalleActividadTitulo">—</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="info-grid mb-3">
+                    <div><div class="info-label">Horas estimadas</div><div class="info-value" id="detalleActividadHoras">—</div></div>
+                    <div><div class="info-label">Fecha límite</div><div class="info-value" id="detalleActividadFecha">—</div></div>
+                </div>
+                <div class="info-label mb-1">Descripción</div>
+                <p class="text-secondary small" id="detalleActividadDescripcion">—</p>
+
+                <div id="detalleActividadDevueltaAlert" class="alert alert-warning" style="display:none">
+                    <div class="fw-semibold">Esta actividad fue devuelta por el PM</div>
+                    <div class="small" id="detalleActividadComentarioDevolucion"></div>
+                </div>
+
+                <div id="detalleActividadEnRevisionBlock" style="display:none">
+                    <div class="alert alert-info small mb-2">Ya enviaste esta actividad a revisión. El PM debe confirmarla.</div>
+                    <div class="info-label mb-1">Tu comentario</div>
+                    <p class="text-secondary small" id="detalleActividadComentarioColaborador">—</p>
+                    <a href="#" target="_blank" id="detalleActividadEvidenciaLink" class="btn btn-outline-secondary btn-sm">Ver evidencia enviada</a>
+                </div>
+
+                <div id="detalleActividadCompletadaBlock" style="display:none">
+                    <div class="alert alert-success small mb-0">Esta actividad ya fue confirmada por el PM.</div>
+                </div>
+
+                <form id="detalleActividadForm" method="post" enctype="multipart/form-data">
+                    <hr>
+                    <div class="mb-3">
+                        <label class="form-label">Evidencia (PDF, JPG o PNG)</label>
+                        <input type="file" name="evidencia" class="form-control">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Comentario (opcional)</label>
+                        <textarea name="comentario" class="form-control" rows="2" placeholder="Cuéntale al PM cómo quedó tu avance..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
+                <button class="btn btn-primary" type="submit" form="detalleActividadForm" id="detalleActividadSubmitBtn">Marcar como listo para revisión</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const asignacionIdActual = /*[[${asignacion.id}]]*/ 0;
+    /*]]>*/
+
+    const parametrosUrl = new URLSearchParams(window.location.search);
+    const tabSolicitada = parametrosUrl.get("tab");
+    if (tabSolicitada) {
+        const botonTab = document.querySelector('#projectTabs button[data-bs-target="#tab-' + tabSolicitada + '"]');
+        if (botonTab) {
+            new bootstrap.Tab(botonTab).show();
+        }
+    }
+
+    const filasActividad = document.querySelectorAll(".activity-row");
+
+    const modalDetalleActividad = new bootstrap.Modal(document.getElementById("detalleActividadModal"));
+
+    for (let i = 0; i < filasActividad.length; i++) {
+        const fila = filasActividad[i];
+
+        fila.addEventListener("click", () => {
+            const id = fila.dataset.id;
+            const estado = fila.dataset.estado;
+
+            document.getElementById("detalleActividadTitulo").textContent = fila.dataset.titulo;
+            document.getElementById("detalleActividadHoras").textContent = fila.dataset.horas + " hrs";
+            document.getElementById("detalleActividadFecha").textContent = fila.dataset.fecha;
+            document.getElementById("detalleActividadDescripcion").textContent = fila.dataset.descripcion || "Sin descripción.";
+
+            const alertaDevuelta = document.getElementById("detalleActividadDevueltaAlert");
+            if (fila.dataset.comentarioDevolucion && fila.dataset.comentarioDevolucion !== "null" && fila.dataset.comentarioDevolucion !== "") {
+                document.getElementById("detalleActividadComentarioDevolucion").textContent = fila.dataset.comentarioDevolucion;
+                alertaDevuelta.style.display = "";
+            } else {
+                alertaDevuelta.style.display = "none";
+            }
+
+            const bloqueEnRevision = document.getElementById("detalleActividadEnRevisionBlock");
+            const bloqueCompletada = document.getElementById("detalleActividadCompletadaBlock");
+            const formulario = document.getElementById("detalleActividadForm");
+            const botonEnviar = document.getElementById("detalleActividadSubmitBtn");
+
+            if (estado === "EN_REVISION") {
+                bloqueEnRevision.style.display = "";
+                bloqueCompletada.style.display = "none";
+                formulario.style.display = "none";
+                botonEnviar.style.display = "none";
+                document.getElementById("detalleActividadComentarioColaborador").textContent =
+                    (fila.dataset.comentarioColaborador && fila.dataset.comentarioColaborador !== "null")
+                        ? fila.dataset.comentarioColaborador : "Sin comentario.";
+                document.getElementById("detalleActividadEvidenciaLink").href = fila.dataset.evidenciaUrl || "#";
+            } else if (estado === "COMPLETADA") {
+                bloqueEnRevision.style.display = "none";
+                bloqueCompletada.style.display = "";
+                formulario.style.display = "none";
+                botonEnviar.style.display = "none";
+            } else {
+                bloqueEnRevision.style.display = "none";
+                bloqueCompletada.style.display = "none";
+                formulario.style.display = "";
+                botonEnviar.style.display = "";
+                formulario.action = "/colaborador/proyectos/actividades/" + id + "/marcar-listo?asignacionId=" + asignacionIdActual;
+            }
+
+            modalDetalleActividad.show();
+        });
+    }
+</script>
 </body>
 </html>

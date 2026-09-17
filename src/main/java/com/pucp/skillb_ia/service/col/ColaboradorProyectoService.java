@@ -5,22 +5,36 @@ import com.pucp.skillb_ia.dto.ColPerfilRequeridoView;
 import com.pucp.skillb_ia.dto.ColProyectoDetalleView;
 import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
 import com.pucp.skillb_ia.model.*;
+import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class ColaboradorProyectoService {
+
+    private static final Set<String> TIPOS_EVIDENCIA_PERMITIDOS =
+            Set.of("application/pdf", "image/jpeg", "image/png");
+    private static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10MB
 
     private final ProyectoRepository proyectoRepository;
     private final AsignacionRepository asignacionRepository;
@@ -28,19 +42,22 @@ public class ColaboradorProyectoService {
     private final HabilidadRepository habilidadRepository;
     private final ActividadRepository actividadRepository;
     private final AuditoriaService auditoriaService;
+    private final String uploadDir;
 
     public ColaboradorProyectoService(ProyectoRepository proyectoRepository,
                                       AsignacionRepository asignacionRepository,
                                       ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository,
                                       HabilidadRepository habilidadRepository,
                                       ActividadRepository actividadRepository,
-                                      AuditoriaService auditoriaService) {
+                                      AuditoriaService auditoriaService,
+                                      @Value("${app.upload-dir:uploads}") String uploadDir) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoHabilidadRequeridaRepository = proyectoHabilidadRequeridaRepository;
         this.habilidadRepository = habilidadRepository;
         this.actividadRepository = actividadRepository;
         this.auditoriaService = auditoriaService;
+        this.uploadDir = uploadDir;
     }
 
     // ============================================================
@@ -276,5 +293,72 @@ public class ColaboradorProyectoService {
         }
 
         return new ColProyectoDetalleView(proyecto, asignacion, integrantes, todasLasActividades, misActividades);
+    }
+
+    // ============================================================
+    // MARCAR ACTIVIDAD COMO "LISTO PARA REVISAR"
+    // ============================================================
+    @Transactional
+    public void marcarActividadListaParaRevision(Usuario colaborador, Long actividadId,
+                                                 MultipartFile evidencia, String comentario) {
+        Actividad actividad = actividadRepository.findById(actividadId)
+                .orElseThrow(() -> new IllegalArgumentException("La actividad no existe."));
+
+        if (!actividad.getColaborador().getId().equals(colaborador.getId())) {
+            throw new IllegalArgumentException("Esta actividad no te pertenece.");
+        }
+        if (actividad.getEstado() == EstadoActividad.EN_REVISION) {
+            throw new IllegalArgumentException("Esta actividad ya está en revisión.");
+        }
+        if (actividad.getEstado() == EstadoActividad.COMPLETADA) {
+            throw new IllegalArgumentException("Esta actividad ya fue completada.");
+        }
+        if (evidencia == null || evidencia.isEmpty()) {
+            throw new IllegalArgumentException("Debes adjuntar una evidencia para marcar la actividad como lista.");
+        }
+        if (evidencia.getContentType() == null || !TIPOS_EVIDENCIA_PERMITIDOS.contains(evidencia.getContentType())) {
+            throw new IllegalArgumentException("La evidencia debe estar en formato PDF, JPG o PNG.");
+        }
+        if (evidencia.getSize() > TAMANO_MAXIMO_EVIDENCIA_BYTES) {
+            throw new IllegalArgumentException("La evidencia supera el máximo de 10MB.");
+        }
+        if (comentario != null && comentario.trim().length() > 300) {
+            throw new IllegalArgumentException("El comentario no puede superar los 300 caracteres.");
+        }
+
+        String evidenciaUrl = guardarEvidencia(evidencia, actividad.getId());
+
+        actividad.setEvidenciaUrl(evidenciaUrl);
+        actividad.setComentarioColaborador(comentario == null || comentario.isBlank() ? null : comentario.trim());
+        actividad.setEstado(EstadoActividad.EN_REVISION);
+        actividad.setFechaMarcadoRevision(LocalDateTime.now());
+        actividadRepository.save(actividad);
+
+        auditoriaService.registrar(colaborador, "MARCAR_ACTIVIDAD_LISTA", "ACTIVIDAD", actividad.getId(),
+                "Marcó la actividad \"" + actividad.getTitulo() + "\" como lista para revisión.");
+    }
+
+    //Guardamos la evidencia adjuntada por el colaborador
+    private String guardarEvidencia(MultipartFile archivo, Long actividadId) {
+        String extension;
+        if ("application/pdf".equals(archivo.getContentType())) {
+            extension = ".pdf";
+        } else if ("image/png".equals(archivo.getContentType())) {
+            extension = ".png";
+        } else {
+            extension = ".jpg";
+        }
+        String nombreArchivo = "actividad-" + actividadId + "-" + UUID.randomUUID() + extension;
+
+        try {
+            Path carpetaDestino = Path.of(uploadDir, "evidencias-actividades");
+            Files.createDirectories(carpetaDestino);
+            Files.copy(archivo.getInputStream(), carpetaDestino.resolve(nombreArchivo),
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("No se pudo guardar la evidencia. Inténtalo nuevamente.", e);
+        }
+
+        return "/uploads/evidencias-actividades/" + nombreArchivo;
     }
 }

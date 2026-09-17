@@ -8,14 +8,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// Épica 9 (Horas y Pagos) — Tier 3, diferida hasta después del checkpoint del
-// Parcial (ver priorización en el informe de revisión). Se modela porque ya
-// existe en el schema v4, pero su CRUD/service se construye más adelante.
-//
-// Flujo de 2 pasos (C11, Historia 9.1): el colaborador marca la tarea como
-// "Listo para revisar" (estado -> EN_REVISION, fecha_marcado_revision); el PM
-// confirma (estado -> COMPLETADA, estado_entrega según fecha_limite) o
-// devuelve con comentario (vuelve a EN_PROGRESO, veces_devuelta++).
 @Entity
 @Table(name = "actividad")
 public class Actividad {
@@ -62,6 +54,12 @@ public class Actividad {
 
     @Column(name = "comentario_devolucion", length = 300)
     private String comentarioDevolucion;
+
+    @Column(name = "evidencia_url", length = 500)
+    private String evidenciaUrl;
+
+    @Column(name = "comentario_colaborador", length = 300)
+    private String comentarioColaborador;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -114,6 +112,12 @@ public class Actividad {
 
     public String getComentarioDevolucion() { return comentarioDevolucion; }
     public void setComentarioDevolucion(String comentarioDevolucion) { this.comentarioDevolucion = comentarioDevolucion; }
+
+    public String getEvidenciaUrl() { return evidenciaUrl; }
+    public void setEvidenciaUrl(String evidenciaUrl) { this.evidenciaUrl = evidenciaUrl; }
+
+    public String getComentarioColaborador() { return comentarioColaborador; }
+    public void setComentarioColaborador(String comentarioColaborador) { this.comentarioColaborador = comentarioColaborador; }
 
     public EstadoActividad getEstado() { return estado; }
     public void setEstado(EstadoActividad estado) { this.estado = estado; }

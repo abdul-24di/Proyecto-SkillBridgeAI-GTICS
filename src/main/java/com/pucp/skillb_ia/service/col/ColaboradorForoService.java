@@ -89,6 +89,15 @@ public class ColaboradorForoService {
         return misForos;
     }
 
+    //Foro solo del proyecto
+    public Optional<Foro> obtenerForoDeProyecto(Proyecto proyecto) {
+        return foroRepository.findByProyecto(proyecto);
+    }
+
+
+
+
+
     //Acceso de LECTURA: cualquier foro público (general o de proyecto compartido a comunidad)
     //se puede leer, o un foro de proyecto donde el colaborador tiene asignación activa.
     private Foro validarAccesoLectura(Usuario colaborador, Long foroId) {

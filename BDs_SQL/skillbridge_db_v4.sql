@@ -361,6 +361,8 @@ CREATE TABLE asignacion (
 -- 13. ACTIVIDADES
 -- =====================================================================
 
+
+
 CREATE TABLE actividad (
     id                      BIGINT AUTO_INCREMENT PRIMARY KEY,
     proyecto_id             BIGINT NOT NULL,
@@ -377,6 +379,8 @@ CREATE TABLE actividad (
     comentario_devolucion   VARCHAR(300) NULL,
     estado                  VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
     creado_por              BIGINT NOT NULL,
+    evidencia_url           VARCHAR(500) NULL,
+    comentario_colaborador  VARCHAR(300) NULL,
 
     CONSTRAINT fk_actividad_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
     CONSTRAINT fk_actividad_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),

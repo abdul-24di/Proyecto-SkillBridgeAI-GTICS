@@ -111,12 +111,12 @@ public class ColaboradorForoService {
             return foro;
         }
 
-        //Foro privado de proyecto: exige asignación activa
-        boolean tieneAsignacionActiva = asignacionRepository.existsByProyectoAndColaboradorAndEstado(
-                foro.getProyecto(), colaborador, EstadoAsignacion.ACTIVA);
-        if (!tieneAsignacionActiva) {
-            throw new IllegalArgumentException(
-                    "No tienes una asignación activa en este proyecto, no puedes acceder a su foro.");
+        //Foro privado de proyecto. Para leer basta con haber tenido asignación ACTIVA o FINALIZADA
+        //Así el foro queda visible en modo solo-lectura incluso después de que el proyecto termine
+        boolean tieneAcceso = asignacionRepository.existsByProyectoAndColaboradorAndEstadoIn(
+                foro.getProyecto(), colaborador, List.of(EstadoAsignacion.ACTIVA, EstadoAsignacion.FINALIZADA));
+        if (!tieneAcceso) {
+            throw new IllegalArgumentException("No tienes acceso al foro de este proyecto.");
         }
         return foro;
     }

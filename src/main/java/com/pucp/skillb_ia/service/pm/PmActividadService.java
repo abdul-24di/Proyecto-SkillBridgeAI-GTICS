@@ -28,17 +28,20 @@ public class PmActividadService {
     private final AsignacionRepository asignacionRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
+    private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
 
     public PmActividadService(ActividadRepository actividadRepository,
                               ProyectoRepository proyectoRepository,
                               AsignacionRepository asignacionRepository,
                               UsuarioRepository usuarioRepository,
-                              AuditoriaService auditoriaService) {
+                              AuditoriaService auditoriaService,
+                              com.pucp.skillb_ia.service.PenalizacionService penalizacionService) {
         this.actividadRepository = actividadRepository;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
+        this.penalizacionService = penalizacionService;
     }
 
     @Transactional(readOnly = true)
@@ -80,7 +83,7 @@ public class PmActividadService {
 
         auditoriaService.registrar(pm, "CREAR", "ACTIVIDAD", saved.getId(),
                 "PM creó actividad '" + titulo + "' para colaborador ID " + colaboradorId
-                + " en proyecto '" + proyecto.getNombre() + "'.");
+                        + " en proyecto '" + proyecto.getNombre() + "'.");
         return saved;
     }
 
@@ -116,6 +119,10 @@ public class PmActividadService {
 
         auditoriaService.registrar(pm, "DEVOLVER", "ACTIVIDAD", actividadId,
                 "PM devolvió la actividad '" + actividad.getTitulo() + "': " + comentario);
+
+        //En caso de que el PM devuelva una actividad por no estar bien hecha se contará como un strike.
+        penalizacionService.aplicarStrikePorDevolucion(actividad);
+        penalizacionService.verificarYRemoverPorStrikes(actividad.getColaborador(), actividad.getProyecto());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

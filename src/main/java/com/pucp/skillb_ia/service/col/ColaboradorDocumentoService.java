@@ -71,7 +71,7 @@ public class ColaboradorDocumentoService {
     // LISTAMOS LOS DOCUMENTOS
     // ============================================================
     public List<Documento> listarDocumentos(Usuario colaborador, Long proyectoId, String categoriaFiltro, String busqueda) {
-        Proyecto proyecto = validarAccesoProyecto(colaborador, proyectoId);
+        Proyecto proyecto = validarAccesoLectura(colaborador, proyectoId);
         List<Documento> todos = documentoRepository.findByProyectoAndActivoTrueOrderByFechaCreacionDesc(proyecto);
 
         List<Documento> resultado = new ArrayList<>();
@@ -98,8 +98,21 @@ public class ColaboradorDocumentoService {
         return resultado;
     }
 
-    //Validamos que el colaborador solo pueda ver o subir documentos de proyectos donde tiene asignación ACTIVA
-    private Proyecto validarAccesoProyecto(Usuario colaborador, Long proyectoId) {
+    //Para ver documentos en proyectos donde el colaborador tiene o tuvo asignación (ACTIVA o FINALIZADA)
+    private Proyecto validarAccesoLectura(Usuario colaborador, Long proyectoId) {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId)
+                .orElseThrow(() -> new IllegalArgumentException("El proyecto no existe."));
+
+        boolean tieneAcceso = asignacionRepository.existsByProyectoAndColaboradorAndEstadoIn(
+                proyecto, colaborador, List.of(EstadoAsignacion.ACTIVA, EstadoAsignacion.FINALIZADA));
+        if (!tieneAcceso) {
+            throw new IllegalArgumentException("No tienes acceso a los documentos de este proyecto.");
+        }
+        return proyecto;
+    }
+
+    //Para subir documentos nuevos sí se exige asignación ACTIVA (un proyecto finalizado ya no recibe archivos nuevos)
+    private Proyecto validarAccesoEscritura(Usuario colaborador, Long proyectoId) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("El proyecto no existe."));
 
@@ -116,7 +129,7 @@ public class ColaboradorDocumentoService {
     // ============================================================
     @Transactional
     public void subirDocumento(Usuario colaborador, Long proyectoId, MultipartFile archivo) {
-        Proyecto proyecto = validarAccesoProyecto(colaborador, proyectoId);
+        Proyecto proyecto = validarAccesoEscritura(colaborador, proyectoId);
 
         if (archivo == null || archivo.isEmpty()) {
             throw new IllegalArgumentException("Selecciona un archivo para subir.");

@@ -42,6 +42,7 @@ public class ColaboradorProyectoService {
     private final HabilidadRepository habilidadRepository;
     private final ActividadRepository actividadRepository;
     private final AuditoriaService auditoriaService;
+    private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
     private final String uploadDir;
 
     public ColaboradorProyectoService(ProyectoRepository proyectoRepository,
@@ -50,6 +51,7 @@ public class ColaboradorProyectoService {
                                       HabilidadRepository habilidadRepository,
                                       ActividadRepository actividadRepository,
                                       AuditoriaService auditoriaService,
+                                      com.pucp.skillb_ia.service.PenalizacionService penalizacionService,
                                       @Value("${app.upload-dir:uploads}") String uploadDir) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
@@ -57,6 +59,7 @@ public class ColaboradorProyectoService {
         this.habilidadRepository = habilidadRepository;
         this.actividadRepository = actividadRepository;
         this.auditoriaService = auditoriaService;
+        this.penalizacionService = penalizacionService;
         this.uploadDir = uploadDir;
     }
 
@@ -292,6 +295,9 @@ public class ColaboradorProyectoService {
             }
         }
 
+        //Revisamos si alguna actividad venció sin que la entregara.
+        penalizacionService.revisarVencidasSinEntregar(misActividades);
+
         return new ColProyectoDetalleView(proyecto, asignacion, integrantes, todasLasActividades, misActividades);
     }
 
@@ -322,20 +328,29 @@ public class ColaboradorProyectoService {
         if (evidencia.getSize() > TAMANO_MAXIMO_EVIDENCIA_BYTES) {
             throw new IllegalArgumentException("La evidencia supera el máximo de 10MB.");
         }
-        if (comentario != null && comentario.trim().length() > 300) {
+        if (comentario == null || comentario.isBlank()) {
+            throw new IllegalArgumentException("Debes escribir un comentario para marcar la actividad como lista.");
+        }
+        if (comentario.trim().length() > 300) {
             throw new IllegalArgumentException("El comentario no puede superar los 300 caracteres.");
         }
 
         String evidenciaUrl = guardarEvidencia(evidencia, actividad.getId());
 
         actividad.setEvidenciaUrl(evidenciaUrl);
-        actividad.setComentarioColaborador(comentario == null || comentario.isBlank() ? null : comentario.trim());
+        actividad.setComentarioColaborador(comentario.trim());
         actividad.setEstado(EstadoActividad.EN_REVISION);
         actividad.setFechaMarcadoRevision(LocalDateTime.now());
         actividadRepository.save(actividad);
 
         auditoriaService.registrar(colaborador, "MARCAR_ACTIVIDAD_LISTA", "ACTIVIDAD", actividad.getId(),
                 "Marcó la actividad \"" + actividad.getTitulo() + "\" como lista para revisión.");
+
+        // Si la entregó después de la fecha límite, es un strike. No importa sí la entregó, esta fue entregada tarde.
+        if (java.time.LocalDate.now().isAfter(actividad.getFechaLimite())) {
+            penalizacionService.aplicarStrikePorTardanza(actividad);
+            penalizacionService.verificarYRemoverPorStrikes(colaborador, actividad.getProyecto());
+        }
     }
 
     //Guardamos la evidencia adjuntada por el colaborador

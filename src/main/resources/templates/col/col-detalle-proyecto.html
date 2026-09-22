@@ -193,6 +193,7 @@
                                          data-titulo=${act.titulo},
                                          data-descripcion=${act.descripcion},
                                          data-horas=${act.horasEstimadas},
+                                         data-fecha-asignacion=${#temporals.format(act.fechaAsignacion, 'dd/MM/yyyy')},
                                          data-fecha=${#temporals.format(act.fechaLimite, 'dd/MM/yyyy')},
                                          data-estado=${act.estado.name()},
                                          data-comentario-devolucion=${act.comentarioDevolucion},
@@ -389,8 +390,12 @@
             </div>
             <div class="modal-body">
                 <div class="info-grid mb-3">
+                    <div><div class="info-label">Fecha asignada</div><div class="info-value" id="detalleActividadFechaAsignacion">—</div></div>
                     <div><div class="info-label">Horas estimadas</div><div class="info-value" id="detalleActividadHoras">—</div></div>
                     <div><div class="info-label">Fecha límite</div><div class="info-value" id="detalleActividadFecha">—</div></div>
+                </div>
+                <div id="detalleActividadVencidaAlert" class="alert alert-danger small" style="display:none">
+                    Esta actividad ya venció. Si la entregas ahora, se registrará como una entrega tardía.
                 </div>
                 <div class="info-label mb-1">Descripción</div>
                 <p class="text-secondary small" id="detalleActividadDescripcion">—</p>
@@ -414,12 +419,12 @@
                 <form id="detalleActividadForm" method="post" enctype="multipart/form-data">
                     <hr>
                     <div class="mb-3">
-                        <label class="form-label">Evidencia (PDF, JPG o PNG)</label>
-                        <input type="file" name="evidencia" class="form-control">
+                        <label class="form-label">Evidencia (PDF, JPG o PNG) <span class="text-red">*</span></label>
+                        <input type="file" name="evidencia" class="form-control" required>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label">Comentario (opcional)</label>
-                        <textarea name="comentario" class="form-control" rows="2" placeholder="Cuéntale al PM cómo quedó tu avance..."></textarea>
+                        <label class="form-label">Comentario <span class="text-red">*</span></label>
+                        <textarea name="comentario" class="form-control" rows="2" placeholder="Cuéntale al PM cómo quedó tu avance..." required></textarea>
                     </div>
                 </form>
             </div>
@@ -453,9 +458,17 @@
         const estado = fila.dataset.estado;
 
         document.getElementById("detalleActividadTitulo").textContent = fila.dataset.titulo;
+        document.getElementById("detalleActividadFechaAsignacion").textContent = fila.dataset.fechaAsignacion || "—";
         document.getElementById("detalleActividadHoras").textContent = fila.dataset.horas + " hrs";
         document.getElementById("detalleActividadFecha").textContent = fila.dataset.fecha;
         document.getElementById("detalleActividadDescripcion").textContent = fila.dataset.descripcion || "Sin descripción.";
+
+        // Aviso de que ya venció (para que sepa que le va a contar como strike si la entrega ahora).
+        const alertaVencida = document.getElementById("detalleActividadVencidaAlert");
+        const [diaLimite, mesLimite, anioLimite] = fila.dataset.fecha.split("/");
+        const fechaLimiteDate = new Date(anioLimite, mesLimite - 1, diaLimite, 23, 59, 59);
+        const yaVencio = new Date() > fechaLimiteDate;
+        alertaVencida.style.display = (yaVencio && (estado === "PENDIENTE" || estado === "EN_PROGRESO")) ? "" : "none";
 
         const alertaDevuelta = document.getElementById("detalleActividadDevueltaAlert");
         if (fila.dataset.comentarioDevolucion && fila.dataset.comentarioDevolucion !== "null" && fila.dataset.comentarioDevolucion !== "") {

@@ -19,14 +19,21 @@ import java.util.List;
 public class ColaboradorActividadService {
 
     private final ActividadRepository actividadRepository;
+    private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
 
-    public ColaboradorActividadService(ActividadRepository actividadRepository) {
+    public ColaboradorActividadService(ActividadRepository actividadRepository,
+                                       com.pucp.skillb_ia.service.PenalizacionService penalizacionService) {
         this.actividadRepository = actividadRepository;
+        this.penalizacionService = penalizacionService;
     }
 
     //Listamos todas las actividades del colaborador, de la fecha límite más próxima a la más lejana
     public List<Actividad> listarMisActividades(Usuario colaborador) {
         List<Actividad> encontradas = actividadRepository.findByColaborador(colaborador);
+
+        //Cada vez que el colaborador entra a ver sus actividades: si alguna ya venció y nunca la entregó, se le aplica el strike recién ahora.
+        penalizacionService.revisarVencidasSinEntregar(encontradas);
+
         List<Actividad> ordenadas = new ArrayList<>(encontradas);
         ordenadas.sort(Comparator.comparing(Actividad::getFechaLimite));
         return ordenadas;

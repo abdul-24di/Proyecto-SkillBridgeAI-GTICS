@@ -164,16 +164,65 @@
                         <div th:text="${act.actividad.comentarioDevolucion}"></div>
                     </div>
                 </div>
-                <div class="modal-footer" th:if="${act.puedeConfirmar or act.puedeDevolver}">
-                    <form method="POST" th:action="@{/pm/actividades/{id}/devolver(id=${act.actividad.id})}" class="w-100">
-                        <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
-                        <textarea name="comentario" class="form-control mb-2" rows="2" placeholder="Comentario para devolver (obligatorio si devuelves)"></textarea>
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="submit" class="btn btn-outline-danger btn-sm">Devolver</button>
-                            <button type="submit" formaction="" th:formaction="@{/pm/actividades/{id}/confirmar(id=${act.actividad.id})}" formmethod="POST" class="btn btn-success btn-sm">Confirmar entrega</button>
-                        </div>
-                    </form>
+                <div class="modal-footer" th:if="${act.puedeConfirmar or act.puedeDevolver or act.puedeEditar or act.puedeEliminar}">
+                    <div th:if="${act.puedeConfirmar or act.puedeDevolver}" class="w-100 mb-3 pb-3 border-bottom">
+                        <form method="POST" th:action="@{/pm/actividades/{id}/devolver(id=${act.actividad.id})}" class="w-100">
+                            <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+                            <textarea name="comentario" class="form-control mb-2" rows="2" placeholder="Comentario para devolver (obligatorio si devuelves)"></textarea>
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Devolver</button>
+                                <button type="submit" formaction="" th:formaction="@{/pm/actividades/{id}/confirmar(id=${act.actividad.id})}" formmethod="POST" class="btn btn-success btn-sm">Confirmar entrega</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <form th:if="${act.puedeEliminar}" method="POST" th:action="@{/pm/actividades/{id}/eliminar(id=${act.actividad.id})}">
+                            <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar esta actividad?');">Eliminar actividad</button>
+                        </form>
+                        <div th:unless="${act.puedeEliminar}"></div>
+                        <button th:if="${act.puedeEditar}" class="btn btn-primary btn-sm" data-bs-toggle="modal" th:attr="data-bs-target='#editarActividadModal-' + ${act.actividad.id}">Editar actividad</button>
+                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDITAR ACTIVIDAD -->
+    <div class="modal modal-blur fade pm-modal" th:id="'editarActividadModal-' + ${act.actividad.id}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar actividad</h5>
+                    <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form method="POST" th:action="@{/pm/actividades/{id}/editar(id=${act.actividad.id})}">
+                    <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Título</label>
+                            <input type="text" name="titulo" class="form-control" th:value="${act.titulo}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea name="descripcion" class="form-control" rows="3" th:text="${act.descripcion}"></textarea>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="form-label">Horas estimadas <span class="text-danger">*</span></label>
+                                <input type="number" step="0.5" min="0.5" max="999" name="horasEstimadas" class="form-control" th:value="${act.horasEstimadas}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label">Fecha límite</label>
+                                <input type="date" name="fechaLimite" class="form-control" th:value="${act.fechaLimite}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" th:attr="data-bs-target='#detalleActividadModal-' + ${act.actividad.id}">Volver al detalle</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

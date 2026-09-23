@@ -45,6 +45,14 @@ public class PmActividadView {
         return actividad.getEstado() == EstadoActividad.EN_REVISION;
     }
 
+    public boolean isPuedeEditar() {
+        return actividad.getEstado() != EstadoActividad.COMPLETADA;
+    }
+
+    public boolean isPuedeEliminar() {
+        return actividad.getEstado() == EstadoActividad.PENDIENTE || actividad.getEstado() == EstadoActividad.EN_PROGRESO;
+    }
+
     public boolean isVencida() {
         return actividad.getEstado() != EstadoActividad.COMPLETADA
                 && actividad.getFechaLimite() != null

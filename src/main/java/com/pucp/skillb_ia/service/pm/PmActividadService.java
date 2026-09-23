@@ -152,6 +152,55 @@ public class PmActividadService {
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
+    @Transactional
+    public Actividad editar(Long actividadId, String titulo, String descripcion,
+                            BigDecimal horasEstimadas, LocalDate fechaLimite,
+                            Usuario pm) {
+        Actividad actividad = obtenerActividadDelPm(actividadId, pm);
+
+        if (actividad.getEstado() == com.pucp.skillb_ia.model.enums.EstadoActividad.COMPLETADA) {
+            throw new IllegalStateException("No se puede editar una actividad completada.");
+        }
+
+        actividad.setTitulo(titulo);
+        actividad.setDescripcion(descripcion);
+        actividad.setHorasEstimadas(horasEstimadas);
+        actividad.setFechaLimite(fechaLimite);
+
+        Actividad saved = actividadRepository.save(actividad);
+
+        auditoriaService.registrar(pm, "EDITAR", "ACTIVIDAD", saved.getId(),
+                "PM editó la actividad '" + titulo + "'.");
+
+        notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_EDITADA", com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ACTIVIDAD,
+                "Actividad modificada",
+                "El PM ha modificado los detalles de la actividad \"" + titulo + "\".",
+                "ACTIVIDAD", saved.getId());
+
+        return saved;
+    }
+
+    @Transactional
+    public void eliminar(Long actividadId, Usuario pm) {
+        Actividad actividad = obtenerActividadDelPm(actividadId, pm);
+
+        if (actividad.getEstado() == com.pucp.skillb_ia.model.enums.EstadoActividad.COMPLETADA || actividad.getEstado() == com.pucp.skillb_ia.model.enums.EstadoActividad.EN_REVISION) {
+            throw new IllegalStateException("No se puede eliminar una actividad que ya fue entregada o completada.");
+        }
+
+        String titulo = actividad.getTitulo();
+
+        actividadRepository.delete(actividad);
+
+        auditoriaService.registrar(pm, "ELIMINAR", "ACTIVIDAD", actividadId,
+                "PM eliminó la actividad '" + titulo + "'.");
+
+        notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_ELIMINADA", com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ACTIVIDAD,
+                "Actividad eliminada",
+                "El PM ha eliminado la actividad \"" + titulo + "\".",
+                "ACTIVIDAD", null);
+    }
+
     private Proyecto obtenerProyectoDelPm(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));

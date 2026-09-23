@@ -302,6 +302,39 @@ public class PmViewController {
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
 
+    @PostMapping("/actividades/{id}/editar")
+    public String editarActividad(@PathVariable("id") Long actividadId,
+                                  @RequestParam("proyectoId") Long proyectoId,
+                                  @RequestParam("titulo") String titulo,
+                                  @RequestParam(value = "descripcion", required = false) String descripcion,
+                                  @RequestParam("horasEstimadas") java.math.BigDecimal horasEstimadas,
+                                  @RequestParam("fechaLimite") String fechaLimiteStr,
+                                  @AuthenticationPrincipal UsuarioDetails principal,
+                                  RedirectAttributes ra) {
+        try {
+            java.time.LocalDate fechaLimite = java.time.LocalDate.parse(fechaLimiteStr);
+            pmActividadService.editar(actividadId, titulo, descripcion, horasEstimadas, fechaLimite, principal.getUsuario());
+            ra.addFlashAttribute("success", "Actividad editada correctamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/actividades?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/actividades/{id}/eliminar")
+    public String eliminarActividad(@PathVariable("id") Long actividadId,
+                                    @RequestParam("proyectoId") Long proyectoId,
+                                    @AuthenticationPrincipal UsuarioDetails principal,
+                                    RedirectAttributes ra) {
+        try {
+            pmActividadService.eliminar(actividadId, principal.getUsuario());
+            ra.addFlashAttribute("success", "Actividad eliminada correctamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/pm/actividades?proyectoId=" + proyectoId;
+    }
+
     // ═══════════════════════════════════════════════════════════
     // FOROS
     // ═══════════════════════════════════════════════════════════

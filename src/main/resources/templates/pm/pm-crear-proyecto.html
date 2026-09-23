@@ -34,43 +34,65 @@
 <div class="col-lg-4"><label class="form-label">Fecha de fin estimada <span class="text-danger">*</span></label><input type="date" name="fechaFinEstimada" id="fechaFinEstimada" class="form-control" required></div>
 <div class="col-lg-4"><label class="form-label">Estado inicial</label><input type="text" class="form-control" value="En revisión" disabled><div class="form-hint">El RM debe aprobarlo para pasar a Activo.</div></div>
 <div class="col-12"><label class="form-label">Justificación de prioridad <span class="text-danger">*</span></label><textarea name="justificacionPrioridad" class="form-control" rows="2" placeholder="Explica por qué el proyecto tiene esta prioridad" required></textarea></div>
-<div class="col-lg-6"><label class="form-label">Presupuesto solicitado</label><input type="number" step="0.01" min="0" name="presupuestoSolicitado" class="form-control" placeholder="0.00"></div>
+<div class="col-lg-6">
+    <label class="form-label">Presupuesto solicitado</label>
+    <div class="input-group">
+        <span class="input-group-text">$</span>
+        <input type="text" id="presupuestoVisible" class="form-control" placeholder="0.00">
+        <input type="hidden" name="presupuestoSolicitado" id="presupuestoReal">
+    </div>
+</div>
 <div class="col-lg-6"><label class="form-label">Justificación de presupuesto</label><input type="text" name="justificacionPresupuesto" class="form-control" placeholder="Opcional"></div>
 </div></div></div>
 
 <div class="row row-cards mb-4">
 <div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3><div class="section-description">Información para que el RM encuentre colaboradores.</div></div></div><div class="card-body form-section">
 <div class="mb-3"><label class="form-label">N.º de colaboradores requeridos</label><input type="number" name="colaboradoresRequeridos" min="1" class="form-control" value="1"></div>
+
   <div class="mb-3">
     <label class="form-label">Habilidades Requeridas</label>
-    <div id="skills-container">
-      <div class="row g-2 mb-2 skill-row">
-        <div class="col-6">
-          <select name="habilidadIds" class="form-select" required>
-             <option value="">Selecciona una habilidad...</option>
-             <option th:each="hab : ${habilidades}" th:value="${hab.id}" th:text="${hab.nombre}"></option>
-          </select>
-        </div>
-        <div class="col-4">
-          <select name="nivelesRequeridos" class="form-select">
-             <option value="BASICO">B�sico</option>
-             <option value="INTERMEDIO" selected>Intermedio</option>
-             <option value="AVANZADO">Avanzado</option>
-          </select>
-        </div>
-        <div class="col-2 d-flex gap-1">
-          <input type="number" name="cantidadesPersonas" class="form-control" value="1" min="1" title="Cantidad de personas">
-        </div>
+    
+    <!-- Controles para agregar habilidad (como carrito) -->
+    <div class="row g-2 mb-2 align-items-end">
+      <div class="col-sm-5">
+        <label class="form-label small text-secondary mb-1">Habilidad</label>
+        <select id="habSelect" class="form-select">
+           <option value="">Seleccione...</option>
+           <option th:each="hab : ${habilidades}" th:value="${hab.id}" th:text="${hab.nombre}"></option>
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label small text-secondary mb-1">Nivel</label>
+        <select id="nivelSelect" class="form-select">
+           <option value="BASICO">Básico</option>
+           <option value="INTERMEDIO" selected>Intermedio</option>
+           <option value="AVANZADO">Avanzado</option>
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small text-secondary mb-1">Cant.</label>
+        <input type="number" id="cantSelect" class="form-control" value="1" min="1">
+      </div>
+      <div class="col-sm-2">
+        <button type="button" class="btn btn-primary w-100" onclick="addSkillToCart()">Añadir</button>
       </div>
     </div>
-    <button type="button" class="btn btn-outline-primary btn-sm mt-1" onclick="addSkillRow()">+ A�adir otra habilidad</button>
+    
+    <!-- Carrito visual de habilidades seleccionadas -->
+    <div id="skills-cart" class="d-flex flex-column gap-2 mb-3 mt-3">
+      <!-- Aquí se agregarán visualmente las habilidades -->
+    </div>
+    
+    <!-- Contenedor oculto para mandar los arrays al backend -->
+    <div id="hidden-inputs-container"></div>
+    
   </div>
   <div class="mb-3">
-    <label class="form-label">�Falta alguna habilidad en la lista?</label>
-    <textarea name="habilidadesExtra" class="form-control" rows="2" placeholder="Escribe aqu� las habilidades que no encontraste (Ej: Rust, GraphQL, Figma avanzado...)"></textarea>
-    <div class="form-hint">Se agregar�n autom�ticamente a la descripci�n del proyecto.</div>
+    <label class="form-label">¿Falta alguna habilidad en la lista?</label>
+    <textarea name="habilidadesExtra" class="form-control" rows="2" placeholder="Escribe aquí las habilidades que no encontraste (Ej: Rust, GraphQL...)"></textarea>
+    <div class="form-hint">Se agregarán automáticamente a la descripción del proyecto.</div>
   </div>
-  </div>
+
 </div></div></div>
 <div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Contexto para Resource Manager</h3><div class="section-description">Añade restricciones o información adicional.</div></div></div><div class="card-body form-section">
 <div class="mb-3"><label class="form-label">Horas semanales esperadas por colaborador</label><input type="number" name="horasSemanalesRequeridas" min="1" max="40" class="form-control" value="16"><div class="form-hint">Horas propuestas de asignación; no son disponibilidad ni carga.</div></div>
@@ -96,26 +118,99 @@
             });
         }
     });
+</script>
 
-      function addSkillRow() {
-          const container = document.getElementById("skills-container");
-          const firstRow = container.querySelector(".skill-row");
-          const newRow = firstRow.cloneNode(true);
-          newRow.querySelector('select[name="habilidadIds"]').value = "";
-          newRow.querySelector('select[name="nivelesRequeridos"]').value = "INTERMEDIO";
-          newRow.querySelector('input[name="cantidadesPersonas"]').value = "1";
-          
-          if (!newRow.querySelector('.delete-skill')) {
-             const col2 = newRow.querySelector('.col-2');
-             const btn = document.createElement('button');
-             btn.type = 'button';
-             btn.className = 'btn btn-outline-danger btn-icon delete-skill';
-             btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>';
-             btn.onclick = function() { newRow.remove(); };
-             col2.appendChild(btn);
-          }
-          container.appendChild(newRow);
-      }
-</html>
+<script>
+    function addSkillToCart() {
+        const habSelect = document.getElementById('habSelect');
+        const nivelSelect = document.getElementById('nivelSelect');
+        const cantSelect = document.getElementById('cantSelect');
+        
+        const habId = habSelect.value;
+        const habText = habSelect.options[habSelect.selectedIndex].text;
+        const nivel = nivelSelect.value;
+        const cant = cantSelect.value;
+        
+        if (!habId) {
+            alert("Por favor selecciona una habilidad primero.");
+            return;
+        }
+        
+        const cart = document.getElementById('skills-cart');
+        const hiddenContainer = document.getElementById('hidden-inputs-container');
+        
+        const uniqueId = 'skill-' + Date.now();
+        
+        // 1. Añadir badge visual
+        const row = document.createElement('div');
+        row.id = uniqueId;
+        row.className = 'd-flex align-items-center justify-content-between p-2 border rounded bg-light';
+        row.innerHTML = `
+            <div>
+                <strong>${habText}</strong> 
+                <span class="badge bg-blue-lt ms-2">${nivel}</span>
+                <span class="badge bg-secondary-lt ms-2">${cant} persona(s)</span>
+            </div>
+            <button type="button" class="btn-close" aria-label="Eliminar" onclick="removeSkill('${uniqueId}')"></button>
+        `;
+        cart.appendChild(row);
+        
+        // 2. Añadir inputs ocultos para el form submit
+        const hiddenRow = document.createElement('div');
+        hiddenRow.id = 'hidden-' + uniqueId;
+        hiddenRow.innerHTML = `
+            <input type="hidden" name="habilidadIds" value="${habId}">
+            <input type="hidden" name="nivelesRequeridos" value="${nivel}">
+            <input type="hidden" name="cantidadesPersonas" value="${cant}">
+        `;
+        hiddenContainer.appendChild(hiddenRow);
+        
+        // 3. Limpiar selects
+        habSelect.value = "";
+        nivelSelect.value = "INTERMEDIO";
+        cantSelect.value = "1";
+    }
+    
+    function removeSkill(id) {
+        const visualRow = document.getElementById(id);
+        const hiddenRow = document.getElementById('hidden-' + id);
+        if (visualRow) visualRow.remove();
+        if (hiddenRow) hiddenRow.remove();
+    }
+</script>
 
 
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const presVis = document.getElementById('presupuestoVisible');
+        const presReal = document.getElementById('presupuestoReal');
+        if (presVis && presReal) {
+            presVis.addEventListener('blur', function() {
+                // Remove spaces and any non-numeric except dot/comma
+                let val = this.value.replace(/\s+/g, '').replace(/[^0-9.,]/g, '');
+                // Replace comma with dot for JS parsing
+                val = val.replace(',', '.');
+                
+                if (val) {
+                    let num = parseFloat(val);
+                    if (!isNaN(num)) {
+                        presReal.value = num.toFixed(2);
+                        // Convert to es-ES (1.200,50) and replace dots with spaces (1 200,50)
+                        this.value = num.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\./g, ' ');
+                    }
+                } else {
+                    presReal.value = '';
+                    this.value = '';
+                }
+            });
+
+            presVis.addEventListener('focus', function() {
+                if (presReal.value) {
+                    this.value = presReal.value.replace('.', ',');
+                }
+            });
+        }
+    });
+</script>
+
+</body></html>

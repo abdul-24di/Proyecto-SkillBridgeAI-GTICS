@@ -314,7 +314,7 @@
 
 /* Modal "Editar Sobre mí" */
 #editAboutModal .modal-dialog {
-    max-width: 700px !important;
+    max-width: 900px !important;
 }
 
 #editAboutModal textarea.form-control {

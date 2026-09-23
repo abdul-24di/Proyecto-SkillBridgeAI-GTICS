@@ -139,7 +139,7 @@
                 <div class="card section-card h-100">
                     <div class="card-header section-header">
                         <div>
-                            <h3 class="card-title mb-1">Actividades pendientes</h3>
+                            <h3 class="card-title mb-1">Actividades por completar</h3>
                             <div class="section-description">Tareas asignadas en tus proyectos activos que requieren tu atención.</div>
                         </div>
                     </div>
@@ -148,7 +148,7 @@
                             <thead><tr><th>Actividad</th><th>Proyecto</th><th>Fecha límite</th><th>Estado</th></tr></thead>
                             <tbody>
                             <tr th:if="${actividadesPendientes.isEmpty()}">
-                                <td colspan="4" class="empty-state">No tienes actividades pendientes por ahora.</td>
+                                <td colspan="4" class="empty-state">No tienes actividades por completar por ahora.</td>
                             </tr>
                             <tr th:each="a, iter : ${actividadesPendientes}" th:if="${iter.index < 4}">
                                 <td class="fw-semibold" th:text="${a.titulo}">Implementar login</td>

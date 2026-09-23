@@ -73,7 +73,11 @@
         </div>
     </header>
 
+
     <main class="page-wrap">
+
+        <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+        <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
 
         <div class="page-head page-head-stack-mobile">
             <div>

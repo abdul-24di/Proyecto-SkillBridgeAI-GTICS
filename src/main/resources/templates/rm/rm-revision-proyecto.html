@@ -138,7 +138,7 @@
               <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
               <label for="budgetInput" class="form-label">Presupuesto asignado (S/)</label>
               <input id="budgetInput" name="presupuesto" type="number" min="0.01" max="9999999999.99" step="0.01"
-                     class="form-control" required th:value="${proyecto.proyecto.presupuesto}">
+                     class="form-control" th:value="${proyecto.proyecto.presupuesto}">
               <button type="submit" class="btn btn-outline-primary w-100 mt-3">Guardar presupuesto</button>
             </form>
           </div>
@@ -261,7 +261,7 @@
             <span class="badge bg-red-lt text-red">Rechazado</span>
           </div>
           <label for="projectRejectReason" class="form-label">Motivo del rechazo</label>
-          <textarea id="projectRejectReason" name="motivo" class="form-control" rows="4" maxlength="500" required
+          <textarea id="projectRejectReason" name="motivo" class="form-control" rows="4" maxlength="500"
                     placeholder="Explica el motivo para que quede registrado."></textarea>
           <div class="form-hint">El Project Manager podrá consultar este motivo.</div>
         </div>

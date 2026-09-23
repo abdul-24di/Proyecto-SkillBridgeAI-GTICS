@@ -54,7 +54,7 @@
             <button type="submit" class="btn btn-primary w-100 mt-3" th:disabled="${!impacto.suficiente}">Aprobar asignación</button>
           </form>
           <form method="post" th:action="@{/rm/asignaciones/{id}/rechazar(id=${asignacion.asignacion.id})}">
-            <label for="motivo" class="form-label">Motivo del rechazo</label><textarea id="motivo" name="motivo" maxlength="300" rows="3" class="form-control" required placeholder="Explica por qué no se aprueba."></textarea>
+            <label for="motivo" class="form-label">Motivo del rechazo</label><textarea id="motivo" name="motivo" maxlength="300" rows="3" class="form-control" placeholder="Explica por qué no se aprueba."></textarea>
             <button type="submit" class="btn btn-outline-danger w-100 mt-3">Rechazar asignación</button>
           </form>
         </div></div>

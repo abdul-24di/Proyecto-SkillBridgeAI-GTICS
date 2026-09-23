@@ -140,7 +140,7 @@
                       <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                       <div class="modal-body">
                         <label class="form-label">Motivo del rechazo</label>
-                        <textarea name="motivo" class="form-control" rows="4" placeholder="Explica por qué esta propuesta no cubre la necesidad" required></textarea>
+                        <textarea name="motivo" class="form-control" rows="4" placeholder="Explica por qué esta propuesta no cubre la necesidad"></textarea>
                         <div class="form-hint">El rechazo quedará registrado para el RM.</div>
                       </div>
                       <div class="modal-footer">
@@ -249,14 +249,14 @@
           <div class="row g-3">
             <div class="col-md-7">
               <label class="form-label" for="proposedCollaborator">Colaborador</label>
-              <select name="colaboradorId" id="proposedCollaborator" class="form-select" required>
+              <select name="colaboradorId" id="proposedCollaborator" class="form-select">
                 <option value="" disabled selected>Seleccionar colaborador</option>
                 <option th:each="col : ${colaboradoresDisponibles}" th:value="${col.id}" th:text="${col.nombre + ' ' + col.apellido}"></option>
               </select>
             </div>
             <div class="col-md-5">
               <label class="form-label" for="proposedHours">Horas semanales propuestas</label>
-              <input name="horasSemanales" id="proposedHours" type="number" min="1" max="40" class="form-control" value="16" required>
+              <input name="horasSemanales" id="proposedHours" type="number" min="1" max="40" class="form-control" value="16">
             </div>
             <div class="col-12">
               <label class="form-label" for="proposalReason">Justificación / Mensaje para RM</label>

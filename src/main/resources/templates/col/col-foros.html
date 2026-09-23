@@ -145,7 +145,7 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Publicar en</label>
-                            <select name="foroId" class="form-select" required>
+                            <select name="foroId" class="form-select">
                                 <option th:each="foro : ${forosParaPublicar}"
                                         th:value="${foro.id}"
                                         th:text="${foro.proyecto == null ? foro.nombre + ' (Comunidad)' : foro.nombre + ' (' + foro.proyecto.nombre + ')'}"></option>
@@ -154,7 +154,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Título</label>
-                            <input name="titulo" class="form-control" placeholder="Título de la publicación" required maxlength="200">
+                            <input name="titulo" class="form-control" placeholder="Título de la publicación" maxlength="200">
                         </div>
                         <div class="col-12">
                             <label class="form-label">Etiqueta (opcional)</label>
@@ -165,7 +165,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Contenido</label>
-                            <textarea name="contenido" class="form-control" rows="6" placeholder="Escribe tu pregunta o publicación..." required></textarea>
+                            <textarea name="contenido" class="form-control" rows="6" placeholder="Escribe tu pregunta o publicación..."></textarea>
                         </div>
                     </div>
                 </div>

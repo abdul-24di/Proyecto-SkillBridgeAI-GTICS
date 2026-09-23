@@ -435,7 +435,12 @@ public class ColaboradorForoService {
     //entonces no basta con mirar si el string está vacío sino que debemos quitarle las etiquetas HTML
     //y los espacios en blanco que use como relleno, ya que ahi recién podremos revisar si quedó texto real.
     private boolean esContenidoVacio(String contenidoHtml) {
+        //Eliminamos todas las etiquetas HTML como <p>, <strong>, <br>, etc.
+        //buscando cualquier patrón que empiece con '<' y termine con '>', reemplazándolo por vacío.
         String sinEtiquetas = contenidoHtml.replaceAll("<[^>]*>", "");
+
+        //Eliminamos los espacios en blanco especiales de HTML como &nbsp; generados por la barra espaciadora
+        //y aplicamos .trim() para limpiar los espacios en blanco ordinarios al inicio y al final
         String sinEspacios = sinEtiquetas.replace("&nbsp;", "").trim();
         return sinEspacios.isEmpty();
     }

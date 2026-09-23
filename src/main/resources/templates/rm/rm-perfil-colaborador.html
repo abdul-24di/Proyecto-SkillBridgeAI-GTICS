@@ -100,7 +100,7 @@
       <div class="card-body">
         <form class="row g-3 align-items-end" method="post"
               th:action="@{/rm/colaboradores/{id}/nivel-experiencia(id=${colaborador.resumen.id})}">
-          <div class="col-md-8"><label for="nivelExperiencia" class="form-label">Nivel</label><select id="nivelExperiencia" name="nivel" class="form-select" required><option value="JUNIOR" th:selected="${colaborador.resumen.nivelCodigo == 'JUNIOR'}">Junior</option><option value="SEMI_SENIOR" th:selected="${colaborador.resumen.nivelCodigo == 'SEMI_SENIOR'}">Semi Senior</option><option value="SENIOR" th:selected="${colaborador.resumen.nivelCodigo == 'SENIOR'}">Senior</option></select></div>
+          <div class="col-md-8"><label for="nivelExperiencia" class="form-label">Nivel</label><select id="nivelExperiencia" name="nivel" class="form-select"><option value="JUNIOR" th:selected="${colaborador.resumen.nivelCodigo == 'JUNIOR'}">Junior</option><option value="SEMI_SENIOR" th:selected="${colaborador.resumen.nivelCodigo == 'SEMI_SENIOR'}">Semi Senior</option><option value="SENIOR" th:selected="${colaborador.resumen.nivelCodigo == 'SENIOR'}">Senior</option></select></div>
           <div class="col-md-4 d-grid"><button type="submit" class="btn btn-primary">Guardar nivel</button></div>
         </form>
       </div>

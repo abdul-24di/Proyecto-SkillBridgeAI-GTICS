@@ -73,6 +73,10 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
             """)
     Optional<Asignacion> findByIdConDetalle(@Param("id") Long id);
 
+    //En caso de que el colaborador está asignado a ese proyecto y
+    //se cumpla que su asignación este activa o que fue finalizada, pero
+    //no lo sacaron por bajo desempeño entonces se devuelve true
+    //Es decir podra ingresar a modo lectura del proyecto
     @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Asignacion a " +
             "WHERE a.proyecto = :proyecto AND a.colaborador = :colaborador AND " +
             "(a.estado = com.pucp.skillb_ia.model.enums.EstadoAsignacion.ACTIVA " +

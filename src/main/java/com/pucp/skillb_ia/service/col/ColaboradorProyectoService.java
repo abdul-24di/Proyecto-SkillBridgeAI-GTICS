@@ -43,6 +43,7 @@ public class ColaboradorProyectoService {
     private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
     private final String uploadDir;
     private final ColaboradorExplorarService colaboradorExplorarService;
+    private final com.pucp.skillb_ia.service.NotificacionService notificacionService;
 
     public ColaboradorProyectoService(ProyectoRepository proyectoRepository,
                                       AsignacionRepository asignacionRepository,
@@ -52,9 +53,11 @@ public class ColaboradorProyectoService {
                                       ColaboradorExplorarService colaboradorExplorarService,
                                       AuditoriaService auditoriaService,
                                       com.pucp.skillb_ia.service.PenalizacionService penalizacionService,
+                                      com.pucp.skillb_ia.service.NotificacionService notificacionService,
                                       @Value("${app.upload-dir:uploads}") String uploadDir) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
+        this.notificacionService = notificacionService;
         this.proyectoHabilidadRequeridaRepository = proyectoHabilidadRequeridaRepository;
         this.habilidadRepository = habilidadRepository;
         this.actividadRepository = actividadRepository;
@@ -305,10 +308,15 @@ public class ColaboradorProyectoService {
         for (Asignacion miembro : integrantes) {
             personasDelProyecto.add(miembro.getColaborador());
         }
+
+
         Map<Long, ColaboradorExplorarService.PerfilExplorar> perfilesIntegrantes =
                 colaboradorExplorarService.obtenerPerfiles(personasDelProyecto);
 
-        return new ColProyectoDetalleView(proyecto, asignacion, integrantes, todasLasActividades, misActividades, perfilesIntegrantes);
+        int misStrikes = penalizacionService.contarStrikes(colaborador, proyecto);
+
+        return new ColProyectoDetalleView(proyecto, asignacion, integrantes, todasLasActividades, misActividades,
+                perfilesIntegrantes, misStrikes);
     }
 
     // ============================================================
@@ -359,6 +367,11 @@ public class ColaboradorProyectoService {
 
         auditoriaService.registrar(colaborador, "MARCAR_ACTIVIDAD_LISTA", "ACTIVIDAD", actividad.getId(),
                 "Marcó la actividad \"" + actividad.getTitulo() + "\" como lista para revisión.");
+
+        notificacionService.crear(actividad.getProyecto().getPm(), "ACTIVIDAD_LISTA", com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ACTIVIDAD,
+                "Actividad lista para revisar",
+                colaborador.getNombre() + " " + colaborador.getApellido() + " marcó \"" + actividad.getTitulo() + "\" como lista.",
+                "ACTIVIDAD", actividad.getId());
 
         // Si la entregó después de la fecha límite, es un strike. No importa sí la entregó, esta fue entregada tarde.
         if (java.time.LocalDate.now().isAfter(actividad.getFechaLimite())) {

@@ -124,6 +124,7 @@ public class ColaboradorViewController {
             model.addAttribute("actividadesDelProyecto", detalle.getActividadesDelProyecto());
             model.addAttribute("misActividades", detalle.getMisActividades());
             model.addAttribute("perfilesIntegrantes", detalle.getPerfilesIntegrantes());
+            model.addAttribute("misStrikes", detalle.getMisStrikes());
 
             //Pestaña Documentos
             model.addAttribute("documentos", colaboradorDocumentoService.listarDocumentos(

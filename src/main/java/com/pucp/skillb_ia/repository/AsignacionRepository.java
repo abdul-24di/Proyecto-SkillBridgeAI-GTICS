@@ -73,6 +73,8 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
             """)
     Optional<Asignacion> findByIdConDetalle(@Param("id") Long id);
 
+    Optional<Asignacion> findFirstByProyectoAndColaboradorAndEstado(Proyecto proyecto, Usuario colaborador, EstadoAsignacion estado);
+
     @Query("""
             select a
             from Asignacion a

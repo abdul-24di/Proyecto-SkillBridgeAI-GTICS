@@ -5,6 +5,7 @@ import com.pucp.skillb_ia.model.Actividad;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.repository.ActividadRepository;
@@ -12,6 +13,7 @@ import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,19 +31,22 @@ public class PmActividadService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
+    private final NotificacionService notificacionService;
 
     public PmActividadService(ActividadRepository actividadRepository,
                               ProyectoRepository proyectoRepository,
                               AsignacionRepository asignacionRepository,
                               UsuarioRepository usuarioRepository,
                               AuditoriaService auditoriaService,
-                              com.pucp.skillb_ia.service.PenalizacionService penalizacionService) {
+                              com.pucp.skillb_ia.service.PenalizacionService penalizacionService,
+                              NotificacionService notificacionService) {
         this.actividadRepository = actividadRepository;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.penalizacionService = penalizacionService;
+        this.notificacionService = notificacionService;
     }
 
     @Transactional(readOnly = true)
@@ -84,6 +89,12 @@ public class PmActividadService {
         auditoriaService.registrar(pm, "CREAR", "ACTIVIDAD", saved.getId(),
                 "PM creó actividad '" + titulo + "' para colaborador ID " + colaboradorId
                         + " en proyecto '" + proyecto.getNombre() + "'.");
+
+        notificacionService.crear(colaborador, "NUEVA_ACTIVIDAD", CategoriaNotificacion.ACTIVIDAD,
+                "Nueva actividad asignada",
+                "Te asignaron \"" + titulo + "\" en " + proyecto.getNombre() + ". Fecha límite: " + fechaLimite + ".",
+                "ACTIVIDAD", saved.getId());
+
         return saved;
     }
 
@@ -95,13 +106,21 @@ public class PmActividadService {
             throw new IllegalStateException(
                     "Solo se pueden confirmar actividades en estado EN_REVISION.");
         }
+
+
         actividad.setEstado(EstadoActividad.COMPLETADA);
         actividad.setFechaEntrega(LocalDateTime.now());
         actividadRepository.save(actividad);
 
         auditoriaService.registrar(pm, "CONFIRMAR", "ACTIVIDAD", actividadId,
                 "PM confirmó la entrega de la actividad '" + actividad.getTitulo() + "'.");
+
+        notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_CONFIRMADA", CategoriaNotificacion.ACTIVIDAD,
+                "Actividad confirmada",
+                "El PM confirmó tu entrega de \"" + actividad.getTitulo() + "\".",
+                "ACTIVIDAD", actividad.getId());
     }
+
 
     @Transactional
     public void devolver(Long actividadId, String comentario, Usuario pm) {
@@ -120,9 +139,15 @@ public class PmActividadService {
         auditoriaService.registrar(pm, "DEVOLVER", "ACTIVIDAD", actividadId,
                 "PM devolvió la actividad '" + actividad.getTitulo() + "': " + comentario);
 
+
         //En caso de que el PM devuelva una actividad por no estar bien hecha se contará como un strike.
         penalizacionService.aplicarStrikePorDevolucion(actividad);
         penalizacionService.verificarYRemoverPorStrikes(actividad.getColaborador(), actividad.getProyecto());
+
+        notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_DEVUELTA", CategoriaNotificacion.ACTIVIDAD,
+                "Actividad devuelta",
+                "El PM devolvió \"" + actividad.getTitulo() + "\": " + comentario,
+                "ACTIVIDAD", actividad.getId());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

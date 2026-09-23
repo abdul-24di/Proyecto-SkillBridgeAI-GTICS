@@ -290,10 +290,14 @@ public class PmViewController {
                                     @AuthenticationPrincipal UsuarioDetails principal,
                                     RedirectAttributes ra) {
         try {
+            if (comentario == null || comentario.isBlank()) {
+                throw new IllegalArgumentException("Debes escribir un comentario para devolver la actividad.");
+            }
             pmActividadService.devolver(actividadId, comentario, principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad devuelta al colaborador.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            org.slf4j.LoggerFactory.getLogger(getClass()).error("Error al devolver actividad {}", actividadId, e);
+            ra.addFlashAttribute("error", e.getMessage() != null ? e.getMessage() : "No se pudo devolver la actividad.");
         }
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }

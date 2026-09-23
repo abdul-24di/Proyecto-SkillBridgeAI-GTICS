@@ -16,16 +16,19 @@ public class ColProyectoDetalleView {
     private final List<Actividad> actividadesDelProyecto;
     private final List<Actividad> misActividades;
     private final Map<Long, ColaboradorExplorarService.PerfilExplorar> perfilesIntegrantes;
+    private final int misStrikes;
 
     public ColProyectoDetalleView(Proyecto proyecto, Asignacion asignacion, List<Asignacion> integrantes,
                                   List<Actividad> actividadesDelProyecto, List<Actividad> misActividades,
-                                  Map<Long, ColaboradorExplorarService.PerfilExplorar> perfilesIntegrantes) {
+                                  Map<Long, ColaboradorExplorarService.PerfilExplorar> perfilesIntegrantes,
+                                  int misStrikes) {
         this.proyecto = proyecto;
         this.asignacion = asignacion;
         this.integrantes = integrantes;
         this.actividadesDelProyecto = actividadesDelProyecto;
         this.misActividades = misActividades;
         this.perfilesIntegrantes = perfilesIntegrantes;
+        this.misStrikes = misStrikes;
     }
 
     public Proyecto getProyecto() { return proyecto; }
@@ -34,4 +37,5 @@ public class ColProyectoDetalleView {
     public List<Actividad> getActividadesDelProyecto() { return actividadesDelProyecto; }
     public List<Actividad> getMisActividades() { return misActividades; }
     public Map<Long, ColaboradorExplorarService.PerfilExplorar> getPerfilesIntegrantes() { return perfilesIntegrantes; }
+    public int getMisStrikes() { return misStrikes; }
 }

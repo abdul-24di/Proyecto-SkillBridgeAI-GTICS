@@ -88,6 +88,7 @@
                             <div class="card-body">
                                 <div class="info-grid">
                                     <div><div class="info-label">Dedicación</div><div class="info-value" th:text="${asignacion.horasSemanales} + ' hrs/semana'">Horas</div></div>
+
                                     <div>
                                         <div class="info-label">Estado</div>
                                         <div class="info-value">
@@ -95,6 +96,17 @@
                                             <span th:if="${asignacion.estado.name() == 'FINALIZADA'}" class="badge bg-blue-lt">Finalizada</span>
                                         </div>
                                     </div>
+                                    <div>
+                                        <div class="info-label">Strikes en este proyecto</div>
+                                        <div class="info-value">
+                                            <span class="badge" th:classappend="${misStrikes == 0} ? 'bg-secondary-lt' : (${misStrikes < 3} ? 'bg-yellow-lt' : 'bg-red-lt')"
+                                                  th:text="${misStrikes} + ' / 3'">0 / 3</span>
+                                        </div>
+                                    </div>
+
+
+
+
                                 </div>
                             </div>
                         </div>

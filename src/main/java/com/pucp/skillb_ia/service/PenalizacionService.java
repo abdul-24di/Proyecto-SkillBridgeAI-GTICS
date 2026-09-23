@@ -29,13 +29,16 @@ public class PenalizacionService {
     private final PenalizacionRepository penalizacionRepository;
     private final AsignacionRepository asignacionRepository;
     private final AuditoriaService auditoriaService;
+    private final NotificacionService notificacionService;
 
     public PenalizacionService(PenalizacionRepository penalizacionRepository,
                                AsignacionRepository asignacionRepository,
-                               AuditoriaService auditoriaService) {
+                               AuditoriaService auditoriaService,
+                               NotificacionService notificacionService) {
         this.penalizacionRepository = penalizacionRepository;
         this.asignacionRepository = asignacionRepository;
         this.auditoriaService = auditoriaService;
+        this.notificacionService = notificacionService;
     }
 
     // ============================================================
@@ -68,6 +71,13 @@ public class PenalizacionService {
         penalizacionRepository.save(strike);
 
         auditoriaService.registrar(actividad.getColaborador(), "APLICAR_STRIKE", "ACTIVIDAD", actividad.getId(), motivo);
+
+        int totalStrikes = contarStrikes(actividad.getColaborador(), actividad.getProyecto());
+        notificacionService.crear(actividad.getColaborador(), "STRIKE",
+                com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ACTIVIDAD,
+                "Strike en " + actividad.getProyecto().getNombre(),
+                motivo + " Llevas " + totalStrikes + " de " + MAXIMO_STRIKES + " strikes en este proyecto.",
+                "ACTIVIDAD", actividad.getId());
     }
 
     // ============================================================
@@ -117,6 +127,12 @@ public class PenalizacionService {
 
             auditoriaService.registrar(colaborador, "REMOVER_POR_STRIKES", "ASIGNACION", asignacion.getId(),
                     "Removido del proyecto \"" + proyecto.getNombre() + "\" tras acumular " + strikes + " strikes.");
+
+            notificacionService.crear(colaborador, "REMOVIDO_POR_STRIKES",
+                    com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ASIGNACION,
+                    "Saliste de " + proyecto.getNombre(),
+                    "Fuiste removido del proyecto por acumular " + strikes + " strikes por bajo desempeño.",
+                    "ASIGNACION", asignacion.getId());
         }
     }
 

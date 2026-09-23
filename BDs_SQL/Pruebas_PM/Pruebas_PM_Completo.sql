@@ -1,4 +1,4 @@
-﻿SET SQL_SAFE_UPDATES = 0;
+SET SQL_SAFE_UPDATES = 0;
 
 -- 1. Asegurar que haya usuarios extra para probar asignaciones
 INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES

@@ -73,6 +73,11 @@ public class PmProyectoService {
                           List<Long> habilidadIds, List<String> nivelesRequeridos,
                           List<Integer> cantidadesPersonas,
                           Usuario pm) {
+        
+        if (fechaInicio != null && fechaFinEstimada != null && fechaFinEstimada.isBefore(fechaInicio)) {
+            throw new IllegalArgumentException("La fecha de fin estimada no puede ser anterior a la fecha de inicio.");
+        }
+
         Proyecto proyecto = new Proyecto();
         proyecto.setNombre(nombre);
         proyecto.setDescripcion(descripcion);

@@ -26,9 +26,13 @@
         <div class="text-secondary" th:text="${proyecto.proyecto.descripcion != null ? proyecto.proyecto.descripcion : 'Sin descripción'}">Descripción</div>
       </div>
       <div class="project-hero-actions">
-        <a th:if="${proyecto.puedeCancelar}" href="#" data-bs-toggle="modal" data-bs-target="#cancelProjectModal" class="btn btn-outline-danger">Cancelar proyecto</a>
+        <a th:href="@{/pm/proyectos}" class="btn btn-outline-secondary">Volver</a>
+        <a th:href="@{/pm/foro/detalle(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Foro</a>
+        <a th:href="@{/pm/actividades(proyectoId=${proyecto.proyecto.id})}" th:if="${proyecto.puedeCrearActividades}" class="btn btn-outline-primary">Actividades</a>
+        <a th:href="@{/pm/chat(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Chat</a>
         <a th:href="@{/pm/reportes/detalle(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Ver reporte</a>
         <a th:href="@{/pm/proyectos/asignaciones(proyectoId=${proyecto.proyecto.id})}" class="btn btn-primary">Gestionar asignaciones</a>
+        <a th:if="${proyecto.puedeCancelar}" href="#" data-bs-toggle="modal" data-bs-target="#cancelProjectModal" class="btn btn-outline-danger">Cancelar proyecto</a>
       </div>
     </div>
     
@@ -109,13 +113,6 @@
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="action-bar">
-      <a th:href="@{/pm/proyectos}" class="btn btn-outline-secondary">Volver a Mis Proyectos</a>
-      <a th:href="@{/pm/foro/detalle(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Foro</a>
-      <a th:href="@{/pm/actividades(proyectoId=${proyecto.proyecto.id})}" th:if="${proyecto.puedeCrearActividades}" class="btn btn-outline-primary">Actividades</a>
-      <a th:href="@{/pm/chat(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Chat</a>
     </div>
   </main>
 </div>

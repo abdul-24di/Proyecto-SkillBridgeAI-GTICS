@@ -53,13 +53,9 @@
   </div></div></div>
 </div>
 
-<div class="assignment-tabs mb-4">
-  <button type="button" class="active" data-tab="proposals">Activos y Propuestas</button>
-  <button type="button" data-tab="applications">Pendientes RM/PM</button>
-  <button type="button" data-tab="history">Historial</button>
-</div>
+<!-- Secciones siempre visibles — sin JavaScript -->
 
-<section id="proposalsPanel" class="tab-panel">
+<section class="mb-4">
   <!-- COLABORADORES ACTIVOS -->
   <div class="card section-card mb-4">
     <div class="card-header section-header">
@@ -171,7 +167,7 @@
   </div>
 </section>
 
-<section id="applicationsPanel" class="tab-panel d-none">
+<section class="mb-4">
   <div class="card section-card">
     <div class="card-header section-header">
       <div><h3 class="card-title mb-1">Todas las Asignaciones en Trámite</h3><div class="section-description">Muestra propuestas pendientes de aprobación del RM.</div></div>
@@ -202,7 +198,7 @@
   </div>
 </section>
 
-<section id="historyPanel" class="tab-panel d-none">
+<section class="mb-4">
   <div class="card section-card">
     <div class="card-header section-header">
       <div><h3 class="card-title mb-1">Historial</h3><div class="section-description">Asignaciones finalizadas o rechazadas.</div></div>
@@ -275,6 +271,5 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/pm-js/pm-asignaciones-proyecto.js" th:src="@{/js/pm-js/pm-asignaciones-proyecto.js?v=2}"></script>
 </body>
 </html>

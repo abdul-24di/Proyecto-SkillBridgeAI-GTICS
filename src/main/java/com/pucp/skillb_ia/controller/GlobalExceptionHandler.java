@@ -9,11 +9,26 @@ import jakarta.servlet.http.HttpServletRequest;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    //En caso de que el archivo subido (evidencia, documento, foto, etc.) supere el límite configurado,
-    //en lugar de una página de error en blanco, mostramos un mensaje normal y volvemos atrás.
+    // Archivo demasiado grande (evidencia, documento, foto, etc.)
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public String archivoDemasiadoGrande(HttpServletRequest request, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("mensajeError", "El archivo que intentaste subir es demasiado grande.");
+        String referer = request.getHeader("Referer");
+        return "redirect:" + (referer != null ? referer : "/");
+    }
+
+    // Error de negocio: recurso no encontrado o acceso denegado
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public String errorNegocio(Exception ex, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        String referer = request.getHeader("Referer");
+        return "redirect:" + (referer != null ? referer : "/");
+    }
+
+    // Intento de acceder a un recurso que no le pertenece
+    @ExceptionHandler(SecurityException.class)
+    public String errorSeguridad(HttpServletRequest request, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("error", "No tienes permiso para realizar esta acción.");
         String referer = request.getHeader("Referer");
         return "redirect:" + (referer != null ? referer : "/");
     }

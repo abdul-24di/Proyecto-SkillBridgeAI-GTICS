@@ -1,3 +1,4 @@
+SET SQL_SAFE_UPDATES = 0;
 USE skillbridge_db;
 
 -- =====================================================================
@@ -820,3 +821,4 @@ VALUES (
 --     (SELECT id FROM usuario WHERE correo = 'rm@skillbridge.com' LIMIT 1),
 --     NOW() - INTERVAL 5 DAY, NOW() - INTERVAL 5 DAY
 -- );
+SET SQL_SAFE_UPDATES = 1;

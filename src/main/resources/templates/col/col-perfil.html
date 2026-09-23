@@ -133,9 +133,18 @@
                                 <div th:each="ch : ${habilidadesColaborador}" class="skill-item">
                                     <div>
                                         <div class="skill-item-name" th:text="${ch.habilidad.nombre}">Java</div>
+
+
                                         <div class="skill-item-cert" th:classappend="${ch.estadoValidacion.name() == 'VALIDADA' ? 'text-green' : (ch.estadoValidacion.name() == 'RECHAZADA' ? 'text-red' : '')}"
                                              th:text="${ch.estadoValidacion.name() == 'VALIDADA' ? 'Validada por el RM' : (ch.estadoValidacion.name() == 'RECHAZADA' ? 'Rechazada por el RM' : 'Pendiente de validación')}">Pendiente de validación</div>
+                                        <a th:if="${certificadosPorHabilidad.get(ch.habilidad.id) != null}"
+                                           th:href="@{${certificadosPorHabilidad.get(ch.habilidad.id)}}"
+                                           target="_blank" rel="noopener" class="skill-item-doc-link">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                                            Ver certificado subido
+                                        </a>
                                         <button th:if="${ch.estadoValidacion.name() == 'RECHAZADA'}" type="button"
+
                                                 class="btn btn-sm btn-outline-danger mt-1" data-bs-toggle="modal"
                                                 th:attr="data-bs-target='#retryCertModal-' + ${ch.habilidad.id}">
                                             Volver a subir certificado
@@ -210,10 +219,22 @@
                                             –
                                             <span th:text="${edu.actual} ? 'Actualidad' : (${edu.fechaFin != null} ? ${#temporals.format(edu.fechaFin, 'dd/MM/yyyy')} : '¿?')">Actualidad</span>
                                         </div>
+
+
+
                                         <span class="badge mt-1"
                                               th:classappend="${edu.estado.name() == 'APROBADO'} ? 'bg-green-lt' : (${edu.estado.name() == 'RECHAZADO'} ? 'bg-red-lt' : 'bg-yellow-lt')"
                                               th:text="${edu.estado.name() == 'APROBADO'} ? 'Validada' : (${edu.estado.name() == 'RECHAZADO'} ? 'Rechazada' : 'Pendiente de revisión')">Pendiente de revisión</span>
+                                        <a th:if="${edu.archivoUrl != null and !edu.archivoUrl.isBlank()}"
+                                           th:href="@{${edu.archivoUrl}}"
+                                           target="_blank" rel="noopener" class="skill-item-doc-link">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                                            Ver certificado subido
+                                        </a>
                                     </div>
+
+
+
 
                                     <button type="button" class="skill-remove-btn" aria-label="Quitar formación"
                                             data-bs-toggle="modal" th:attr="data-bs-target='#deleteEduModal-' + ${edu.id}">
@@ -373,7 +394,7 @@
 
 <!-- MODAL: EDITAR SOBRE MÍ -->
 <div class="modal modal-blur fade col-modal" id="editAboutModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <form th:action="@{/colaborador/perfil/sobre-mi}" method="post">
             <div class="modal-content">
                 <div class="modal-header">
@@ -382,7 +403,10 @@
                 </div>
                 <div class="modal-body">
                     <label class="form-label">Descripción</label>
-                    <textarea name="descripcion" class="form-control" rows="8"
+                    <textarea name="descripcion" class="form-control about-textarea" rows="8"
+
+
+
                               placeholder="Cuéntale a la organización sobre tu experiencia, intereses y lo que te apasiona como profesional..."
                               th:text="${colaborador.descripcion}"></textarea>
 
@@ -582,17 +606,11 @@
 
                         <div class="col-md-6">
                             <label class="form-label">Fecha de inicio</label>
-                            <input type="date" name="fechaInicio" class="form-control">
+                            <input type="date" name="fechaInicio" id="eduStartInput" class="form-control">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha de fin</label>
                             <input type="date" name="fechaFin" id="eduEndInput" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-check">
-                                <input class="form-check-input" type="checkbox" name="actual" id="eduCurrentInput" value="true">
-                                <span class="form-check-label">Actualmente en curso</span>
-                            </label>
                         </div>
 
 

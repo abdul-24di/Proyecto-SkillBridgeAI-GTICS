@@ -400,6 +400,7 @@ public class ColaboradorViewController {
 
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("habilidadesColaborador", colaboradorPerfilService.listarHabilidades(colaborador));
+        model.addAttribute("certificadosPorHabilidad", colaboradorPerfilService.mapaCertificadosPorHabilidad(colaborador));
         model.addAttribute("certificadosColaborador", colaboradorPerfilService.listarCertificados(colaborador));
         model.addAttribute("habilidadesDisponibles", colaboradorPerfilService.listarHabilidadesDisponibles(colaborador));
         model.addAttribute("nivelesDominio", NivelDominio.values());
@@ -550,15 +551,14 @@ public class ColaboradorViewController {
     public String agregarEducacion(@AuthenticationPrincipal UsuarioDetails principal,
                                    @RequestParam String institucion,
                                    @RequestParam String titulo,
-                                   @RequestParam(required = false) java.time.LocalDate fechaInicio,
-                                   @RequestParam(required = false) java.time.LocalDate fechaFin,
-                                   @RequestParam(required = false, defaultValue = "false") boolean actual,
+                                   @RequestParam(required = false) String fechaInicio,
+                                   @RequestParam(required = false) String fechaFin,
                                    @RequestParam("certificado") MultipartFile certificado,
                                    RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.agregarEducacion(
-                    principal.getUsuario(), institucion, titulo, fechaInicio, fechaFin, actual, certificado);
+                    principal.getUsuario(), institucion, titulo, fechaInicio, fechaFin, certificado);
             redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica agregada. Quedará pendiente de revisión.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());

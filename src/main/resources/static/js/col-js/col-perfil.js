@@ -1,10 +1,11 @@
 // ---------------- MODAL: Agregar formación ----------------
-const eduCurrentInput = document.getElementById("eduCurrentInput");
+const eduStartInput = document.getElementById("eduStartInput");
 const eduEndInput = document.getElementById("eduEndInput");
 
-eduCurrentInput?.addEventListener("change", () => {
-    eduEndInput.disabled = eduCurrentInput.checked;
-    if (eduCurrentInput.checked) eduEndInput.value = "";
+eduStartInput?.addEventListener("change", () => {
+    if (eduStartInput.value) {
+        eduEndInput.min = eduStartInput.value;
+    }
 });
 
 // ---------------- MODAL: Agregar habilidad (crear una nueva si no está en el catálogo) ----------------

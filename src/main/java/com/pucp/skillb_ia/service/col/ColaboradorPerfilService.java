@@ -17,8 +17,9 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDate;
 import java.util.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.stream.Collectors;
 
 
@@ -76,6 +77,22 @@ public class ColaboradorPerfilService {
     //Listado de las habilidades activas del colaborador
     public List<ColaboradorHabilidad> listarHabilidades(Usuario colaborador) {
         return colaboradorHabilidadRepository.findByColaboradorAndActivoTrue(colaborador);
+    }
+
+
+    public java.util.Map<Long, String> mapaCertificadosPorHabilidad(Usuario colaborador) {
+        List<Certificado> certificados = certificadoRepository.findByColaboradorIdConDetalle(colaborador.getId());
+        java.util.Map<Long, String> mapa = new java.util.HashMap<>();
+
+        for (Certificado certificado : certificados) {
+            Long habilidadId = certificado.getHabilidad().getId();
+            //Como vienen ordenados del más reciente al más antiguo, la primera vez
+            //que vemos una habilidad es su certificado más reciente, asi evitamos sobreescribirlo.
+            if (!mapa.containsKey(habilidadId)) {
+                mapa.put(habilidadId, certificado.getArchivoUrl());
+            }
+        }
+        return mapa;
     }
 
     //Listado de habilidades con las que no cuenta el colaborador
@@ -506,13 +523,20 @@ public class ColaboradorPerfilService {
     //Agregamos educación
     @Transactional
     public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
-                                 LocalDate fechaInicio, LocalDate fechaFin, boolean actual,
+                                 String fechaInicioTexto, String fechaFinTexto,
                                  MultipartFile certificado) {
         if (institucion == null || institucion.isBlank()) {
             throw new IllegalArgumentException("Indica la institución.");
         }
         if (titulo == null || titulo.isBlank()) {
             throw new IllegalArgumentException("Indica el título o carrera.");
+        }
+
+        LocalDate fechaInicio = parseFechaObligatoria(fechaInicioTexto, "la fecha de inicio");
+        LocalDate fechaFin = parseFechaObligatoria(fechaFinTexto, "la fecha de fin");
+
+        if (fechaFin.isBefore(fechaInicio)) {
+            throw new IllegalArgumentException("La fecha de fin no puede ser anterior a la fecha de inicio.");
         }
 
         String archivoUrl = guardarCertificado(certificado, "certificados-educacion",
@@ -523,14 +547,26 @@ public class ColaboradorPerfilService {
         educacion.setInstitucion(institucion.trim());
         educacion.setTitulo(titulo.trim());
         educacion.setFechaInicio(fechaInicio);
-        educacion.setFechaFin(actual ? null : fechaFin);
-        educacion.setActual(actual);
+        educacion.setFechaFin(fechaFin);
+        educacion.setActual(false);
         educacion.setArchivoUrl(archivoUrl);
         educacionRepository.save(educacion);
 
         auditoriaService.registrar(colaborador, "AGREGAR_EDUCACION", "EDUCACION", educacion.getId(),
                 "Agregó la formación académica \"" + titulo.trim() + "\" (" + institucion.trim()
                         + ") a su perfil y adjuntó un certificado.");
+    }
+
+    //Convertimos el texto del input type="date" a LocalDate, exigiendo que venga lleno y con formato válido
+    private LocalDate parseFechaObligatoria(String valor, String nombreCampo) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException("Indica " + nombreCampo + ".");
+        }
+        try {
+            return LocalDate.parse(valor.trim());
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("El formato de " + nombreCampo + " no es válido.");
+        }
     }
 
 

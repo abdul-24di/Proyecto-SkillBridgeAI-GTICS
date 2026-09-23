@@ -114,6 +114,7 @@ public class PmViewController {
             @RequestParam(value = "habilidadIds", required = false) List<Long> habilidadIds,
             @RequestParam(value = "nivelesRequeridos", required = false) List<String> niveles,
             @RequestParam(value = "cantidadesPersonas", required = false) List<Integer> cantidades,
+            @RequestParam(value = "habilidadesExtra", required = false) String habilidadesExtra,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes ra) {
         try {
@@ -122,7 +123,13 @@ public class PmViewController {
             LocalDate fechaFin = (fechaFinStr != null && !fechaFinStr.isBlank())
                     ? LocalDate.parse(fechaFinStr) : null;
 
-            var nuevo = pmProyectoService.crear(nombre, descripcion, fechaInicio, fechaFin,
+            // Concatenar las habilidades extra a la descripción si existen
+            String finalDescripcion = descripcion != null ? descripcion : "";
+            if (habilidadesExtra != null && !habilidadesExtra.isBlank()) {
+                finalDescripcion += "\n\nOtras habilidades requeridas: " + habilidadesExtra;
+            }
+
+            var nuevo = pmProyectoService.crear(nombre, finalDescripcion, fechaInicio, fechaFin,
                     prioridad, justificacionPrioridad, presupuesto, justPresupuesto,
                     colaboradoresRequeridos, horasSemanales, habilidadIds, niveles, cantidades,
                     principal.getUsuario());

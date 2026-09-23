@@ -41,13 +41,36 @@
 <div class="row row-cards mb-4">
 <div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3><div class="section-description">InformaciÃ³n para que el RM encuentre colaboradores.</div></div></div><div class="card-body form-section">
 <div class="mb-3"><label class="form-label">N.Âº de colaboradores requeridos</label><input type="number" name="colaboradoresRequeridos" min="1" class="form-control" value="1"></div>
-<div class="mb-3">
-  <label class="form-label">Habilidad Requerida (Ejemplo)</label>
-  <select name="habilidadIds" class="form-select">
-     <option th:each="hab : ${habilidades}" th:value="${hab.id}" th:text="${hab.nombre}"></option>
-  </select>
-  <div class="form-hint">Selecciona la habilidad principal requerida.</div>
-</div>
+  <div class="mb-3">
+    <label class="form-label">Habilidades Requeridas</label>
+    <div id="skills-container">
+      <div class="row g-2 mb-2 skill-row">
+        <div class="col-6">
+          <select name="habilidadIds" class="form-select" required>
+             <option value="">Selecciona una habilidad...</option>
+             <option th:each="hab : ${habilidades}" th:value="${hab.id}" th:text="${hab.nombre}"></option>
+          </select>
+        </div>
+        <div class="col-4">
+          <select name="nivelesRequeridos" class="form-select">
+             <option value="BASICO">Básico</option>
+             <option value="INTERMEDIO" selected>Intermedio</option>
+             <option value="AVANZADO">Avanzado</option>
+          </select>
+        </div>
+        <div class="col-2 d-flex gap-1">
+          <input type="number" name="cantidadesPersonas" class="form-control" value="1" min="1" title="Cantidad de personas">
+        </div>
+      </div>
+    </div>
+    <button type="button" class="btn btn-outline-primary btn-sm mt-1" onclick="addSkillRow()">+ Añadir otra habilidad</button>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">¿Falta alguna habilidad en la lista?</label>
+    <textarea name="habilidadesExtra" class="form-control" rows="2" placeholder="Escribe aquí las habilidades que no encontraste (Ej: Rust, GraphQL, Figma avanzado...)"></textarea>
+    <div class="form-hint">Se agregarán automáticamente a la descripción del proyecto.</div>
+  </div>
+  </div>
 </div></div></div>
 <div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Contexto para Resource Manager</h3><div class="section-description">AÃ±ade restricciones o informaciÃ³n adicional.</div></div></div><div class="card-body form-section">
 <div class="mb-3"><label class="form-label">Horas semanales esperadas por colaborador</label><input type="number" name="horasSemanalesRequeridas" min="1" max="40" class="form-control" value="16"><div class="form-hint">Horas propuestas de asignaciÃ³n; no son disponibilidad ni carga.</div></div>
@@ -73,5 +96,26 @@
             });
         }
     });
-</script>
-</body></html>
+
+      function addSkillRow() {
+          const container = document.getElementById("skills-container");
+          const firstRow = container.querySelector(".skill-row");
+          const newRow = firstRow.cloneNode(true);
+          newRow.querySelector('select[name="habilidadIds"]').value = "";
+          newRow.querySelector('select[name="nivelesRequeridos"]').value = "INTERMEDIO";
+          newRow.querySelector('input[name="cantidadesPersonas"]').value = "1";
+          
+          if (!newRow.querySelector('.delete-skill')) {
+             const col2 = newRow.querySelector('.col-2');
+             const btn = document.createElement('button');
+             btn.type = 'button';
+             btn.className = 'btn btn-outline-danger btn-icon delete-skill';
+             btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>';
+             btn.onclick = function() { newRow.remove(); };
+             col2.appendChild(btn);
+          }
+          container.appendChild(newRow);
+      }
+</html>
+
+

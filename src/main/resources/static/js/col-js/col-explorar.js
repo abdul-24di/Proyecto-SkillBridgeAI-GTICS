@@ -97,9 +97,9 @@ function filtrarListaColaboradores() {
     el?.addEventListener(el.tagName === "INPUT" ? "input" : "change", filtrarListaColaboradores);
 });
 
-document.querySelectorAll("#collabList [data-view-collab]").forEach(btn => {
-    btn.addEventListener("click", () => mostrarPerfilColaborador(btn.dataset.collabId));
-});
+
+
+
 
 function mostrarPerfilColaborador(colaboradorId) {
     document.querySelectorAll("#collabProfileDetail .collab-detail-card").forEach(card => {

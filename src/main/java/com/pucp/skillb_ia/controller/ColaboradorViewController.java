@@ -123,6 +123,7 @@ public class ColaboradorViewController {
             model.addAttribute("integrantes", detalle.getIntegrantes());
             model.addAttribute("actividadesDelProyecto", detalle.getActividadesDelProyecto());
             model.addAttribute("misActividades", detalle.getMisActividades());
+            model.addAttribute("perfilesIntegrantes", detalle.getPerfilesIntegrantes());
 
             //Pestaña Documentos
             model.addAttribute("documentos", colaboradorDocumentoService.listarDocumentos(
@@ -592,6 +593,8 @@ public class ColaboradorViewController {
             redirectAttributes.addFlashAttribute("mensajeExito", "Actividad marcada como lista para revisión. El PM la revisará pronto.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", "No se pudo procesar la evidencia. Verifica el archivo e inténtalo de nuevo.");
         }
         return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=actividades";
     }

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Actividades del Proyecto</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+    <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+</head>
+<body><div class="app-shell">
+    <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('proyectos')}"></header>
+    <main class="page-wrap">
+
+        <div class="breadcrumb-wrap">
+            <a th:href="@{/pm/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
+            <span class="breadcrumb-separator">›</span>
+            <a th:href="@{/pm/proyectos/detalle(id=${proyecto.proyecto.id})}" class="breadcrumb-link" th:text="${proyecto.proyecto.nombre}">Proyecto</a>
+            <span class="breadcrumb-separator">›</span>
+            <span class="text-secondary">Actividades</span>
+        </div>
+
+        <div class="page-head page-head-stack-mobile">
+            <div>
+                <h1 class="page-title">Actividades — <span th:text="${proyecto.proyecto.nombre}"></span></h1>
+                <div class="text-secondary">Asigna tareas a tu equipo y revisa sus entregas.</div>
+            </div>
+            <div class="d-flex gap-2">
+                <a th:href="@{/pm/proyectos/detalle(id=${proyecto.proyecto.id})}" class="btn btn-outline-secondary">Volver al proyecto</a>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevaActividadModal">+ Nueva actividad</button>
+            </div>
+        </div>
+
+        <div th:if="${success != null}" class="alert alert-success alert-dismissible" role="alert">
+            <div class="d-flex"><div><h4 class="alert-title">¡Éxito!</h4><div class="text-secondary" th:text="${success}"></div></div></div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+        <div th:if="${error != null}" class="alert alert-danger alert-dismissible" role="alert">
+            <div class="d-flex"><div><h4 class="alert-title">Error</h4><div class="text-secondary" th:text="${error}"></div></div></div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+
+        <div class="row row-cards mb-4">
+            <div class="col-sm-6 col-lg-4"><div class="card metric-card"><div class="card-body">
+                <div class="metric-label">Total de actividades</div>
+                <div class="metric-number" th:text="${proyecto.totalActividades}">0</div>
+            </div></div></div>
+            <div class="col-sm-6 col-lg-4"><div class="card metric-card"><div class="card-body">
+                <div class="metric-label">Completadas</div>
+                <div class="metric-number text-green" th:text="${proyecto.actividadesCompletadas}">0</div>
+            </div></div></div>
+            <div class="col-sm-6 col-lg-4"><div class="card metric-card"><div class="card-body">
+                <div class="metric-label">Progreso</div>
+                <div class="metric-number" th:text="${proyecto.progresoActividades} + '%'">0%</div>
+            </div></div></div>
+        </div>
+
+        <div class="card section-card">
+            <div class="card-header section-header">
+                <div><h3 class="card-title mb-1">Actividades del proyecto</h3><div class="section-description">Haz clic en una fila para ver el detalle completo.</div></div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table mb-0">
+                    <thead>
+                    <tr><th>Colaborador</th><th>Título</th><th>Horas</th><th>Fecha límite</th><th>Estado</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${actividades.isEmpty()}">
+                        <td colspan="6" class="text-center text-secondary py-3">Todavía no has creado actividades en este proyecto.</td>
+                    </tr>
+                    <tr th:each="act : ${actividades}" class="pm-activity-row" style="cursor:pointer"
+                        data-bs-toggle="modal" th:attr="data-bs-target='#detalleActividadModal-' + ${act.actividad.id}">
+                        <td class="fw-semibold" th:text="${act.colaboradorNombre}">Nombre</td>
+                        <td th:text="${act.titulo}">Título</td>
+                        <td th:text="${act.horasEstimadas} + ' h'">0 h</td>
+                        <td th:text="${#temporals.format(act.fechaLimite, 'dd/MM/yyyy')}">—</td>
+                        <td>
+                            <span class="badge" th:classappend="${act.estadoClase}" th:text="${act.estadoTexto}">Estado</span>
+                            <span th:if="${act.vencida}" class="badge bg-red-lt ms-1">Vencida</span>
+                        </td>
+                        <td class="text-secondary small">Ver detalle →</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main></div>
+
+<!-- MODAL: NUEVA ACTIVIDAD -->
+<div class="modal modal-blur fade pm-modal" id="nuevaActividadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva actividad</h5>
+                <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form method="POST" th:action="@{/pm/actividades/crear}">
+                <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Colaborador</label>
+                        <select name="colaboradorId" class="form-select">
+                            <option value="" selected disabled>Seleccionar colaborador</option>
+                            <option th:each="c : ${colaboradoresActivos}" th:value="${c.asignacion.colaborador.id}" th:text="${c.colaboradorNombre}"></option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Título</label>
+                        <input type="text" name="titulo" class="form-control" placeholder="Ej. Diseñar el módulo de login">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea name="descripcion" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Horas estimadas</label>
+                            <input type="number" step="0.5" name="horasEstimadas" class="form-control">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Fecha límite</label>
+                            <input type="date" name="fechaLimite" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear actividad</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODALES: DETALLE DE CADA ACTIVIDAD -->
+<div th:each="act : ${actividades}">
+    <div class="modal modal-blur fade pm-modal" th:id="'detalleActividadModal-' + ${act.actividad.id}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" th:text="${act.titulo}">Título</h5>
+                    <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="info-grid mb-3">
+                        <div><div class="info-label">Colaborador</div><div class="info-value" th:text="${act.colaboradorNombre}">—</div></div>
+                        <div><div class="info-label">Horas estimadas</div><div class="info-value" th:text="${act.horasEstimadas} + ' h'">—</div></div>
+                        <div><div class="info-label">Fecha límite</div><div class="info-value" th:text="${#temporals.format(act.fechaLimite, 'dd/MM/yyyy')}">—</div></div>
+                        <div><div class="info-label">Estado</div><div class="info-value"><span class="badge" th:classappend="${act.estadoClase}" th:text="${act.estadoTexto}">—</span></div></div>
+                    </div>
+                    <div class="info-label mb-1">Descripción</div>
+                    <p class="text-secondary small" th:text="${act.descripcion != null ? act.descripcion : 'Sin descripción.'}">—</p>
+
+                    <div th:if="${act.actividad.comentarioColaborador != null}" class="mb-3">
+                        <div class="info-label mb-1">Comentario del colaborador</div>
+                        <p class="text-secondary small" th:text="${act.actividad.comentarioColaborador}">—</p>
+                    </div>
+                    <div th:if="${act.actividad.evidenciaUrl != null}" class="mb-3">
+                        <a th:href="@{${act.actividad.evidenciaUrl}}" target="_blank" class="btn btn-outline-secondary btn-sm">Ver evidencia adjuntada</a>
+                    </div>
+                    <div th:if="${act.actividad.comentarioDevolucion != null}" class="alert alert-warning small mb-0">
+                        <div class="fw-semibold">Tú devolviste esta actividad antes:</div>
+                        <div th:text="${act.actividad.comentarioDevolucion}"></div>
+                    </div>
+                </div>
+                <div class="modal-footer" th:if="${act.puedeConfirmar or act.puedeDevolver}">
+                    <form method="POST" th:action="@{/pm/actividades/{id}/devolver(id=${act.actividad.id})}" class="w-100">
+                        <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+                        <textarea name="comentario" class="form-control mb-2" rows="2" placeholder="Comentario para devolver (obligatorio si devuelves)"></textarea>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Devolver</button>
+                            <button type="submit" formaction="" th:formaction="@{/pm/actividades/{id}/confirmar(id=${act.actividad.id})}" formmethod="POST" class="btn btn-success btn-sm">Confirmar entrega</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

@@ -23,17 +23,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 public class ColaboradorProyectoService {
 
     private static final Set<String> TIPOS_EVIDENCIA_PERMITIDOS =
             Set.of("application/pdf", "image/jpeg", "image/png");
+    private static final Set<String> EXTENSIONES_EVIDENCIA_PERMITIDAS =
+            Set.of("pdf", "jpg", "jpeg", "png");
     private static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10MB
 
     private final ProyectoRepository proyectoRepository;
@@ -44,12 +42,14 @@ public class ColaboradorProyectoService {
     private final AuditoriaService auditoriaService;
     private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
     private final String uploadDir;
+    private final ColaboradorExplorarService colaboradorExplorarService;
 
     public ColaboradorProyectoService(ProyectoRepository proyectoRepository,
                                       AsignacionRepository asignacionRepository,
                                       ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository,
                                       HabilidadRepository habilidadRepository,
                                       ActividadRepository actividadRepository,
+                                      ColaboradorExplorarService colaboradorExplorarService,
                                       AuditoriaService auditoriaService,
                                       com.pucp.skillb_ia.service.PenalizacionService penalizacionService,
                                       @Value("${app.upload-dir:uploads}") String uploadDir) {
@@ -58,6 +58,7 @@ public class ColaboradorProyectoService {
         this.proyectoHabilidadRequeridaRepository = proyectoHabilidadRequeridaRepository;
         this.habilidadRepository = habilidadRepository;
         this.actividadRepository = actividadRepository;
+        this.colaboradorExplorarService = colaboradorExplorarService;
         this.auditoriaService = auditoriaService;
         this.penalizacionService = penalizacionService;
         this.uploadDir = uploadDir;
@@ -298,7 +299,16 @@ public class ColaboradorProyectoService {
         //Revisamos si alguna actividad venció sin que la entregara.
         penalizacionService.revisarVencidasSinEntregar(misActividades);
 
-        return new ColProyectoDetalleView(proyecto, asignacion, integrantes, todasLasActividades, misActividades);
+        //Armamos el perfil público (habilidades, experiencia, educación) del PM y de cada integrante para mostrarlo.
+        List<Usuario> personasDelProyecto = new ArrayList<>();
+        personasDelProyecto.add(proyecto.getPm());
+        for (Asignacion miembro : integrantes) {
+            personasDelProyecto.add(miembro.getColaborador());
+        }
+        Map<Long, ColaboradorExplorarService.PerfilExplorar> perfilesIntegrantes =
+                colaboradorExplorarService.obtenerPerfiles(personasDelProyecto);
+
+        return new ColProyectoDetalleView(proyecto, asignacion, integrantes, todasLasActividades, misActividades, perfilesIntegrantes);
     }
 
     // ============================================================
@@ -324,6 +334,10 @@ public class ColaboradorProyectoService {
         }
         if (evidencia.getContentType() == null || !TIPOS_EVIDENCIA_PERMITIDOS.contains(evidencia.getContentType())) {
             throw new IllegalArgumentException("La evidencia debe estar en formato PDF, JPG o PNG.");
+        }
+        String nombreEvidencia = evidencia.getOriginalFilename();
+        if (nombreEvidencia == null || !EXTENSIONES_EVIDENCIA_PERMITIDAS.contains(extensionDe(nombreEvidencia))) {
+            throw new IllegalArgumentException("La evidencia debe ser un archivo .pdf, .jpg o .png.");
         }
         if (evidencia.getSize() > TAMANO_MAXIMO_EVIDENCIA_BYTES) {
             throw new IllegalArgumentException("La evidencia supera el máximo de 10MB.");
@@ -376,4 +390,13 @@ public class ColaboradorProyectoService {
 
         return "/uploads/evidencias-actividades/" + nombreArchivo;
     }
+
+    private String extensionDe(String nombreArchivo) {
+        int punto = nombreArchivo.lastIndexOf('.');
+        if (punto == -1 || punto == nombreArchivo.length() - 1) {
+            return "";
+        }
+        return nombreArchivo.substring(punto + 1).toLowerCase();
+    }
+
 }

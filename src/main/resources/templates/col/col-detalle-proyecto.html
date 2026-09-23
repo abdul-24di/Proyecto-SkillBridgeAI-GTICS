@@ -121,34 +121,45 @@
                         </div>
 
 
+
+
+
                         <div class="row row-cards">
                             <div class="col-sm-6 col-lg-3">
-                                <div class="card member-card h-100"><div class="card-body">
-                                    <span class="avatar avatar-xl mb-2 member-avatar"
-                                          th:text="${#strings.substring(proyecto.pm.nombre,0,1)} + ${#strings.substring(proyecto.pm.apellido,0,1)}">XX</span>
-                                    <div class="fw-semibold" th:text="${proyecto.pm.nombre} + ' ' + ${proyecto.pm.apellido}">Nombre</div>
-                                    <div class="text-secondary small">Project Manager</div>
-                                    <span class="badge bg-green-lt mt-2">PM del proyecto</span>
-                                </div></div>
+                                <div class="card member-card h-100" style="cursor:pointer" data-bs-toggle="modal" data-bs-target="#miembroModal-pm">
+                                    <div class="card-body">
+                                        <span class="avatar avatar-xl mb-2 member-avatar"
+                                              th:text="${#strings.substring(proyecto.pm.nombre,0,1)} + ${#strings.substring(proyecto.pm.apellido,0,1)}">XX</span>
+                                        <div class="fw-semibold" th:text="${proyecto.pm.nombre} + ' ' + ${proyecto.pm.apellido}">Nombre</div>
+                                        <div class="text-secondary small">Project Manager</div>
+                                        <span class="badge bg-green-lt mt-2">PM del proyecto</span>
+                                    </div>
+                                </div>
                             </div>
                             <div th:if="${integrantes.isEmpty()}" class="col-12">
                                 <div class="empty-state">No hay colaboradores con asignación activa en este proyecto por el momento.</div>
                             </div>
                             <div th:each="miembro : ${integrantes}" class="col-sm-6 col-lg-3">
-
-
-                                <div class="card member-card h-100"><div class="card-body">
-                                    <span class="avatar avatar-xl mb-2 member-avatar"
-                                          th:text="${#strings.substring(miembro.colaborador.nombre,0,1)} + ${#strings.substring(miembro.colaborador.apellido,0,1)}">XX</span>
-                                    <div class="fw-semibold" th:text="${miembro.colaborador.nombre} + ' ' + ${miembro.colaborador.apellido}">Nombre</div>
-                                    <div class="text-secondary small" th:text="${miembro.colaborador.cargo != null ? miembro.colaborador.cargo : 'Colaborador'}">Cargo</div>
-                                    <span class="badge bg-blue-lt mt-2" th:text="${miembro.horasSemanales} + ' hrs/semana'">Horas</span>
-                                </div></div>
+                                <div class="card member-card h-100" style="cursor:pointer"
+                                     data-bs-toggle="modal" th:attr="data-bs-target='#miembroModal-' + ${miembro.colaborador.id}">
+                                    <div class="card-body">
+                                        <span class="avatar avatar-xl mb-2 member-avatar"
+                                              th:text="${#strings.substring(miembro.colaborador.nombre,0,1)} + ${#strings.substring(miembro.colaborador.apellido,0,1)}">XX</span>
+                                        <div class="fw-semibold" th:text="${miembro.colaborador.nombre} + ' ' + ${miembro.colaborador.apellido}">Nombre</div>
+                                        <div class="text-secondary small" th:text="${miembro.colaborador.cargo != null ? miembro.colaborador.cargo : 'Colaborador'}">Cargo</div>
+                                        <span class="badge bg-blue-lt mt-2" th:text="${miembro.horasSemanales} + ' hrs/semana'">Horas</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+
+
+
+
 
             <!-- ===== ACTIVIDADES ===== -->
             <div class="tab-pane fade" id="tab-actividades" role="tabpanel">
@@ -324,7 +335,81 @@
             <a th:href="@{/colaborador/proyectos}" class="btn btn-outline-secondary">Volver a Mis Proyectos</a>
         </div>
 
+        <!-- MODAL: PERFIL DEL PM -->
+        <div class="modal modal-blur fade col-modal" id="miembroModal-pm" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" th:text="${proyecto.pm.nombre} + ' ' + ${proyecto.pm.apellido}">PM</h5>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-secondary mb-3" th:text="${proyecto.pm.cargo != null ? proyecto.pm.cargo : 'Project Manager'}">Cargo</div>
+                        <div class="info-label mb-1">Sobre</div>
+                        <p class="small text-secondary" th:text="${proyecto.pm.descripcion != null and !proyecto.pm.descripcion.isBlank() ? proyecto.pm.descripcion : 'Sin descripción registrada.'}">—</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODALES: PERFIL DE CADA INTEGRANTE -->
+        <div th:each="miembro : ${integrantes}">
+            <div class="modal modal-blur fade col-modal" th:id="'miembroModal-' + ${miembro.colaborador.id}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" th:text="${miembro.colaborador.nombre} + ' ' + ${miembro.colaborador.apellido}">Nombre</h5>
+                            <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="text-secondary mb-3" th:text="${miembro.colaborador.cargo != null ? miembro.colaborador.cargo : 'Colaborador'}">Cargo</div>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="info-label mb-1">Sobre</div>
+                                    <p class="small text-secondary" th:text="${miembro.colaborador.descripcion != null and !miembro.colaborador.descripcion.isBlank() ? miembro.colaborador.descripcion : 'Sin descripción registrada.'}">—</p>
+
+                                    <div class="info-label mb-1">Experiencia</div>
+                                    <ul class="small text-secondary ps-3" th:if="${!perfilesIntegrantes.get(miembro.colaborador.id).experiencia.isEmpty()}">
+                                        <li th:each="e : ${perfilesIntegrantes.get(miembro.colaborador.id).experiencia}"
+                                            th:text="${(e.cargo != null ? e.cargo : 'Cargo sin registrar') + ' — ' + (e.empresa != null ? e.empresa : 'Empresa sin registrar')}">Experiencia</li>
+                                    </ul>
+                                    <div class="small text-secondary" th:if="${perfilesIntegrantes.get(miembro.colaborador.id).experiencia.isEmpty()}">Sin experiencia registrada.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-label mb-1">Habilidades</div>
+                                    <div class="mb-3" th:if="${!perfilesIntegrantes.get(miembro.colaborador.id).habilidades.isEmpty()}">
+                                        <div class="skill-row" th:each="h : ${perfilesIntegrantes.get(miembro.colaborador.id).habilidades}">
+                                            <span th:text="${h.habilidad.nombre}">Java</span>
+                                            <span class="text-secondary" th:text="${h.nivelDominio.name() == 'AVANZADO' ? 'Avanzado' : (h.nivelDominio.name() == 'INTERMEDIO' ? 'Intermedio' : 'Básico')}">Avanzado</span>
+                                        </div>
+                                    </div>
+                                    <div class="small text-secondary mb-3" th:if="${perfilesIntegrantes.get(miembro.colaborador.id).habilidades.isEmpty()}">Sin habilidades validadas todavía.</div>
+
+                                    <div class="info-label mb-1">Educación</div>
+                                    <div th:if="${!perfilesIntegrantes.get(miembro.colaborador.id).educacion.isEmpty()}">
+                                        <div class="small text-secondary" th:each="ed : ${perfilesIntegrantes.get(miembro.colaborador.id).educacion}"
+                                             th:text="${ed.titulo + ' — ' + ed.institucion}">Título — Institución</div>
+                                    </div>
+                                    <div class="small text-secondary" th:if="${perfilesIntegrantes.get(miembro.colaborador.id).educacion.isEmpty()}">Sin educación registrada.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
+
+
+
+
 </div>
 
 <!-- MODALES: CONFIRMAR ELIMINAR DOCUMENTO -->

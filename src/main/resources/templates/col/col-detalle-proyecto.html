@@ -503,7 +503,8 @@
                 </div>
 
                 <div id="detalleActividadEnRevisionBlock" style="display:none">
-                    <div class="alert alert-info small mb-2">Ya enviaste esta actividad a revisión. El PM debe confirmarla.</div>
+                    <div class="info-label mb-1">Archivos que enviaste antes</div>
+
                     <div class="info-label mb-1">Tu comentario</div>
                     <p class="text-secondary small" id="detalleActividadComentarioColaborador">—</p>
                     <a href="#" target="_blank" id="detalleActividadEvidenciaLink" class="btn btn-outline-secondary btn-sm">Ver evidencia enviada</a>
@@ -580,27 +581,39 @@
         const formulario = document.getElementById("detalleActividadForm");
         const botonEnviar = document.getElementById("detalleActividadSubmitBtn");
 
-        if (estado === "EN_REVISION") {
-            bloqueEnRevision.style.display = "";
-            bloqueCompletada.style.display = "none";
-            formulario.style.display = "none";
-            botonEnviar.style.display = "none";
+
+
+        const tieneEvidencia = fila.dataset.evidenciaUrl && fila.dataset.evidenciaUrl !== "null" && fila.dataset.evidenciaUrl !== "";
+        const bloqueEnviado = document.getElementById("detalleActividadEnRevisionBlock");
+
+        //Mostramos lo que se envió (evidencia + tu comentario) siempre que exista, sin importar el estado actual.
+        if (tieneEvidencia) {
+            bloqueEnviado.style.display = "";
             document.getElementById("detalleActividadComentarioColaborador").textContent =
                 (fila.dataset.comentarioColaborador && fila.dataset.comentarioColaborador !== "null")
                     ? fila.dataset.comentarioColaborador : "Sin comentario.";
-            document.getElementById("detalleActividadEvidenciaLink").href = fila.dataset.evidenciaUrl || "#";
+            document.getElementById("detalleActividadEvidenciaLink").href = fila.dataset.evidenciaUrl;
+        } else {
+            bloqueEnviado.style.display = "none";
+        }
+
+        if (estado === "EN_REVISION") {
+            bloqueCompletada.style.display = "none";
+            formulario.style.display = "none";
+            botonEnviar.style.display = "none";
         } else if (estado === "COMPLETADA") {
-            bloqueEnRevision.style.display = "none";
             bloqueCompletada.style.display = "";
             formulario.style.display = "none";
             botonEnviar.style.display = "none";
         } else {
-            bloqueEnRevision.style.display = "none";
             bloqueCompletada.style.display = "none";
             formulario.style.display = "";
             botonEnviar.style.display = "";
             formulario.action = "/colaborador/proyectos/actividades/" + id + "/marcar-listo?asignacionId=" + asignacionIdActual;
         }
+
+
+
 
         document.getElementById("abrirDetalleActividadModalBtn").click();
     }

@@ -103,11 +103,12 @@ public class ColaboradorDocumentoService {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("El proyecto no existe."));
 
-        boolean tieneAcceso = asignacionRepository.existsByProyectoAndColaboradorAndEstadoIn(
-                proyecto, colaborador, List.of(EstadoAsignacion.ACTIVA, EstadoAsignacion.FINALIZADA));
+        boolean tieneAcceso = asignacionRepository.tieneAccesoVigente(proyecto, colaborador);
         if (!tieneAcceso) {
             throw new IllegalArgumentException("No tienes acceso a los documentos de este proyecto.");
         }
+
+
         return proyecto;
     }
 

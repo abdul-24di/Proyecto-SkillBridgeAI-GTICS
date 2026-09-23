@@ -113,8 +113,7 @@ public class ColaboradorForoService {
 
         //Foro privado de proyecto. Para leer basta con haber tenido asignación ACTIVA o FINALIZADA
         //Así el foro queda visible en modo solo-lectura incluso después de que el proyecto termine
-        boolean tieneAcceso = asignacionRepository.existsByProyectoAndColaboradorAndEstadoIn(
-                foro.getProyecto(), colaborador, List.of(EstadoAsignacion.ACTIVA, EstadoAsignacion.FINALIZADA));
+        boolean tieneAcceso = asignacionRepository.tieneAccesoVigente(foro.getProyecto(), colaborador);
         if (!tieneAcceso) {
             throw new IllegalArgumentException("No tienes acceso al foro de este proyecto.");
         }
@@ -426,11 +425,22 @@ public class ColaboradorForoService {
     }
 
     private String validarContenido(String contenido) {
-        if (contenido == null || contenido.trim().isEmpty()) {
-            throw new IllegalArgumentException("El contenido no puede estar vacío.");
+        if (contenido == null || esContenidoVacio(contenido)) {
+            throw new IllegalArgumentException("Escribe algo antes de publicar.");
         }
         return contenido.trim();
     }
+
+    //El editor de texto (Quill) manda algo como "<p><br></p>" cuando no se escribió nada,
+    //entonces no basta con mirar si el string está vacío sino que debemos quitarle las etiquetas HTML
+    //y los espacios en blanco que use como relleno, ya que ahi recién podremos revisar si quedó texto real.
+    private boolean esContenidoVacio(String contenidoHtml) {
+        String sinEtiquetas = contenidoHtml.replaceAll("<[^>]*>", "");
+        String sinEspacios = sinEtiquetas.replace("&nbsp;", "").trim();
+        return sinEspacios.isEmpty();
+    }
+
+
 
     private Etiqueta obtenerEtiquetaOpcional(Long etiquetaId) {
         if (etiquetaId == null) {

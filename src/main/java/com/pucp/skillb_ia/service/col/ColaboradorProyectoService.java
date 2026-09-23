@@ -279,10 +279,11 @@ public class ColaboradorProyectoService {
         }
 
         boolean esActiva = asignacion.getEstado() == EstadoAsignacion.ACTIVA;
-        boolean esFinalizada = asignacion.getEstado() == EstadoAsignacion.FINALIZADA;
+        boolean esFinalizadaNormal = asignacion.getEstado() == EstadoAsignacion.FINALIZADA
+                && asignacion.getMotivoFinalizacion() != com.pucp.skillb_ia.model.enums.MotivoFinalizacion.BAJO_DESEMPENO;
 
-        if (!esActiva && !esFinalizada) {
-            throw new IllegalArgumentException("Todavía no tienes acceso a los detalles de este proyecto.");
+        if (!esActiva && !esFinalizadaNormal) {
+            throw new IllegalArgumentException("Ya no tienes acceso a este proyecto: fuiste removido por bajo desempeño.");
         }
 
         Proyecto proyecto = asignacion.getProyecto();
@@ -330,6 +331,11 @@ public class ColaboradorProyectoService {
 
         if (!actividad.getColaborador().getId().equals(colaborador.getId())) {
             throw new IllegalArgumentException("Esta actividad no te pertenece.");
+        }
+        boolean sigueActivoEnElProyecto = asignacionRepository.existsByProyectoAndColaboradorAndEstado(
+                actividad.getProyecto(), colaborador, EstadoAsignacion.ACTIVA);
+        if (!sigueActivoEnElProyecto) {
+            throw new IllegalArgumentException("Ya no tienes una asignación activa en este proyecto.");
         }
         if (actividad.getEstado() == EstadoActividad.EN_REVISION) {
             throw new IllegalArgumentException("Esta actividad ya está en revisión.");

@@ -73,6 +73,13 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
             """)
     Optional<Asignacion> findByIdConDetalle(@Param("id") Long id);
 
+    @Query("SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END FROM Asignacion a " +
+            "WHERE a.proyecto = :proyecto AND a.colaborador = :colaborador AND " +
+            "(a.estado = com.pucp.skillb_ia.model.enums.EstadoAsignacion.ACTIVA " +
+            "OR (a.estado = com.pucp.skillb_ia.model.enums.EstadoAsignacion.FINALIZADA " +
+            "AND a.motivoFinalizacion <> com.pucp.skillb_ia.model.enums.MotivoFinalizacion.BAJO_DESEMPENO))")
+    boolean tieneAccesoVigente(@Param("proyecto") Proyecto proyecto, @Param("colaborador") Usuario colaborador);
+
     Optional<Asignacion> findFirstByProyectoAndColaboradorAndEstado(Proyecto proyecto, Usuario colaborador, EstadoAsignacion estado);
 
     @Query("""

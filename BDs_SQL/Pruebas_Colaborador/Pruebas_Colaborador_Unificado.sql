@@ -4,7 +4,7 @@ USE skillbridge_db;
 -- COLABORADORES ADICIONALES (contraseña para todos: abc123, igual que Carlos)
 -- =====================================================================
 
-INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, descripcion, horas_disponibles, anios_experiencia, nivel_experiencia, fecha_contratacion) VALUES
+INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, descripcion, horas_disponibles, anios_experiencia, nivel_experiencia, fecha_contratacion) VALUES
 ('maria.lopez@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'María', 'López', (SELECT id FROM rol WHERE nombre='COLABORADOR'), 1, 'UX/UI Designer', 'Diseñadora UX/UI enfocada en investigación de usuarios y prototipado rápido.', 15.00, 3.0, 'SEMI_SENIOR', '2023-03-01'),
 ('mallory.hulme@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Mallory', 'Hulme', (SELECT id FROM rol WHERE nombre='COLABORADOR'), 1, 'Frontend Developer', 'Desarrolladora frontend enfocada en interfaces accesibles y de alto rendimiento.', 40.00, 2.0, 'JUNIOR', '2024-06-15'),
 ('dunn.slane@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Dunn', 'Slane', (SELECT id FROM rol WHERE nombre='COLABORADOR'), 1, 'UI/UX Designer', 'Diseñador UI/UX enfocado en sistemas de diseño y research.', 0.00, 4.0, 'SENIOR', '2022-01-10');
@@ -22,7 +22,7 @@ WHERE correo = 'col@skillbridge.com';
 -- CATÁLOGO DE HABILIDADES 
 -- =====================================================================
 
-INSERT INTO categoria_habilidad (nombre, descripcion, activa) VALUES
+INSERT IGNORE INTO categoria_habilidad (nombre, descripcion, activa) VALUES
 ('Backend', 'Lenguajes y frameworks del lado del servidor', 1),
 ('Frontend', 'Lenguajes y frameworks del lado del cliente', 1),
 ('Base de Datos', 'Motores y herramientas de bases de datos', 1),
@@ -30,7 +30,7 @@ INSERT INTO categoria_habilidad (nombre, descripcion, activa) VALUES
 ('Diseño', 'Diseño de producto e interfaces', 1),
 ('Habilidades Blandas', 'Comunicación, liderazgo y trabajo en equipo', 1);
 
-INSERT INTO habilidad (nombre, categoria_id, activa) VALUES
+INSERT IGNORE INTO habilidad (nombre, categoria_id, activa) VALUES
 ('Java', (SELECT id FROM categoria_habilidad WHERE nombre='Backend'), 1),
 ('Spring Boot', (SELECT id FROM categoria_habilidad WHERE nombre='Backend'), 1),
 ('Node.js', (SELECT id FROM categoria_habilidad WHERE nombre='Backend'), 1),
@@ -52,7 +52,7 @@ INSERT INTO habilidad (nombre, categoria_id, activa) VALUES
 -- probar los badges y el botón "Volver a subir certificado")
 -- =====================================================================
 
-INSERT INTO colaborador_habilidad (colaborador_id, habilidad_id, nivel_dominio, estado_validacion, activo) VALUES
+INSERT IGNORE INTO colaborador_habilidad (colaborador_id, habilidad_id, nivel_dominio, estado_validacion, activo) VALUES
 ((SELECT id FROM usuario WHERE correo='col@skillbridge.com'), (SELECT id FROM habilidad WHERE nombre='Java'), 'AVANZADO', 'VALIDADA', 1),
 ((SELECT id FROM usuario WHERE correo='col@skillbridge.com'), (SELECT id FROM habilidad WHERE nombre='Spring Boot'), 'AVANZADO', 'VALIDADA', 1),
 ((SELECT id FROM usuario WHERE correo='col@skillbridge.com'), (SELECT id FROM habilidad WHERE nombre='MySQL'), 'INTERMEDIO', 'PENDIENTE', 1),
@@ -73,7 +73,7 @@ INSERT INTO colaborador_habilidad (colaborador_id, habilidad_id, nivel_dominio, 
 -- CERTIFICADOS (uno por cada fila de arriba, con el estado que le corresponde)
 -- =====================================================================
 
-INSERT INTO certificado (colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo, revisado_por, fecha_revision) VALUES
+INSERT IGNORE INTO certificado (colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo, revisado_por, fecha_revision) VALUES
 ((SELECT id FROM usuario WHERE correo='col@skillbridge.com'), (SELECT id FROM habilidad WHERE nombre='Java'), '/uploads/certificados/demo-java.pdf', 'APROBADO', NULL, (SELECT id FROM usuario WHERE correo='rm@skillbridge.com'), NOW()),
 ((SELECT id FROM usuario WHERE correo='col@skillbridge.com'), (SELECT id FROM habilidad WHERE nombre='Spring Boot'), '/uploads/certificados/demo-spring.pdf', 'APROBADO', NULL, (SELECT id FROM usuario WHERE correo='rm@skillbridge.com'), NOW()),
 ((SELECT id FROM usuario WHERE correo='col@skillbridge.com'), (SELECT id FROM habilidad WHERE nombre='MySQL'), '/uploads/certificados/demo-mysql.pdf', 'PENDIENTE', NULL, NULL, NULL),
@@ -94,7 +94,7 @@ INSERT INTO certificado (colaborador_id, habilidad_id, archivo_url, estado, moti
 -- EDUCACIÓN (ya con archivo_url, como lo dejamos)
 -- =====================================================================
 
-INSERT INTO educacion (colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin, actual, estado) VALUES
+INSERT IGNORE INTO educacion (colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin, actual, estado) VALUES
 ((SELECT id FROM usuario WHERE correo='col@skillbridge.com'), 'Universidad Nacional de Ingeniería', 'Ingeniería de Sistemas', '/uploads/certificados-educacion/demo-carlos.pdf', '2016-03-01', '2021-12-15', 0, 'PENDIENTE'),
 ((SELECT id FROM usuario WHERE correo='maria.lopez@skillbridge.com'), 'Universidad Z', 'Diseño Gráfico', '/uploads/certificados-educacion/demo-maria.pdf', '2017-03-01', '2022-12-15', 0, 'PENDIENTE'),
 ((SELECT id FROM usuario WHERE correo='mallory.hulme@skillbridge.com'), 'Universidad Y', 'Ingeniería de Sistemas', '/uploads/certificados-educacion/demo-mallory.pdf', '2020-03-01', NULL, 1, 'PENDIENTE'),
@@ -105,7 +105,7 @@ INSERT INTO educacion (colaborador_id, institucion, titulo, archivo_url, fecha_i
 -- EXPERIENCIA PROFESIONAL
 -- =====================================================================
 
-INSERT INTO experiencia_profesional (colaborador_id, empresa, cargo, descripcion, fecha_inicio, fecha_fin, actual) VALUES
+INSERT IGNORE INTO experiencia_profesional (colaborador_id, empresa, cargo, descripcion, fecha_inicio, fecha_fin, actual) VALUES
 ((SELECT id FROM usuario WHERE correo='col@skillbridge.com'), 'Tech Solutions SAC', 'Backend Developer', 'Desarrollo e integración de APIs REST con Spring Boot y MySQL.', '2019-01-01', '2021-04-30', 0),
 ((SELECT id FROM usuario WHERE correo='maria.lopez@skillbridge.com'), 'Estudio Creativo', 'UX/UI Designer', 'Diseño de flujos y research con usuarios finales.', '2021-01-01', NULL, 1),
 ((SELECT id FROM usuario WHERE correo='mallory.hulme@skillbridge.com'), 'Web Studio', 'Frontend Developer', 'Construcción de interfaces con React y TypeScript.', '2022-06-01', NULL, 1),
@@ -116,7 +116,7 @@ INSERT INTO experiencia_profesional (colaborador_id, empresa, cargo, descripcion
 -- PROYECTOS (uno por cada estado, para probar los filtros de Explorar)
 -- =====================================================================
 
-INSERT INTO proyecto (nombre, descripcion, fecha_inicio, fecha_fin_estimada, estado, prioridad, justificacion_prioridad, presupuesto, colaboradores_requeridos, horas_semanales_requeridas, pm_id, rm_revisor_id) VALUES
+INSERT IGNORE INTO proyecto (nombre, descripcion, fecha_inicio, fecha_fin_estimada, estado, prioridad, justificacion_prioridad, presupuesto, colaboradores_requeridos, horas_semanales_requeridas, pm_id, rm_revisor_id) VALUES
 ('Portal de Clientes', 'Plataforma web para que los clientes gestionen sus pedidos y facturación en línea.', '2026-08-01', '2026-12-15', 'ACTIVO', 'ALTA', 'Cliente estratégico con contrato multianual.', 45000.00, 3, 20, (SELECT id FROM usuario WHERE correo='pm@skillbridge.com'), (SELECT id FROM usuario WHERE correo='rm@skillbridge.com')),
 ('App de Delivery Interno', 'Aplicación móvil para coordinar entregas entre almacenes de la empresa.', '2026-09-01', '2027-02-28', 'ACTIVO', 'MEDIA', 'Mejora la eficiencia logística interna.', 30000.00, 2, 20, (SELECT id FROM usuario WHERE correo='pm@skillbridge.com'), (SELECT id FROM usuario WHERE correo='rm@skillbridge.com')),
 ('Rediseño de Marca', 'Actualización de la identidad visual y sistema de diseño de la organización.', NULL, NULL, 'EN_REVISION', 'BAJA', 'Iniciativa de marketing sin fecha comprometida todavía.', NULL, 1, 15, (SELECT id FROM usuario WHERE correo='pm@skillbridge.com'), NULL),
@@ -129,7 +129,7 @@ INSERT INTO proyecto (nombre, descripcion, fecha_inicio, fecha_fin_estimada, est
 -- HABILIDADES REQUERIDAS POR PROYECTO
 -- =====================================================================
 
-INSERT INTO proyecto_habilidad_requerida (proyecto_id, habilidad_id, nivel_requerido, cantidad_personas) VALUES
+INSERT IGNORE INTO proyecto_habilidad_requerida (proyecto_id, habilidad_id, nivel_requerido, cantidad_personas) VALUES
 ((SELECT id FROM proyecto WHERE nombre='Portal de Clientes'), (SELECT id FROM habilidad WHERE nombre='Java'), 'AVANZADO', 1),
 ((SELECT id FROM proyecto WHERE nombre='Portal de Clientes'), (SELECT id FROM habilidad WHERE nombre='Spring Boot'), 'AVANZADO', 1),
 ((SELECT id FROM proyecto WHERE nombre='Portal de Clientes'), (SELECT id FROM habilidad WHERE nombre='MySQL'), 'INTERMEDIO', 1),
@@ -152,16 +152,16 @@ INSERT INTO proyecto_habilidad_requerida (proyecto_id, habilidad_id, nivel_reque
 -- =====================================================================
 
 -- Carlos activo en Portal de Clientes, María activa en App de Delivery
-INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado, aprobado_por_pm, aprobado_por_rm, fecha_aprobacion_pm, fecha_aprobacion_rm, fecha_activacion) VALUES
+INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado, aprobado_por_pm, aprobado_por_rm, fecha_aprobacion_pm, fecha_aprobacion_rm, fecha_activacion) VALUES
 ((SELECT id FROM proyecto WHERE nombre='Portal de Clientes'), (SELECT id FROM usuario WHERE correo='col@skillbridge.com'), 20, 'PROPUESTA_PM', 'ACTIVA', 1, 1, NOW(), NOW(), NOW()),
 ((SELECT id FROM proyecto WHERE nombre='App de Delivery Interno'), (SELECT id FROM usuario WHERE correo='maria.lopez@skillbridge.com'), 20, 'PROPUESTA_PM', 'ACTIVA', 1, 1, NOW(), NOW(), NOW());
 
 -- Mallory con una solicitud pendiente en Portal de Clientes
-INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, mensaje_solicitud, estado) VALUES
+INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, mensaje_solicitud, estado) VALUES
 ((SELECT id FROM proyecto WHERE nombre='Portal de Clientes'), (SELECT id FROM usuario WHERE correo='mallory.hulme@skillbridge.com'), 20, 'SOLICITADA_COLABORADOR', 'Me interesa este proyecto porque puedo aportar en el frontend.', 'PENDIENTE');
 
 -- Carlos con un proyecto finalizado en su historial
-INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado, aprobado_por_pm, aprobado_por_rm, fecha_aprobacion_pm, fecha_aprobacion_rm, fecha_activacion, fecha_finalizacion, motivo_finalizacion) VALUES
+INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado, aprobado_por_pm, aprobado_por_rm, fecha_aprobacion_pm, fecha_aprobacion_rm, fecha_activacion, fecha_finalizacion, motivo_finalizacion) VALUES
 ((SELECT id FROM proyecto WHERE nombre='Sitio Web Corporativo v1'), (SELECT id FROM usuario WHERE correo='col@skillbridge.com'), 20, 'PROPUESTA_PM', 'FINALIZADA', 1, 1, '2025-02-05', '2025-02-05', '2025-02-05', '2025-06-30', 'OTRO');
 
 -- Dunn queda sin ninguna asignación a propósito, para probar el estado "sin proyectos destacados"
@@ -175,7 +175,7 @@ INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, es
 --    Sirve para probar que col NO puede editar/eliminar contenido ajeno,
 --    y para ser dueño de proyectos donde col no tiene asignación.
 -- ---------------------------------------------------------------------
-INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles)
+INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles)
 SELECT 'colaborador2@skillbridge.com',
        '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
        'Ana', 'Torres',
@@ -187,14 +187,14 @@ WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE correo = 'colaborador2@skillbridge
 -- ---------------------------------------------------------------------
 -- 1) Etiquetas adicionales
 -- ---------------------------------------------------------------------
-INSERT INTO etiqueta (nombre) SELECT 'Anuncio' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM etiqueta WHERE nombre = 'Anuncio');
-INSERT INTO etiqueta (nombre) SELECT 'Bug' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM etiqueta WHERE nombre = 'Bug');
+INSERT IGNORE INTO etiqueta (nombre) SELECT 'Anuncio' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM etiqueta WHERE nombre = 'Anuncio');
+INSERT IGNORE INTO etiqueta (nombre) SELECT 'Bug' FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM etiqueta WHERE nombre = 'Bug');
 
 -- ---------------------------------------------------------------------
 -- 2) SEGUNDO FORO GENERAL DE COMUNIDAD
 --    CASO: la pestaña "Comunidad" debe mostrar más de un foro.
 -- ---------------------------------------------------------------------
-INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+INSERT IGNORE INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
 SELECT NULL, 'GENERAL', TRUE, 'Anuncios Oficiales', CURRENT_TIMESTAMP
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = 'Anuncios Oficiales');
@@ -208,7 +208,7 @@ WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = 'Anuncios Oficiales');
 
 -- 3.2 Proyecto donde col SÍ tiene asignación ACTIVA, foro COMPARTIDO a comunidad
 --     -> Aparece en "Mis proyectos" Y en "Comunidad", en ambos casos col puede participar (es miembro).
-INSERT INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
+INSERT IGNORE INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
                        colaboradores_requeridos, horas_semanales_requeridas, pm_id, fecha_creacion)
 SELECT '[DEMO] Proyecto Compartido', 'Proyecto cuyo foro el PM decidió compartir con la comunidad',
        'ACTIVO', 'ALTA', 'Proyecto de alta visibilidad', 2, 20,
@@ -217,7 +217,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM proyecto WHERE nombre = '[DEMO] Proyec
 
 -- 3.3 Proyecto AJENO (col NO tiene asignación), foro COMPARTIDO a comunidad
 --     -> Aparece SOLO en "Comunidad", de SOLO LECTURA para col (no ve botones de publicar/responder/eliminar).
-INSERT INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
+INSERT IGNORE INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
                        colaboradores_requeridos, horas_semanales_requeridas, pm_id, fecha_creacion)
 SELECT '[DEMO] Proyecto Ajeno Publico', 'Proyecto de otro equipo, foro visible para toda la comunidad',
        'ACTIVO', 'MEDIA', 'Visibilidad para toda la org', 1, 20,
@@ -227,7 +227,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM proyecto WHERE nombre = '[DEMO] Proyec
 -- 3.4 Proyecto AJENO (col NO tiene asignación), foro PRIVADO
 --     -> NO debe aparecer en ninguna pestaña para col, y si intenta entrar por URL con el foroId
 --        directo, el servicio debe rechazarlo ("no tienes acceso").
-INSERT INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
+INSERT IGNORE INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
                        colaboradores_requeridos, horas_semanales_requeridas, pm_id, fecha_creacion)
 SELECT '[DEMO] Proyecto Ajeno Privado', 'Proyecto de otro equipo, foro interno y privado',
        'ACTIVO', 'BAJA', 'Proyecto interno', 1, 20,
@@ -236,7 +236,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM proyecto WHERE nombre = '[DEMO] Proyec
 
 -- 3.5 Proyecto donde col tuvo una asignación pero ya está FINALIZADA
 --     -> NO debe aparecer en "Mis proyectos" (ya no es un miembro activo).
-INSERT INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
+INSERT IGNORE INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
                        colaboradores_requeridos, horas_semanales_requeridas, pm_id, fecha_creacion)
 SELECT '[DEMO] Proyecto Finalizado', 'Proyecto donde col ya no participa',
        'FINALIZADO', 'MEDIA', 'Proyecto cerrado', 1, 20,
@@ -245,7 +245,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM proyecto WHERE nombre = '[DEMO] Proyec
 
 -- 3.6 Proyecto donde col tiene una asignación PENDIENTE (aún sin aprobar)
 --     -> Tampoco debe aparecer en "Mis proyectos" (todavía no es ACTIVA).
-INSERT INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
+INSERT IGNORE INTO proyecto (nombre, descripcion, estado, prioridad, justificacion_prioridad,
                        colaboradores_requeridos, horas_semanales_requeridas, pm_id, fecha_creacion)
 SELECT '[DEMO] Proyecto Pendiente', 'Proyecto donde la asignación de col aún no fue aprobada',
        'ACTIVO', 'MEDIA', 'Proyecto en formación de equipo', 2, 20,
@@ -255,27 +255,27 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM proyecto WHERE nombre = '[DEMO] Proyec
 -- ---------------------------------------------------------------------
 -- 4) FOROS de cada proyecto nuevo
 -- ---------------------------------------------------------------------
-INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+INSERT IGNORE INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Compartido'),
        'PROYECTO', TRUE, 'Foro — [DEMO] Proyecto Compartido', CURRENT_TIMESTAMP
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Compartido');
 
-INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+INSERT IGNORE INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Ajeno Publico'),
        'PROYECTO', TRUE, 'Foro — [DEMO] Proyecto Ajeno Publico', CURRENT_TIMESTAMP
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Ajeno Publico');
 
-INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+INSERT IGNORE INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Ajeno Privado'),
        'PROYECTO', FALSE, 'Foro — [DEMO] Proyecto Ajeno Privado', CURRENT_TIMESTAMP
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Ajeno Privado');
 
-INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+INSERT IGNORE INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Finalizado'),
        'PROYECTO', FALSE, 'Foro — [DEMO] Proyecto Finalizado', CURRENT_TIMESTAMP
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Finalizado');
 
-INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+INSERT IGNORE INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Pendiente'),
        'PROYECTO', FALSE, 'Foro — [DEMO] Proyecto Pendiente', CURRENT_TIMESTAMP
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Pendiente');
@@ -285,7 +285,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = 'Foro — [DEMO] P
 -- ---------------------------------------------------------------------
 
 -- col ACTIVA en Proyecto Compartido
-INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
+INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
                          aprobado_por_pm, aprobado_por_rm, fecha_activacion, fecha_solicitud)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Compartido'),
        (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
@@ -296,7 +296,7 @@ FROM DUAL WHERE NOT EXISTS (
       AND colaborador_id = (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'));
 
 -- col FINALIZADA en Proyecto Finalizado (ya no cuenta como activa)
-INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
+INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
                          aprobado_por_pm, aprobado_por_rm, fecha_activacion, fecha_finalizacion,
                          motivo_finalizacion, fecha_solicitud)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Finalizado'),
@@ -310,7 +310,7 @@ FROM DUAL WHERE NOT EXISTS (
       AND colaborador_id = (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'));
 
 -- col PENDIENTE en Proyecto Pendiente (aún sin aprobación completa)
-INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
+INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
                          aprobado_por_pm, aprobado_por_rm, fecha_solicitud)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Pendiente'),
        (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
@@ -321,7 +321,7 @@ FROM DUAL WHERE NOT EXISTS (
       AND colaborador_id = (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'));
 
 -- colaborador2 ACTIVA en los dos proyectos "ajenos" (para que tengan contenido y dueño)
-INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
+INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
                          aprobado_por_pm, aprobado_por_rm, fecha_activacion, fecha_solicitud)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Ajeno Publico'),
        (SELECT id FROM usuario WHERE correo = 'colaborador2@skillbridge.com'),
@@ -331,7 +331,7 @@ FROM DUAL WHERE NOT EXISTS (
     WHERE proyecto_id = (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Ajeno Publico')
       AND colaborador_id = (SELECT id FROM usuario WHERE correo = 'colaborador2@skillbridge.com'));
 
-INSERT INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
+INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, origen, estado,
                          aprobado_por_pm, aprobado_por_rm, fecha_activacion, fecha_solicitud)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Ajeno Privado'),
        (SELECT id FROM usuario WHERE correo = 'colaborador2@skillbridge.com'),
@@ -346,7 +346,7 @@ FROM DUAL WHERE NOT EXISTS (
 -- ---------------------------------------------------------------------
 
 -- Más contenido en "Comunidad SkillBridge" (para probar el buscador con varios resultados)
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Comunidad SkillBridge'),
        (SELECT id FROM usuario WHERE correo = 'admin@skillbridge.com'),
        (SELECT id FROM etiqueta WHERE nombre = 'Anuncio'),
@@ -355,7 +355,7 @@ SELECT (SELECT id FROM foro WHERE nombre = 'Comunidad SkillBridge'),
        CURRENT_TIMESTAMP - INTERVAL 2 DAY, TRUE
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Mantenimiento programado este fin de semana');
 
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Comunidad SkillBridge'),
        (SELECT id FROM usuario WHERE correo = 'colaborador2@skillbridge.com'),
        NULL,
@@ -365,7 +365,7 @@ SELECT (SELECT id FROM foro WHERE nombre = 'Comunidad SkillBridge'),
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Recomendaciones de librerías para testing');
 
 -- CASO: publicación eliminada lógicamente (activo = FALSE) -> NO debe aparecer en el listado
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Comunidad SkillBridge'),
        (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
        NULL,
@@ -375,7 +375,7 @@ SELECT (SELECT id FROM foro WHERE nombre = 'Comunidad SkillBridge'),
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Publicación de prueba (debe estar oculta)');
 
 -- Publicación del PM en el foro general (Anuncios Oficiales)
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Anuncios Oficiales'),
        (SELECT id FROM usuario WHERE correo = 'pm@skillbridge.com'),
        (SELECT id FROM etiqueta WHERE nombre = 'Anuncio'),
@@ -385,7 +385,7 @@ SELECT (SELECT id FROM foro WHERE nombre = 'Anuncios Oficiales'),
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Nueva política de code review');
 
 -- Publicación de col en su proyecto privado, sin respuestas todavía (estado vacío)
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Foro'),
        (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
        (SELECT id FROM etiqueta WHERE nombre = 'Bug'),
@@ -396,7 +396,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Bug e
 
 -- Dos publicaciones en el proyecto COMPARTIDO (col es miembro, así que puede escribir aquí,
 -- se vea desde "Mis proyectos" o desde "Comunidad")
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Compartido'),
        (SELECT id FROM usuario WHERE correo = 'pm@skillbridge.com'),
        (SELECT id FROM etiqueta WHERE nombre = 'Anuncio'),
@@ -405,7 +405,7 @@ SELECT (SELECT id FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Compartido'
        CURRENT_TIMESTAMP - INTERVAL 4 DAY, TRUE
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Bienvenidos al foro abierto del proyecto');
 
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Compartido'),
        (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
        NULL,
@@ -416,7 +416,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Avanc
 
 -- CASO: publicación en un proyecto AJENO PÚBLICO -> col debe poder LEERLA pero no
 -- ver botones de Responder/Eliminar/Like habilitados para escribir (solo lectura)
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Ajeno Publico'),
        (SELECT id FROM usuario WHERE correo = 'colaborador2@skillbridge.com'),
        NULL,
@@ -426,7 +426,7 @@ SELECT (SELECT id FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Ajeno Publi
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Demo pública de nuestro proyecto');
 
 -- CASO: publicación en un proyecto AJENO PRIVADO -> col NO debe poder verla ni acceder al foro
-INSERT INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO publicacion_foro (foro_id, autor_id, etiqueta_id, titulo, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM foro WHERE nombre = 'Foro — [DEMO] Proyecto Ajeno Privado'),
        (SELECT id FROM usuario WHERE correo = 'colaborador2@skillbridge.com'),
        NULL,
@@ -439,14 +439,14 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM publicacion_foro WHERE titulo = 'Discu
 -- 7) RESPUESTAS adicionales (incluye una eliminada lógicamente)
 -- ---------------------------------------------------------------------
 
-INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM publicacion_foro WHERE titulo = 'Recomendaciones de librerías para testing'),
        (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
        '<p>Yo uso Testcontainers, se siente más real que H2 en memoria.</p>',
        CURRENT_TIMESTAMP, TRUE
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM respuesta_foro WHERE contenido LIKE '%se siente más real que H2%');
 
-INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM publicacion_foro WHERE titulo = 'Recomendaciones de librerías para testing'),
        (SELECT id FROM usuario WHERE correo = 'rm@skillbridge.com'),
        '<p>Depende del proyecto, para cosas rápidas H2 basta.</p>',
@@ -454,7 +454,7 @@ SELECT (SELECT id FROM publicacion_foro WHERE titulo = 'Recomendaciones de libre
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM respuesta_foro WHERE contenido LIKE '%para cosas rápidas H2 basta%');
 
 -- CASO: respuesta eliminada lógicamente -> no debe listarse ni contar en "X respuestas"
-INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM publicacion_foro WHERE titulo = 'Recomendaciones de librerías para testing'),
        (SELECT id FROM usuario WHERE correo = 'admin@skillbridge.com'),
        '<p>Respuesta de prueba (debe estar oculta).</p>',
@@ -462,7 +462,7 @@ SELECT (SELECT id FROM publicacion_foro WHERE titulo = 'Recomendaciones de libre
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM respuesta_foro WHERE contenido LIKE '%Respuesta de prueba (debe estar oculta)%');
 
 -- Respuesta del PM a la publicación del bug de col
-INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM publicacion_foro WHERE titulo = 'Bug en el login con Google'),
        (SELECT id FROM usuario WHERE correo = 'pm@skillbridge.com'),
        '<p>Sí, ya lo reporté. Al parecer es el redirect_uri mal configurado.</p>',
@@ -470,7 +470,7 @@ SELECT (SELECT id FROM publicacion_foro WHERE titulo = 'Bug en el login con Goog
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM respuesta_foro WHERE contenido LIKE '%redirect_uri mal configurado%');
 
 -- Respuesta a la demo pública (colaborador2 respondiendo su propia publicación)
-INSERT INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
+INSERT IGNORE INTO respuesta_foro (publicacion_id, autor_id, contenido, fecha_creacion, activo)
 SELECT (SELECT id FROM publicacion_foro WHERE titulo = 'Demo pública de nuestro proyecto'),
        (SELECT id FROM usuario WHERE correo = 'colaborador2@skillbridge.com'),
        '<p>Gracias por el feedback a quienes ya comentaron.</p>',
@@ -482,7 +482,7 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM respuesta_foro WHERE contenido LIKE '%
 -- ---------------------------------------------------------------------
 
 -- col ya le dio like a esta publicación -> al cargar la página debe verse el corazón "activado"
-INSERT INTO voto_publicacion (usuario_id, publicacion_id, tipo)
+INSERT IGNORE INTO voto_publicacion (usuario_id, publicacion_id, tipo)
 SELECT (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
        (SELECT id FROM publicacion_foro WHERE titulo = '¿Cómo configuran su entorno de Spring Boot?'),
        'POSITIVO'
@@ -492,7 +492,7 @@ FROM DUAL WHERE NOT EXISTS (
       AND publicacion_id = (SELECT id FROM publicacion_foro WHERE titulo = '¿Cómo configuran su entorno de Spring Boot?'));
 
 -- Otros usuarios también le dieron like a la misma publicación -> contador debe ser > 1
-INSERT INTO voto_publicacion (usuario_id, publicacion_id, tipo)
+INSERT IGNORE INTO voto_publicacion (usuario_id, publicacion_id, tipo)
 SELECT (SELECT id FROM usuario WHERE correo = 'admin@skillbridge.com'),
        (SELECT id FROM publicacion_foro WHERE titulo = '¿Cómo configuran su entorno de Spring Boot?'),
        'POSITIVO'
@@ -501,7 +501,7 @@ FROM DUAL WHERE NOT EXISTS (
     WHERE usuario_id = (SELECT id FROM usuario WHERE correo = 'admin@skillbridge.com')
       AND publicacion_id = (SELECT id FROM publicacion_foro WHERE titulo = '¿Cómo configuran su entorno de Spring Boot?'));
 
-INSERT INTO voto_publicacion (usuario_id, publicacion_id, tipo)
+INSERT IGNORE INTO voto_publicacion (usuario_id, publicacion_id, tipo)
 SELECT (SELECT id FROM usuario WHERE correo = 'rm@skillbridge.com'),
        (SELECT id FROM publicacion_foro WHERE titulo = '¿Cómo configuran su entorno de Spring Boot?'),
        'POSITIVO'
@@ -511,7 +511,7 @@ FROM DUAL WHERE NOT EXISTS (
       AND publicacion_id = (SELECT id FROM publicacion_foro WHERE titulo = '¿Cómo configuran su entorno de Spring Boot?'));
 
 -- Esta publicación tiene likes de OTROS pero col todavía NO le dio like -> corazón debe verse "apagado"
-INSERT INTO voto_publicacion (usuario_id, publicacion_id, tipo)
+INSERT IGNORE INTO voto_publicacion (usuario_id, publicacion_id, tipo)
 SELECT (SELECT id FROM usuario WHERE correo = 'pm@skillbridge.com'),
        (SELECT id FROM publicacion_foro WHERE titulo = 'Nueva política de code review'),
        'POSITIVO'
@@ -521,7 +521,7 @@ FROM DUAL WHERE NOT EXISTS (
       AND publicacion_id = (SELECT id FROM publicacion_foro WHERE titulo = 'Nueva política de code review'));
 
 -- Like en una respuesta (para probar el corazón dentro de las respuestas también)
-INSERT INTO voto_respuesta (usuario_id, respuesta_id, tipo)
+INSERT IGNORE INTO voto_respuesta (usuario_id, respuesta_id, tipo)
 SELECT (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
        (SELECT id FROM respuesta_foro WHERE contenido LIKE '%para cosas rápidas H2 basta%'),
        'POSITIVO'
@@ -544,7 +544,7 @@ SELECT f.nombre AS foro, f.tipo, f.es_publico, p.nombre AS proyecto
 FROM foro f
 LEFT JOIN proyecto p ON p.id = f.proyecto_id
 ORDER BY f.tipo, f.nombre;
-INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas, fecha_limite, estado, creado_por)
+INSERT IGNORE INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas, fecha_limite, estado, creado_por)
 VALUES
 (
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Compartido'),
@@ -618,7 +618,7 @@ WHERE id IN (
 -- //---------------------------------------------
 
 -- Actividad nueva para colaborador3, con fecha límite futura
-INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+INSERT IGNORE INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
                        fecha_limite, estado, creado_por)
 SELECT
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
@@ -637,13 +637,13 @@ WHERE NOT EXISTS (SELECT 1 FROM actividad WHERE titulo = '[DEMO] Probar flujo de
 
 -- 1) Foro y documento en el proyecto YA FINALIZADO, para comprobar que ahora
 --    sí se pueden ver (solo lectura) tras el fix.
-INSERT INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
+INSERT IGNORE INTO foro (proyecto_id, tipo, es_publico, nombre, fecha_creacion)
 SELECT (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Finalizado'),
        'PROYECTO', FALSE, '[DEMO] Foro Proyecto Finalizado', CURRENT_TIMESTAMP - INTERVAL 100 DAY
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM foro WHERE nombre = '[DEMO] Foro Proyecto Finalizado');
 
-INSERT INTO documento (proyecto_id, subido_por_id, nombre, categoria, archivo_url, activo, fecha_creacion)
+INSERT IGNORE INTO documento (proyecto_id, subido_por_id, nombre, categoria, archivo_url, activo, fecha_creacion)
 SELECT
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Proyecto Finalizado'),
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
@@ -654,7 +654,7 @@ WHERE NOT EXISTS (SELECT 1 FROM documento WHERE nombre = '[DEMO] Acta de cierre.
 -- 2) demo.colaborador1 (ACTIVA en [DEMO] Migracion Cloud):
 
 -- 2a) Actividad pendiente sin vencer -> clic -> "Marcar listo" con evidencia
-INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+INSERT IGNORE INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
                        fecha_limite, estado, creado_por)
 SELECT
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
@@ -669,7 +669,7 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM actividad WHERE titulo = '[DEMO] Documentar plan de rollback');
 
 -- 2b) Ya marcada "lista para revisar" con evidencia -> aparece en la bandeja del PM
-INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+INSERT IGNORE INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
                        fecha_limite, fecha_marcado_revision, evidencia_url, comentario_colaborador,
                        estado, creado_por)
 SELECT
@@ -691,7 +691,7 @@ WHERE NOT EXISTS (SELECT 1 FROM actividad WHERE titulo = '[DEMO] Migrar base de 
 --    previos + 1 actividad vencida sin entregar -> al ver su proyecto o sus
 --    actividades, debe aplicarse el 3er strike y expulsarlo automáticamente.
 
-INSERT INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
+INSERT IGNORE INTO actividad (proyecto_id, colaborador_id, titulo, descripcion, horas_estimadas,
                        fecha_limite, estado, creado_por)
 SELECT
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
@@ -705,7 +705,7 @@ SELECT
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM actividad WHERE titulo = '[DEMO] Configurar balanceador de carga');
 
-INSERT INTO penalizacion (colaborador_id, proyecto_id, tipo, motivo, monto, fecha)
+INSERT IGNORE INTO penalizacion (colaborador_id, proyecto_id, tipo, motivo, monto, fecha)
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
@@ -715,7 +715,7 @@ SELECT
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM penalizacion WHERE motivo = '[DEMO] Strike de prueba #1: entregó una actividad fuera de plazo.');
 
-INSERT INTO penalizacion (colaborador_id, proyecto_id, tipo, motivo, monto, fecha)
+INSERT IGNORE INTO penalizacion (colaborador_id, proyecto_id, tipo, motivo, monto, fecha)
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
@@ -737,7 +737,7 @@ USE skillbridge_db;
 -- ---------------------------------------------------------------------------
 -- 1) CATÁLOGO DE CURSOS (los "crea" el Administrador)
 -- ---------------------------------------------------------------------------
-INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por) VALUES
+INSERT IGNORE INTO curso (nombre, descripcion, categoria, horas, activo, creado_por) VALUES
 ('Spring Security Avanzado',
  'Aprende a proteger APIs REST con autenticación y autorización robustas, JWT y roles.',
  'Técnico', 12, TRUE,
@@ -773,7 +773,7 @@ INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por) VA
 -- ---------------------------------------------------------------------------
 
 -- Pendiente de revisión por el RM (con justificación del colaborador)
-INSERT INTO colaborador_curso (colaborador_id, curso_id, origen, estado, justificacion_colaborador, fecha_solicitud)
+INSERT IGNORE INTO colaborador_curso (colaborador_id, curso_id, origen, estado, justificacion_colaborador, fecha_solicitud)
 VALUES (
     (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
     (SELECT id FROM curso WHERE nombre = 'Comunicación Efectiva en Equipos Ágiles'),
@@ -783,7 +783,7 @@ VALUES (
 );
 
 -- Ya aprobada por el RM (en curso)
-INSERT INTO colaborador_curso (colaborador_id, curso_id, origen, estado, asignado_por, justificacion_colaborador, fecha_solicitud, fecha_respuesta)
+INSERT IGNORE INTO colaborador_curso (colaborador_id, curso_id, origen, estado, asignado_por, justificacion_colaborador, fecha_solicitud, fecha_respuesta)
 VALUES (
     (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
     (SELECT id FROM curso WHERE nombre = 'AWS Certified Developer — Preparación'),
@@ -794,7 +794,7 @@ VALUES (
 );
 
 -- Rechazada por el RM (para probar el botón "Volver a solicitar")
-INSERT INTO colaborador_curso (colaborador_id, curso_id, origen, estado, asignado_por, justificacion_colaborador, motivo_respuesta, fecha_solicitud, fecha_respuesta)
+INSERT IGNORE INTO colaborador_curso (colaborador_id, curso_id, origen, estado, asignado_por, justificacion_colaborador, motivo_respuesta, fecha_solicitud, fecha_respuesta)
 VALUES (
     (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
     (SELECT id FROM curso WHERE nombre = 'React Avanzado'),
@@ -812,7 +812,7 @@ VALUES (
 -- (Se deja comentado porque usa "Spring Security Avanzado", que en el caso base
 --  queda libre para probar el flujo de solicitud desde cero. Descomenta si
 --  quieres probar este escenario en vez de dejarlo libre.)
--- INSERT INTO colaborador_curso (colaborador_id, curso_id, origen, estado, asignado_por, fecha_solicitud, fecha_respuesta)
+-- INSERT IGNORE INTO colaborador_curso (colaborador_id, curso_id, origen, estado, asignado_por, fecha_solicitud, fecha_respuesta)
 -- VALUES (
 --     (SELECT id FROM usuario WHERE correo = 'col@skillbridge.com'),
 --     (SELECT id FROM curso WHERE nombre = 'Spring Security Avanzado'),

@@ -187,7 +187,11 @@
                             <tr th:if="${actividadesDelProyecto.isEmpty()}">
                                 <td colspan="5" class="empty-state">Todavía no hay actividades registradas en este proyecto.</td>
                             </tr>
-                            <tr th:each="act : ${actividadesDelProyecto}">
+
+
+
+                            <tr th:each="act : ${actividadesDelProyecto}" style="cursor:pointer"
+                                data-bs-toggle="modal" th:attr="data-bs-target='#verActividadModal-' + ${act.id}">
                                 <td class="fw-semibold" th:text="${act.titulo}">Título</td>
                                 <td th:text="${act.colaborador.nombre} + ' ' + ${act.colaborador.apellido}">Colaborador</td>
                                 <td th:text="${act.horasEstimadas}">0</td>
@@ -198,6 +202,48 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- MODALES: VER (SOLO LECTURA) UNA ACTIVIDAD DE CUALQUIER COMPAÑERO -->
+                <div th:each="act : ${actividadesDelProyecto}">
+                    <div class="modal modal-blur fade col-modal" th:id="'verActividadModal-' + ${act.id}" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" th:text="${act.titulo}">Título</h5>
+                                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="info-grid mb-3">
+                                        <div><div class="info-label">Asignado a</div><div class="info-value" th:text="${act.colaborador.nombre} + ' ' + ${act.colaborador.apellido}">—</div></div>
+                                        <div><div class="info-label">Horas estimadas</div><div class="info-value" th:text="${act.horasEstimadas} + ' hrs'">—</div></div>
+                                        <div><div class="info-label">Fecha límite</div><div class="info-value" th:text="${#temporals.format(act.fechaLimite, 'dd/MM/yyyy')}">—</div></div>
+                                        <div><div class="info-label">Estado</div><div class="info-value"><span class="badge bg-azure-lt" th:text="${act.estado.name()}">—</span></div></div>
+                                    </div>
+                                    <div class="info-label mb-1">Descripción</div>
+                                    <p class="text-secondary small" th:text="${act.descripcion != null ? act.descripcion : 'Sin descripción.'}">—</p>
+
+                                    <div th:if="${act.evidenciaUrl != null}" class="mt-3">
+                                        <a th:href="@{${act.evidenciaUrl}}" target="_blank" class="btn btn-outline-secondary btn-sm">Ver evidencia entregada</a>
+                                    </div>
+                                    <div th:if="${act.comentarioDevolucion != null}" class="alert alert-warning small mt-3 mb-0">
+                                        <strong>Comentario del PM:</strong> <span th:text="${act.comentarioDevolucion}"></span>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+
+
+
+
 
                 <div class="card section-card">
                     <div class="card-header section-header">
@@ -376,8 +422,18 @@
                             <h5 class="modal-title" th:text="${miembro.colaborador.nombre} + ' ' + ${miembro.colaborador.apellido}">Nombre</h5>
                             <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                         </div>
+
+
+
+
                         <div class="modal-body">
-                            <div class="text-secondary mb-3" th:text="${miembro.colaborador.cargo != null ? miembro.colaborador.cargo : 'Colaborador'}">Cargo</div>
+                            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+                                <div class="text-secondary" th:text="${miembro.colaborador.cargo != null ? miembro.colaborador.cargo : 'Colaborador'}">Cargo</div>
+                                <div class="availability-pill">
+                                    <span class="availability-dot" th:classappend="${(miembro.colaborador.horasDisponibles != null and miembro.colaborador.horasDisponibles.signum() > 0) ? 'bg-green' : 'bg-secondary'}"></span>
+                                    <span th:text="${(miembro.colaborador.horasDisponibles != null and miembro.colaborador.horasDisponibles.signum() > 0) ? 'Disponible' : 'No disponible'}">Disponible</span>
+                                </div>
+                            </div>
                             <div class="row g-4">
                                 <div class="col-md-6">
                                     <div class="info-label mb-1">Sobre</div>
@@ -389,7 +445,21 @@
                                             th:text="${(e.cargo != null ? e.cargo : 'Cargo sin registrar') + ' — ' + (e.empresa != null ? e.empresa : 'Empresa sin registrar')}">Experiencia</li>
                                     </ul>
                                     <div class="small text-secondary" th:if="${perfilesIntegrantes.get(miembro.colaborador.id).experiencia.isEmpty()}">Sin experiencia registrada.</div>
+
+                                    <div class="info-label mb-1 mt-3">Proyectos destacados</div>
+                                    <ul class="small text-secondary ps-3" th:if="${!perfilesIntegrantes.get(miembro.colaborador.id).proyectos.isEmpty()}">
+                                        <li th:each="a : ${perfilesIntegrantes.get(miembro.colaborador.id).proyectos}"
+                                            th:text="|${a.proyecto.nombre}: ${perfilesIntegrantes.get(miembro.colaborador.id).habilidadesPorProyecto.get(a.proyecto.id)}|">Proyecto</li>
+                                    </ul>
+                                    <div class="small text-secondary" th:if="${perfilesIntegrantes.get(miembro.colaborador.id).proyectos.isEmpty()}">Sin proyectos destacados todavía.</div>
                                 </div>
+
+
+
+
+
+
+
                                 <div class="col-md-6">
                                     <div class="info-label mb-1">Habilidades</div>
                                     <div class="mb-3" th:if="${!perfilesIntegrantes.get(miembro.colaborador.id).habilidades.isEmpty()}">

@@ -110,7 +110,15 @@
         <div class="row g-3 align-items-end">
           <div class="col-xl-5 col-md-6"><label class="form-label">Buscar</label><input id="searchInput" class="form-control" placeholder="Nombre, tecnología o habilidad"></div>
           <div class="col-xl-3 col-md-6"><label class="form-label">Estado</label><select id="statusFilter" class="form-select"><option value="all">Todos</option><option>En revisión</option><option>Activo</option><option>Rechazado</option><option>En espera</option><option>Cancelado</option><option>Finalizado</option></select></div>
-          <div class="col-xl-2 col-md-6"><label class="form-label">Prioridad</label><select id="priorityFilter" class="form-select"><option value="all">Todas</option><option>Alta</option><option>Media</option><option>Baja</option></select></div>
+          <div class="col-xl-2 col-md-6">
+            <label class="form-label">Prioridad</label>
+            <select id="priorityFilter" class="form-select">
+              <option value="all">Todas</option>
+              <option value="ALTA">Alta</option>
+              <option value="MEDIA">Media</option>
+              <option value="BAJA">Baja</option>
+            </select>
+          </div>
           <div class="col-xl-2 col-md-6 d-grid"><button id="clearFilters" class="btn btn-outline-secondary" type="button">Limpiar</button></div>
         </div>
       </div>

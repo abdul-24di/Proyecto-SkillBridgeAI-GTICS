@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Modales del flujo "Asignar colaboradores" del RM.
+  - modalPerfil: se llena por AJAX con el fragmento perfilColaborador.
+  - modalPropuesta: proyecto y colaborador fijos; el RM solo ingresa horas y justificación.
+  Los datos del proyecto/colaborador salen de los data-* del #propuestaContexto de la
+  página y del botón que abre el modal (ver js/rm-js/rm-propuesta-asignacion.js).
+-->
+
+<!-- ======================= MODAL: VER PERFIL ======================= -->
+<div th:fragment="modalPerfil" class="modal modal-blur fade" id="perfilModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Perfil del colaborador</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="perfilModalBody">
+        <div class="text-center text-secondary py-5">Cargando perfil…</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="perfilModalProponer">Proponer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CONTENIDO DEL PERFIL (respuesta AJAX) ============ -->
+<div th:fragment="perfilColaborador">
+  <div th:if="${perfilError != null}" class="alert alert-danger mb-0" th:text="${perfilError}">Error</div>
+  <div th:if="${perfilError == null}" class="perfil-modal">
+    <div class="d-flex align-items-start gap-3 mb-4">
+      <img th:if="${colaborador.resumen.fotoUrl != null and !colaborador.resumen.fotoUrl.isBlank()}"
+           th:src="${colaborador.resumen.fotoUrl}" class="avatar avatar-lg" alt="Foto del colaborador">
+      <span th:unless="${colaborador.resumen.fotoUrl != null and !colaborador.resumen.fotoUrl.isBlank()}"
+            class="avatar avatar-lg bg-blue-lt text-blue" th:text="${colaborador.resumen.iniciales}">CO</span>
+      <div class="flex-fill">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h2 class="h2 mb-0" th:text="${colaborador.resumen.nombreCompleto}">Nombre</h2>
+          <span class="badge bg-secondary-lt" th:text="${colaborador.resumen.nivel}">Senior</span>
+        </div>
+        <div class="text-secondary mt-1" th:text="${colaborador.resumen.cargo}">Cargo</div>
+        <div class="mt-1"><span class="text-secondary">Salario mensual:</span>
+          <strong th:text="${sueldoColaborador != null and sueldoColaborador.signum() > 0 ? 'S/ ' + #numbers.formatDecimal(sueldoColaborador, 1, 'COMMA', 2, 'POINT') : 'No registrado'}">S/ 0</strong></div>
+        <div class="small text-secondary mt-1" th:text="${colaborador.correo}">correo</div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3"><div class="perfil-stat">
+        <div class="info-label">Disponibilidad</div>
+        <div class="perfil-stat-value" th:text="|${colaborador.resumen.horasDisponiblesTexto} h/sem|">0 h</div>
+      </div></div>
+      <div class="col-6 col-lg-3"><div class="perfil-stat">
+        <div class="info-label">Carga activa</div>
+        <div class="perfil-stat-value" th:classappend="${colaborador.resumen.cargaMaxima} ? 'text-danger'"
+             th:text="|${colaborador.resumen.asignacionesActivas} / ${colaborador.resumen.maxAsignaciones}|">0 / 3</div>
+      </div></div>
+      <div class="col-6 col-lg-3"><div class="perfil-stat">
+        <div class="info-label">Jornada contratada</div>
+        <div class="perfil-stat-value" th:text="${colaborador.horasContratadasTexto}">40 h</div>
+      </div></div>
+      <div class="col-6 col-lg-3"><div class="perfil-stat">
+        <div class="info-label">Experiencia</div>
+        <div class="perfil-stat-value" th:text="${colaborador.resumen.experienciaTexto}">Sin registrar</div>
+      </div></div>
+    </div>
+
+    <div class="mb-4">
+      <div class="info-label mb-1">Descripción profesional</div>
+      <div class="text-secondary"
+           th:text="${colaborador.descripcion != null and !colaborador.descripcion.isBlank() ? colaborador.descripcion : 'El colaborador aún no ha registrado una descripción profesional.'}">Descripción</div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <h4 class="perfil-subtitulo">Habilidades</h4>
+        <div th:each="habilidad : ${colaborador.habilidades}" class="perfil-item d-flex justify-content-between gap-2">
+          <div>
+            <div class="fw-semibold" th:text="${habilidad.nombre}">Habilidad</div>
+            <div class="small text-secondary" th:text="|Dominio: ${habilidad.nivel}|">Dominio</div>
+          </div>
+          <span class="badge bg-secondary-lt align-self-start" th:text="${habilidad.estadoValidacion}">Validada</span>
+        </div>
+        <div th:if="${#lists.isEmpty(colaborador.habilidades)}" class="small text-secondary">Sin habilidades registradas.</div>
+      </div>
+      <div class="col-lg-6">
+        <h4 class="perfil-subtitulo">Asignaciones activas</h4>
+        <div th:each="asignacion : ${colaborador.asignaciones}" class="perfil-item d-flex justify-content-between gap-2">
+          <div class="fw-semibold" th:text="${asignacion.proyecto}">Proyecto</div>
+          <span class="text-secondary small" th:text="|${asignacion.horasSemanales} h/sem|">0 h</span>
+        </div>
+        <div th:if="${#lists.isEmpty(colaborador.asignaciones)}" class="small text-secondary">No tiene asignaciones activas.</div>
+
+        <h4 class="perfil-subtitulo mt-4">Experiencia profesional</h4>
+        <div th:each="experiencia : ${colaborador.experiencias}" class="perfil-item">
+          <div class="fw-semibold" th:text="${experiencia.cargo}">Cargo</div>
+          <div class="small text-secondary">
+            <span th:text="${experiencia.empresa}">Empresa</span> ·
+            <span th:text="${experiencia.fechaInicio != null ? #temporals.format(experiencia.fechaInicio, 'MM/yyyy') : 'Sin fecha'}">Inicio</span> —
+            <span th:text="${experiencia.actual ? 'Actualidad' : (experiencia.fechaFin != null ? #temporals.format(experiencia.fechaFin, 'MM/yyyy') : 'Sin fecha')}">Fin</span>
+          </div>
+        </div>
+        <div th:if="${#lists.isEmpty(colaborador.experiencias)}" class="small text-secondary">Sin experiencia registrada.</div>
+
+        <h4 class="perfil-subtitulo mt-4">Educación</h4>
+        <div th:each="estudio : ${colaborador.educacion}" class="perfil-item">
+          <div class="fw-semibold" th:text="${estudio.titulo}">Título</div>
+          <div class="small text-secondary" th:text="${estudio.institucion}">Institución</div>
+        </div>
+        <div th:if="${#lists.isEmpty(colaborador.educacion)}" class="small text-secondary">Sin estudios registrados.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: PROPONER ASIGNACIÓN ===================== -->
+<div th:fragment="modalPropuesta" class="modal modal-blur fade" id="propuestaModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Proponer asignación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <!-- El form envuelve solo el cuerpo: si envuelve también el footer, el modal con
+             scroll lo deja fuera de la vista. El botón de envío usa form="propuestaForm". -->
+        <form method="post" th:action="@{/rm/asignaciones/proponer}" id="propuestaForm" class="modal-body">
+          <input type="hidden" name="proyectoId" data-campo="proyectoId">
+          <input type="hidden" name="colaboradorId" data-campo="colaboradorId">
+          <input type="hidden" name="origen" data-campo="origen">
+
+          <div class="row g-4">
+            <div class="col-lg-7">
+              <div class="propuesta-bloque mb-3">
+                <div class="propuesta-bloque-titulo">Proyecto</div>
+                <div class="fw-bold fs-3" data-texto="proyectoNombre">Proyecto</div>
+                <div class="info-grid-propuesta mt-2">
+                  <div><div class="info-label">Project Manager</div><div class="info-value" data-texto="proyectoPm">—</div></div>
+                  <div><div class="info-label">Periodo</div><div class="info-value" data-texto="proyectoPeriodo">—</div></div>
+                  <div><div class="info-label">Presupuesto disponible</div><div class="info-value" data-texto="proyectoDisponibleTexto">—</div></div>
+                </div>
+              </div>
+
+              <div class="propuesta-bloque mb-3">
+                <div class="propuesta-bloque-titulo">Colaborador</div>
+                <div class="fw-bold fs-3" data-texto="colaboradorNombre">Colaborador</div>
+                <div class="info-grid-propuesta mt-2">
+                  <div><div class="info-label">Profesión</div><div class="info-value" data-texto="colaboradorCargo">—</div></div>
+                  <div><div class="info-label">Nivel</div><div class="info-value" data-texto="colaboradorNivel">—</div></div>
+                  <div><div class="info-label">Salario mensual</div><div class="info-value" data-texto="colaboradorSueldoTexto">—</div></div>
+                  <div><div class="info-label">Horas disponibles</div><div class="info-value" data-texto="colaboradorHorasTexto">—</div></div>
+                  <div><div class="info-label">Carga</div><div class="info-value" data-texto="colaboradorCargaTexto">—</div></div>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="propuestaHoras" class="form-label required">Horas semanales propuestas</label>
+                <div class="input-group">
+                  <input id="propuestaHoras" name="horasSemanales" type="number" min="0.5" max="168" step="0.5" class="form-control" required>
+                  <span class="input-group-text">h / semana</span>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="propuestaJustificacion" class="form-label">Justificación de la propuesta</label>
+                <textarea id="propuestaJustificacion" name="justificacion" class="form-control" rows="4" maxlength="350"
+                          placeholder="Explica por qué el colaborador es adecuado para el proyecto."></textarea>
+              </div>
+              <div id="propuestaCapacidadWrap" class="d-none">
+                <div class="alert alert-warning py-2 small mb-2" id="propuestaCapacidadAviso">
+                  La propuesta supera la disponibilidad o el límite de asignaciones del colaborador.
+                </div>
+                <label for="propuestaMotivoCapacidad" class="form-label required">Justificación de excepción de capacidad</label>
+                <textarea id="propuestaMotivoCapacidad" name="motivoCapacidad" class="form-control" rows="2" maxlength="300"
+                          placeholder="Indica por qué se acepta superar su capacidad."></textarea>
+              </div>
+            </div>
+
+            <div class="col-lg-5">
+              <div class="propuesta-bloque mb-3">
+                <div class="propuesta-bloque-titulo">Impacto en el presupuesto</div>
+                <div id="propuestaImpacto" class="small text-secondary">Ingresa las horas semanales para ver el costo.</div>
+              </div>
+              <div class="propuesta-bloque">
+                <div class="propuesta-bloque-titulo">Flujo de aprobación</div>
+                <div class="small text-secondary">
+                  Al enviarla, la propuesta queda aprobada por el RM y pasa al Project Manager, que debe aprobarla
+                  para que la asignación quede activa.
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" form="propuestaForm" class="btn btn-primary" id="propuestaEnviar">Confirmar asignación</button>
+        </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -12,6 +12,8 @@
         th:href="@{/css/rm-css/rm-common.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-perfil-colaborador.css"
         th:href="@{/css/rm-css/rm-perfil-colaborador.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-asignacion-modales.css"
+        th:href="@{/css/rm-css/rm-asignacion-modales.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css"
         th:href="@{/css/rm-css/rm-topbar.css}">
 </head>
@@ -82,10 +84,10 @@
                  th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id})}">
                 Ver asignaciones
               </a>
-              <a class="btn btn-primary"
-                 th:href="@{/rm/proyectos/proponer-asignacion(colaboradorId=${colaborador.resumen.id})}">
+              <button type="button" class="btn btn-primary"
+                      data-bs-toggle="modal" data-bs-target="#proyectosModal">
                 Proponer asignación
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -361,7 +363,74 @@
   </main>
 </div>
 
+<!-- Datos fijos del colaborador para el modal de propuesta -->
+<div id="propuestaContexto" class="d-none" data-origen="perfil"
+     th:attr="data-colaborador-id=${colaborador.resumen.id},data-colaborador-nombre=${colaborador.resumen.nombreCompleto},data-colaborador-cargo=${colaborador.resumen.cargo},data-colaborador-nivel=${colaborador.resumen.nivel},data-colaborador-horas=${colaborador.resumen.horasDisponibles},data-colaborador-carga=${colaborador.resumen.asignacionesActivas},data-colaborador-max=${colaborador.resumen.maxAsignaciones},data-colaborador-sueldo=${sueldoColaborador}"></div>
+
+<!-- MODAL: SELECCIONAR PROYECTO -->
+<div class="modal modal-blur fade" id="proyectosModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Selecciona un proyecto</h5>
+          <div class="small text-secondary">
+            Proyectos activos o en espera que pueden recibir colaboradores. Elige uno para preparar la propuesta de
+            <strong th:text="${colaborador.resumen.nombreCompleto}">colaborador</strong>.
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div th:if="${#lists.isEmpty(proyectosAsignables)}" class="text-center text-secondary py-5">
+          No hay proyectos activos o en espera a los que se pueda asignar colaboradores.
+        </div>
+        <div th:unless="${#lists.isEmpty(proyectosAsignables)}">
+          <input id="proyectoBusqueda" type="search" class="form-control mb-3" placeholder="Buscar por proyecto o PM">
+          <button type="button" class="proyecto-opcion" data-seleccionar-proyecto
+                  th:each="p : ${proyectosAsignables}"
+                  th:with="asignado=${proyectosConAsignacion.contains(p.proyecto.id)}"
+                  th:disabled="${asignado}"
+                  th:attr="data-busqueda=${#strings.toLowerCase(p.proyecto.nombre + ' ' + p.pmNombre)},data-proyecto-id=${p.proyecto.id},data-proyecto-nombre=${p.proyecto.nombre},data-proyecto-pm=${p.pmNombre},data-proyecto-inicio=${p.proyecto.fechaInicio},data-proyecto-fin=${p.proyecto.fechaFinEstimada},data-proyecto-presupuesto=${p.proyecto.presupuesto},data-proyecto-disponible=${p.resumenPresupuesto.disponible}">
+            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+              <div>
+                <div class="fw-bold" th:text="${p.proyecto.nombre}">Proyecto</div>
+                <div class="small text-secondary" th:text="|PM: ${p.pmNombre}|">PM</div>
+              </div>
+              <div class="d-flex gap-1 flex-wrap">
+                <span class="badge" th:classappend="${p.estadoClase}" th:text="${p.estadoTexto}">Activo</span>
+                <span class="badge" th:classappend="${p.prioridadClase}" th:text="|Prioridad ${p.prioridadTexto}|">Prioridad</span>
+                <span th:if="${asignado}" class="badge bg-yellow-lt">Ya asignado o propuesto</span>
+              </div>
+            </div>
+            <div class="proyecto-opcion-datos small">
+              <div><div class="text-secondary">Equipo</div>
+                <div class="fw-semibold" th:text="|${p.integrantesActivos}/${p.proyecto.colaboradoresRequeridos} · ${p.vacantes} vacantes|">0/0</div></div>
+              <div><div class="text-secondary">Horas requeridas</div>
+                <div class="fw-semibold" th:text="${p.proyecto.horasSemanalesRequeridas != null ? p.proyecto.horasSemanalesRequeridas + ' h/sem' : 'Sin definir'}">0 h</div></div>
+              <div><div class="text-secondary">Periodo</div>
+                <div class="fw-semibold" th:text="${p.proyecto.fechaInicio != null and p.proyecto.fechaFinEstimada != null ? #temporals.format(p.proyecto.fechaInicio, 'dd/MM/yyyy') + ' — ' + #temporals.format(p.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : 'Sin fechas'}">Periodo</div></div>
+              <div><div class="text-secondary">Presupuesto disponible</div>
+                <div class="fw-semibold" th:text="${p.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(p.resumenPresupuesto.disponible, 1, 'COMMA', 2, 'POINT') : 'Sin presupuesto'}">S/ 0</div></div>
+            </div>
+            <div class="mt-2" th:if="${!#lists.isEmpty(p.requisitos)}">
+              <span class="badge bg-blue-lt me-1" th:each="r : ${p.requisitos}" th:text="|${r.habilidad} · ${r.nivel}|">Java</span>
+            </div>
+          </button>
+          <div id="proyectosSinResultados" class="text-center text-secondary py-4 d-none">Ningún proyecto coincide con la búsqueda.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:replace="~{fragments/rm-asignacion-modales :: modalPropuesta}"></div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/rm-js/rm-propuesta-asignacion.js" th:src="@{/js/rm-js/rm-propuesta-asignacion.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
 <script src="../../static/js/rm-js/rm-perfil-colaborador.js" th:src="@{/js/rm-js/rm-perfil-colaborador.js}"></script>
 </body>

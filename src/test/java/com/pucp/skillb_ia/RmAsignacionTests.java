@@ -15,6 +15,7 @@ import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.rm.RmAsignacionService;
 import com.pucp.skillb_ia.service.pm.PmAsignacionService;
 import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -32,6 +35,8 @@ import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -276,6 +281,66 @@ class RmAsignacionTests {
                 .andExpect(model().attributeExists("accionesPendientes", "totalAccionesPendientes"))
                 .andExpect(content().string(containsString(
                         "/rm/asignaciones/revision-postulacion?id=" + postulacion.getId())));
+    }
+
+    @Test
+    void buscarColaboradoresIncluyeModalesYBloqueaAQuienYaEstaEnElProyecto() throws Exception {
+        mockMvc.perform(get("/rm/proyectos/buscar-colaboradores")
+                        .param("proyectoId", proyecto.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("id=\"propuestaModal\"")))
+                .andExpect(content().string(containsString("id=\"perfilModal\"")))
+                .andExpect(content().string(containsString("data-origen=\"buscar\"")));
+
+        asignacionService.proponerDesdeRm(proyecto.getId(), colaborador.getId(), new BigDecimal("8"),
+                "Primera propuesta.", null, rm.getId());
+        mockMvc.perform(get("/rm/proyectos/buscar-colaboradores")
+                        .param("proyectoId", proyecto.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("colaboradoresConAsignacion",
+                        org.hamcrest.Matchers.hasItem(colaborador.getId())));
+    }
+
+    @Test
+    void perfilModalDevuelveElFragmentoDelColaborador() throws Exception {
+        mockMvc.perform(get("/rm/colaboradores/perfil-modal").param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Carla")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("<html"))));
+    }
+
+    @Test
+    void perfilDelColaboradorListaProyectosAsignables() throws Exception {
+        mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("proyectosAsignables", "proyectosConAsignacion"))
+                .andExpect(content().string(containsString("id=\"proyectosModal\"")))
+                .andExpect(content().string(containsString(proyecto.getNombre())));
+    }
+
+    @Test
+    void propuestaConErrorVuelveALaPantallaDeOrigen() throws Exception {
+        UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER")
+                .stream().filter(u -> u.getId().equals(rm.getId())).findFirst().orElseThrow());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities()));
+        try {
+            // Horas inválidas (0) => error de validación.
+            mockMvc.perform(post("/rm/asignaciones/proponer")
+                            .param("proyectoId", proyecto.getId().toString())
+                            .param("colaboradorId", colaborador.getId().toString())
+                            .param("horasSemanales", "0")
+                            .param("origen", "buscar"))
+                    .andExpect(redirectedUrl("/rm/proyectos/buscar-colaboradores?proyectoId=" + proyecto.getId()));
+            mockMvc.perform(post("/rm/asignaciones/proponer")
+                            .param("proyectoId", proyecto.getId().toString())
+                            .param("colaboradorId", colaborador.getId().toString())
+                            .param("horasSemanales", "0")
+                            .param("origen", "perfil"))
+                    .andExpect(redirectedUrl("/rm/colaboradores/perfil?id=" + colaborador.getId()));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     @Test

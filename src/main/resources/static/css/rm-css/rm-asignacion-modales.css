@@ -1,0 +1,90 @@
+/* Modales del flujo "Asignar colaboradores" (fragments/rm-asignacion-modales.html). */
+
+.propuesta-bloque {
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--tblr-bg-surface);
+}
+
+.propuesta-bloque-titulo {
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--tblr-secondary);
+  margin-bottom: .5rem;
+}
+
+.info-grid-propuesta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: .75rem 1rem;
+}
+
+#propuestaImpacto > .d-flex + .d-flex {
+  margin-top: .35rem;
+}
+
+.perfil-stat {
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 8px;
+  padding: .75rem 1rem;
+  height: 100%;
+}
+
+.perfil-stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: .25rem;
+}
+
+.perfil-subtitulo {
+  font-size: .95rem;
+  font-weight: 600;
+  margin-bottom: .75rem;
+}
+
+.perfil-item {
+  padding: .5rem 0;
+  border-bottom: 1px solid var(--tblr-border-color-translucent, var(--tblr-border-color));
+}
+
+.perfil-item:last-of-type {
+  border-bottom: 0;
+}
+
+/* Lista de proyectos seleccionables (perfil del colaborador). */
+.proyecto-opcion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--tblr-bg-surface);
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.proyecto-opcion + .proyecto-opcion {
+  margin-top: .75rem;
+}
+
+.proyecto-opcion:not(:disabled):hover,
+.proyecto-opcion:not(:disabled):focus-visible {
+  border-color: var(--tblr-primary);
+  box-shadow: 0 0 0 .2rem rgba(var(--tblr-primary-rgb), .15);
+  outline: none;
+}
+
+.proyecto-opcion:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.proyecto-opcion-datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: .5rem 1rem;
+  margin-top: .75rem;
+}

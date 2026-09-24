@@ -133,7 +133,27 @@
       </div>
 
       <div class="pagination-wrap">
-        <div class="text-secondary small" th:text="'Mostrando ' + ${#lists.size(logs)} + ' acción(es)'">Mostrando 7 de 214 acciones</div>
+        <div class="text-secondary small" th:if="${#lists.isEmpty(logs)}">Sin resultados</div>
+        <div class="text-secondary small" th:unless="${#lists.isEmpty(logs)}"
+             th:with="desdeFila=${((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(logs)}"
+             th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} acción(es)|">
+          Mostrando 1-15 de 214 acciones
+        </div>
+        <ul class="pagination pagination-sm m-0" th:if="${totalPaginas > 1}">
+          <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/admin/auditoria(texto=${texto}, rol=${rol}, accion=${accion}, desde=${desde}, hasta=${hasta}, pagina=${paginaActual - 1})}">Anterior</a>
+          </li>
+          <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'">
+            <a class="page-link"
+               th:href="@{/admin/auditoria(texto=${texto}, rol=${rol}, accion=${accion}, desde=${desde}, hasta=${hasta}, pagina=${n})}"
+               th:text="${n}">1</a>
+          </li>
+          <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/admin/auditoria(texto=${texto}, rol=${rol}, accion=${accion}, desde=${desde}, hasta=${hasta}, pagina=${paginaActual + 1})}">Siguiente</a>
+          </li>
+        </ul>
       </div>
     </div>
 

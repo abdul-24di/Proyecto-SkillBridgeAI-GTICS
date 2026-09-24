@@ -170,6 +170,11 @@
             </div>
         </div>
 
+        <div class="pagination-wrap">
+            <div id="proyectosPaginationInfo" class="text-secondary small">Mostrando proyectos</div>
+            <ul id="proyectosPagination" class="pagination pagination-sm m-0"></ul>
+        </div>
+
         <div id="emptyFiltroState" class="card" style="display:none">
             <div class="empty-state" id="emptyFiltroMensaje">No tienes proyectos en esta sección.</div>
         </div>
@@ -180,6 +185,7 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-table-pagination.js" th:src="@{/js/col-js/col-table-pagination.js}"></script>
 <script src="../../static/js/col-js/col-proyectos.js" th:src="@{/js/col-js/col-proyectos.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
 </body>

@@ -73,7 +73,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Activa'}">
+          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Activa'}" class="pm-asig-activa-row">
             <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Nombre</td>
             <td th:text="${asig.origenTexto}">Origen</td>
             <td th:text="${asig.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
@@ -90,6 +90,11 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="pagination-wrap">
+      <div id="activasPaginationInfo" class="text-secondary small">Mostrando colaboradores</div>
+      <ul id="activasPagination" class="pagination pagination-sm m-0"></ul>
     </div>
   </div>
 
@@ -110,7 +115,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="pend : ${pendientesPm}">
+          <tr th:each="pend : ${pendientesPm}" class="pm-asig-pendiente-row">
             <td class="fw-semibold" th:text="${pend.colaboradorNombre}">Nombre</td>
             <td th:text="${pend.origenTexto}">Origen</td>
             <td th:text="${pend.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
@@ -155,6 +160,11 @@
         </tbody>
       </table>
     </div>
+
+    <div class="pagination-wrap">
+      <div id="pendientesPmPaginationInfo" class="text-secondary small">Mostrando propuestas</div>
+      <ul id="pendientesPmPagination" class="pagination pagination-sm m-0"></ul>
+    </div>
   </div>
 
   <!-- PROPONER AL RM -->
@@ -183,7 +193,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Pendiente'}">
+          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Pendiente'}" class="pm-asig-tramite-row">
             <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Nombre</td>
             <td th:text="${asig.origenTexto}">Origen</td>
             <td th:text="${asig.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
@@ -194,6 +204,11 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="pagination-wrap">
+      <div id="tramitePaginationInfo" class="text-secondary small">Mostrando asignaciones</div>
+      <ul id="tramitePagination" class="pagination pagination-sm m-0"></ul>
     </div>
   </div>
 </section>
@@ -214,7 +229,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Rechazada' or asig.estadoTexto == 'Finalizada'}">
+          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Rechazada' or asig.estadoTexto == 'Finalizada'}" class="pm-asig-historial-row">
             <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Ana Torres</td>
             <td th:text="${asig.origenTexto}">Origen</td>
             <td><span class="badge" th:classappend="${asig.estadoClase}" th:text="${asig.estadoTexto}">Activa</span></td>
@@ -225,6 +240,11 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="pagination-wrap">
+      <div id="historialPaginationInfo" class="text-secondary small">Mostrando historial</div>
+      <ul id="historialPagination" class="pagination pagination-sm m-0"></ul>
     </div>
   </div>
 </section>
@@ -271,5 +291,7 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
+<script src="../../static/js/pm-js/pm-asignaciones-proyecto.js" th:src="@{/js/pm-js/pm-asignaciones-proyecto.js}"></script>
 </body>
 </html>

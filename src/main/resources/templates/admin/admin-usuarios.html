@@ -225,12 +225,16 @@
             <tr th:if="${#lists.isEmpty(usuarios)}">
               <td colspan="6" class="text-center text-secondary py-4">No hay usuarios registrados todavía.</td>
             </tr>
+            <tr id="userNoResults" class="d-none" th:if="${!#lists.isEmpty(usuarios)}">
+              <td colspan="6" class="text-center text-secondary py-4">Ningún usuario coincide con los filtros aplicados.</td>
+            </tr>
           </tbody>
         </table>
       </div>
 
       <div class="pagination-wrap">
-        <div class="text-secondary small" th:text="'Mostrando ' + ${#lists.size(usuarios)} + ' de ' + ${resumen.total()} + ' usuarios'">Mostrando 6 de 42 usuarios</div>
+        <div id="userPaginationInfo" class="text-secondary small">Mostrando usuarios</div>
+        <ul id="userPagination" class="pagination pagination-sm m-0"></ul>
       </div>
     </div>
 
@@ -393,6 +397,7 @@
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
 <script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
+<script src="../../static/js/admin-js/admin-table-pagination.js" th:src="@{/js/admin-js/admin-table-pagination.js}"></script>
 <script src="../../static/js/admin-js/admin-usuarios.js" th:src="@{/js/admin-js/admin-usuarios.js}"></script>
 </body>
 </html>

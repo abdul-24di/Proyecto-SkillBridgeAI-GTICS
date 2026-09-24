@@ -279,7 +279,7 @@
           </tr>
           </thead>
           <tbody>
-          <tr th:each="asignacion : ${colaborador.asignaciones}">
+          <tr th:each="asignacion : ${colaborador.asignaciones}" class="asignacion-row">
             <td class="fw-semibold" th:text="${asignacion.proyecto}">Proyecto</td>
             <td th:text="|${asignacion.horasSemanales} h|">0 h</td>
             <td>
@@ -291,6 +291,10 @@
           </tr>
           </tbody>
         </table>
+      </div>
+      <div class="pagination-wrap" th:if="${!#lists.isEmpty(colaborador.asignaciones)}">
+        <div id="paginationInfo" class="text-secondary small"></div>
+        <ul id="pagination" class="pagination pagination-sm m-0"></ul>
       </div>
       <div class="empty-state" th:if="${#lists.isEmpty(colaborador.asignaciones)}">
         Este colaborador no tiene asignaciones activas.
@@ -359,5 +363,6 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
+<script src="../../static/js/rm-js/rm-perfil-colaborador.js" th:src="@{/js/rm-js/rm-perfil-colaborador.js}"></script>
 </body>
 </html>

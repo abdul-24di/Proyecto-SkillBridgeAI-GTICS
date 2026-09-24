@@ -92,6 +92,11 @@
                             Todavía no hay foros de comunidad disponibles.
                         </div>
                     </div>
+
+                    <div class="pagination-wrap">
+                        <div id="forosComunidadPaginationInfo" class="text-secondary small">Mostrando foros</div>
+                        <ul id="forosComunidadPagination" class="pagination pagination-sm m-0"></ul>
+                    </div>
                 </div>
 
                 <!-- ===================== MIS PROYECTOS ===================== -->
@@ -121,6 +126,11 @@
                         <div th:if="${#lists.isEmpty(forosMisProyectos)}" class="col-12 text-center text-secondary py-5 border rounded bg-white">
                             No tienes asignaciones activas en proyectos con foro aún.
                         </div>
+                    </div>
+
+                    <div class="pagination-wrap">
+                        <div id="forosMisProyectosPaginationInfo" class="text-secondary small">Mostrando foros</div>
+                        <ul id="forosMisProyectosPagination" class="pagination pagination-sm m-0"></ul>
                     </div>
                 </div>
 
@@ -179,26 +189,44 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-table-pagination.js" th:src="@{/js/col-js/col-table-pagination.js}"></script>
 <script th:inline="javascript">
     document.addEventListener('DOMContentLoaded', function () {
         var input = document.getElementById('forumSearchInput');
+
+        function coincideForo(tarjeta) {
+            var texto = (input ? input.value : '').toLowerCase().trim();
+            var contenido = tarjeta.getAttribute('data-search') || '';
+            return texto.length === 0 || contenido.indexOf(texto) !== -1;
+        }
+
+        var tarjetasComunidad = Array.from(document.querySelectorAll('#tab-comunidad .forum-card-wrap'));
+        var tarjetasMisProyectos = Array.from(document.querySelectorAll('#tab-mis-proyectos .forum-card-wrap'));
+
+        var paginacionComunidad = tarjetasComunidad.length ? crearPaginacionTabla({
+            filas: tarjetasComunidad,
+            filtroFn: coincideForo,
+            paginationEl: document.getElementById('forosComunidadPagination'),
+            infoEl: document.getElementById('forosComunidadPaginationInfo'),
+            pageSize: 6,
+            etiqueta: 'foro(s)'
+        }) : null;
+
+        var paginacionMisProyectos = tarjetasMisProyectos.length ? crearPaginacionTabla({
+            filas: tarjetasMisProyectos,
+            filtroFn: coincideForo,
+            paginationEl: document.getElementById('forosMisProyectosPagination'),
+            infoEl: document.getElementById('forosMisProyectosPaginationInfo'),
+            pageSize: 6,
+            etiqueta: 'foro(s)'
+        }) : null;
+
         if (!input) {
             return;
         }
         input.addEventListener('keyup', function () {
-            var texto = input.value.toLowerCase().trim();
-            var tarjetas = document.querySelectorAll('.forum-card-wrap');
-
-            for (var i = 0; i < tarjetas.length; i++) {
-                var tarjeta = tarjetas[i];
-                var contenido = tarjeta.getAttribute('data-search') || '';
-
-                if (contenido.indexOf(texto) !== -1) {
-                    tarjeta.style.display = '';
-                } else {
-                    tarjeta.style.display = 'none';
-                }
-            }
+            if (paginacionComunidad) paginacionComunidad.reset();
+            if (paginacionMisProyectos) paginacionMisProyectos.reset();
         });
     });
 </script>

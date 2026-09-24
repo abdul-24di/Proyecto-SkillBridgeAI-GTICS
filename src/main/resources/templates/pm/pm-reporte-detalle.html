@@ -115,7 +115,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr th:each="colab : ${reporte.colaboradores}">
+        <tr th:each="colab : ${reporte.colaboradores}" class="pm-reporte-colab-row">
           <td class="fw-semibold" th:text="${colab.nombre}">Ana Torres</td>
           <td th:text="${colab.horasSemanales + ' h/sem'}">12 h/sem</td>
           <td th:text="${colab.actividadesAsignadas}">5</td>
@@ -133,6 +133,12 @@
       </tbody>
     </table>
   </div>
+
+  <div class="pagination-wrap">
+    <div id="colaboradoresPaginationInfo" class="text-secondary small">Mostrando colaboradores</div>
+    <ul id="colaboradoresPagination" class="pagination pagination-sm m-0"></ul>
+  </div>
+
   <div class="report-note">
     <span class="report-note-icon">i</span>
     <div class="small text-secondary">El PM no visualiza sueldo, bono, pago mensual ni costo del colaborador. El presupuesto del proyecto es solo informativo.</div>
@@ -146,5 +152,7 @@
 </main>
 </div>
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
+<script src="../../static/js/pm-js/pm-reporte-detalle.js" th:src="@{/js/pm-js/pm-reporte-detalle.js}"></script>
 </body>
 </html>

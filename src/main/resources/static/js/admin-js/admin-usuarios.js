@@ -1,33 +1,41 @@
-/* Filtro cliente para el directorio de usuarios (busqueda + rol + estado). */
+/* Filtro + paginación cliente para el directorio de usuarios (busqueda + rol + estado). */
 document.addEventListener("DOMContentLoaded", function () {
   const searchInput = document.getElementById("userSearch");
   const roleFilter = document.getElementById("userRoleFilter");
   const statusFilter = document.getElementById("userStatusFilter");
   const clearBtn = document.getElementById("clearFiltersBtn");
-  const rows = document.querySelectorAll("tbody tr[data-search]");
+  const rows = Array.from(document.querySelectorAll("tbody tr[data-search]"));
 
   if (!rows.length) return;
 
-  function aplicarFiltros() {
+  function coincide(row) {
     const texto = (searchInput?.value || "").toLowerCase().trim();
     const rol = roleFilter?.value || "all";
     const estado = statusFilter?.value || "all";
 
-    rows.forEach(row => {
-      const coincideTexto = !texto || (row.dataset.search || "").indexOf(texto) !== -1;
-      const coincideRol = rol === "all" || row.dataset.role === rol;
-      const coincideEstado = estado === "all" || row.dataset.status === estado;
-      row.style.display = (coincideTexto && coincideRol && coincideEstado) ? "" : "none";
-    });
+    const coincideTexto = !texto || (row.dataset.search || "").indexOf(texto) !== -1;
+    const coincideRol = rol === "all" || row.dataset.role === rol;
+    const coincideEstado = estado === "all" || row.dataset.status === estado;
+    return coincideTexto && coincideRol && coincideEstado;
   }
 
-  searchInput?.addEventListener("keyup", aplicarFiltros);
-  roleFilter?.addEventListener("change", aplicarFiltros);
-  statusFilter?.addEventListener("change", aplicarFiltros);
+  const paginacion = crearPaginacionTabla({
+    filas: rows,
+    filtroFn: coincide,
+    paginationEl: document.getElementById("userPagination"),
+    infoEl: document.getElementById("userPaginationInfo"),
+    noResultsEl: document.getElementById("userNoResults"),
+    pageSize: 10,
+    etiqueta: "usuario(s)"
+  });
+
+  searchInput?.addEventListener("keyup", paginacion.reset);
+  roleFilter?.addEventListener("change", paginacion.reset);
+  statusFilter?.addEventListener("change", paginacion.reset);
   clearBtn?.addEventListener("click", function () {
     if (searchInput) searchInput.value = "";
     if (roleFilter) roleFilter.value = "all";
     if (statusFilter) statusFilter.value = "all";
-    aplicarFiltros();
+    paginacion.reset();
   });
 });

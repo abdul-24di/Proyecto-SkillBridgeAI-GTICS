@@ -152,6 +152,11 @@ public class AdminAuditoriaService {
     public record FiltrosAuditoria(String texto, String rol, String accion, LocalDate desde, LocalDate hasta) {
     }
 
+    public static final int TAMANIO_PAGINA = 15;
+
+    public record PaginaLogs(List<LogFila> filas, int paginaActual, int totalPaginas, long totalRegistros) {
+    }
+
     private final LogAuditoriaRepository logAuditoriaRepository;
 
     public AdminAuditoriaService(LogAuditoriaRepository logAuditoriaRepository) {
@@ -172,6 +177,23 @@ public class AdminAuditoriaService {
                 .filter(f -> filtros.desde() == null || !f.fechaSolo().isBefore(filtros.desde()))
                 .filter(f -> filtros.hasta() == null || !f.fechaSolo().isAfter(filtros.hasta()))
                 .toList();
+    }
+
+    // El listado completo ya se filtra en memoria (ver comentario en el
+    // repository); aquí solo se le agrega el corte de página encima, sin
+    // tocar los filtros. `listar(filtros)` se mantiene intacto para CSV/Excel,
+    // que sí necesitan exportar todo lo filtrado, no solo la página visible.
+    @Transactional(readOnly = true)
+    public PaginaLogs listarPagina(FiltrosAuditoria filtros, int pagina) {
+        List<LogFila> todas = listar(filtros);
+        int totalPaginas = Math.max(1, (int) Math.ceil(todas.size() / (double) TAMANIO_PAGINA));
+        int paginaActual = Math.min(Math.max(1, pagina), totalPaginas);
+
+        int desde = (paginaActual - 1) * TAMANIO_PAGINA;
+        int hasta = Math.min(desde + TAMANIO_PAGINA, todas.size());
+        List<LogFila> filas = desde < hasta ? todas.subList(desde, hasta) : List.of();
+
+        return new PaginaLogs(filas, paginaActual, totalPaginas, todas.size());
     }
 
     @Transactional(readOnly = true)

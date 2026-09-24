@@ -1,6 +1,6 @@
 const searchInput = document.getElementById("searchInput");
 const tabs = document.querySelectorAll(".filter-tab");
-const tarjetas = document.querySelectorAll(".project-card-wrap");
+const tarjetas = Array.from(document.querySelectorAll(".project-card-wrap"));
 const emptyFiltroState = document.getElementById("emptyFiltroState");
 const emptyFiltroMensaje = document.getElementById("emptyFiltroMensaje");
 let filtroActual = "Todos";
@@ -17,24 +17,26 @@ function coincideBusqueda(tarjeta, texto) {
     return contenido.includes(texto);
 }
 
-function aplicarFiltros() {
+function coincideProyecto(tarjeta) {
     const texto = searchInput.value.trim().toLowerCase();
-    let visibles = 0;
+    const estado = tarjeta.dataset.status;
 
-    for (let i = 0; i < tarjetas.length; i++) {
-        const tarjeta = tarjetas[i];
-        const estado = tarjeta.dataset.status;
+    const coincideFiltro = (filtroActual === "Todos") || (estado === filtroActual);
+    const coincideTexto = coincideBusqueda(tarjeta, texto);
+    return coincideFiltro && coincideTexto;
+}
 
-        const coincideFiltro = (filtroActual === "Todos") || (estado === filtroActual);
-        const coincideTexto = coincideBusqueda(tarjeta, texto);
+const paginacionProyectos = tarjetas.length ? crearPaginacionTabla({
+    filas: tarjetas,
+    filtroFn: coincideProyecto,
+    paginationEl: document.getElementById("proyectosPagination"),
+    infoEl: document.getElementById("proyectosPaginationInfo"),
+    pageSize: 6,
+    etiqueta: "proyecto(s)"
+}) : null;
 
-        if (coincideFiltro && coincideTexto) {
-            tarjeta.style.display = "";
-            visibles = visibles + 1;
-        } else {
-            tarjeta.style.display = "none";
-        }
-    }
+function aplicarFiltros() {
+    const visibles = tarjetas.filter(coincideProyecto).length;
 
     if (emptyFiltroState) {
         if (visibles === 0 && tarjetas.length > 0) {
@@ -47,6 +49,10 @@ function aplicarFiltros() {
         } else {
             emptyFiltroState.style.display = "none";
         }
+    }
+
+    if (paginacionProyectos) {
+        paginacionProyectos.reset();
     }
 }
 
@@ -63,3 +69,5 @@ for (let i = 0; i < tabs.length; i++) {
 }
 
 searchInput.addEventListener("input", aplicarFiltros);
+
+aplicarFiltros();

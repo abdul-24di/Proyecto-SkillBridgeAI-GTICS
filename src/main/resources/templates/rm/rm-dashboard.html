@@ -100,10 +100,10 @@
 
 
     <!-- SUMMARY CARDS -->
-    <div class="row row-cards mb-4">
+    <div class="row row-cards mb-4 summary-cards">
 
       <div class="col-sm-6 col-xl">
-        <div class="card summary-card">
+        <div class="card summary-card h-100">
           <div class="card-body d-flex align-items-center gap-3">
 
             <div class="summary-icon bg-yellow-lt text-yellow">
@@ -121,7 +121,7 @@
               </svg>
             </div>
 
-            <div>
+            <div class="summary-content">
               <div class="summary-label">
                 Aprobaciones pendientes del RM
               </div>
@@ -130,7 +130,7 @@
                 <span th:text="${totalAprobacionesRm}">0</span>
               </div>
 
-              <div class="small text-secondary mt-1">
+              <div class="small text-secondary mt-1 summary-description">
                 Requieren tu revisión y decisión.
               </div>
 
@@ -144,7 +144,7 @@
 
 
       <div class="col-sm-6 col-xl">
-        <div class="card summary-card">
+        <div class="card summary-card h-100">
           <div class="card-body d-flex align-items-center gap-3">
 
             <div class="summary-icon bg-blue-lt text-blue">
@@ -162,7 +162,7 @@
               </svg>
             </div>
 
-            <div>
+            <div class="summary-content">
               <div class="summary-label">
                 Esperando aprobación del PM
               </div>
@@ -171,7 +171,7 @@
                 <span th:text="${totalEsperandoPm}">0</span>
               </div>
 
-              <div class="small text-secondary mt-1">
+              <div class="small text-secondary mt-1 summary-description">
                 Propuestas ya aprobadas por el RM.
               </div>
 
@@ -185,7 +185,7 @@
 
 
       <div class="col-sm-6 col-xl">
-        <div class="card summary-card">
+        <div class="card summary-card h-100">
           <div class="card-body d-flex align-items-center gap-3">
 
             <div class="summary-icon bg-azure-lt text-azure">
@@ -204,7 +204,7 @@
               </svg>
             </div>
 
-            <div>
+            <div class="summary-content">
               <div class="summary-label">
                 Postulaciones de colaboradores
               </div>
@@ -213,7 +213,7 @@
                 <span th:text="${totalPostulaciones}">0</span>
               </div>
 
-              <div class="small text-secondary mt-1">
+              <div class="small text-secondary mt-1 summary-description">
                 Solicitudes de participación por revisar.
               </div>
 
@@ -227,7 +227,7 @@
 
 
       <div class="col-sm-6 col-xl">
-        <div class="card summary-card">
+        <div class="card summary-card h-100">
           <div class="card-body d-flex align-items-center gap-3">
 
             <div class="summary-icon bg-green-lt text-green">
@@ -244,7 +244,7 @@
               </svg>
             </div>
 
-            <div>
+            <div class="summary-content">
               <div class="summary-label">
                 Proyectos con vacantes
               </div>
@@ -253,7 +253,7 @@
                 <span th:text="${totalProyectosVacantes}">0</span>
               </div>
 
-              <div class="small text-secondary mt-1">
+              <div class="small text-secondary mt-1 summary-description">
                 Equipos que todavía necesitan personal.
               </div>
 
@@ -267,7 +267,7 @@
 
 
       <div class="col-sm-6 col-xl">
-        <div class="card summary-card">
+        <div class="card summary-card h-100">
           <div class="card-body d-flex align-items-center gap-3">
 
             <div class="summary-icon bg-azure-lt text-azure">
@@ -286,7 +286,7 @@
               </svg>
             </div>
 
-            <div>
+            <div class="summary-content">
               <div class="summary-label">
                 Proyectos en revisión
               </div>
@@ -295,7 +295,7 @@
                 <span th:text="${totalProyectosRevision}">0</span>
               </div>
 
-              <div class="small text-secondary mt-1">
+              <div class="small text-secondary mt-1 summary-description">
                 Pendientes de evaluación inicial.
               </div>
 
@@ -328,6 +328,10 @@
           </div>
         </div>
 
+        <a class="btn btn-sm btn-light section-action" th:href="@{/rm/asignaciones}">
+          Ver todas las asignaciones
+        </a>
+
       </div>
 
 
@@ -337,7 +341,7 @@
 
           <thead>
           <tr>
-            <th>Tipo</th>
+            <th>Origen</th>
             <th>Proyecto</th>
             <th>Colaborador</th>
             <th>Estado</th>
@@ -349,12 +353,15 @@
           <tbody>
 
           <tr th:each="item : ${accionesPendientes}">
-            <td th:text="${item.solicitudColaborador ? 'Postulación' : 'Asignación propuesta'}">Tipo</td>
+            <td>
+              <span class="badge" th:classappend="${item.origenClase}"
+                    th:text="${item.origenTexto}">Origen</span>
+            </td>
             <td class="fw-semibold" th:text="${item.asignacion.proyecto.nombre}">Proyecto</td>
             <td th:text="${item.colaboradorNombre}">Colaborador</td>
             <td>
               <span class="badge" th:classappend="${item.estadoClase}"
-                    th:text="${item.estadoTexto}">Estado</span>
+                    th:text="${item.solicitudColaborador and item.asignacion.estado.name() == 'PENDIENTE' and !item.asignacion.aprobadoPorPm and !item.asignacion.aprobadoPorRm ? 'Pendiente RM y PM' : item.estadoTexto}">Estado</span>
             </td>
             <td th:text="${#temporals.format(item.asignacion.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
             <td class="text-end">
@@ -387,10 +394,6 @@
              th:text="${totalAccionesPendientes == 0 ? 'Sin acciones pendientes' : 'Mostrando ' + #lists.size(accionesPendientes) + ' de ' + totalAccionesPendientes + ' acciones pendientes'}">
           Sin acciones pendientes
         </div>
-
-        <a class="btn btn-outline-primary btn-sm" th:href="@{/rm/asignaciones}">
-          Ver todas las asignaciones
-        </a>
 
       </div>
 
@@ -475,11 +478,15 @@
               </h3>
 
               <div class="section-description">
-                Proyectos con vacantes, asignaciones pendientes o prioridad alta
+                Proyectos en revisión, con vacantes o decisiones pendientes del RM
                 que requieren seguimiento del RM.
               </div>
 
             </div>
+
+            <a class="btn btn-sm btn-light section-action" th:href="@{/rm/proyectos}">
+              Ver todos los proyectos
+            </a>
 
           </div>
 
@@ -550,7 +557,6 @@
                  th:text="${totalProyectosAtencion == 0 ? 'Sin proyectos pendientes' : 'Mostrando ' + #lists.size(proyectosAtencion) + ' de ' + totalProyectosAtencion + ' proyectos'}">
               Sin proyectos pendientes
             </div>
-            <a class="btn btn-outline-primary btn-sm" th:href="@{/rm/proyectos}">Ver todos los proyectos</a>
           </div>
 
         </div>

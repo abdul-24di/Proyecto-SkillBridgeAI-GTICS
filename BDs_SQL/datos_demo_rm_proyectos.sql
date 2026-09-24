@@ -12,6 +12,7 @@
 --   * sueldo base, costo semanal y costo total de cada asignacion
 --   * presupuesto comprometido, reservado y disponible
 --   * asignaciones con presupuesto suficiente e insuficiente
+--   * solicitudes de colaborador pendientes visibles en el dashboard
 --   * asignacion y actualizacion de presupuesto
 --   * equipo, vacantes, habilidades y pendientes del RM
 --   * foros, publicaciones, respuestas, soluciones y votos de solo lectura
@@ -609,6 +610,63 @@ ON DUPLICATE KEY UPDATE
     aprobado_por_pm = nuevo.aprobado_por_pm,
     aprobado_por_rm = nuevo.aprobado_por_rm;
 
+-- Solicitudes recientes iniciadas por colaboradores. Tambien permiten abrir
+-- la vista de revision y comprobar sus cambios visuales:
+--   * Carla / Analitica Comercial: [DEMO APROBAR], con presupuesto suficiente.
+--   * Elena / Analitica Comercial: [DEMO RECHAZAR], disponible para probar el motivo.
+-- Las dos comienzan sin aprobacion de PM ni RM y muestran "Pendiente RM y PM".
+-- Ambas incluyen un mensaje visible dentro del recuadro "Justificacion o mensaje".
+-- Se eliminan solamente estas solicitudes DEMO para restaurarlas tras cada prueba.
+DELETE FROM asignacion
+WHERE id > 0
+  AND origen = 'SOLICITADA_COLABORADOR'
+  AND mensaje_solicitud IN (
+      'Me interesa participar en el portal porque cuento con experiencia en Java y Spring Boot.',
+      '[DEMO APROBAR] Solicitud preparada con carga y presupuesto suficientes para confirmar la aprobacion.',
+      '[DEMO RECHAZAR] Solicitud preparada para comprobar el modal y registrar el motivo del rechazo.'
+  );
+
+INSERT INTO asignacion (
+    proyecto_id, colaborador_id, horas_semanales, habilidades_relevantes,
+    origen, mensaje_solicitud, habilidad_solicitada_id, estado,
+    aprobado_por_pm, aprobado_por_rm, fecha_aprobacion_pm, fecha_aprobacion_rm,
+    fecha_solicitud
+) VALUES
+(
+    (SELECT id FROM proyecto WHERE nombre = '[DEMO] Analitica Comercial'),
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
+    8.00, 'Java, integracion de datos',
+    'SOLICITADA_COLABORADOR',
+    '[DEMO APROBAR] Solicitud preparada con carga y presupuesto suficientes para confirmar la aprobacion.',
+    (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
+     WHERE h.nombre = 'Java' AND c.nombre = '[DEMO] Tecnologia'),
+    'PENDIENTE', FALSE, FALSE, NULL, NULL,
+    CURRENT_TIMESTAMP - INTERVAL 30 MINUTE
+),
+(
+    (SELECT id FROM proyecto WHERE nombre = '[DEMO] Analitica Comercial'),
+    (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
+    16.00, 'Python, analisis de datos',
+    'SOLICITADA_COLABORADOR',
+    '[DEMO RECHAZAR] Solicitud preparada para comprobar el modal y registrar el motivo del rechazo.',
+    (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
+     WHERE h.nombre = 'Python' AND c.nombre = '[DEMO] Tecnologia'),
+    'PENDIENTE', FALSE, FALSE, NULL, NULL,
+    CURRENT_TIMESTAMP - INTERVAL 2 HOUR
+) AS nuevo
+ON DUPLICATE KEY UPDATE
+    horas_semanales = nuevo.horas_semanales,
+    habilidades_relevantes = nuevo.habilidades_relevantes,
+    origen = nuevo.origen,
+    mensaje_solicitud = nuevo.mensaje_solicitud,
+    habilidad_solicitada_id = nuevo.habilidad_solicitada_id,
+    estado = nuevo.estado,
+    aprobado_por_pm = nuevo.aprobado_por_pm,
+    aprobado_por_rm = nuevo.aprobado_por_rm,
+    fecha_aprobacion_pm = nuevo.fecha_aprobacion_pm,
+    fecha_aprobacion_rm = nuevo.fecha_aprobacion_rm,
+    fecha_solicitud = nuevo.fecha_solicitud;
+
 -- --------------------------------------------------------------------------
 -- 8. Foros de demostracion para la consulta de solo lectura del RM
 -- --------------------------------------------------------------------------
@@ -1101,6 +1159,7 @@ SELECT
     CONCAT(u.nombre, ' ', u.apellido) AS colaborador,
     u.sueldo_base,
     a.horas_semanales,
+    a.origen,
     a.estado,
     a.aprobado_por_pm,
     a.aprobado_por_rm,

@@ -329,10 +329,16 @@ public class AdminViewController {
                          @RequestParam(required = false) String accion,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                         @RequestParam(defaultValue = "1") int pagina,
                          Model model) {
         AdminAuditoriaService.FiltrosAuditoria filtros =
                 new AdminAuditoriaService.FiltrosAuditoria(texto, rol, accion, desde, hasta);
-        model.addAttribute("logs", adminAuditoriaService.listar(filtros));
+        AdminAuditoriaService.PaginaLogs paginaLogs = adminAuditoriaService.listarPagina(filtros, pagina);
+        model.addAttribute("logs", paginaLogs.filas());
+        model.addAttribute("paginaActual", paginaLogs.paginaActual());
+        model.addAttribute("totalPaginas", paginaLogs.totalPaginas());
+        model.addAttribute("totalRegistros", paginaLogs.totalRegistros());
+        model.addAttribute("tamanioPagina", AdminAuditoriaService.TAMANIO_PAGINA);
         model.addAttribute("tiposAccion", adminAuditoriaService.tiposDeAccionDisponibles());
         model.addAttribute("rolesDisponibles", AdminUsuarioService.etiquetasRoles());
         model.addAttribute("texto", texto);

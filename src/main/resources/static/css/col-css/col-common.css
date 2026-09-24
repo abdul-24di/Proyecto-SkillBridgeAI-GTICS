@@ -239,6 +239,17 @@ svg {
     text-transform: uppercase;
 }
 
+.pagination-wrap {
+    min-height: 58px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 12px 18px;
+    border-top: 1px solid #edf0f4;
+    background: #ffffff;
+}
+
 @media (max-width: 767px) {
     .page-wrap {
         padding-top: 20px;
@@ -252,5 +263,14 @@ svg {
 
     .info-grid {
         grid-template-columns: 1fr;
+    }
+
+    .pagination-wrap {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pagination-wrap .pagination {
+        justify-content: center;
     }
 }

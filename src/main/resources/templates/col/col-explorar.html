@@ -165,6 +165,11 @@
                 </div>
             </div>
 
+            <div class="pagination-wrap">
+                <div id="projectPaginationInfo" class="text-secondary small">Mostrando proyectos</div>
+                <ul id="projectPagination" class="pagination pagination-sm m-0"></ul>
+            </div>
+
             <div class="card section-card mt-4">
                 <div class="card-header section-header">
                     <div>
@@ -247,6 +252,11 @@
                         <button type="button" class="btn btn-outline-primary btn-sm mt-2"
                                 data-bs-toggle="modal" th:attr="data-bs-target='#collabModal-' + ${c.id}">Ver perfil</button>
                     </div>
+                </div>
+
+                <div class="pagination-wrap">
+                    <div id="collabPaginationInfo" class="text-secondary small">Mostrando colaboradores</div>
+                    <ul id="collabPagination" class="pagination pagination-sm m-0"></ul>
                 </div>
             </div>
 
@@ -378,6 +388,11 @@
                 </div>
             </div>
 
+            <div class="pagination-wrap">
+                <div id="coursePaginationInfo" class="text-secondary small">Mostrando cursos</div>
+                <ul id="coursePagination" class="pagination pagination-sm m-0"></ul>
+            </div>
+
             <div class="card section-card mt-4">
                 <div class="card-header section-header">
                     <div>
@@ -450,6 +465,7 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+<script src="../../static/js/col-js/col-table-pagination.js" th:src="@{/js/col-js/col-table-pagination.js}"></script>
 <script src="../../static/js/col-js/col-explorar.js" th:src="@{/js/col-js/col-explorar.js}"></script>
 </body>
 </html>

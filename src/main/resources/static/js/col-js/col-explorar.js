@@ -17,22 +17,34 @@ document.querySelectorAll("#projectAccordion [data-toggle-project]").forEach(hea
 const projectSearchInput = document.getElementById("projectSearch");
 const projectStatusFilter = document.getElementById("projectStatusFilter");
 const projectApplicationsFilter = document.getElementById("projectApplicationsFilter");
+const projectItems = Array.from(document.querySelectorAll("#projectAccordion .project-accordion-item"));
 
-function aplicarFiltrosProyectos() {
+function coincideProyectoExplorar(item) {
     const q = (projectSearchInput?.value || "").trim().toLowerCase();
     const estado = projectStatusFilter?.value || "all";
     const postulaciones = projectApplicationsFilter?.value || "all";
 
-    document.querySelectorAll("#projectAccordion .project-accordion-item").forEach(item => {
-        const nombre = (item.dataset.projectName || "").toLowerCase();
-        const texto = item.textContent.toLowerCase();
+    const nombre = (item.dataset.projectName || "").toLowerCase();
+    const texto = item.textContent.toLowerCase();
 
-        const coincideTexto = q.length === 0 || nombre.includes(q) || texto.includes(q);
-        const coincideEstado = estado === "all" || item.dataset.estado === estado;
-        const coincidePostulaciones = postulaciones === "all" || item.dataset.postulaciones === postulaciones;
+    const coincideTexto = q.length === 0 || nombre.includes(q) || texto.includes(q);
+    const coincideEstado = estado === "all" || item.dataset.estado === estado;
+    const coincidePostulaciones = postulaciones === "all" || item.dataset.postulaciones === postulaciones;
 
-        item.classList.toggle("d-none", !(coincideTexto && coincideEstado && coincidePostulaciones));
-    });
+    return coincideTexto && coincideEstado && coincidePostulaciones;
+}
+
+const paginacionProyectosExplorar = projectItems.length ? crearPaginacionTabla({
+    filas: projectItems,
+    filtroFn: coincideProyectoExplorar,
+    paginationEl: document.getElementById("projectPagination"),
+    infoEl: document.getElementById("projectPaginationInfo"),
+    pageSize: 6,
+    etiqueta: "proyecto(s)"
+}) : null;
+
+function aplicarFiltrosProyectos() {
+    paginacionProyectosExplorar?.reset();
 }
 
 projectSearchInput?.addEventListener("input", aplicarFiltrosProyectos);
@@ -79,17 +91,30 @@ document.querySelectorAll("#applySkillsWrap .apply-skill-chip").forEach(chip => 
 
 /* ================= COLABORADORES ================= */
 
-function filtrarListaColaboradores() {
+const collabCards = Array.from(document.querySelectorAll("#collabList .collab-card"));
+
+function coincideColaboradorExplorar(card) {
     const texto = (document.getElementById("collabSearch")?.value || "").trim().toLowerCase();
     const nivel = document.getElementById("collabLevelFilter")?.value || "all";
 
-    document.querySelectorAll("#collabList .collab-card").forEach(card => {
-        const contenido = card.textContent.toLowerCase();
-        const nivelCard = card.dataset.nivel || "";
-        const coincideTexto = texto.length === 0 || contenido.includes(texto);
-        const coincideNivel = nivel === "all" || nivelCard === nivel;
-        card.classList.toggle("d-none", !(coincideTexto && coincideNivel));
-    });
+    const contenido = card.textContent.toLowerCase();
+    const nivelCard = card.dataset.nivel || "";
+    const coincideTexto = texto.length === 0 || contenido.includes(texto);
+    const coincideNivel = nivel === "all" || nivelCard === nivel;
+    return coincideTexto && coincideNivel;
+}
+
+const paginacionColaboradoresExplorar = collabCards.length ? crearPaginacionTabla({
+    filas: collabCards,
+    filtroFn: coincideColaboradorExplorar,
+    paginationEl: document.getElementById("collabPagination"),
+    infoEl: document.getElementById("collabPaginationInfo"),
+    pageSize: 6,
+    etiqueta: "colaborador(es)"
+}) : null;
+
+function filtrarListaColaboradores() {
+    paginacionColaboradoresExplorar?.reset();
 }
 
 ["collabSearch", "collabLevelFilter"].forEach(id => {
@@ -122,20 +147,33 @@ document.querySelectorAll("#courseAccordion [data-toggle-course]").forEach(heade
     header.addEventListener("click", () => header.closest(".project-accordion-item").classList.toggle("open"));
 });
 
-function filtrarCursos() {
+const courseItems = Array.from(document.querySelectorAll("#courseAccordion .project-accordion-item"));
+
+function coincideCurso(item) {
     const texto = (document.getElementById("courseSearch")?.value || "").trim().toLowerCase();
     const categoria = document.getElementById("courseCategoryFilter")?.value || "all";
 
-    document.querySelectorAll("#courseAccordion .project-accordion-item").forEach(item => {
-        const nombre = (item.dataset.courseName || "").toLowerCase();
-        const categoriaCurso = item.dataset.courseCategory || "";
-        const contenido = item.textContent.toLowerCase();
+    const nombre = (item.dataset.courseName || "").toLowerCase();
+    const categoriaCurso = item.dataset.courseCategory || "";
+    const contenido = item.textContent.toLowerCase();
 
-        const coincideTexto = texto.length === 0 || nombre.includes(texto) || contenido.includes(texto);
-        const coincideCategoria = categoria === "all" || categoriaCurso === categoria;
+    const coincideTexto = texto.length === 0 || nombre.includes(texto) || contenido.includes(texto);
+    const coincideCategoria = categoria === "all" || categoriaCurso === categoria;
 
-        item.classList.toggle("d-none", !(coincideTexto && coincideCategoria));
-    });
+    return coincideTexto && coincideCategoria;
+}
+
+const paginacionCursos = courseItems.length ? crearPaginacionTabla({
+    filas: courseItems,
+    filtroFn: coincideCurso,
+    paginationEl: document.getElementById("coursePagination"),
+    infoEl: document.getElementById("coursePaginationInfo"),
+    pageSize: 6,
+    etiqueta: "curso(s)"
+}) : null;
+
+function filtrarCursos() {
+    paginacionCursos?.reset();
 }
 
 document.getElementById("courseSearch")?.addEventListener("input", filtrarCursos);

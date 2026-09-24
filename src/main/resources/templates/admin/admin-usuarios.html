@@ -191,7 +191,11 @@
               </td>
               <td class="text-secondary fst-italic" th:if="${u.pendiente()}">Pendiente de activación</td>
               <td th:text="${u.correo()}">sofia.alarcon@skillbridge.com</td>
-              <td><span class="badge" th:classappend="${u.rolBadgeClase()}" th:text="${u.rolEtiqueta()}">Administrador</span></td>
+              <td>
+                <span class="badge" th:classappend="${u.rolBadgeClase()}" th:text="${u.rolEtiqueta()}">Administrador</span>
+                <div th:if="${u.rolNombre() == 'COLABORADOR'}" class="small text-secondary mt-1"
+                     th:text="${u.cargoNombre() ?: 'Sin cargo asignado'}">Backend Developer</div>
+              </td>
               <td>
                 <span class="badge" th:classappend="${u.estadoBadgeClase()}">
                   <span class="status-dot" th:classappend="${u.estadoDot()}"></span><span th:text="${u.estado()}">Activo</span>
@@ -217,6 +221,9 @@
                 <span th:if="${u.activo() and !u.pendiente() and u.rolNombre() != 'ADMINISTRADOR'}">
                   <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editRoleModal"
                           th:attr="data-user-id=${u.id()},data-user-name=${u.nombreCompleto()},data-user-role=${u.rolEtiqueta()}">Editar rol</button>
+                  <button th:if="${u.rolNombre() == 'COLABORADOR'}" type="button" class="btn btn-outline-secondary btn-sm"
+                          data-bs-toggle="modal" data-bs-target="#editCargoModal"
+                          th:attr="data-user-id=${u.id()},data-user-name=${u.nombreCompleto()},data-user-cargo=${u.cargoId() != null ? u.cargoId() : ''}">Cargo</button>
                   <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateModal"
                           th:attr="data-user-id=${u.id()},data-user-name=${u.nombreCompleto()}">Desactivar</button>
                 </span>
@@ -342,6 +349,38 @@
 </div>
 
 <!-- MODAL: EDITAR ROL -->
+<div class="modal modal-blur fade admin-modal" id="editCargoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Asignar cargo</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/usuarios/cargo}" method="post">
+      <div class="modal-body">
+        <input type="hidden" name="usuarioId" data-admin-source="userId">
+        <div class="mb-3">
+          <label class="form-label">Colaborador</label>
+          <input type="text" class="form-control" data-admin-source="userName" readonly disabled>
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="editCargoSelect">Cargo</label>
+          <select id="editCargoSelect" name="cargoId" class="form-select" data-admin-source="userCargo" required>
+            <option value="" disabled selected>Selecciona un cargo</option>
+            <option th:each="cargo : ${cargosActivos}" th:value="${cargo.id}" th:text="${cargo.nombre}"></option>
+          </select>
+          <div class="form-hint">El sueldo base se recalcula con la tarifa del cargo según el nivel de experiencia del colaborador.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar cargo</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal modal-blur fade admin-modal" id="editRoleModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">

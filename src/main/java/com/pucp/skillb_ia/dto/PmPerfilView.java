@@ -22,7 +22,7 @@ public class PmPerfilView {
     public String getNombreCompleto() { return nombreCompleto; }
     public String getIniciales() { return iniciales; }
     public String getCorreo() { return usuario.getCorreo(); }
-    public String getCargo() { return usuario.getCargo() != null ? usuario.getCargo() : "Project Manager"; }
+    public String getCargo() { return usuario.getCargo() != null ? usuario.getCargo().getNombre() : "Project Manager"; }
     public String getFotoUrl() { return usuario.getFotoUrl(); }
     public boolean isTieneFoto() { return usuario.getFotoUrl() != null && !usuario.getFotoUrl().isBlank(); }
 }

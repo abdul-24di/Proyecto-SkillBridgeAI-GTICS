@@ -67,7 +67,7 @@
               <span class="avatar profile-avatar bg-blue-lt text-blue" th:text="${asignacion.colaboradorIniciales}">CO</span>
               <div>
                 <h3 class="mb-1" th:text="${asignacion.colaboradorNombre}">Colaborador</h3>
-                <div class="text-secondary" th:text="${asignacion.asignacion.colaborador.cargo ?: 'Cargo sin registrar'}">Cargo</div>
+                <div class="text-secondary" th:text="${asignacion.asignacion.colaborador.cargo?.nombre ?: 'Cargo sin registrar'}">Cargo</div>
               </div>
             </div>
             <div class="mt-3">

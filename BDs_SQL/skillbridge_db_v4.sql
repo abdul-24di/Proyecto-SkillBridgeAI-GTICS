@@ -23,6 +23,25 @@ INSERT INTO rol (nombre) VALUES
     ('COLABORADOR');
 
 -- =====================================================================
+-- 1.5 CARGO (catálogo del Admin + matriz salarial por nivel)
+-- usuario.sueldo_base = tarifa del cargo según usuario.nivel_experiencia.
+-- =====================================================================
+CREATE TABLE cargo (
+    id                  BIGINT AUTO_INCREMENT PRIMARY KEY,
+    nombre              VARCHAR(100) NOT NULL UNIQUE,
+    sueldo_junior       DECIMAL(10,2) NULL,
+    sueldo_semi_senior  DECIMAL(10,2) NULL,
+    sueldo_senior       DECIMAL(10,2) NULL,
+    activo              BOOLEAN NOT NULL DEFAULT TRUE
+) ENGINE=InnoDB;
+
+INSERT INTO cargo (nombre, sueldo_junior, sueldo_semi_senior, sueldo_senior) VALUES
+    ('Backend Developer', 2000.00, 3500.00, 5000.00),
+    ('Frontend Developer', 1800.00, 3200.00, 4800.00),
+    ('UX Designer', 1900.00, 3300.00, 4900.00),
+    ('DevOps Engineer', 2500.00, 4000.00, 6000.00);
+
+-- =====================================================================
 -- 2. USUARIO
 -- =====================================================================
 
@@ -41,7 +60,7 @@ CREATE TABLE usuario (
     fecha_creacion              DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     
-    cargo                       VARCHAR(100)  NULL,
+    cargo_id                    BIGINT        NULL,
     horas_contratadas_semana    DECIMAL(5,2)  NULL,
     horas_disponibles           DECIMAL(5,2)  NULL,
     anios_experiencia           DECIMAL(4,1)  NULL,
@@ -51,6 +70,9 @@ CREATE TABLE usuario (
 
     CONSTRAINT fk_usuario_rol
         FOREIGN KEY (rol_id) REFERENCES rol(id),
+
+    CONSTRAINT fk_usuario_cargo
+        FOREIGN KEY (cargo_id) REFERENCES cargo(id),
 
     CONSTRAINT chk_usuario_nivel
         CHECK (
@@ -718,8 +740,10 @@ CREATE TABLE log_auditoria (
 -- =====================================================================
 
 
-INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES
+INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo_id, horas_disponibles) VALUES
   ('admin@skillbridge.com',  '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Admin',   'Sistema',  1, 1, NULL, NULL),
   ('rm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Ricardo', 'Mendez',   3, 1, NULL, NULL),
   ('pm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Pedro',   'Martinez', 2, 1, NULL, NULL),
-  ('col@skillbridge.com',    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Carlos',  'Lopez',    4, 1, 'Backend Developer', 40);
+  ('col@skillbridge.com',    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Carlos',  'Lopez',    4, 1, (SELECT id FROM cargo WHERE nombre = 'Backend Developer'), 40);
+
+

@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.repository;
 
+import com.pucp.skillb_ia.model.Cargo;
 import com.pucp.skillb_ia.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,6 +12,7 @@ import java.util.Optional;
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByCorreo(String correo);
     boolean existsByCorreo(String correo);
+    List<Usuario> findByCargo(Cargo cargo);
 
     @Query("""
             select u
@@ -26,6 +28,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             select u
             from Usuario u
             join fetch u.rol r
+            left join fetch u.cargo
             order by u.fechaCreacion desc
             """)
     List<Usuario> findAllWithRol();

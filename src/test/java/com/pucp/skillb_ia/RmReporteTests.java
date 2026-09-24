@@ -5,6 +5,8 @@ import com.pucp.skillb_ia.model.Actividad;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.Cargo;
+import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoEntrega;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
@@ -38,6 +40,7 @@ class RmReporteTests {
     @Autowired private WebApplicationContext context;
     @Autowired private RolRepository rolRepository;
     @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private CargoRepository cargoRepository;
     @Autowired private ProyectoRepository proyectoRepository;
     @Autowired private ActividadRepository actividadRepository;
     @Autowired private RmReporteService reporteService;
@@ -175,8 +178,13 @@ class RmReporteTests {
         usuario.setApellido(apellido);
         usuario.setRol(rol);
         usuario.setActivo(true);
-        usuario.setCargo(cargo);
+        if (cargo != null) usuario.setCargo(cargoDePrueba(cargo));
         usuario.setSueldoBase(cargo == null ? null : new BigDecimal("9999.00"));
         return usuarioRepository.save(usuario);
+    }
+
+    private Cargo cargoDePrueba(String nombre) {
+        return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
+                new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
     }
 }

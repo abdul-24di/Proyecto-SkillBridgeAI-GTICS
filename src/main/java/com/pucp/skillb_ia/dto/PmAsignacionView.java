@@ -23,7 +23,7 @@ public class PmAsignacionView {
         this.colaboradorNombre = nombre + " " + apellido;
         this.colaboradorIniciales = iniciales(nombre, apellido);
         this.colaboradorCargo = asignacion.getColaborador().getCargo() != null
-                ? asignacion.getColaborador().getCargo() : "Colaborador";
+                ? asignacion.getColaborador().getCargo().getNombre() : "Colaborador";
         this.origenTexto = traducirOrigen(asignacion.getOrigen());
         this.estadoTexto = traducirEstado(asignacion.getEstado());
     }

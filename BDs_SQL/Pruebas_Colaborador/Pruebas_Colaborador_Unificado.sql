@@ -5,10 +5,10 @@ USE skillbridge_db;
 -- COLABORADORES ADICIONALES (contraseña para todos: abc123, igual que Carlos)
 -- =====================================================================
 
-INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, descripcion, horas_disponibles, anios_experiencia, nivel_experiencia, fecha_contratacion) VALUES
-('maria.lopez@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'María', 'López', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, 'UX/UI Designer', 'Diseñadora UX/UI enfocada en investigación de usuarios y prototipado rápido.', 15.00, 3.0, 'SEMI_SENIOR', '2023-03-01'),
-('mallory.hulme@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Mallory', 'Hulme', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, 'Frontend Developer', 'Desarrolladora frontend enfocada en interfaces accesibles y de alto rendimiento.', 40.00, 2.0, 'JUNIOR', '2024-06-15'),
-('dunn.slane@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Dunn', 'Slane', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, 'UI/UX Designer', 'Diseñador UI/UX enfocado en sistemas de diseño y research.', 0.00, 4.0, 'SENIOR', '2022-01-10');
+INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo_id, descripcion, horas_disponibles, anios_experiencia, nivel_experiencia, fecha_contratacion) VALUES
+('maria.lopez@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'María', 'López', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, (SELECT id FROM cargo WHERE nombre='UX Designer'), 'Diseñadora UX/UI enfocada en investigación de usuarios y prototipado rápido.', 15.00, 3.0, 'SEMI_SENIOR', '2023-03-01'),
+('mallory.hulme@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Mallory', 'Hulme', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, (SELECT id FROM cargo WHERE nombre='Frontend Developer'), 'Desarrolladora frontend enfocada en interfaces accesibles y de alto rendimiento.', 40.00, 2.0, 'JUNIOR', '2024-06-15'),
+('dunn.slane@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Dunn', 'Slane', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, (SELECT id FROM cargo WHERE nombre='UX Designer'), 'Diseñador UI/UX enfocado en sistemas de diseño y research.', 0.00, 4.0, 'SENIOR', '2022-01-10');
 
 -- Completamos el perfil de Carlos (col@), que en tu seed original solo tenía cargo y horas
 UPDATE usuario
@@ -176,12 +176,12 @@ INSERT IGNORE INTO asignacion (proyecto_id, colaborador_id, horas_semanales, ori
 --    Sirve para probar que col NO puede editar/eliminar contenido ajeno,
 --    y para ser dueño de proyectos donde col no tiene asignación.
 -- ---------------------------------------------------------------------
-INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles)
+INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo_id, horas_disponibles)
 SELECT 'colaborador2@skillbridge.com',
        '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
        'Ana', 'Torres',
        (SELECT id FROM rol WHERE nombre = 'COLABORADOR' LIMIT 1),
-       1, 'Frontend Developer', 40
+       1, (SELECT id FROM cargo WHERE nombre='Frontend Developer'), 40
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM usuario WHERE correo = 'colaborador2@skillbridge.com' LIMIT 1);
 

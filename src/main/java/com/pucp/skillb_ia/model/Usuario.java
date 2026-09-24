@@ -58,8 +58,13 @@ public class Usuario {
 
     // --- Campos exclusivos de colaborador (NULL para los demás roles) ---
 
-    @Column(length = 100)
-    private String cargo;
+    // Catálogo administrado por el Admin (sin cascade: guardar un usuario nunca
+    // debe crear ni modificar un cargo). El sueldo_base se deriva de cargo + nivel.
+    // EAGER porque las vistas leen el cargo del usuario de la sesión (fuera de la
+    // sesión de Hibernate) y el catálogo es pequeño.
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "cargo_id")
+    private Cargo cargo;
 
     @Column(name = "horas_contratadas_semana", precision = 5, scale = 2)
     private BigDecimal horasContratadasSemana;
@@ -125,8 +130,8 @@ public class Usuario {
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
 
-    public String getCargo() { return cargo; }
-    public void setCargo(String cargo) { this.cargo = cargo; }
+    public Cargo getCargo() { return cargo; }
+    public void setCargo(Cargo cargo) { this.cargo = cargo; }
 
     public BigDecimal getHorasContratadasSemana() { return horasContratadasSemana; }
     public void setHorasContratadasSemana(BigDecimal horasContratadasSemana) { this.horasContratadasSemana = horasContratadasSemana; }
@@ -146,3 +151,5 @@ public class Usuario {
     public LocalDate getFechaContratacion() { return fechaContratacion; }
     public void setFechaContratacion(LocalDate fechaContratacion) { this.fechaContratacion = fechaContratacion; }
 }
+
+

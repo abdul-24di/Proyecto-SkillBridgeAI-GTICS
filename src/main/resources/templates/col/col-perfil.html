@@ -76,7 +76,7 @@
                                     <h2 class="profile-name mb-0" th:text="|${colaborador.nombre} ${colaborador.apellido}|">Nombre Apellido</h2>
                                     <span th:if="${colaborador.nivelExperiencia != null}" class="badge bg-secondary-lt" th:text="${colaborador.nivelExperiencia.name() == 'JUNIOR' ? 'Junior' : (colaborador.nivelExperiencia.name() == 'SEMI_SENIOR' ? 'Semi-Senior' : 'Senior')}">Junior</span>
                                 </div>
-                                <div class="profile-role" th:text="${colaborador.cargo != null ? colaborador.cargo : 'Sin cargo asignado'}">Backend Developer</div>
+                                <div class="profile-role" th:text="${colaborador.cargo?.nombre ?: 'Sin cargo asignado'}">Backend Developer</div>
                                 <div class="profile-status-row mt-2">
                                     <span class="status-dot" th:classappend="${(colaborador.horasDisponibles == null or colaborador.horasDisponibles.signum() <= 0) ? 'offline' : ''}"></span>
                                     <span class="fw-semibold" th:text="${(colaborador.horasDisponibles != null and colaborador.horasDisponibles.signum() > 0) ? 'Disponible' : 'No disponible'}">Disponible</span>
@@ -308,7 +308,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Cargo / puesto</label>
-                                        <input type="text" class="form-control" th:value="${colaborador.cargo}" readonly disabled>
+                                        <input type="text" class="form-control" th:value="${colaborador.cargo?.nombre}" readonly disabled>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Horas disponibles por semana</label>

@@ -12,6 +12,7 @@ import com.pucp.skillb_ia.repository.CertificadoRepository;
 import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.admin.AdminCargoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,6 +82,7 @@ public class RmCertificadoService {
 
         if (nivelGeneral != null) {
             certificado.getColaborador().setNivelExperiencia(nivelGeneral);
+            AdminCargoService.aplicarSueldoSegunCargo(certificado.getColaborador());
             usuarioRepository.save(certificado.getColaborador());
         }
 
@@ -123,6 +125,7 @@ public class RmCertificadoService {
         if (nivel == null) throw new IllegalArgumentException("Selecciona un nivel de experiencia.");
         NivelExperiencia anterior = colaborador.getNivelExperiencia();
         colaborador.setNivelExperiencia(nivel);
+        AdminCargoService.aplicarSueldoSegunCargo(colaborador);
         usuarioRepository.save(colaborador);
         auditoriaService.registrar(rm, "ACTUALIZACION_NIVEL_EXPERIENCIA", "USUARIO", colaboradorId,
                 "El RM actualizó el nivel general de " + nombreCompleto(colaborador) + ".",
@@ -143,7 +146,7 @@ public class RmCertificadoService {
                 certificado,
                 nombreCompleto(colaborador),
                 iniciales(colaborador),
-                valor(colaborador.getCargo(), "Cargo sin registrar"),
+                valor(colaborador.getCargo() != null ? colaborador.getCargo().getNombre() : null, "Cargo sin registrar"),
                 habilidad == null ? "Sin registrar" : textoEnum(habilidad.getNivelDominio().name()),
                 colaborador.getNivelExperiencia() == null
                         ? "Sin definir" : textoNivel(colaborador.getNivelExperiencia()),

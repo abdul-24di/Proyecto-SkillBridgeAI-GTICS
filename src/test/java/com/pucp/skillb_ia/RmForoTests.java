@@ -1,5 +1,7 @@
 package com.pucp.skillb_ia;
 
+import com.pucp.skillb_ia.model.Cargo;
+import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.dto.RmForoView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.*;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import java.math.BigDecimal;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -27,6 +30,7 @@ class RmForoTests {
     @Autowired private WebApplicationContext context;
     @Autowired private RolRepository rolRepository;
     @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private CargoRepository cargoRepository;
     @Autowired private ProyectoRepository proyectoRepository;
     @Autowired private ForoRepository foroRepository;
     @Autowired private EtiquetaRepository etiquetaRepository;
@@ -54,7 +58,7 @@ class RmForoTests {
 
         pm = usuario("pm.foro@skillbridge.test", "Paula", "Mora", rol("PROJECT_MANAGER"));
         colaborador = usuario("col.foro@skillbridge.test", "Carlos", "Foro", rol("COLABORADOR"));
-        colaborador.setCargo("Backend Developer");
+        colaborador.setCargo(cargoDePrueba("Backend Developer"));
         colaborador = usuarioRepository.save(colaborador);
         votante = usuario("votante.foro@skillbridge.test", "Valeria", "Voto", rol("COLABORADOR"));
 
@@ -202,5 +206,10 @@ class RmForoTests {
         usuario.setRol(rol);
         usuario.setActivo(true);
         return usuarioRepository.save(usuario);
+    }
+
+    private Cargo cargoDePrueba(String nombre) {
+        return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
+                new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
     }
 }

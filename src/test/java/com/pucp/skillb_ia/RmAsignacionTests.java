@@ -4,6 +4,8 @@ import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.Cargo;
+import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
@@ -42,6 +44,7 @@ class RmAsignacionTests {
     @Autowired private WebApplicationContext context;
     @Autowired private RolRepository rolRepository;
     @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private CargoRepository cargoRepository;
     @Autowired private ProyectoRepository proyectoRepository;
     @Autowired private AsignacionRepository asignacionRepository;
     @Autowired private RmAsignacionService asignacionService;
@@ -67,7 +70,7 @@ class RmAsignacionTests {
         pm = obtenerUsuario("pm.asignaciones@skillbridge.test", "Pedro", "PM", rolPm);
         colaborador = obtenerUsuario(
                 "col.asignaciones@skillbridge.test", "Carla", "Colaboradora", rolColaborador);
-        colaborador.setCargo("Backend Developer");
+        colaborador.setCargo(cargoDePrueba("Backend Developer"));
         colaborador.setHorasDisponibles(new BigDecimal("20.00"));
         colaborador.setHorasContratadasSemana(new BigDecimal("40.00"));
         colaborador.setSueldoBase(new BigDecimal("4800.00"));
@@ -347,5 +350,10 @@ class RmAsignacionTests {
             usuario.setRol(rol);
             return usuarioRepository.save(usuario);
         });
+    }
+
+    private Cargo cargoDePrueba(String nombre) {
+        return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
+                new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
     }
 }

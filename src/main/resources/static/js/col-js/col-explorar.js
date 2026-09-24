@@ -79,14 +79,21 @@ applyModalEl?.addEventListener("show.bs.modal", (event) => {
 
 
 
-// Al marcar/desmarcar una habilidad propia, actualizamos el campo oculto que
-// se envía al servidor con la lista separada por comas.
 document.querySelectorAll("#applySkillsWrap .apply-skill-chip").forEach(chip => {
     chip.addEventListener("click", () => {
         chip.classList.toggle("active");
         const seleccionadas = [];
         document.querySelectorAll("#applySkillsWrap .apply-skill-chip.active").forEach(c => seleccionadas.push(c.dataset.skill));
         document.getElementById("applyHabilidadesRelevantesInput").value = seleccionadas.join(", ");
+    });
+});
+
+const applySkillSearchInput = document.getElementById("applySkillSearchInput");
+applySkillSearchInput?.addEventListener("input", () => {
+    const texto = applySkillSearchInput.value.trim().toLowerCase();
+    document.querySelectorAll("#applySkillsWrap .apply-skill-chip").forEach(chip => {
+        const coincide = chip.dataset.skill.toLowerCase().includes(texto);
+        chip.style.display = coincide ? "" : "none";
     });
 });
 

@@ -93,6 +93,23 @@
     color: #303846;
 }
 
+.apply-skill-chip {
+    display: inline-block;
+    padding: .35rem .85rem;
+    border-radius: 999px;
+    border: 1px solid #d8dfe8;
+    background: #fff;
+    color: #303846;
+    font-size: .82rem;
+    cursor: pointer;
+    user-select: none;
+    transition: all .15s ease;
+}
+
+.apply-skill-chip:hover {
+    border-color: var(--tblr-primary);
+}
+
 .apply-skill-chip.active {
     color: #fff;
     background: var(--tblr-primary);

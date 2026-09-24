@@ -359,7 +359,7 @@ public class ColaboradorViewController {
     @PostMapping("/proyectos/solicitar")
     public String solicitarIncorporacion(@AuthenticationPrincipal UsuarioDetails principal,
                                          @RequestParam Long proyectoId,
-                                         @RequestParam Long habilidadId,
+                                         @RequestParam(required = false) Long habilidadId,
                                          @RequestParam(required = false) String mensaje,
                                          @RequestParam(required = false) String habilidadesRelevantes,
                                          RedirectAttributes redirectAttributes) {

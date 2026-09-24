@@ -430,6 +430,21 @@
             <div class="modal-body">
                 <input type="hidden" name="proyectoId" id="applyProyectoId">
 
+                <label class="form-label">Perfil al que deseas postularte</label>
+                <select id="applyPerfilSelect" name="habilidadId" class="form-select mb-3">
+                    <option value="" selected disabled>Selecciona un perfil...</option>
+                </select>
+
+                <label class="form-label">Habilidades</label>
+                <div class="text-secondary small mb-2">Selecciona las habilidades que consideras relevantes para este proyecto.</div>
+                <input type="text" id="applySkillSearchInput" class="form-control form-control-sm mb-2" placeholder="Buscar habilidad...">
+                <input type="hidden" name="habilidadesRelevantes" id="applyHabilidadesRelevantesInput">
+                <div id="applySkillsWrap" class="d-flex flex-wrap gap-2 mb-3">
+                    <span th:each="ch : ${misHabilidades}" class="apply-skill-chip"
+                          th:attr="data-skill=${ch.habilidad.nombre}" th:text="${ch.habilidad.nombre}"></span>
+                </div>
+                <div th:if="${misHabilidades.isEmpty()}" class="text-secondary small mb-3">Todavía no tienes habilidades registradas en tu perfil.</div>
+
                 <label class="form-label">¿Por qué te interesa participar?</label>
                 <textarea name="mensaje" id="applyMessageInput" class="form-control" rows="4" placeholder="Escribe tu respuesta..."></textarea>
             </div>

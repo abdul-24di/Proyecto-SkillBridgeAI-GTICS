@@ -356,8 +356,10 @@ public class ColaboradorPerfilService {
         }
         String nombreLimpio = nombre.trim();
 
-        Optional<Habilidad> existente =
-                habilidadRepository.findByNombreIgnoreCaseAndCategoria_Id(nombreLimpio, categoriaId);
+        // El nombre es único en todo el catálogo (no puede repetirse en otra
+        // categoría), así que la reutilizamos aunque el colaborador haya
+        // elegido una categoría distinta a la que ya tiene.
+        Optional<Habilidad> existente = habilidadRepository.findByNombreIgnoreCase(nombreLimpio);
         if (existente.isPresent()) {
             Habilidad habilidad = existente.get();
             if (!habilidad.isActiva()) {

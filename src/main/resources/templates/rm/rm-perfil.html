@@ -23,6 +23,9 @@
                 </div>
             </div>
 
+            <div class="alert alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
             <div class="row">
                 <div class="col-md-4 col-lg-3 mb-4">
                     <div class="card">
@@ -55,61 +58,71 @@
                             <h3 class="card-title">Datos de la Cuenta</h3>
                         </div>
                         <div class="card-body">
-                            <form onsubmit="event.preventDefault()">
-                                                                <div class="row g-3">
+                            <form th:action="@{/rm/perfil/foto}" method="post" enctype="multipart/form-data">
+                                <div class="row g-3">
                                     <div class="col-md-12">
                                         <label class="form-label">Foto de perfil</label>
-                                        <input type="file" id="editPhotoInput" class="form-control" name="foto" accept="image/png, image/jpeg">
+                                        <input type="file" id="editPhotoInput" class="form-control" name="foto" accept="image/png, image/jpeg" required>
                                         <div class="form-hint">Formatos JPG o PNG, máximo 2MB.</div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Nombres</label>
-                                        <input type="text" class="form-control" th:value="${rm.nombre}" readonly disabled>
+                                </div>
+                                <div class="mt-3 d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">Guardar foto</button>
+                                </div>
+                            </form>
 
-                                        <div class="form-hint">
-                                            Solo el Administrador puede modificar los nombres.
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Apellidos</label>
-                                        <input type="text" class="form-control" th:value="${rm.apellido}" readonly disabled>
+                            <hr>
 
-                                        <div class="form-hint">
-                                            Solo el Administrador puede modificar los apellidos.
-                                        </div>
-                                    </div>
-                                    <div class="col-md-12">
-                                        <label class="form-label">Correo electrónico</label>
-                                        <input type="email" class="form-control" th:value="${rm.correo}" readonly disabled>
-                                        <div class="form-hint">
-                                            El correo es tu identificador de acceso. Solo el Administrador puede modificarlo.
-                                        </div>
-                                    </div>
-                                    <div class="col-md-12">
-                                        <label class="form-label">Teléfono</label>
-                                        <input type="tel" class="form-control" name="telefono" th:value="${rm.telefono}" maxlength="20" placeholder="Ejemplo: 999 999 999" disabled>
-                                        <div class="form-hint">
-                                            Podrás actualizar este número desde tu perfil.
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-12 mt-4">
-                                        <h4 class="form-label">Seguridad</h4>
-                                        <div class="hr-text mt-0 mb-3">Cambiar contraseña</div>
-                                    </div>
-                                    
-                                    <div class="col-md-6">
-                                        <label class="form-label">Nueva Contraseña</label>
-                                        <input type="password" class="form-control" name="password" placeholder="Dejar en blanco para no cambiar">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Confirmar Contraseña</label>
-                                        <input type="password" class="form-control" name="password_confirm" placeholder="Repite la nueva contraseña">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombres</label>
+                                    <input type="text" class="form-control" th:value="${rm.nombre}" readonly disabled>
+                                    <div class="form-hint">Solo el Administrador puede modificar los nombres.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Apellidos</label>
+                                    <input type="text" class="form-control" th:value="${rm.apellido}" readonly disabled>
+                                    <div class="form-hint">Solo el Administrador puede modificar los apellidos.</div>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Correo electrónico</label>
+                                    <input type="email" class="form-control" th:value="${rm.correo}" readonly disabled>
+                                    <div class="form-hint">
+                                        El correo es tu identificador de acceso. Solo el Administrador puede modificarlo.
                                     </div>
                                 </div>
-                                <div class="mt-5 d-flex justify-content-end gap-2">
-                                    <button type="button" class="btn btn-secondary" onclick="history.back()">Cancelar</button>
-                                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                            </div>
+
+                            <form th:action="@{/rm/perfil/telefono}" method="post" class="row g-3 mt-1">
+                                <div class="col-md-12">
+                                    <label class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" name="telefono" th:value="${rm.telefono}" maxlength="20" placeholder="Ejemplo: 999 999 999">
+                                </div>
+                                <div class="col-12 d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">Guardar teléfono</button>
+                                </div>
+                            </form>
+
+                            <div class="col-12 mt-4">
+                                <h4 class="form-label">Seguridad</h4>
+                                <div class="hr-text mt-0 mb-3">Cambiar contraseña</div>
+                            </div>
+
+                            <form th:action="@{/rm/perfil/password}" method="post" class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Contraseña actual</label>
+                                    <input type="password" class="form-control" name="passwordActual" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Nueva Contraseña</label>
+                                    <input type="password" class="form-control" name="passwordNueva" minlength="6" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Confirmar Contraseña</label>
+                                    <input type="password" class="form-control" name="passwordConfirm" minlength="6" required>
+                                </div>
+                                <div class="col-12 d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
                                 </div>
                             </form>
                         </div>

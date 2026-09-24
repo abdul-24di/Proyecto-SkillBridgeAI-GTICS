@@ -61,6 +61,12 @@ public class PmViewController {
         this.usuarioRepository = usuarioRepository;
     }
 
+    // Disponible en el modelo de todas las páginas de este controlador (topbar).
+    @org.springframework.web.bind.annotation.ModelAttribute("pm")
+    public Usuario pm(@AuthenticationPrincipal UsuarioDetails principal) {
+        return principal != null ? principal.getUsuario() : null;
+    }
+
     // ═══════════════════════════════════════════════════════════
     // INDEX
     // ═══════════════════════════════════════════════════════════

@@ -204,6 +204,63 @@
       </div>
     </div>
 
+    <div class="card section-card mt-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Categorías</h3>
+          <div class="section-description">Agrupan las habilidades del catálogo (Técnico, Herramientas, etc.).</div>
+        </div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
+          Nueva categoría
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Categoría</th>
+              <th>Descripción</th>
+              <th>Habilidades</th>
+              <th>Estado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="c : ${todasCategorias}" th:classappend="${!c.activa()} ? 'opacity-75' : ''">
+              <td><span class="badge" th:classappend="${c.badgeClase()}" th:text="${c.nombre()}">Técnico</span></td>
+              <td class="text-secondary" th:text="${c.descripcion() != null ? c.descripcion() : '—'}">—</td>
+              <td th:text="${c.habilidades()}">12</td>
+              <td>
+                <span class="badge" th:classappend="${c.activa()} ? 'bg-green-lt' : 'bg-secondary-lt'">
+                  <span class="status-dot" th:classappend="${c.activa()} ? 'bg-green' : 'bg-secondary'"></span><span th:text="${c.activa()} ? 'Activa' : 'Desactivada'">Activa</span>
+                </span>
+              </td>
+              <td class="text-end">
+                <span th:if="${c.activa()}">
+                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
+                          th:attr="data-category-id=${c.id()},data-category-name=${c.nombre()},data-category-description=${c.descripcion()}">Editar</button>
+                  <form th:action="@{/admin/habilidades/categorias/desactivar}" method="post" class="d-inline">
+                    <input type="hidden" name="categoriaId" th:value="${c.id()}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Desactivar</button>
+                  </form>
+                </span>
+                <span th:if="${!c.activa()}">
+                  <form th:action="@{/admin/habilidades/categorias/reactivar}" method="post" class="d-inline">
+                    <input type="hidden" name="categoriaId" th:value="${c.id()}">
+                    <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                  </form>
+                </span>
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(todasCategorias)}">
+              <td colspan="5" class="text-center text-secondary py-4">No hay categorías registradas todavía.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -286,6 +343,63 @@
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
         <button type="submit" class="btn btn-danger">Confirmar desactivación</button>
       </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVA CATEGORÍA -->
+<div class="modal modal-blur fade admin-modal" id="newCategoryModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nueva categoría</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/habilidades/categorias}" method="post">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="newCategoryName">Nombre</label>
+            <input id="newCategoryName" name="nombre" type="text" class="form-control" placeholder="Ej. Idiomas" required>
+          </div>
+          <div class="mb-1">
+            <label class="form-label" for="newCategoryDescription">Descripción (opcional)</label>
+            <textarea id="newCategoryDescription" name="descripcion" class="form-control" rows="2" maxlength="300"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear categoría</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR CATEGORÍA -->
+<div class="modal modal-blur fade admin-modal" id="editCategoryModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar categoría</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/habilidades/categorias/editar}" method="post">
+        <div class="modal-body">
+          <input type="hidden" name="categoriaId" data-admin-source="categoryId">
+          <div class="mb-3">
+            <label class="form-label" for="editCategoryName">Nombre</label>
+            <input id="editCategoryName" name="nombre" type="text" class="form-control" data-admin-source="categoryName" required>
+          </div>
+          <div class="mb-1">
+            <label class="form-label" for="editCategoryDescription">Descripción (opcional)</label>
+            <textarea id="editCategoryDescription" name="descripcion" class="form-control" rows="2" maxlength="300" data-admin-source="categoryDescription"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        </div>
       </form>
     </div>
   </div>

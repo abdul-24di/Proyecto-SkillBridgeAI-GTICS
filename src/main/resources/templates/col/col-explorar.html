@@ -157,6 +157,7 @@
                             <span th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas and !v.tieneHorasSuficientes}" class="badge bg-red-lt">Ojo: no tienes suficientes horas disponibles declaradas en tu perfil</span>
                             <span th:if="${!v.yaTieneSolicitud and !v.postulacionesAbiertas}" class="badge bg-secondary-lt">Postulaciones cerradas</span>
                             <button th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas}" type="button" class="btn btn-primary btn-sm" data-open-apply
+                                    data-bs-toggle="modal" data-bs-target="#applyModal"
                                     th:attr="data-project-id=${v.proyecto.id},data-project-name=${v.proyecto.nombre}">Postularme</button>
                         </div>
 

@@ -51,32 +51,33 @@ projectSearchInput?.addEventListener("input", aplicarFiltrosProyectos);
 projectStatusFilter?.addEventListener("change", aplicarFiltrosProyectos);
 projectApplicationsFilter?.addEventListener("change", aplicarFiltrosProyectos);
 
-document.querySelectorAll("#projectAccordion [data-open-apply]").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        document.getElementById("applyModalTitle").textContent = "Postulación al " + btn.dataset.projectName;
-        document.getElementById("applyProyectoId").value = btn.dataset.projectId;
-        document.getElementById("applyMessageInput").value = "";
-        document.getElementById("applyHabilidadesRelevantesInput").value = "";
 
-        // Copiamos las opciones de perfil (habilidades con cupo) de ESTE
-        // proyecto hacia el <select> del modal — cada proyecto tiene las suyas.
-        const item = btn.closest(".project-accordion-item");
-        const plantilla = item.querySelector(".perfil-options-template");
-        const select = document.getElementById("applyPerfilSelect");
-        select.innerHTML = '<option value="" selected disabled>Selecciona un perfil...</option>';
-        if (plantilla) {
-            select.append(plantilla.content.cloneNode(true));
-        }
+const applyModalEl = document.getElementById("applyModal");
 
-        // Reiniciamos los chips de habilidades marcadas de una postulación anterior.
-        document.querySelectorAll("#applySkillsWrap .apply-skill-chip").forEach(chip => chip.classList.remove("active"));
+applyModalEl?.addEventListener("show.bs.modal", (event) => {
+    const btn = event.relatedTarget;
+    if (!btn) return;
 
-        const modalEl = document.getElementById("applyModal");
-        const Modal = window.bootstrap?.Modal || window.tabler?.bootstrap?.Modal;
-        Modal.getOrCreateInstance(modalEl).show();
-    });
+    document.getElementById("applyModalTitle").textContent = "Postulación al " + btn.dataset.projectName;
+    document.getElementById("applyProyectoId").value = btn.dataset.projectId;
+    document.getElementById("applyMessageInput").value = "";
+    document.getElementById("applyHabilidadesRelevantesInput").value = "";
+
+    // Copiamos las opciones de perfil (habilidades con cupo) de ESTE
+    // proyecto hacia el <select> del modal — cada proyecto tiene las suyas.
+    const item = btn.closest(".project-accordion-item");
+    const plantilla = item.querySelector(".perfil-options-template");
+    const select = document.getElementById("applyPerfilSelect");
+    select.innerHTML = '<option value="" selected disabled>Selecciona un perfil...</option>';
+    if (plantilla) {
+        select.append(plantilla.content.cloneNode(true));
+    }
+
+    // Reiniciamos los chips de habilidades marcadas de una postulación anterior.
+    document.querySelectorAll("#applySkillsWrap .apply-skill-chip").forEach(chip => chip.classList.remove("active"));
 });
+
+
 
 // Al marcar/desmarcar una habilidad propia, actualizamos el campo oculto que
 // se envía al servidor con la lista separada por comas.

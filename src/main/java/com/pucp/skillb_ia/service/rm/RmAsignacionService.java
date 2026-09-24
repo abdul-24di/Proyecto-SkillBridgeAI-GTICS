@@ -21,6 +21,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class RmAsignacionService {
@@ -78,6 +80,25 @@ public class RmAsignacionService {
         return asignacionRepository.findByColaboradorIdConDetalle(colaborador.getId()).stream()
                 .map(asignacion -> crearVista(asignacion, maxAsignaciones))
                 .toList();
+    }
+
+    // Ids de colaboradores que ya tienen una asignación pendiente o activa en el
+    // proyecto: no se les puede proponer otra (ver proponerDesdeRm).
+    @Transactional(readOnly = true)
+    public Set<Long> colaboradoresConAsignacionVigente(Proyecto proyecto) {
+        return asignacionRepository.findByProyecto(proyecto).stream()
+                .filter(a -> a.getEstado() == EstadoAsignacion.PENDIENTE || a.getEstado() == EstadoAsignacion.ACTIVA)
+                .map(a -> a.getColaborador().getId())
+                .collect(Collectors.toSet());
+    }
+
+    // Ids de proyectos donde el colaborador ya tiene una asignación pendiente o activa.
+    @Transactional(readOnly = true)
+    public Set<Long> proyectosConAsignacionVigente(Long colaboradorId) {
+        return asignacionRepository.findByColaboradorIdConDetalle(colaboradorId).stream()
+                .filter(a -> a.getEstado() == EstadoAsignacion.PENDIENTE || a.getEstado() == EstadoAsignacion.ACTIVA)
+                .map(a -> a.getProyecto().getId())
+                .collect(Collectors.toSet());
     }
 
     @Transactional(readOnly = true)

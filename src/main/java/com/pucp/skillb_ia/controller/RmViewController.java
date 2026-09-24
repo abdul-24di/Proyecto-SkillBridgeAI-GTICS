@@ -334,10 +334,25 @@ public class RmViewController {
             model.addAttribute("proyecto", proyecto);
             model.addAttribute("candidatos",
                     rmColaboradorConsultaService.listarCandidatosParaProyecto(proyecto.getProyecto()));
+            model.addAttribute("colaboradoresConAsignacion",
+                    rmAsignacionService.colaboradoresConAsignacionVigente(proyecto.getProyecto()));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/proyectos?noEncontrado=true";
         }
         return "rm/rm-buscar-colaboradores-proyecto";
+    }
+
+    // Contenido del modal "Ver perfil" en Buscar colaboradores (se carga por AJAX).
+    @GetMapping("/colaboradores/perfil-modal")
+    public String collaboratorProfileModal(@RequestParam(name = "id") Long colaboradorId, Model model) {
+        try {
+            model.addAttribute("colaborador", rmColaboradorConsultaService.obtenerDetalle(colaboradorId));
+            model.addAttribute("sueldoColaborador",
+                    rmColaboradorConsultaService.mapaSueldosBase().get(colaboradorId));
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("perfilError", ex.getMessage());
+        }
+        return "fragments/rm-asignacion-modales :: perfilColaborador";
     }
 
     @GetMapping({"/proyectos/proponer-asignacion", "/rm-proponer-asignacion.html"})
@@ -366,6 +381,7 @@ public class RmViewController {
             @RequestParam("horasSemanales") BigDecimal horasSemanales,
             @RequestParam(name = "justificacion", required = false) String justificacion,
             @RequestParam(name = "motivoCapacidad", required = false) String motivoCapacidad,
+            @RequestParam(name = "origen", required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
@@ -378,6 +394,13 @@ public class RmViewController {
             return "redirect:/rm/asignaciones";
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            // Si la propuesta vino de un modal, se vuelve a la pantalla de origen.
+            if ("buscar".equals(origen)) {
+                return "redirect:/rm/proyectos/buscar-colaboradores?proyectoId=" + proyectoId;
+            }
+            if ("perfil".equals(origen)) {
+                return "redirect:/rm/colaboradores/perfil?id=" + colaboradorId;
+            }
             return "redirect:/rm/proyectos/proponer-asignacion?proyectoId=" + proyectoId
                     + "&colaboradorId=" + colaboradorId;
         }
@@ -419,6 +442,16 @@ public class RmViewController {
             RmColaboradorDetalle colaborador =
                     rmColaboradorConsultaService.obtenerDetalle(colaboradorId);
             model.addAttribute("colaborador", colaborador);
+            // Datos para el modal "Proponer asignación": proyectos que aceptan
+            // colaboradores (activos o en espera) y el sueldo para estimar el costo.
+            model.addAttribute("proyectosAsignables", rmProyectoConsultaService.listar().stream()
+                    .filter(p -> p.getProyecto().getEstado() == EstadoProyecto.ACTIVO
+                            || p.getProyecto().getEstado() == EstadoProyecto.EN_ESPERA)
+                    .toList());
+            model.addAttribute("proyectosConAsignacion",
+                    rmAsignacionService.proyectosConAsignacionVigente(colaboradorId));
+            model.addAttribute("sueldoColaborador",
+                    rmColaboradorConsultaService.mapaSueldosBase().get(colaboradorId));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/colaboradores?noEncontrado=true";
         }

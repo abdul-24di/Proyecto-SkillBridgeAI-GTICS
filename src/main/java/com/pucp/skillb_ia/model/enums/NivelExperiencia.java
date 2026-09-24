@@ -1,7 +1,7 @@
 package com.pucp.skillb_ia.model.enums;
 
 // usuario.nivel_experiencia (chk_usuario_nivel) — solo aplica a colaboradores.
-// Informativo (C14): no afecta valor_hora, sueldo_base ni ningún cálculo de la Épica 9.
+// Junto con el cargo del colaborador define su sueldo_base (ver Cargo.sueldoPara).
 public enum NivelExperiencia {
     JUNIOR,
     SEMI_SENIOR,

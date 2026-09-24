@@ -6,6 +6,7 @@ import com.pucp.skillb_ia.service.AdminConfiguracionService;
 import com.pucp.skillb_ia.service.AdminHabilidadService;
 import com.pucp.skillb_ia.service.AdminPerfilService;
 import com.pucp.skillb_ia.service.AdminUsuarioService;
+import com.pucp.skillb_ia.service.admin.AdminCargoService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -28,6 +30,7 @@ public class AdminViewController {
 
     private final AdminUsuarioService adminUsuarioService;
     private final AdminHabilidadService adminHabilidadService;
+    private final AdminCargoService adminCargoService;
     private final AdminConfiguracionService adminConfiguracionService;
     private final AdminAuditoriaService adminAuditoriaService;
     private final AdminPerfilService adminPerfilService;
@@ -35,11 +38,13 @@ public class AdminViewController {
     public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
                                 AdminConfiguracionService adminConfiguracionService,
                                 AdminAuditoriaService adminAuditoriaService,
-                                AdminPerfilService adminPerfilService) {
+                                AdminPerfilService adminPerfilService,
+                                AdminCargoService adminCargoService) {
         this.adminUsuarioService = adminUsuarioService;
         this.adminHabilidadService = adminHabilidadService;
         this.adminConfiguracionService = adminConfiguracionService;
         this.adminAuditoriaService = adminAuditoriaService;
+        this.adminCargoService = adminCargoService;
         this.adminPerfilService = adminPerfilService;
     }
 
@@ -84,7 +89,21 @@ public class AdminViewController {
         model.addAttribute("resumen", adminUsuarioService.resumen());
         model.addAttribute("rolesDisponibles", AdminUsuarioService.etiquetasRoles());
         model.addAttribute("rolesAsignables", AdminUsuarioService.etiquetasRolesAsignables());
+        model.addAttribute("cargosActivos", adminCargoService.listarCargosActivos());
         return "admin/admin-usuarios";
+    }
+
+    @PostMapping("/usuarios/cargo")
+    public String asignarCargoUsuario(@RequestParam Long usuarioId, @RequestParam Long cargoId,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            adminUsuarioService.asignarCargo(usuarioId, cargoId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el cargo del colaborador.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/usuarios";
     }
 
     @PostMapping("/usuarios")
@@ -185,6 +204,7 @@ public class AdminViewController {
         model.addAttribute("resumen", adminHabilidadService.resumen());
         model.addAttribute("categorias", adminHabilidadService.listarCategoriasActivas());
         model.addAttribute("todasCategorias", adminHabilidadService.listarCategorias());
+        model.addAttribute("cargos", adminCargoService.listarTodosLosCargos());
         return "admin/admin-habilidades";
     }
 
@@ -293,6 +313,59 @@ public class AdminViewController {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
         return "redirect:/admin/habilidades";
+    }
+
+    // ============================================================
+    // CARGOS Y MATRIZ SALARIAL (Épica 5) — pestaña de admin-habilidades
+    // ============================================================
+
+    private static final String REDIRECT_CARGOS = "redirect:/admin/habilidades?tab=cargos";
+
+    @PostMapping("/cargos/crear")
+    public String crearCargo(@RequestParam String nombre,
+                             @RequestParam(required = false) BigDecimal sueldoJunior,
+                             @RequestParam(required = false) BigDecimal sueldoSemiSenior,
+                             @RequestParam(required = false) BigDecimal sueldoSenior,
+                             @AuthenticationPrincipal UsuarioDetails principal,
+                             RedirectAttributes redirectAttributes) {
+        try {
+            adminCargoService.crear(nombre, sueldoJunior, sueldoSemiSenior, sueldoSenior, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el cargo \"" + nombre.strip() + "\".");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return REDIRECT_CARGOS;
+    }
+
+    @PostMapping("/cargos/editar")
+    public String editarCargo(@RequestParam Long id,
+                              @RequestParam(required = false) BigDecimal sueldoJunior,
+                              @RequestParam(required = false) BigDecimal sueldoSemiSenior,
+                              @RequestParam(required = false) BigDecimal sueldoSenior,
+                              @AuthenticationPrincipal UsuarioDetails principal,
+                              RedirectAttributes redirectAttributes) {
+        try {
+            int recalculados = adminCargoService.editarTarifas(id, sueldoJunior, sueldoSemiSenior, sueldoSenior,
+                    principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizaron las tarifas del cargo"
+                    + (recalculados > 0 ? " y se recalculó el sueldo de " + recalculados + " colaborador(es)." : "."));
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return REDIRECT_CARGOS;
+    }
+
+    @PostMapping("/cargos/alternar")
+    public String alternarCargo(@RequestParam Long id,
+                                @AuthenticationPrincipal UsuarioDetails principal,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            boolean activo = adminCargoService.alternarEstado(id, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", activo ? "Se reactivó el cargo." : "Se desactivó el cargo.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return REDIRECT_CARGOS;
     }
 
     // ============================================================

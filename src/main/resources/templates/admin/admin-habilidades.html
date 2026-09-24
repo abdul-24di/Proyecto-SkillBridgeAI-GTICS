@@ -51,14 +51,11 @@
 
     <div class="page-head page-head-stack-mobile page-head-button-mobile">
       <div>
-        <h1 class="page-title">Catálogo de Habilidades</h1>
+        <h1 class="page-title">Catálogo de Habilidades y Cargos</h1>
         <div class="text-secondary">
-          Administra las habilidades técnicas y blandas disponibles para el perfil de los colaboradores.
+          Administra las habilidades técnicas, blandas, y los cargos con sus tarifas salariales.
         </div>
       </div>
-      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newSkillModal">
-        Nueva habilidad
-      </button>
     </div>
 
     <div class="row row-cards mb-4">
@@ -120,155 +117,247 @@
       </div>
     </div>
 
-    <div class="card section-card">
-      <div class="card-header section-header">
-        <div>
-          <h3 class="card-title mb-1">Habilidades registradas</h3>
-          <div class="section-description">Estas habilidades alimentan el perfil de colaboradores, el buscador del RM y el AI Talent Matching.</div>
-        </div>
+    <!-- ======================== PESTAÑAS ======================== -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs">
+          <li class="nav-item">
+            <a href="#tabs-habilidades" class="nav-link" th:classappend="${param.tab == null or param.tab[0] != 'cargos'} ? 'active'" data-bs-toggle="tab">Habilidades y Categorías</a>
+          </li>
+          <li class="nav-item">
+            <a href="#tabs-cargos" class="nav-link" th:classappend="${param.tab != null and param.tab[0] == 'cargos'} ? 'active'" data-bs-toggle="tab">Cargos y Matriz Salarial</a>
+          </li>
+        </ul>
       </div>
+      <div class="card-body p-0">
+        <div class="tab-content">
 
-      <div class="card-body border-bottom">
-        <div class="row g-3 align-items-end">
-          <div class="col-xl-5 col-md-6">
-            <label for="skillSearch" class="form-label">Buscar habilidad</label>
-            <input id="skillSearch" class="form-control" type="text" placeholder="Ej. Java, Scrum, AWS...">
-          </div>
-          <div class="col-xl-3 col-md-6">
-            <label for="skillCategoryFilter" class="form-label">Categoría</label>
-            <select id="skillCategoryFilter" class="form-select">
-              <option value="all">Todas</option>
-              <option th:each="cat : ${categorias}" th:value="${cat.nombre}" th:text="${cat.nombre}"></option>
-            </select>
-          </div>
-          <div class="col-xl-2 col-md-6">
-            <label for="skillStatusFilter" class="form-label">Estado</label>
-            <select id="skillStatusFilter" class="form-select">
-              <option value="all">Todas</option>
-              <option value="Activa">Activas</option>
-              <option value="Desactivada">Desactivadas</option>
-            </select>
-          </div>
-          <div class="col-xl-2 d-grid">
-            <button type="button" id="clearSkillFiltersBtn" class="btn btn-outline-secondary">Limpiar</button>
-          </div>
-        </div>
-      </div>
+          <!-- ============ TAB 1: HABILIDADES Y CATEGORÍAS ============ -->
+          <div class="tab-pane" th:classappend="${param.tab == null or param.tab[0] != 'cargos'} ? 'active show'" id="tabs-habilidades">
 
-      <div class="table-responsive">
-        <table class="table table-vcenter card-table mb-0">
-          <thead>
-            <tr>
-              <th>Habilidad</th>
-              <th>Categoría</th>
-              <th>Colaboradores</th>
-              <th>Estado</th>
-              <th class="text-end">Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="skillsTableBody">
-            <tr th:each="h : ${habilidades}" th:classappend="${!h.activa()} ? 'opacity-75' : ''"
-                th:attr="data-search=${#strings.toLowerCase(h.nombre())},data-category=${h.categoriaNombre()},data-status=${h.activa() ? 'Activa' : 'Desactivada'}">
-              <td class="fw-semibold" th:text="${h.nombre()}">Java</td>
-              <td><span class="badge" th:classappend="${h.categoriaBadgeClase()}" th:text="${h.categoriaNombre()}">Técnico</span></td>
-              <td th:text="${h.colaboradores()}">32</td>
-              <td>
-                <span class="badge" th:classappend="${h.activa()} ? 'bg-green-lt' : 'bg-secondary-lt'">
-                  <span class="status-dot" th:classappend="${h.activa()} ? 'bg-green' : 'bg-secondary'"></span><span th:text="${h.activa()} ? 'Activa' : 'Desactivada'">Activa</span>
-                </span>
-              </td>
-              <td class="text-end">
-                <span th:if="${h.activa()}">
-                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSkillModal"
-                          th:attr="data-skill-id=${h.id()},data-skill-name=${h.nombre()},data-skill-category=${h.categoriaId()}">Editar</button>
-                  <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateSkillModal"
-                          th:attr="data-skill-id=${h.id()},data-skill-name=${h.nombre()}">Desactivar</button>
-                </span>
-                <span th:if="${!h.activa()}">
-                  <form th:action="@{/admin/habilidades/reactivar}" method="post" class="d-inline">
-                    <input type="hidden" name="habilidadId" th:value="${h.id()}">
-                    <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
-                  </form>
-                </span>
-              </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(habilidades)}">
-              <td colspan="5" class="text-center text-secondary py-4">No hay habilidades registradas todavía.</td>
-            </tr>
-            <tr id="skillNoResults" class="d-none" th:if="${!#lists.isEmpty(habilidades)}">
-              <td colspan="5" class="text-center text-secondary py-4">Ninguna habilidad coincide con los filtros aplicados.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+            <!-- Sección: Habilidades -->
+            <div class="card section-card border-0 shadow-none mb-0">
+              <div class="card-header section-header">
+                <div>
+                  <h3 class="card-title mb-1">Habilidades registradas</h3>
+                  <div class="section-description">Estas habilidades alimentan el perfil de colaboradores, el buscador del RM y el AI Talent Matching.</div>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newSkillModal">
+                  Nueva habilidad
+                </button>
+              </div>
 
-      <div class="pagination-wrap">
-        <div id="skillPaginationInfo" class="text-secondary small">Mostrando habilidades</div>
-        <ul id="skillPagination" class="pagination pagination-sm m-0"></ul>
-      </div>
-    </div>
+              <div class="card-body border-bottom">
+                <div class="row g-3 align-items-end">
+                  <div class="col-xl-5 col-md-6">
+                    <label for="skillSearch" class="form-label">Buscar habilidad</label>
+                    <input id="skillSearch" class="form-control" type="text" placeholder="Ej. Java, Scrum, AWS...">
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <label for="skillCategoryFilter" class="form-label">Categoría</label>
+                    <select id="skillCategoryFilter" class="form-select">
+                      <option value="all">Todas</option>
+                      <option th:each="cat : ${categorias}" th:value="${cat.nombre}" th:text="${cat.nombre}"></option>
+                    </select>
+                  </div>
+                  <div class="col-xl-2 col-md-6">
+                    <label for="skillStatusFilter" class="form-label">Estado</label>
+                    <select id="skillStatusFilter" class="form-select">
+                      <option value="all">Todas</option>
+                      <option value="Activa">Activas</option>
+                      <option value="Desactivada">Desactivadas</option>
+                    </select>
+                  </div>
+                  <div class="col-xl-2 d-grid">
+                    <button type="button" id="clearSkillFiltersBtn" class="btn btn-outline-secondary">Limpiar</button>
+                  </div>
+                </div>
+              </div>
 
-    <div class="card section-card mt-4">
-      <div class="card-header section-header">
-        <div>
-          <h3 class="card-title mb-1">Categorías</h3>
-          <div class="section-description">Agrupan las habilidades del catálogo (Técnico, Herramientas, etc.).</div>
-        </div>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
-          Nueva categoría
-        </button>
-      </div>
+              <div class="table-responsive">
+                <table class="table table-vcenter card-table mb-0">
+                  <thead>
+                    <tr>
+                      <th>Habilidad</th>
+                      <th>Categoría</th>
+                      <th>Colaboradores</th>
+                      <th>Estado</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="skillsTableBody">
+                    <tr th:each="h : ${habilidades}" th:classappend="${!h.activa()} ? 'opacity-75' : ''"
+                        th:attr="data-search=${#strings.toLowerCase(h.nombre())},data-category=${h.categoriaNombre()},data-status=${h.activa() ? 'Activa' : 'Desactivada'}">
+                      <td class="fw-semibold" th:text="${h.nombre()}">Java</td>
+                      <td><span class="badge" th:classappend="${h.categoriaBadgeClase()}" th:text="${h.categoriaNombre()}">Técnico</span></td>
+                      <td th:text="${h.colaboradores()}">32</td>
+                      <td>
+                        <span class="badge" th:classappend="${h.activa()} ? 'bg-green-lt' : 'bg-secondary-lt'">
+                          <span class="status-dot" th:classappend="${h.activa()} ? 'bg-green' : 'bg-secondary'"></span><span th:text="${h.activa()} ? 'Activa' : 'Desactivada'">Activa</span>
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <span th:if="${h.activa()}">
+                          <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editSkillModal"
+                                  th:attr="data-skill-id=${h.id()},data-skill-name=${h.nombre()},data-skill-category=${h.categoriaId()}">Editar</button>
+                          <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateSkillModal"
+                                  th:attr="data-skill-id=${h.id()},data-skill-name=${h.nombre()}">Desactivar</button>
+                        </span>
+                        <span th:if="${!h.activa()}">
+                          <form th:action="@{/admin/habilidades/reactivar}" method="post" class="d-inline">
+                            <input type="hidden" name="habilidadId" th:value="${h.id()}">
+                            <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                          </form>
+                        </span>
+                      </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(habilidades)}">
+                      <td colspan="5" class="text-center text-secondary py-4">No hay habilidades registradas todavía.</td>
+                    </tr>
+                    <tr id="skillNoResults" class="d-none" th:if="${!#lists.isEmpty(habilidades)}">
+                      <td colspan="5" class="text-center text-secondary py-4">Ninguna habilidad coincide con los filtros aplicados.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-      <div class="table-responsive">
-        <table class="table table-vcenter card-table mb-0">
-          <thead>
-            <tr>
-              <th>Categoría</th>
-              <th>Descripción</th>
-              <th>Habilidades</th>
-              <th>Estado</th>
-              <th class="text-end">Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="categoriesTableBody">
-            <tr th:each="c : ${todasCategorias}" th:classappend="${!c.activa()} ? 'opacity-75' : ''" data-category-row
-              <td><span class="badge" th:classappend="${c.badgeClase()}" th:text="${c.nombre()}">Técnico</span></td>
-              <td class="text-secondary" th:text="${c.descripcion() != null ? c.descripcion() : '—'}">—</td>
-              <td th:text="${c.habilidades()}">12</td>
-              <td>
-                <span class="badge" th:classappend="${c.activa()} ? 'bg-green-lt' : 'bg-secondary-lt'">
-                  <span class="status-dot" th:classappend="${c.activa()} ? 'bg-green' : 'bg-secondary'"></span><span th:text="${c.activa()} ? 'Activa' : 'Desactivada'">Activa</span>
-                </span>
-              </td>
-              <td class="text-end">
-                <span th:if="${c.activa()}">
-                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
-                          th:attr="data-category-id=${c.id()},data-category-name=${c.nombre()},data-category-description=${c.descripcion()}">Editar</button>
-                  <form th:action="@{/admin/habilidades/categorias/desactivar}" method="post" class="d-inline">
-                    <input type="hidden" name="categoriaId" th:value="${c.id()}">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">Desactivar</button>
-                  </form>
-                </span>
-                <span th:if="${!c.activa()}">
-                  <form th:action="@{/admin/habilidades/categorias/reactivar}" method="post" class="d-inline">
-                    <input type="hidden" name="categoriaId" th:value="${c.id()}">
-                    <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
-                  </form>
-                </span>
-              </td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(todasCategorias)}">
-              <td colspan="5" class="text-center text-secondary py-4">No hay categorías registradas todavía.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              <div class="pagination-wrap">
+                <div id="skillPaginationInfo" class="text-secondary small">Mostrando habilidades</div>
+                <ul id="skillPagination" class="pagination pagination-sm m-0"></ul>
+              </div>
+            </div>
 
-      <div class="pagination-wrap">
-        <div id="categoryPaginationInfo" class="text-secondary small">Mostrando categorías</div>
-        <ul id="categoryPagination" class="pagination pagination-sm m-0"></ul>
-      </div>
-    </div>
+            <!-- Sección: Categorías -->
+            <div class="card section-card mt-4 border-0 shadow-none mb-0">
+              <div class="card-header section-header">
+                <div>
+                  <h3 class="card-title mb-1">Categorías</h3>
+                  <div class="section-description">Agrupan las habilidades del catálogo (Técnico, Herramientas, etc.).</div>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCategoryModal">
+                  Nueva categoría
+                </button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-vcenter card-table mb-0">
+                  <thead>
+                    <tr>
+                      <th>Categoría</th>
+                      <th>Descripción</th>
+                      <th>Habilidades</th>
+                      <th>Estado</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="categoriesTableBody">
+                    <tr th:each="c : ${todasCategorias}" th:classappend="${!c.activa()} ? 'opacity-75' : ''" data-category-row>
+                      <td><span class="badge" th:classappend="${c.badgeClase()}" th:text="${c.nombre()}">Técnico</span></td>
+                      <td class="text-secondary" th:text="${c.descripcion() != null ? c.descripcion() : '—'}">—</td>
+                      <td th:text="${c.habilidades()}">12</td>
+                      <td>
+                        <span class="badge" th:classappend="${c.activa()} ? 'bg-green-lt' : 'bg-secondary-lt'">
+                          <span class="status-dot" th:classappend="${c.activa()} ? 'bg-green' : 'bg-secondary'"></span><span th:text="${c.activa()} ? 'Activa' : 'Desactivada'">Activa</span>
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <span th:if="${c.activa()}">
+                          <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
+                                  th:attr="data-category-id=${c.id()},data-category-name=${c.nombre()},data-category-description=${c.descripcion()}">Editar</button>
+                          <form th:action="@{/admin/habilidades/categorias/desactivar}" method="post" class="d-inline">
+                            <input type="hidden" name="categoriaId" th:value="${c.id()}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Desactivar</button>
+                          </form>
+                        </span>
+                        <span th:if="${!c.activa()}">
+                          <form th:action="@{/admin/habilidades/categorias/reactivar}" method="post" class="d-inline">
+                            <input type="hidden" name="categoriaId" th:value="${c.id()}">
+                            <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                          </form>
+                        </span>
+                      </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(todasCategorias)}">
+                      <td colspan="5" class="text-center text-secondary py-4">No hay categorías registradas todavía.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="pagination-wrap">
+                <div id="categoryPaginationInfo" class="text-secondary small">Mostrando categorías</div>
+                <ul id="categoryPagination" class="pagination pagination-sm m-0"></ul>
+              </div>
+            </div>
+
+          </div><!-- fin tab-pane habilidades -->
+
+          <!-- ============ TAB 2: CARGOS Y TARIFAS ============ -->
+          <div class="tab-pane" th:classappend="${param.tab != null and param.tab[0] == 'cargos'} ? 'active show'" id="tabs-cargos">
+            <div class="card section-card border-0 shadow-none mb-0">
+              <div class="card-header section-header">
+                <div>
+                  <h3 class="card-title mb-1">Cargos y Tarifas Salariales</h3>
+                  <div class="section-description">Administra los roles base y las tarifas salariales aplicadas según el nivel de experiencia de cada colaborador.</div>
+                </div>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCargoModal">
+                  Nuevo Cargo
+                </button>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-vcenter card-table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Cargo</th>
+                      <th>Tarifa Junior</th>
+                      <th>Tarifa Semi-Senior</th>
+                      <th>Tarifa Senior</th>
+                      <th>Estado</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="cargo : ${cargos}" th:classappend="${!cargo.activo} ? 'opacity-75' : ''">
+                      <td><strong th:text="${cargo.nombre}">Backend Developer</strong></td>
+                      <td th:text="'S/ ' + ${cargo.sueldoJunior}">S/ 2000.00</td>
+                      <td th:text="'S/ ' + ${cargo.sueldoSemiSenior}">S/ 3500.00</td>
+                      <td th:text="'S/ ' + ${cargo.sueldoSenior}">S/ 5000.00</td>
+                      <td>
+                        <span class="badge" th:classappend="${cargo.activo} ? 'bg-green-lt' : 'bg-secondary-lt'">
+                          <span class="status-dot" th:classappend="${cargo.activo} ? 'bg-green' : 'bg-secondary'"></span>
+                          <span th:text="${cargo.activo} ? 'Activo' : 'Inactivo'">Activo</span>
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <span th:if="${cargo.activo}">
+                          <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editCargoModal"
+                                  th:attr="data-cargo-id=${cargo.id}, data-cargo-nombre=${cargo.nombre}, data-cargo-junior=${cargo.sueldoJunior}, data-cargo-semisenior=${cargo.sueldoSemiSenior}, data-cargo-senior=${cargo.sueldoSenior}">Editar</button>
+                          <form th:action="@{/admin/cargos/alternar}" method="post" class="d-inline">
+                            <input type="hidden" name="id" th:value="${cargo.id}">
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Desactivar</button>
+                          </form>
+                        </span>
+                        <span th:if="${!cargo.activo}">
+                          <form th:action="@{/admin/cargos/alternar}" method="post" class="d-inline">
+                            <input type="hidden" name="id" th:value="${cargo.id}">
+                            <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                          </form>
+                        </span>
+                      </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(cargos)}">
+                      <td colspan="6" class="text-center text-secondary py-4">No hay cargos registrados.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div><!-- fin tab-pane cargos -->
+
+        </div><!-- fin tab-content -->
+      </div><!-- fin card-body -->
+    </div><!-- fin card pestañas -->
 
   </main>
 </div>
@@ -408,6 +497,86 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO CARGO -->
+<div class="modal modal-blur fade admin-modal" id="newCargoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nuevo Cargo y Matriz Salarial</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/cargos/crear}" method="post">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="newCargoName">Nombre del Cargo</label>
+            <input id="newCargoName" name="nombre" type="text" class="form-control" placeholder="Ej. Arquitecto de Software" required>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="newCargoJunior">Tarifa Junior (S/)</label>
+              <input id="newCargoJunior" name="sueldoJunior" type="number" step="0.01" min="0.01" class="form-control" required>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="newCargoSemiSenior">Tarifa Semi-Senior (S/)</label>
+              <input id="newCargoSemiSenior" name="sueldoSemiSenior" type="number" step="0.01" min="0.01" class="form-control" required>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="newCargoSenior">Tarifa Senior (S/)</label>
+              <input id="newCargoSenior" name="sueldoSenior" type="number" step="0.01" min="0.01" class="form-control" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear Cargo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR CARGO -->
+<div class="modal modal-blur fade admin-modal" id="editCargoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar Tarifas del Cargo</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/cargos/editar}" method="post">
+        <div class="modal-body">
+          <div class="alert alert-info">
+            Al guardar, los sueldos de todos los colaboradores con este cargo se actualizarán automáticamente según su nivel de experiencia.
+          </div>
+          <input type="hidden" name="id" data-admin-source="cargoId">
+          <div class="mb-3">
+            <label class="form-label" for="editCargoName">Nombre del Cargo</label>
+            <input id="editCargoName" name="nombre" type="text" class="form-control" data-admin-source="cargoNombre" required readonly>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="editCargoJunior">Tarifa Junior (S/)</label>
+              <input id="editCargoJunior" name="sueldoJunior" type="number" step="0.01" min="0.01" class="form-control" data-admin-source="cargoJunior" required>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="editCargoSemiSenior">Tarifa Semi-Senior (S/)</label>
+              <input id="editCargoSemiSenior" name="sueldoSemiSenior" type="number" step="0.01" min="0.01" class="form-control" data-admin-source="cargoSemisenior" required>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="editCargoSenior">Tarifa Senior (S/)</label>
+              <input id="editCargoSenior" name="sueldoSenior" type="number" step="0.01" min="0.01" class="form-control" data-admin-source="cargoSenior" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Actualizar Tarifas</button>
         </div>
       </form>
     </div>

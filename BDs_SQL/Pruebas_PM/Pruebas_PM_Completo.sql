@@ -1,9 +1,9 @@
 SET SQL_SAFE_UPDATES = 0;
 
 -- 1. Asegurar que haya usuarios extra para probar asignaciones
-INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo, horas_disponibles) VALUES
-('colab1.pm@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Laura', 'Gomez', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, 'Frontend Developer', 40),
-('colab2.pm@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Diego', 'Perez', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, 'Backend Developer', 40);
+INSERT IGNORE INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, cargo_id, horas_disponibles) VALUES
+('colab1.pm@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Laura', 'Gomez', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, (SELECT id FROM cargo WHERE nombre='Frontend Developer'), 40),
+('colab2.pm@skillbridge.com', '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Diego', 'Perez', (SELECT id FROM rol WHERE nombre='COLABORADOR' LIMIT 1), 1, (SELECT id FROM cargo WHERE nombre='Backend Developer'), 40);
 
 -- 2. Proyectos del PM principal (pm@skillbridge.com) en varios estados
 -- EN_REVISION (esperando al RM)

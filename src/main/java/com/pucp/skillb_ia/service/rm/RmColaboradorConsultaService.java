@@ -177,7 +177,7 @@ public class RmColaboradorConsultaService {
                 nombreCompleto(colaborador),
                 iniciales(colaborador),
                 colaborador.getFotoUrl(),
-                valorOAlternativa(colaborador.getCargo(), "Cargo sin registrar"),
+                valorOAlternativa(colaborador.getCargo() != null ? colaborador.getCargo().getNombre() : null, "Cargo sin registrar"),
                 nivel == null ? "Sin definir" : textoNivel(nivel),
                 nivelCodigo,
                 habilidades,

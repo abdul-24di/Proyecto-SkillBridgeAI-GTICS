@@ -144,7 +144,7 @@ public class RmReporteService {
             MutableDetalle detalle = agrupados.computeIfAbsent(clave,
                     ignorada -> new MutableDetalle(
                             colaborador.getId(), nombreCompleto(colaborador),
-                            valor(colaborador.getCargo(), "Cargo sin registrar"),
+                            valor(colaborador.getCargo() != null ? colaborador.getCargo().getNombre() : null, "Cargo sin registrar"),
                             proyecto.getId(), proyecto.getNombre()));
             detalle.horas = detalle.horas.add(actividad.getHorasEstimadas());
             detalle.tareas++;

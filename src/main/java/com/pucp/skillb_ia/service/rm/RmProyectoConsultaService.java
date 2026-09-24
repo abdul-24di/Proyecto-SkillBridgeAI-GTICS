@@ -99,7 +99,7 @@ public class RmProyectoConsultaService {
                 usuario.getId(),
                 nombreCompleto(usuario),
                 iniciales(usuario),
-                valor(usuario.getCargo(), "Cargo sin registrar"),
+                valor(usuario.getCargo() != null ? usuario.getCargo().getNombre() : null, "Cargo sin registrar"),
                 nivel,
                 asignacion.getHorasSemanales(),
                 costo.costoSemanal(),

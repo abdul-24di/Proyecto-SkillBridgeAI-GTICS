@@ -53,12 +53,24 @@ AS nuevo
 ON DUPLICATE KEY UPDATE nombre = nuevo.nombre;
 
 -- --------------------------------------------------------------------------
+-- 1.5 Cargos usados por los colaboradores demo
+-- Si el cargo ya existe se conservan sus tarifas actuales.
+-- --------------------------------------------------------------------------
+INSERT INTO cargo (nombre, sueldo_junior, sueldo_semi_senior, sueldo_senior) VALUES
+    ('Backend Developer', 2000.00, 3500.00, 5000.00),
+    ('DevOps Engineer', 2500.00, 4000.00, 6000.00),
+    ('Cloud Engineer', 5000.00, 8000.00, 11000.00),
+    ('Data Analyst', 4800.00, 6500.00, 8500.00)
+AS nuevo
+ON DUPLICATE KEY UPDATE nombre = nuevo.nombre;
+
+-- --------------------------------------------------------------------------
 -- 2. Usuarios de demostracion
 -- La contrasena BCrypt de todos estos usuarios es: abc123
 -- --------------------------------------------------------------------------
 INSERT INTO usuario (
     correo, password_hash, nombre, apellido, telefono, descripcion,
-    rol_id, activo, cargo, horas_contratadas_semana, horas_disponibles,
+    rol_id, activo, cargo_id, horas_contratadas_semana, horas_disponibles,
     sueldo_base, anios_experiencia, nivel_experiencia, fecha_contratacion
 ) VALUES
 (
@@ -87,28 +99,28 @@ INSERT INTO usuario (
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Carla', 'Rojas', '999333444', 'Especialista backend para datos de prueba.',
     (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
-    TRUE, 'Backend Developer', 40.00, 16.00, 7600.00, 5.0, 'SENIOR', '2023-03-20'
+    TRUE, (SELECT id FROM cargo WHERE nombre = 'Backend Developer'), 40.00, 16.00, 7600.00, 5.0, 'SENIOR', '2023-03-20'
 ),
 (
     'demo.colaborador2@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Diego', 'Salazar', '999444555', 'Especialista cloud para datos de prueba.',
     (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
-    TRUE, 'Cloud Engineer', 40.00, 20.00, 8000.00, 4.0, 'SEMI_SENIOR', '2023-08-10'
+    TRUE, (SELECT id FROM cargo WHERE nombre = 'Cloud Engineer'), 40.00, 20.00, 8000.00, 4.0, 'SEMI_SENIOR', '2023-08-10'
 ),
 (
     'demo.colaborador3@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Elena', 'Torres', '999555666', 'Analista de datos para datos de prueba.',
     (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
-    TRUE, 'Data Analyst', 40.00, 32.00, 4800.00, 2.0, 'JUNIOR', '2024-05-06'
+    TRUE, (SELECT id FROM cargo WHERE nombre = 'Data Analyst'), 40.00, 32.00, 4800.00, 2.0, 'JUNIOR', '2024-05-06'
 ),
 (
     'demo.colaborador4@skillbridge.local',
     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom',
     'Mateo', 'Vega', '999666777', 'Especialista DevOps con sueldo alto para probar el bloqueo presupuestario.',
     (SELECT id FROM rol WHERE nombre = 'COLABORADOR'),
-    TRUE, 'DevOps Engineer', 40.00, 40.00, 10000.00, 6.0, 'SENIOR', '2022-11-14'
+    TRUE, (SELECT id FROM cargo WHERE nombre = 'DevOps Engineer'), 40.00, 40.00, 10000.00, 6.0, 'SENIOR', '2022-11-14'
 ) AS nuevo
 ON DUPLICATE KEY UPDATE
     password_hash = nuevo.password_hash,
@@ -118,7 +130,7 @@ ON DUPLICATE KEY UPDATE
     descripcion = nuevo.descripcion,
     rol_id = nuevo.rol_id,
     activo = TRUE,
-    cargo = nuevo.cargo,
+    cargo_id = nuevo.cargo_id,
     horas_contratadas_semana = nuevo.horas_contratadas_semana,
     horas_disponibles = nuevo.horas_disponibles,
     sueldo_base = nuevo.sueldo_base,
@@ -1249,3 +1261,6 @@ LEFT JOIN colaborador_curso cc ON cc.curso_id = c.id
 LEFT JOIN usuario u ON u.id = cc.colaborador_id
 WHERE c.nombre LIKE '[DEMO]%'
 ORDER BY c.nombre, colaborador;
+
+
+

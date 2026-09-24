@@ -5,6 +5,8 @@ import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.Cargo;
+import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
@@ -36,6 +38,7 @@ class RmCursoTests {
     @Autowired private WebApplicationContext context;
     @Autowired private RolRepository rolRepository;
     @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private CargoRepository cargoRepository;
     @Autowired private CursoRepository cursoRepository;
     @Autowired private ColaboradorCursoRepository colaboradorCursoRepository;
     @Autowired private NotificacionRepository notificacionRepository;
@@ -224,8 +227,13 @@ class RmCursoTests {
         usuario.setNombre(nombre);
         usuario.setApellido(apellido);
         usuario.setRol(rol);
-        usuario.setCargo(cargo);
+        if (cargo != null) usuario.setCargo(cargoDePrueba(cargo));
         usuario.setActivo(true);
         return usuarioRepository.save(usuario);
+    }
+
+    private Cargo cargoDePrueba(String nombre) {
+        return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
+                new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
     }
 }

@@ -34,6 +34,15 @@ añade el campo donde se conserva el motivo de rechazo o asignación directa y
 puede ejecutarse nuevamente sin duplicarlo. Una instalación nueva que ejecute
 el `skillbridge_db_v4.sql` actualizado no necesita esta migración.
 
+El cargo del colaborador ahora es un catálogo (`cargo`) con tarifas por nivel
+(Junior / Semi-Senior / Senior) que administra el Admin en
+*Habilidades → Cargos y Matriz Salarial*. El `sueldo_base` se calcula con la
+tarifa del cargo según el nivel del colaborador y se recalcula al cambiar las
+tarifas, el cargo o el nivel. Una base creada antes de este cambio (con
+`usuario.cargo` como texto) debe ejecutar una sola vez
+[`BDs_SQL/migracion_cargos.sql`](BDs_SQL/migracion_cargos.sql); los textos de
+cargo existentes se conservan como cargos sin tarifa.
+
 Las fotos y los certificados que suben los colaboradores se guardan en la
 carpeta indicada por `UPLOAD_DIR`. En la nube esta variable debe apuntar a un
 directorio escribible y persistente; si se usa el almacenamiento temporal de

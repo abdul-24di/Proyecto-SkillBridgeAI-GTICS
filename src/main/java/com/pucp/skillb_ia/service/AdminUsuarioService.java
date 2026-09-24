@@ -1,9 +1,12 @@
 package com.pucp.skillb_ia.service;
 
+import com.pucp.skillb_ia.model.Cargo;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.service.admin.AdminCargoService;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
@@ -69,7 +72,8 @@ public class AdminUsuarioService {
     public record UsuarioFila(Long id, String nombreCompleto, String iniciales, String correo,
                                String rolNombre, String rolEtiqueta, String rolBadgeClase,
                                String estado, String estadoBadgeClase, String estadoDot,
-                               boolean pendiente, boolean activo, String fechaCreacion) {
+                               boolean pendiente, boolean activo, String fechaCreacion,
+                               Long cargoId, String cargoNombre) {
     }
 
     public record ResumenUsuarios(long total, long pendientes, long activos, long inactivos) {
@@ -81,13 +85,16 @@ public class AdminUsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
+    private final CargoRepository cargoRepository;
     private final AuthService authService;
     private final AuditoriaService auditoriaService;
 
     public AdminUsuarioService(UsuarioRepository usuarioRepository, RolRepository rolRepository,
+                                CargoRepository cargoRepository,
                                 AuthService authService, AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
+        this.cargoRepository = cargoRepository;
         this.authService = authService;
         this.auditoriaService = auditoriaService;
     }
@@ -137,6 +144,31 @@ public class AdminUsuarioService {
 
         auditoriaService.registrar(admin, "CAMBIAR_ROL", "USUARIO", usuario.getId(),
                 "Cambió el rol de " + usuario.getCorreo() + ".", rolAnterior, nuevoRolNombre, null);
+    }
+
+    // El cargo solo aplica a colaboradores. Al asignarlo se recalcula su sueldo
+    // base con la tarifa del cargo para su nivel de experiencia (si ya lo tiene).
+    @Transactional
+    public void asignarCargo(Long usuarioId, Long cargoId, Usuario admin) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        if (!"COLABORADOR".equals(usuario.getRol().getNombre())) {
+            throw new IllegalArgumentException("Solo se puede asignar un cargo a colaboradores.");
+        }
+        Cargo cargo = cargoRepository.findById(cargoId)
+                .orElseThrow(() -> new IllegalArgumentException("Cargo no encontrado."));
+        if (!cargo.isActivo()) {
+            throw new IllegalArgumentException("El cargo \"" + cargo.getNombre() + "\" está desactivado.");
+        }
+
+        String anterior = usuario.getCargo() != null ? usuario.getCargo().getNombre() : null;
+        usuario.setCargo(cargo);
+        AdminCargoService.aplicarSueldoSegunCargo(usuario);
+        usuarioRepository.save(usuario);
+
+        auditoriaService.registrar(admin, "ASIGNAR_CARGO", "USUARIO", usuario.getId(),
+                "Asignó el cargo \"" + cargo.getNombre() + "\" a " + usuario.getCorreo() + ".",
+                anterior, cargo.getNombre(), null);
     }
 
     @Transactional
@@ -335,6 +367,8 @@ public class AdminUsuarioService {
                 rolNombre, ROL_A_ETIQUETA.getOrDefault(rolNombre, rolNombre),
                 ROL_A_BADGE.getOrDefault(rolNombre, "bg-secondary-lt text-secondary"),
                 estado, estadoBadge, estadoDot, pendiente, u.isActivo(),
-                u.getFechaCreacion() != null ? u.getFechaCreacion().format(FECHA_FORMATO) : "");
+                u.getFechaCreacion() != null ? u.getFechaCreacion().format(FECHA_FORMATO) : "",
+                u.getCargo() != null ? u.getCargo().getId() : null,
+                u.getCargo() != null ? u.getCargo().getNombre() : null);
     }
 }

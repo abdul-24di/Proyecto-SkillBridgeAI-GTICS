@@ -1,5 +1,7 @@
 package com.pucp.skillb_ia;
 
+import com.pucp.skillb_ia.model.Cargo;
+import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.*;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import java.math.BigDecimal;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,6 +33,7 @@ class RmCertificadoTests {
     @Autowired private WebApplicationContext context;
     @Autowired private RolRepository rolRepository;
     @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private CargoRepository cargoRepository;
     @Autowired private CategoriaHabilidadRepository categoriaRepository;
     @Autowired private HabilidadRepository habilidadRepository;
     @Autowired private ColaboradorHabilidadRepository colaboradorHabilidadRepository;
@@ -51,7 +55,7 @@ class RmCertificadoTests {
                 obtenerRol("RESOURCE_MANAGER"));
         colaborador = obtenerUsuario("col.certificados@skillbridge.test", "Carlos", "Prueba",
                 obtenerRol("COLABORADOR"));
-        colaborador.setCargo("Backend Developer");
+        colaborador.setCargo(cargoDePrueba("Backend Developer"));
         colaborador.setNivelExperiencia(NivelExperiencia.JUNIOR);
         colaborador = usuarioRepository.save(colaborador);
 
@@ -204,5 +208,10 @@ class RmCertificadoTests {
             Usuario usuario = new Usuario(); usuario.setCorreo(correo); usuario.setNombre(nombre);
             usuario.setApellido(apellido); usuario.setRol(rol); return usuarioRepository.save(usuario);
         });
+    }
+
+    private Cargo cargoDePrueba(String nombre) {
+        return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
+                new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
     }
 }

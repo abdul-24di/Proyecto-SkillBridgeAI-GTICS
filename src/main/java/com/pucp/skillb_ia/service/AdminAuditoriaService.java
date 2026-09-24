@@ -51,6 +51,7 @@ public class AdminAuditoriaService {
         ENTIDAD_A_ETIQUETA.put("USUARIO", "Gestión de usuarios");
         ENTIDAD_A_ETIQUETA.put("HABILIDAD", "Catálogo de habilidades");
         ENTIDAD_A_ETIQUETA.put("CATEGORIA_HABILIDAD", "Categorías de habilidades");
+        ENTIDAD_A_ETIQUETA.put("CARGO", "Cargos y tarifas");
         ENTIDAD_A_ETIQUETA.put("COLABORADOR_HABILIDAD", "Habilidades de colaborador");
         ENTIDAD_A_ETIQUETA.put("CONFIGURACION", "Configuración");
         ENTIDAD_A_ETIQUETA.put("ASIGNACION", "Asignaciones");
@@ -89,6 +90,13 @@ public class AdminAuditoriaService {
         ACCION_A_ETIQUETA.put("EDITAR_CATEGORIA", "Editó categoría");
         ACCION_A_ETIQUETA.put("DESACTIVAR_CATEGORIA", "Desactivó categoría");
         ACCION_A_ETIQUETA.put("REACTIVAR_CATEGORIA", "Reactivó categoría");
+
+        // Cargos y matriz salarial
+        ACCION_A_ETIQUETA.put("CREAR_CARGO", "Creó cargo");
+        ACCION_A_ETIQUETA.put("EDITAR_CARGO", "Editó tarifas de cargo");
+        ACCION_A_ETIQUETA.put("DESACTIVAR_CARGO", "Desactivó cargo");
+        ACCION_A_ETIQUETA.put("REACTIVAR_CARGO", "Reactivó cargo");
+        ACCION_A_ETIQUETA.put("ASIGNAR_CARGO", "Asignó cargo");
         ACCION_A_ETIQUETA.put("AGREGAR_HABILIDAD", "Agregó habilidad a su perfil");
         ACCION_A_ETIQUETA.put("ELIMINAR_HABILIDAD", "Eliminó habilidad de su perfil");
 

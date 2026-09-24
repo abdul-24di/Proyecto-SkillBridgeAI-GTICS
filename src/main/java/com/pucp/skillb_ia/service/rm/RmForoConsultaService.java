@@ -161,7 +161,7 @@ public class RmForoConsultaService {
     }
 
     private String cargoAutor(Usuario usuario) {
-        if (usuario.getCargo() != null && !usuario.getCargo().isBlank()) return usuario.getCargo();
+        if (usuario.getCargo() != null) return usuario.getCargo().getNombre();
         return switch (usuario.getRol().getNombre()) {
             case "PROJECT_MANAGER" -> "Project Manager";
             case "RESOURCE_MANAGER" -> "Resource Manager";

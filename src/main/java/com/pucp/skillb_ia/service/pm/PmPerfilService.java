@@ -49,7 +49,7 @@ public class PmPerfilService {
         if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("El nombre no puede estar vacío.");
         pm.setNombre(nombre.strip());
         pm.setApellido(apellido != null ? apellido.strip() : pm.getApellido());
-        pm.setCargo(cargo != null && !cargo.isBlank() ? cargo.strip() : pm.getCargo());
+        // pm.setCargo() ya no es editable desde el formulario de perfil, controlado por Admin
         usuarioRepository.save(pm);
         auditoriaService.registrar(pm, "ACTUALIZAR_PERFIL", "USUARIO", pm.getId(),
                 "PM actualizó sus datos personales.");

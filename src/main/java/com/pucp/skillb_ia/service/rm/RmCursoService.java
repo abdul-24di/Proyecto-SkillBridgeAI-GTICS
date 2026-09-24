@@ -110,7 +110,7 @@ public class RmCursoService {
         return usuarioRepository.findActivosByRolNombre(ROL_COLABORADOR).stream()
                 .map(usuario -> new RmCursoView.ColaboradorOpcion(
                         usuario.getId(), nombreCompleto(usuario),
-                        valor(usuario.getCargo(), "Cargo sin registrar")))
+                        valor(usuario.getCargo() != null ? usuario.getCargo().getNombre() : null, "Cargo sin registrar")))
                 .toList();
     }
 
@@ -250,7 +250,7 @@ public class RmCursoService {
         Curso curso = item.getCurso();
         return new RmCursoView.InscripcionItem(
                 item.getId(), colaborador.getId(), nombreCompleto(colaborador),
-                iniciales(colaborador), valor(colaborador.getCargo(), "Cargo sin registrar"),
+                iniciales(colaborador), valor(colaborador.getCargo() != null ? colaborador.getCargo().getNombre() : null, "Cargo sin registrar"),
                 curso.getId(), curso.getNombre(), valor(curso.getCategoria(), "Sin categoría"),
                 curso.getHoras(), item.getOrigen().name(), textoOrigen(item.getOrigen()),
                 item.getEstado().name(), textoEstado(item.getEstado()), claseEstado(item.getEstado()),
@@ -264,7 +264,7 @@ public class RmCursoService {
 
     private String textoBusqueda(ColaboradorCurso item) {
         return normalizar(nombreCompleto(item.getColaborador()) + " "
-                + valor(item.getColaborador().getCargo(), "") + " "
+                + valor(item.getColaborador().getCargo() != null ? item.getColaborador().getCargo().getNombre() : null, "") + " "
                 + item.getCurso().getNombre() + " " + valor(item.getCurso().getCategoria(), ""));
     }
 

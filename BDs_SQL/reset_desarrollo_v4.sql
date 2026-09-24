@@ -17,6 +17,6 @@ DROP TABLE IF EXISTS log_auditoria, configuracion_sistema, notificacion,
     nomina_mensual, penalizacion, colaborador_curso, curso, actividad,
     asignacion, proyecto_habilidad_requerida, proyecto, certificado,
     colaborador_habilidad, habilidad, categoria_habilidad,
-    experiencia_profesional, token_usuario, usuario, rol;
+    experiencia_profesional, token_usuario, usuario, cargo, rol;
 
 SET FOREIGN_KEY_CHECKS = 1;

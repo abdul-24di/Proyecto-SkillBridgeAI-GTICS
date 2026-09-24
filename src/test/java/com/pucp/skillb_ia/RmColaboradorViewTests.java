@@ -2,6 +2,8 @@ package com.pucp.skillb_ia;
 
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.Cargo;
+import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.model.enums.NivelExperiencia;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
@@ -33,6 +35,7 @@ class RmColaboradorViewTests {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+    @Autowired private CargoRepository cargoRepository;
 
     private MockMvc mockMvc;
     private Long colaboradorId;
@@ -54,7 +57,7 @@ class RmColaboradorViewTests {
                     nuevoColaborador.setCorreo("colaborador.vista@skillbridge.test");
                     nuevoColaborador.setNombre("María");
                     nuevoColaborador.setApellido("Prueba");
-                    nuevoColaborador.setCargo("Backend Developer");
+                    nuevoColaborador.setCargo(cargoDePrueba("Backend Developer"));
                     nuevoColaborador.setRol(rol);
                     nuevoColaborador.setActivo(true);
                     nuevoColaborador.setNivelExperiencia(NivelExperiencia.SEMI_SENIOR);
@@ -80,5 +83,10 @@ class RmColaboradorViewTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("rm/rm-perfil-colaborador"))
                 .andExpect(model().attributeExists("colaborador"));
+    }
+
+    private Cargo cargoDePrueba(String nombre) {
+        return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
+                new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
     }
 }

@@ -16,7 +16,8 @@
    ========================================================= */
 
 .summary-card {
-  min-height: 118px;
+  width: 100%;
+  min-height: 150px;
 
   border:
     1px solid #e3e7ee;
@@ -27,6 +28,21 @@
   transition:
     transform .18s ease,
     box-shadow .18s ease;
+}
+
+.summary-cards > [class*="col-"] {
+  display: flex;
+}
+
+.summary-card .card-body {
+  width: 100%;
+  min-height: inherit;
+  padding: .85rem 1rem;
+}
+
+.summary-content {
+  min-width: 0;
+  align-self: stretch;
 }
 
 .summary-card:hover {
@@ -52,6 +68,11 @@
 }
 
 .summary-label {
+  min-height: 2.5em;
+
+  display: flex;
+  align-items: flex-end;
+
   color: #64748b;
 
   font-size: .73rem;
@@ -62,6 +83,10 @@
   letter-spacing: .025em;
 
   text-transform: uppercase;
+}
+
+.summary-description {
+  min-height: 2.5em;
 }
 
 .summary-number {

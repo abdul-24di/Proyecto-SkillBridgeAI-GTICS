@@ -91,6 +91,12 @@ public class RmViewController {
         this.rmPresupuestoService = rmPresupuestoService;
     }
 
+    // Disponible en el modelo de todas las páginas de este controlador (topbar).
+    @org.springframework.web.bind.annotation.ModelAttribute("rm")
+    public Usuario rm(@AuthenticationPrincipal UsuarioDetails principal) {
+        return principal != null ? principal.getUsuario() : null;
+    }
+
     @GetMapping({"", "/"})
     public String index() {
         return "redirect:/rm/dashboard";
@@ -953,5 +959,49 @@ public class RmViewController {
 
         return "rm/rm-perfil";
 
+    }
+
+    @PostMapping("/perfil/telefono")
+    public String actualizarTelefonoRm(@RequestParam(value = "telefono", required = false) String telefono,
+                                        @AuthenticationPrincipal UsuarioDetails principal,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            rmPerfilService.actualizarTelefono(telefono, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Teléfono actualizado correctamente.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/rm/perfil";
+    }
+
+    @PostMapping("/perfil/foto")
+    public String actualizarFotoRm(@RequestParam("foto") org.springframework.web.multipart.MultipartFile foto,
+                                    @AuthenticationPrincipal UsuarioDetails principal,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            rmPerfilService.actualizarFoto(foto, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Foto de perfil actualizada.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/rm/perfil";
+    }
+
+    @PostMapping("/perfil/password")
+    public String actualizarPasswordRm(@RequestParam("passwordActual") String passwordActual,
+                                        @RequestParam("passwordNueva") String passwordNueva,
+                                        @RequestParam("passwordConfirm") String passwordConfirm,
+                                        @AuthenticationPrincipal UsuarioDetails principal,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            if (!passwordNueva.equals(passwordConfirm)) {
+                throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
+            }
+            rmPerfilService.actualizarPassword(passwordActual, passwordNueva, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Contraseña actualizada correctamente.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/rm/perfil";
     }
 }

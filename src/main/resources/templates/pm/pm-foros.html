@@ -25,7 +25,7 @@
             </div>
 
             <div class="row row-cards">
-                <div th:each="foro : ${foros}" class="col-md-6 col-lg-4">
+                <div th:each="foro : ${foros}" class="col-md-6 col-lg-4 pm-foro-item">
                     <div class="card card-link-pop">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
@@ -41,7 +41,7 @@
                                 <a th:href="@{/pm/foro/detalle(proyectoId=${foro.proyectoId})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
                             </div>
                             <div class="mt-3 small text-secondary" th:if="${foro.tienePublicaciones}">
-                                Última act: <strong th:text="${foro.ultimaPublicacionTitulo}">Título</strong> 
+                                Última act: <strong th:text="${foro.ultimaPublicacionTitulo}">Título</strong>
                                 <span th:text="${#temporals.format(foro.ultimaPublicacionFecha, 'dd MMM yyyy')}"></span>
                             </div>
                             <div class="mt-3 small text-secondary" th:unless="${foro.tienePublicaciones}">
@@ -55,10 +55,17 @@
                     No tienes proyectos activos con foros asignados aún.
                 </div>
             </div>
+
+            <div class="pagination-wrap">
+                <div id="forosPaginationInfo" class="text-secondary small">Mostrando foros</div>
+                <ul id="forosPagination" class="pagination pagination-sm m-0"></ul>
+            </div>
         </div>
     </main>
 
 </div>
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
+<script src="../../static/js/pm-js/pm-foros.js" th:src="@{/js/pm-js/pm-foros.js}"></script>
 </body>
 </html>

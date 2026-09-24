@@ -50,6 +50,7 @@ public class AdminAuditoriaService {
     static {
         ENTIDAD_A_ETIQUETA.put("USUARIO", "Gestión de usuarios");
         ENTIDAD_A_ETIQUETA.put("HABILIDAD", "Catálogo de habilidades");
+        ENTIDAD_A_ETIQUETA.put("CATEGORIA_HABILIDAD", "Categorías de habilidades");
         ENTIDAD_A_ETIQUETA.put("COLABORADOR_HABILIDAD", "Habilidades de colaborador");
         ENTIDAD_A_ETIQUETA.put("CONFIGURACION", "Configuración");
         ENTIDAD_A_ETIQUETA.put("ASIGNACION", "Asignaciones");
@@ -84,6 +85,10 @@ public class AdminAuditoriaService {
         ACCION_A_ETIQUETA.put("EDITAR_HABILIDAD", "Editó habilidad");
         ACCION_A_ETIQUETA.put("DESACTIVAR_HABILIDAD", "Desactivó habilidad");
         ACCION_A_ETIQUETA.put("REACTIVAR_HABILIDAD", "Reactivó habilidad");
+        ACCION_A_ETIQUETA.put("CREAR_CATEGORIA", "Creó categoría");
+        ACCION_A_ETIQUETA.put("EDITAR_CATEGORIA", "Editó categoría");
+        ACCION_A_ETIQUETA.put("DESACTIVAR_CATEGORIA", "Desactivó categoría");
+        ACCION_A_ETIQUETA.put("REACTIVAR_CATEGORIA", "Reactivó categoría");
         ACCION_A_ETIQUETA.put("AGREGAR_HABILIDAD", "Agregó habilidad a su perfil");
         ACCION_A_ETIQUETA.put("ELIMINAR_HABILIDAD", "Eliminó habilidad de su perfil");
 
@@ -147,6 +152,11 @@ public class AdminAuditoriaService {
     public record FiltrosAuditoria(String texto, String rol, String accion, LocalDate desde, LocalDate hasta) {
     }
 
+    public static final int TAMANIO_PAGINA = 15;
+
+    public record PaginaLogs(List<LogFila> filas, int paginaActual, int totalPaginas, long totalRegistros) {
+    }
+
     private final LogAuditoriaRepository logAuditoriaRepository;
 
     public AdminAuditoriaService(LogAuditoriaRepository logAuditoriaRepository) {
@@ -167,6 +177,23 @@ public class AdminAuditoriaService {
                 .filter(f -> filtros.desde() == null || !f.fechaSolo().isBefore(filtros.desde()))
                 .filter(f -> filtros.hasta() == null || !f.fechaSolo().isAfter(filtros.hasta()))
                 .toList();
+    }
+
+    // El listado completo ya se filtra en memoria (ver comentario en el
+    // repository); aquí solo se le agrega el corte de página encima, sin
+    // tocar los filtros. `listar(filtros)` se mantiene intacto para CSV/Excel,
+    // que sí necesitan exportar todo lo filtrado, no solo la página visible.
+    @Transactional(readOnly = true)
+    public PaginaLogs listarPagina(FiltrosAuditoria filtros, int pagina) {
+        List<LogFila> todas = listar(filtros);
+        int totalPaginas = Math.max(1, (int) Math.ceil(todas.size() / (double) TAMANIO_PAGINA));
+        int paginaActual = Math.min(Math.max(1, pagina), totalPaginas);
+
+        int desde = (paginaActual - 1) * TAMANIO_PAGINA;
+        int hasta = Math.min(desde + TAMANIO_PAGINA, todas.size());
+        List<LogFila> filas = desde < hasta ? todas.subList(desde, hasta) : List.of();
+
+        return new PaginaLogs(filas, paginaActual, totalPaginas, todas.size());
     }
 
     @Transactional(readOnly = true)

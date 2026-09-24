@@ -13,9 +13,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-// Épica 5 (Catálogo de habilidades). Las categorías son un catálogo fijo
-// (igual que `rol`) — el Admin solo administra las habilidades dentro de
-// ellas, no crea categorías nuevas desde la UI.
+// Épica 5 (Catálogo de habilidades). El Admin administra tanto las
+// habilidades como sus categorías.
 @Service
 public class AdminHabilidadService {
 
@@ -28,6 +27,10 @@ public class AdminHabilidadService {
 
     public record HabilidadFila(Long id, String nombre, String categoriaId, String categoriaNombre,
                                  String categoriaBadgeClase, long colaboradores, boolean activa) {
+    }
+
+    public record CategoriaFila(Long id, String nombre, String descripcion, String badgeClase,
+                                 long habilidades, boolean activa) {
     }
 
     public record ResumenHabilidades(long activas, long categorias, long desactivadas,
@@ -54,6 +57,84 @@ public class AdminHabilidadService {
         return categoriaHabilidadRepository.findByActivaTrue().stream()
                 .sorted(Comparator.comparing(CategoriaHabilidad::getNombre))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoriaFila> listarCategorias() {
+        return categoriaHabilidadRepository.findAll().stream()
+                .sorted(Comparator.comparing(CategoriaHabilidad::getNombre))
+                .map(c -> new CategoriaFila(c.getId(), c.getNombre(), c.getDescripcion(),
+                        CATEGORIA_A_BADGE.getOrDefault(c.getNombre(), "bg-secondary-lt text-secondary"),
+                        habilidadRepository.countByCategoria_Id(c.getId()), c.isActiva()))
+                .toList();
+    }
+
+    @Transactional
+    public void crearCategoria(String nombre, String descripcion, Usuario admin) {
+        String nombreLimpio = nombre != null ? nombre.trim() : "";
+        if (nombreLimpio.isEmpty()) {
+            throw new IllegalArgumentException("El nombre de la categoría no puede estar vacío.");
+        }
+        if (categoriaHabilidadRepository.findByNombreIgnoreCase(nombreLimpio).isPresent()) {
+            throw new IllegalArgumentException("Ya existe la categoría \"" + nombreLimpio + "\".");
+        }
+
+        CategoriaHabilidad categoria = new CategoriaHabilidad();
+        categoria.setNombre(nombreLimpio);
+        categoria.setDescripcion(descripcion != null && !descripcion.isBlank() ? descripcion.trim() : null);
+        categoria.setActiva(true);
+        categoria = categoriaHabilidadRepository.save(categoria);
+
+        auditoriaService.registrar(admin, "CREAR_CATEGORIA", "CATEGORIA_HABILIDAD", categoria.getId(),
+                "Creó la categoría \"" + nombreLimpio + "\".");
+    }
+
+    @Transactional
+    public void editarCategoria(Long categoriaId, String nombre, String descripcion, Usuario admin) {
+        String nombreLimpio = nombre != null ? nombre.trim() : "";
+        if (nombreLimpio.isEmpty()) {
+            throw new IllegalArgumentException("El nombre de la categoría no puede estar vacío.");
+        }
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada."));
+
+        categoriaHabilidadRepository.findByNombreIgnoreCase(nombreLimpio)
+                .filter(c -> !c.getId().equals(categoriaId))
+                .ifPresent(c -> {
+                    throw new IllegalArgumentException("Ya existe la categoría \"" + nombreLimpio + "\".");
+                });
+
+        String nombreAnterior = categoria.getNombre();
+        categoria.setNombre(nombreLimpio);
+        categoria.setDescripcion(descripcion != null && !descripcion.isBlank() ? descripcion.trim() : null);
+        categoriaHabilidadRepository.save(categoria);
+
+        auditoriaService.registrar(admin, "EDITAR_CATEGORIA", "CATEGORIA_HABILIDAD", categoria.getId(),
+                "Editó la categoría.", nombreAnterior, nombreLimpio, null);
+    }
+
+    @Transactional
+    public void desactivarCategoria(Long categoriaId, Usuario admin) {
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada."));
+        if (habilidadRepository.countByCategoria_Id(categoriaId) > 0) {
+            throw new IllegalArgumentException(
+                    "No puedes desactivar \"" + categoria.getNombre() + "\": todavía tiene habilidades asociadas.");
+        }
+        categoria.setActiva(false);
+        categoriaHabilidadRepository.save(categoria);
+        auditoriaService.registrar(admin, "DESACTIVAR_CATEGORIA", "CATEGORIA_HABILIDAD", categoria.getId(),
+                "Desactivó la categoría \"" + categoria.getNombre() + "\".");
+    }
+
+    @Transactional
+    public void reactivarCategoria(Long categoriaId, Usuario admin) {
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
+                .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada."));
+        categoria.setActiva(true);
+        categoriaHabilidadRepository.save(categoria);
+        auditoriaService.registrar(admin, "REACTIVAR_CATEGORIA", "CATEGORIA_HABILIDAD", categoria.getId(),
+                "Reactivó la categoría \"" + categoria.getNombre() + "\".");
     }
 
     @Transactional(readOnly = true)
@@ -89,8 +170,8 @@ public class AdminHabilidadService {
         CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
                 .orElseThrow(() -> new IllegalArgumentException("Categoría inválida."));
 
-        if (habilidadRepository.findByNombreIgnoreCaseAndCategoria_Id(nombreLimpio, categoriaId).isPresent()) {
-            throw new IllegalArgumentException("Ya existe la habilidad \"" + nombreLimpio + "\" en esa categoría.");
+        if (habilidadRepository.findByNombreIgnoreCase(nombreLimpio).isPresent()) {
+            throw new IllegalArgumentException("Ya existe la habilidad \"" + nombreLimpio + "\" en el catálogo (no puede repetirse en otra categoría).");
         }
 
         Habilidad habilidad = new Habilidad();
@@ -114,10 +195,10 @@ public class AdminHabilidadService {
         CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
                 .orElseThrow(() -> new IllegalArgumentException("Categoría inválida."));
 
-        habilidadRepository.findByNombreIgnoreCaseAndCategoria_Id(nombreLimpio, categoriaId)
+        habilidadRepository.findByNombreIgnoreCase(nombreLimpio)
                 .filter(h -> !h.getId().equals(habilidadId))
                 .ifPresent(h -> {
-                    throw new IllegalArgumentException("Ya existe la habilidad \"" + nombreLimpio + "\" en esa categoría.");
+                    throw new IllegalArgumentException("Ya existe la habilidad \"" + nombreLimpio + "\" en el catálogo (no puede repetirse en otra categoría).");
                 });
 
         String nombreAnterior = habilidad.getNombre();

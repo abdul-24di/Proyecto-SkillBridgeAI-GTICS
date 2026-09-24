@@ -186,6 +186,10 @@ body.auth-page {
     padding-left: 38px;
 }
 
+.auth-input-icon:has(.auth-toggle-visibility) input {
+    padding-right: 40px;
+}
+
 .auth-input-icon .auth-toggle-visibility {
     position: absolute;
     top: 0;
@@ -203,6 +207,13 @@ body.auth-page {
 
 .auth-input-icon .auth-toggle-visibility:hover {
     color: #64748b;
+}
+
+/* Oculta el ícono nativo de "mostrar contraseña" de Edge/IE para que no se
+   solape con el botón auth-toggle-visibility (bug: "aparecen 2 ojitos"). */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
 }
 
 .form-control,

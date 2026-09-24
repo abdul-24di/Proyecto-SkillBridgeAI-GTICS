@@ -28,7 +28,7 @@
         </svg>
         <span class="badge bg-red notification-dot"></span>
       </a>
-      <a href="../admin/admin-dashboard.html" th:href="@{/admin/dashboard}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;"><span class="avatar avatar-sm user-avatar">SA</span><div class="user-meta"><div class="fw-semibold">Sofía Alarcón</div><div class="small">Administrador</div></div></a><a href="/" th:href="@{/}" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
+      <a href="../admin/admin-perfil.html" th:href="@{/admin/perfil}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;"><span class="avatar avatar-sm user-avatar" th:text="|${#strings.isEmpty(admin?.nombre) ? '' : #strings.substring(admin.nombre, 0, 1)}${#strings.isEmpty(admin?.apellido) ? '' : #strings.substring(admin.apellido, 0, 1)}|">SA</span><div class="user-meta"><div class="fw-semibold" th:text="|${admin?.nombre} ${admin?.apellido}|">Sofía Alarcón</div><div class="small">Administrador</div></div></a><a href="/logout" th:href="@{/logout}" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
     <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>

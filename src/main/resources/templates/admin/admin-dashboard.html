@@ -31,9 +31,10 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
           <span class="badge bg-red notification-dot"></span>
         </a>
-        <span class="avatar avatar-sm user-avatar">SA</span>
+        <span class="avatar avatar-sm user-avatar"
+              th:text="|${#strings.isEmpty(admin.nombre) ? '' : #strings.substring(admin.nombre, 0, 1)}${#strings.isEmpty(admin.apellido) ? '' : #strings.substring(admin.apellido, 0, 1)}|">SA</span>
         <div class="user-meta">
-          <div class="fw-semibold">Sofía Alarcón</div>
+          <div class="fw-semibold" th:text="|${admin.nombre} ${admin.apellido}|">Sofía Alarcón</div>
           <div class="small">Administrador</div>
         </div>
       </div>
@@ -44,7 +45,7 @@
 
     <div class="page-head page-head-stack-mobile">
       <div>
-        <h1 class="page-title">¡Bienvenida, Sofía!</h1>
+        <h1 class="page-title" th:text="'¡Bienvenido/a, ' + ${admin.nombre} + '!'">¡Bienvenida, Sofía!</h1>
         <div class="text-secondary">Panorama general de usuarios, habilidades y actividad de la organización.</div>
       </div>
     </div>
@@ -58,8 +59,8 @@
             </div>
             <div>
               <div class="summary-label">Usuarios totales</div>
-              <div class="summary-number">42</div>
-              <div class="small text-secondary">4 roles activos.</div>
+              <div class="summary-number" th:text="${resumenUsuarios.total()}">42</div>
+              <div class="small text-secondary" th:text="${resumenUsuarios.activos()} + ' activos.'">4 roles activos.</div>
             </div>
           </div>
         </div>
@@ -72,7 +73,7 @@
             </div>
             <div>
               <div class="summary-label">Pendientes de activación</div>
-              <div class="summary-number">5</div>
+              <div class="summary-number" th:text="${resumenUsuarios.pendientes()}">5</div>
               <div class="small text-secondary">Invitaciones sin completar.</div>
             </div>
           </div>
@@ -86,7 +87,7 @@
             </div>
             <div>
               <div class="summary-label">Habilidades activas</div>
-              <div class="summary-number">28</div>
+              <div class="summary-number" th:text="${resumenHabilidades.activas()}">28</div>
               <div class="small text-secondary">En el catálogo de la organización.</div>
             </div>
           </div>
@@ -100,7 +101,7 @@
             </div>
             <div>
               <div class="summary-label">Acciones auditadas hoy</div>
-              <div class="summary-number">6</div>
+              <div class="summary-number" th:text="${accionesHoy}">6</div>
               <div class="small text-secondary">Ver detalle en Auditoría.</div>
             </div>
           </div>
@@ -128,23 +129,19 @@
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>renato.silva@skillbridge.com</td>
-                  <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
-                  <td class="text-secondary">05 sep 2026</td>
-                  <td class="text-end"><button type="button" class="btn btn-outline-secondary btn-sm">Reenviar</button></td>
+                <tr th:each="u : ${usuariosPendientes}">
+                  <td th:text="${u.correo()}">renato.silva@skillbridge.com</td>
+                  <td><span class="badge" th:classappend="${u.rolBadgeClase()}" th:text="${u.rolEtiqueta()}">Colaborador</span></td>
+                  <td class="text-secondary" th:text="${u.fechaCreacion()}">05 sep 2026</td>
+                  <td class="text-end">
+                    <form th:action="@{/admin/usuarios/reenviar}" method="post" class="d-inline">
+                      <input type="hidden" name="usuarioId" th:value="${u.id()}">
+                      <button type="submit" class="btn btn-outline-secondary btn-sm">Reenviar</button>
+                    </form>
+                  </td>
                 </tr>
-                <tr>
-                  <td>camila.rojas@skillbridge.com</td>
-                  <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
-                  <td class="text-secondary">06 sep 2026</td>
-                  <td class="text-end"><button type="button" class="btn btn-outline-secondary btn-sm">Reenviar</button></td>
-                </tr>
-                <tr>
-                  <td>elena.vargas@skillbridge.com</td>
-                  <td><span class="badge bg-orange-lt text-orange">Colaborador</span></td>
-                  <td class="text-secondary">31 ago 2026</td>
-                  <td class="text-end"><button type="button" class="btn btn-outline-secondary btn-sm">Reenviar</button></td>
+                <tr th:if="${#lists.isEmpty(usuariosPendientes)}">
+                  <td colspan="4" class="text-center text-secondary py-3">No hay invitaciones pendientes.</td>
                 </tr>
               </tbody>
             </table>
@@ -164,33 +161,15 @@
             </div>
           </div>
           <div class="card-body audit-feed">
-            <div class="audit-feed-item">
-              <span class="audit-feed-dot bg-blue"></span>
+            <div class="audit-feed-item" th:each="log : ${ultimasAcciones}">
+              <span class="audit-feed-dot" th:classappend="${log.rolBadgeClase()}"></span>
               <div>
-                <div class="fw-semibold">Sofía Alarcón creó un usuario</div>
-                <div class="text-secondary small">camila.rojas@skillbridge.com · rol Colaborador · hace 3 h</div>
+                <div class="fw-semibold" th:text="${log.usuarioNombre()} + ' ' + ${#strings.toLowerCase(log.accionEtiqueta())}">Sofía Alarcón creó un usuario</div>
+                <div class="text-secondary small" th:text="${log.detalle() != null ? log.detalle() + ' · ' + log.fecha() : log.fecha()}">camila.rojas@skillbridge.com · rol Colaborador · hace 3 h</div>
               </div>
             </div>
-            <div class="audit-feed-item">
-              <span class="audit-feed-dot bg-green"></span>
-              <div>
-                <div class="fw-semibold">Abraham Ramirez aprobó una asignación</div>
-                <div class="text-secondary small">Jorge Campos → Sistema de Inventario · hace 16 h</div>
-              </div>
-            </div>
-            <div class="audit-feed-item">
-              <span class="audit-feed-dot bg-red"></span>
-              <div>
-                <div class="fw-semibold">Abraham Ramirez rechazó un certificado</div>
-                <div class="text-secondary small">Renato Silva · AWS Cloud Practitioner · hace 18 h</div>
-              </div>
-            </div>
-            <div class="audit-feed-item">
-              <span class="audit-feed-dot bg-azure"></span>
-              <div>
-                <div class="fw-semibold">Sofía Alarcón cambió un parámetro</div>
-                <div class="text-secondary small">MAX_ASIGNACIONES_POR_COLABORADOR: 2 → 3 · hace 9 días</div>
-              </div>
+            <div class="text-center text-secondary py-3" th:if="${#lists.isEmpty(ultimasAcciones)}">
+              Sin actividad reciente.
             </div>
           </div>
           <div class="card-footer text-end">

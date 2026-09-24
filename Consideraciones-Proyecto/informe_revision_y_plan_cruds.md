@@ -1,5 +1,7 @@
 # Informe de equipo — Revisión de vistas HTML y plan hacia el 40% de CRUDs
 
+> **Actualización más reciente: ver sección 4 (al final del documento)** — ronda de correcciones sobre feedback real del equipo (Milagritos/Alejandro) tras la revisión en vivo del 2026-09-23/24. Cubre RM, PM y Admin al 100%, un bug de seguridad real en logout, y verificación cruzada de los 4 roles funcionando juntos.
+
 Revisión de las vistas HTML construidas en `feature/vistas-html`, comparadas contra la lista de requerimientos original y `actualizaciones_lista_requerimientos_3.md`. Se revisaron a fondo **Auth, Colaborador y Admin — las correcciones de las 3 ya están aplicadas y verificadas en el navegador**. **PM y RM quedan pendientes** — al final de este documento hay un checklist guía para quien los revise.
 
 Enfoque acordado: **corregir-y-construir por épica**, no "corregir todo primero, luego construir todo". Cada quien corrige su parte de las vistas justo antes de escribir el backend que la alimenta, para no bloquear al resto del equipo.
@@ -179,3 +181,70 @@ No se hizo una revisión completa de `templates/pm/` y `templates/rm/`. Checklis
 
 ### Tier 3 ya construido
 - [ ] `rm-cursos.html`, `rm-asignar-curso.html`, `rm-solicitudes-cursos.html` (A25/A26/A27) y `rm-horas-colaboradores.html` (Épica 9) ya están construidos a pesar de estar diferidos hasta después del Parcial. No es un error, pero avisar al equipo por si ese tiempo rendía más en Tier 1.
+
+---
+
+## 4. Actualización 2026-09-23/24 — Feedback real del equipo, RM/PM/Admin al 100% y verificación cruzada
+
+Punto de partida: feedback textual de Milagritos y Alejandro tras revisar la rama `feature/cruds` en vivo (ver mensajes citados en el checklist de abajo). Se procesó todo el backlog reportado, más una ronda final de verificación end-to-end entre los 4 roles pedida explícitamente por el equipo.
+
+### RM — ✅ Backlog cerrado
+- [x] **Asignar colaborador + iniciar proyecto**: ya lo tenía Abraham (`bbb4855`), verificado en vivo con datos reales — funciona.
+- [x] **Presupuesto y costos de asignaciones**: `RmPresupuestoService` (de la sesión anterior) verificado contra datos reales del equipo — matemática exacta.
+- [x] **Perfil / Foto — faltaba por completo**: `rm-perfil.html` tenía un formulario 100% falso (`onsubmit="event.preventDefault()"`). Se construyó `RmPerfilService` + 3 endpoints reales (foto, teléfono, contraseña con validación de contraseña actual), mismo patrón que PM. Verificado con foto real subida, cambio de contraseña con round-trip de login, y validaciones de error.
+- [x] **Reportes**: ya estaba construido de verdad (no mockup) — 18 proyectos con presupuesto/horas, detalle por colaborador, exportación Excel/PDF, respeta que el RM no ve sueldos.
+
+### PM — ✅ Backlog cerrado
+- [x] **500 en Actividades**: ya lo había arreglado Alejandro (`ef20b64`) con un `GlobalExceptionHandler` genérico — verificado en vivo con 4 proyectos + un ID inválido, ya no hay Whitelabel Error Page.
+- [x] **Validación de fechas, asteriscos en obligatorios, reordenar submenú del proyecto arriba**: también en el mismo commit de Alejandro.
+- [x] **"Falta decisión del PM"**: ya existe (aprobar/rechazar asignaciones propuestas por RM) — el equipo confirmó que el ítem ya estaba resuelto.
+- [x] **Foro se veía angosto — causa raíz encontrada**: `pm-foro.css` tenía un `display:grid` de 3 columnas obsoleto (pensado para una estructura HTML vieja con voto/avatar/respuestas) que ya no coincidía con el HTML actual (un solo `<div>` hijo) — el grid comprimía todo el post en 54px. Se alineó al patrón de Colaborador (`display:flex`), verificado visualmente con un post de prueba.
+- [x] **Perfil de PM — mismo bug que RM, no reportado explícitamente pero encontrado al revisar**: `pm-perfil.html` era una maqueta estática (`action="#"`) aunque `PmPerfilService`/`PmViewController` ya tenían el backend completo. Se conectó el HTML real: foto, nombres/apellidos/cargo editables, contraseña con campo de "actual" que faltaba. Verificado end-to-end.
+- [x] **"Sueldo junto con cantidad de horas"**: ya estaba bien — `pm-reporte-detalle.html` solo muestra horas, no sueldo, con nota explícita "El PM no visualiza sueldo, bono, pago mensual ni costo del colaborador".
+
+### Admin — ✅ Backlog cerrado + 2 bugs nuevos del catálogo de habilidades
+- [x] **Dashboard 100% estático — el bug más grande encontrado**: `admin-dashboard.html` tenía todo hardcodeado (nombre "Sofía Alarcón", números "42"/"5"/"28"/"6", tabla de pendientes y feed de auditoría con datos inventados). Se conectó a `AdminUsuarioService.resumen()`, `AdminHabilidadService.resumen()` y `AdminAuditoriaService.listar(...)` real. Verificado: los números suben/bajan con cada acción real (ej. de 49 a 59 acciones auditadas durante una sola sesión de pruebas).
+- [x] **Admin no tenía perfil propio**: se construyó desde cero (`AdminPerfilService` + rutas + `admin-perfil.html`), mismo patrón que RM/PM.
+- [x] **Carga masiva de usuarios**: probada en vivo — caso válido crea con roles correctos, caso con errores (duplicado en archivo, correo ya existente, rol inválido, fila incompleta) reporta cada error y no crea nada (todo-o-nada).
+- [x] **"No se crea un perfil en Null"**: ya estaba bien manejado (usuarios pendientes de activación muestran "Pendiente de activación", nunca "null null").
+- [x] **Reconciliado con el trabajo de Milagritos en Habilidades** (Colaborador): su `crearOReutilizarHabilidad` (commit `bdace6b`) ya tenía deduplicación propia — sin conflicto con el CRUD de Admin.
+- [x] **Bug reportado por Milagritos — una habilidad se podía crear con el mismo nombre en categorías distintas**: `AdminHabilidadService` y `ColaboradorPerfilService.crearOReutilizarHabilidad` validaban duplicados solo dentro de la misma categoría (`findByNombreIgnoreCaseAndCategoria_Id`). Se cambió a unicidad **global por nombre**, sin importar la categoría. Se encontraron y limpiaron duplicados reales ya existentes en la BD (AWS, Docker, Java, Spring Boot repetidos en 2-3 categorías) — se desactivaron las copias sin colaboradores asociados; **Docker sigue con 2 copias activas con colaboradores reales, pendiente de decisión del equipo sobre cómo fusionarlas** (mover colaboradores de una habilidad a otra toca datos de perfil real, no se hizo unilateralmente).
+- [x] **Admin no tenía CRUD de Categorías — reportado por el equipo**: se agregó sección completa (crear, editar, desactivar/reactivar) en `admin-habilidades.html`, con protección para no desactivar una categoría que todavía tiene habilidades activas. Verificado en vivo.
+
+### Bug de seguridad real encontrado — reportado por el equipo ("cerrabas sesión y con 'atrás' volvías a entrar")
+- [x] **Causa raíz**: el botón "Salir" en los topbars de Admin, RM y PM apuntaba a `@{/}` (la página de inicio) en vez de `@{/logout}` — **el logout de Spring Security nunca se ejecutaba**. La sesión quedaba completamente viva; lo único que pasaba era que `/` redirigía a `/login` (por eso *parecía* que habías cerrado sesión), pero el botón "atrás" —o simplemente escribir la URL del dashboard de nuevo— seguía funcionando porque la sesión seguía activa. Colaborador ya tenía el link correcto (`/logout`), así que el bug era solo en los 3 roles restantes.
+- [x] **Corregido** en los 4 fragmentos de topbar. Verificado con curl (el dashboard responde 302→login tras el logout real) y con el navegador real (botón "atrás" tras "Salir" ahora re-valida contra el servidor y muestra el login, no el dashboard cacheado). Los headers `Cache-Control: no-store` ya estaban correctos por defecto (Spring Security), así que no hacía falta tocar nada de caché — el problema era 100% que el logout nunca se disparaba.
+
+### Bug transversal encontrado (no reportado, hallado en barrido propio)
+- [x] **Nombre falso en el topbar de RM y PM**: mismo patrón que se arregló primero en Admin — cada página de RM mostraba "Abraham Ramirez" y cada página de PM "Abdon Vallejo" sin importar quién estuviera logueado. Se agregó `@ModelAttribute` en `RmViewController`/`PmViewController` (mismo patrón que Admin) y se corrigieron los fragmentos. Al arreglarlo se rompió un test (`RmDashboardTests`, que pega al endpoint sin sesión) por un `null` sin proteger en el template — se corrigió con el operador seguro `?.` de Thymeleaf en los 3 topbars. **Suite completa de tests corrida, 100% verde.**
+
+### Hallazgo grande, decisión del equipo: dejar como está
+- **Las 3 pantallas de "IA" son mockups completos sin backend real**: `rm-talent-matching.html` (JS con datos hardcodeados, el propio comentario dice *"Datos y lógica temporal para el mockup"*), `pm-asistente-ia.html` (responde literalmente "Mockup: aquí aparecerá una respuesta...") y `col-asistente.html` (respuestas por palabras clave, sin lógica real). No hay integración con ningún LLM en el backend Java. El equipo decidió dejarlas como mockup por ahora (evita costos de API y es mucho trabajo para el alcance del curso) — documentado por si se retoma más adelante.
+
+### Verificación cruzada end-to-end (pedida explícitamente por el equipo)
+Se probó un flujo completo tocando los 4 roles en la misma sesión, confirmando que las acciones de un rol se reflejan de inmediato en los demás, sin caché ni inconsistencias:
+
+1. PM crea proyecto → aparece "En revisión".
+2. RM lo ve de inmediato con el PM correcto.
+3. RM intenta aprobar sin presupuesto → bloqueado correctamente (regla de negocio, no bug). Asigna presupuesto → aprueba.
+4. PM ve "Activo" al instante.
+5. RM propone un colaborador sin sueldo registrado → bloqueado correctamente. Propone uno con sueldo válido → éxito.
+6. PM ve la propuesta "Pendiente" y la aprueba.
+7. RM ve la asignación "Activa" con ambas aprobaciones (PM✓ RM✓).
+8. La colaboradora ve el proyecto en su dashboard y su lista, con 0% de avance.
+
+Todo capturado en tiempo real en el feed de auditoría del Admin (ej. "Pedro Martinez aprobó", "Rosa Mendoza propuso asignación"), y el contador de "Acciones auditadas hoy" subió de 49 a 59 durante la prueba.
+
+### Data de prueba dejada en la BD (limpiar si se quiere, no afecta nada)
+```sql
+DELETE FROM usuario WHERE correo IN ('prueba.carga1@skillbridge.com','prueba.carga2@skillbridge.com');
+DELETE FROM publicacion_foro WHERE titulo='Prueba de layout';
+-- El proyecto "[TEST-E2E] Verificacion Cruzada" (id=19) y la habilidad "PruebaDup"
+-- y categoría "Idiomas Extranjeros" quedaron desactivados/identificables, no requieren limpieza urgente.
+```
+
+### Pendiente real después de esta ronda
+- [ ] **Docker duplicado** con colaboradores reales en 2 categorías — decidir cómo fusionar (mover manualmente los registros de colaborador afectados).
+- [ ] **Envío real de correos (SMTP)**: sigue como stub (solo loguea a consola). Decisión del equipo: conectarlo con Gmail + contraseña de aplicación más adelante, cuando alguien tenga la cuenta lista.
+- [ ] **Talent Matching real / Asistentes IA reales**: quedan como mockup por decisión del equipo — evaluar si vale la pena para la sustentación o se deja documentado como "fuera de alcance".
+- [ ] Limpiar la data de prueba de esta sesión (opcional, ver arriba).

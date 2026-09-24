@@ -4,6 +4,7 @@ import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.AdminAuditoriaService;
 import com.pucp.skillb_ia.service.AdminConfiguracionService;
 import com.pucp.skillb_ia.service.AdminHabilidadService;
+import com.pucp.skillb_ia.service.AdminPerfilService;
 import com.pucp.skillb_ia.service.AdminUsuarioService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -29,14 +30,23 @@ public class AdminViewController {
     private final AdminHabilidadService adminHabilidadService;
     private final AdminConfiguracionService adminConfiguracionService;
     private final AdminAuditoriaService adminAuditoriaService;
+    private final AdminPerfilService adminPerfilService;
 
     public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
                                 AdminConfiguracionService adminConfiguracionService,
-                                AdminAuditoriaService adminAuditoriaService) {
+                                AdminAuditoriaService adminAuditoriaService,
+                                AdminPerfilService adminPerfilService) {
         this.adminUsuarioService = adminUsuarioService;
         this.adminHabilidadService = adminHabilidadService;
         this.adminConfiguracionService = adminConfiguracionService;
         this.adminAuditoriaService = adminAuditoriaService;
+        this.adminPerfilService = adminPerfilService;
+    }
+
+    // Disponible en el modelo de todas las páginas de este controlador (topbar).
+    @org.springframework.web.bind.annotation.ModelAttribute("admin")
+    public com.pucp.skillb_ia.model.Usuario admin(@AuthenticationPrincipal UsuarioDetails principal) {
+        return principal != null ? principal.getUsuario() : null;
     }
 
     @GetMapping({"", "/"})
@@ -45,7 +55,22 @@ public class AdminViewController {
     }
 
     @GetMapping({"/dashboard", "/admin-dashboard.html"})
-    public String dashboard() {
+    public String dashboard(Model model) {
+        model.addAttribute("resumenUsuarios", adminUsuarioService.resumen());
+        model.addAttribute("usuariosPendientes", adminUsuarioService.listar().stream()
+                .filter(AdminUsuarioService.UsuarioFila::pendiente)
+                .limit(5)
+                .toList());
+
+        model.addAttribute("resumenHabilidades", adminHabilidadService.resumen());
+
+        List<AdminAuditoriaService.LogFila> logs = adminAuditoriaService.listar(
+                new AdminAuditoriaService.FiltrosAuditoria(null, null, null, null, null));
+        model.addAttribute("ultimasAcciones", logs.stream().limit(4).toList());
+        model.addAttribute("accionesHoy", logs.stream()
+                .filter(l -> l.fechaSolo().isEqual(LocalDate.now()))
+                .count());
+
         return "admin/admin-dashboard";
     }
 
@@ -159,7 +184,62 @@ public class AdminViewController {
         model.addAttribute("habilidades", adminHabilidadService.listar());
         model.addAttribute("resumen", adminHabilidadService.resumen());
         model.addAttribute("categorias", adminHabilidadService.listarCategoriasActivas());
+        model.addAttribute("todasCategorias", adminHabilidadService.listarCategorias());
         return "admin/admin-habilidades";
+    }
+
+    @PostMapping("/habilidades/categorias")
+    public String crearCategoria(@RequestParam String nombre,
+                                  @RequestParam(required = false) String descripcion,
+                                  @AuthenticationPrincipal UsuarioDetails principal,
+                                  RedirectAttributes redirectAttributes) {
+        try {
+            adminHabilidadService.crearCategoria(nombre, descripcion, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se creó la categoría \"" + nombre + "\".");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/habilidades";
+    }
+
+    @PostMapping("/habilidades/categorias/editar")
+    public String editarCategoria(@RequestParam Long categoriaId, @RequestParam String nombre,
+                                   @RequestParam(required = false) String descripcion,
+                                   @AuthenticationPrincipal UsuarioDetails principal,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            adminHabilidadService.editarCategoria(categoriaId, nombre, descripcion, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó la categoría.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/habilidades";
+    }
+
+    @PostMapping("/habilidades/categorias/desactivar")
+    public String desactivarCategoria(@RequestParam Long categoriaId,
+                                       @AuthenticationPrincipal UsuarioDetails principal,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            adminHabilidadService.desactivarCategoria(categoriaId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó la categoría.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/habilidades";
+    }
+
+    @PostMapping("/habilidades/categorias/reactivar")
+    public String reactivarCategoria(@RequestParam Long categoriaId,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            adminHabilidadService.reactivarCategoria(categoriaId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó la categoría.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/habilidades";
     }
 
     @PostMapping("/habilidades")
@@ -249,10 +329,16 @@ public class AdminViewController {
                          @RequestParam(required = false) String accion,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                         @RequestParam(defaultValue = "1") int pagina,
                          Model model) {
         AdminAuditoriaService.FiltrosAuditoria filtros =
                 new AdminAuditoriaService.FiltrosAuditoria(texto, rol, accion, desde, hasta);
-        model.addAttribute("logs", adminAuditoriaService.listar(filtros));
+        AdminAuditoriaService.PaginaLogs paginaLogs = adminAuditoriaService.listarPagina(filtros, pagina);
+        model.addAttribute("logs", paginaLogs.filas());
+        model.addAttribute("paginaActual", paginaLogs.paginaActual());
+        model.addAttribute("totalPaginas", paginaLogs.totalPaginas());
+        model.addAttribute("totalRegistros", paginaLogs.totalRegistros());
+        model.addAttribute("tamanioPagina", AdminAuditoriaService.TAMANIO_PAGINA);
         model.addAttribute("tiposAccion", adminAuditoriaService.tiposDeAccionDisponibles());
         model.addAttribute("rolesDisponibles", AdminUsuarioService.etiquetasRoles());
         model.addAttribute("texto", texto);
@@ -329,6 +415,59 @@ public class AdminViewController {
 
             libro.write(response.getOutputStream());
         }
+    }
+
+    // ============================================================
+    // PERFIL
+    // ============================================================
+
+    @GetMapping({"/perfil", "/admin-perfil.html"})
+    public String perfil() {
+        return "admin/admin-perfil";
+    }
+
+    @PostMapping("/perfil/telefono")
+    public String actualizarTelefonoAdmin(@RequestParam(value = "telefono", required = false) String telefono,
+                                           @AuthenticationPrincipal UsuarioDetails principal,
+                                           RedirectAttributes redirectAttributes) {
+        try {
+            adminPerfilService.actualizarTelefono(telefono, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Teléfono actualizado correctamente.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/perfil";
+    }
+
+    @PostMapping("/perfil/foto")
+    public String actualizarFotoAdmin(@RequestParam("foto") MultipartFile foto,
+                                       @AuthenticationPrincipal UsuarioDetails principal,
+                                       RedirectAttributes redirectAttributes) {
+        try {
+            adminPerfilService.actualizarFoto(foto, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Foto de perfil actualizada.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/perfil";
+    }
+
+    @PostMapping("/perfil/password")
+    public String actualizarPasswordAdmin(@RequestParam("passwordActual") String passwordActual,
+                                           @RequestParam("passwordNueva") String passwordNueva,
+                                           @RequestParam("passwordConfirm") String passwordConfirm,
+                                           @AuthenticationPrincipal UsuarioDetails principal,
+                                           RedirectAttributes redirectAttributes) {
+        try {
+            if (!passwordNueva.equals(passwordConfirm)) {
+                throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
+            }
+            adminPerfilService.actualizarPassword(passwordActual, passwordNueva, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Contraseña actualizada correctamente.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/perfil";
     }
 
     private String csvEscapar(String valor) {

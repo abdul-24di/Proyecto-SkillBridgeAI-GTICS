@@ -93,7 +93,7 @@
             <table class="table table-vcenter card-table mb-0">
               <thead><tr><th>Proyecto</th><th>Estado</th><th>Prioridad</th><th>Presupuesto</th><th>Horas</th><th>Colaboradores</th><th class="text-end">Acción</th></tr></thead>
               <tbody>
-              <tr th:each="item : ${reporte.proyectos}">
+              <tr th:each="item : ${reporte.proyectos}" class="proyecto-row">
                 <td class="fw-semibold" th:text="${item.nombre}">Proyecto</td>
                 <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Activo</span></td>
                 <td><span class="badge" th:classappend="${item.prioridadClase}" th:text="${item.prioridadTexto}">Alta</span></td>
@@ -106,6 +106,7 @@
               </tbody>
             </table>
           </div>
+          <div class="pagination-wrap"><div id="paginationInfoProyectos" class="text-secondary small"></div><ul id="paginationProyectos" class="pagination pagination-sm m-0"></ul></div>
         </div>
       </div>
       <div class="col-lg-4">
@@ -128,7 +129,7 @@
         <table class="table table-vcenter card-table mb-0">
           <thead><tr><th>Colaborador</th><th>Proyecto</th><th>Rol</th><th>Horas trabajadas</th><th>Tareas consideradas</th></tr></thead>
           <tbody>
-          <tr th:each="item : ${reporte.detalles}">
+          <tr th:each="item : ${reporte.detalles}" class="detalle-row">
             <td class="fw-semibold" th:text="${item.colaborador}">Colaborador</td><td th:text="${item.proyecto}">Proyecto</td><td th:text="${item.cargo}">Rol</td>
             <td th:text="|${#numbers.formatDecimal(item.horas, 1, 2)} h|">0 h</td><td th:text="${item.tareas}">0</td>
           </tr>
@@ -136,10 +137,12 @@
           </tbody>
         </table>
       </div>
+      <div class="pagination-wrap"><div id="paginationInfoDetalles" class="text-secondary small"></div><ul id="paginationDetalles" class="pagination pagination-sm m-0"></ul></div>
       <div class="report-note"><div class="small text-secondary"><strong>Importante:</strong> el presupuesto es información del proyecto. El RM no visualiza sueldos, bonos ni pagos mensuales.</div></div>
     </div>
   </main>
 </div>
 <script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/rm-js/rm-reporte-recursos.js}"></script>
 </body>
 </html>

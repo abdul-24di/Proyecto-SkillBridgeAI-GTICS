@@ -177,6 +177,12 @@
     resize: vertical;
 }
 
+
+#editAboutModalDialog {
+    max-width: min(900px, 92vw) !important;
+    width: 100%;
+}
+
 .skill-item-actions {
     display: flex;
     align-items: center;
@@ -315,6 +321,11 @@
 /* Modal "Editar Sobre mí" */
 #editAboutModal .modal-dialog {
     max-width: 900px !important;
+}
+
+
+#editAboutModal .modal-dialog > form {
+    width: 100%;
 }
 
 #editAboutModal textarea.form-control {

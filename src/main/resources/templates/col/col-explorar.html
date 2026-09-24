@@ -154,11 +154,13 @@
                         </div>
                         <div class="action-bar mt-3 mb-0">
                             <span th:if="${v.yaTieneSolicitud}" class="badge bg-blue-lt">Ya te postulaste a este proyecto</span>
-                            <span th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas and !v.tieneHorasSuficientes}" class="badge bg-red-lt">No tienes suficientes horas disponibles</span>
+                            <span th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas and !v.tieneHorasSuficientes}" class="badge bg-red-lt">Ojo: no tienes suficientes horas disponibles declaradas en tu perfil</span>
                             <span th:if="${!v.yaTieneSolicitud and !v.postulacionesAbiertas}" class="badge bg-secondary-lt">Postulaciones cerradas</span>
-                            <button th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas and v.tieneHorasSuficientes}" type="button" class="btn btn-primary btn-sm" data-open-apply
+                            <button th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas}" type="button" class="btn btn-primary btn-sm" data-open-apply
                                     th:attr="data-project-id=${v.proyecto.id},data-project-name=${v.proyecto.nombre}">Postularme</button>
                         </div>
+
+
                     </div>
                 </div>
             </div>

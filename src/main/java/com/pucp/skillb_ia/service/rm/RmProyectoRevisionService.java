@@ -20,13 +20,16 @@ public class RmProyectoRevisionService {
     private final ProyectoRepository proyectoRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
+    private final RmPresupuestoService presupuestoService;
 
     public RmProyectoRevisionService(ProyectoRepository proyectoRepository,
                                      UsuarioRepository usuarioRepository,
-                                     AuditoriaService auditoriaService) {
+                                     AuditoriaService auditoriaService,
+                                     RmPresupuestoService presupuestoService) {
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
+        this.presupuestoService = presupuestoService;
     }
 
     @Transactional
@@ -34,6 +37,13 @@ public class RmProyectoRevisionService {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = obtenerConPresupuestoEditable(proyectoId);
         BigDecimal presupuestoValidado = validarPresupuesto(presupuesto);
+        RmPresupuestoService.ResumenPresupuesto resumen = presupuestoService.calcularResumen(proyecto);
+        BigDecimal comprometidoYReservado = resumen.comprometido().add(resumen.reservado());
+        if (presupuestoValidado.compareTo(comprometidoYReservado) < 0) {
+            throw new IllegalArgumentException(
+                    "El presupuesto no puede ser menor que el monto ya comprometido o reservado (S/ "
+                            + comprometidoYReservado.setScale(2, RoundingMode.HALF_UP).toPlainString() + ").");
+        }
         String anterior = proyecto.getPresupuesto() == null ? null : proyecto.getPresupuesto().toPlainString();
 
         proyecto.setPresupuesto(presupuestoValidado);

@@ -24,18 +24,18 @@
           <div class="card-header section-header"><div><h3 class="card-title mb-1">Datos de la propuesta</h3><div class="section-description">Selecciona el proyecto y el colaborador usando información real de la organización.</div></div></div>
           <div class="card-body">
             <div class="mb-3"><label for="proyectoId" class="form-label">Proyecto</label>
-              <select id="proyectoId" name="proyectoId" class="form-select">
+              <select id="proyectoId" name="proyectoId" class="form-select" required>
                 <option value="">Selecciona un proyecto</option>
-                <option th:each="proyecto : ${proyectos}" th:value="${proyecto.id}" th:selected="${proyectoSeleccionadoId != null and proyectoSeleccionadoId == proyecto.id}" th:text="|${proyecto.nombre} — PM: ${proyecto.pm.nombre} ${proyecto.pm.apellido} (${proyecto.estado})|" th:attr="data-fecha-inicio=${proyecto.fechaInicio},data-fecha-fin=${proyecto.fechaFinEstimada},data-disponible=${disponiblePorProyecto.get(proyecto.id)}">Proyecto</option>
+                <option th:each="proyecto : ${proyectos}" th:value="${proyecto.id}" th:selected="${proyectoSeleccionadoId != null and proyectoSeleccionadoId == proyecto.id}" th:text="|${proyecto.nombre} — PM: ${proyecto.pm.nombre} ${proyecto.pm.apellido}|" th:attr="data-fecha-inicio=${proyecto.fechaInicio},data-fecha-fin=${proyecto.fechaFinEstimada},data-presupuesto=${proyecto.presupuesto},data-disponible=${disponiblePorProyecto.get(proyecto.id)}">Proyecto</option>
               </select>
             </div>
             <div class="mb-3"><label for="colaboradorId" class="form-label">Colaborador</label>
-              <select id="colaboradorId" name="colaboradorId" class="form-select">
+              <select id="colaboradorId" name="colaboradorId" class="form-select" required>
                 <option value="">Selecciona un colaborador</option>
                 <option th:each="colaborador : ${colaboradores}" th:value="${colaborador.id}" th:selected="${colaboradorSeleccionadoId != null and colaboradorSeleccionadoId == colaborador.id}" th:text="|${colaborador.nombreCompleto} — ${colaborador.cargo} — ${colaborador.horasDisponibles} h disponibles — carga ${colaborador.asignacionesActivas}/${colaborador.maxAsignaciones}|" th:attr="data-sueldo=${sueldosPorColaborador.get(colaborador.id)}">Colaborador</option>
               </select>
             </div>
-            <div class="mb-3"><label for="horasSemanales" class="form-label">Horas semanales propuestas</label><div class="input-group"><input id="horasSemanales" name="horasSemanales" type="number" min="0.5" max="168" step="0.5" class="form-control"><span class="input-group-text">h / semana</span></div></div>
+            <div class="mb-3"><label for="horasSemanales" class="form-label">Horas semanales propuestas</label><div class="input-group"><input id="horasSemanales" name="horasSemanales" type="number" min="0.5" max="168" step="0.5" class="form-control" required><span class="input-group-text">h / semana</span></div></div>
             <div class="mb-3"><label for="justificacion" class="form-label">Justificación de la propuesta</label><textarea id="justificacion" name="justificacion" class="form-control" rows="4" maxlength="350" placeholder="Explica por qué el colaborador es adecuado para el proyecto."></textarea></div>
             <div><label for="motivoCapacidad" class="form-label">Justificación de excepción de capacidad</label><textarea id="motivoCapacidad" name="motivoCapacidad" class="form-control" rows="3" maxlength="300" placeholder="Obligatoria solamente si supera su disponibilidad o el máximo de asignaciones."></textarea><div class="form-hint">El RM puede continuar aunque se supere el límite, pero debe dejar el motivo registrado.</div></div>
           </div>
@@ -84,16 +84,23 @@
 
       if (!opcionProyecto || !opcionProyecto.value || !opcionColaborador || !opcionColaborador.value) {
         panel.innerHTML = '<div class="small text-secondary">Selecciona un proyecto y un colaborador para calcular el costo.</div>';
-        if (submitBtn) submitBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = true;
         return;
       }
 
       var sueldo = numero(opcionColaborador.dataset.sueldo);
       var horas = numero(horasInput.value);
+      var presupuesto = numero(opcionProyecto.dataset.presupuesto);
       var disponible = numero(opcionProyecto.dataset.disponible);
       var fechaInicio = opcionProyecto.dataset.fechaInicio;
       var fechaFin = opcionProyecto.dataset.fechaFin;
 
+      if (!presupuesto) {
+        panel.innerHTML = '<div class="alert alert-warning mb-2 py-2 small">El proyecto todavía no tiene un presupuesto válido.</div>' +
+          '<a class="btn btn-outline-primary btn-sm" href="/rm/proyectos/detalle?id=' + encodeURIComponent(opcionProyecto.value) + '">Asignar presupuesto al proyecto</a>';
+        if (submitBtn) submitBtn.disabled = true;
+        return;
+      }
       if (!sueldo || !fechaInicio || !fechaFin) {
         panel.innerHTML = '<div class="small text-danger">No se puede calcular: falta el sueldo base del colaborador o las fechas del proyecto.</div>';
         if (submitBtn) submitBtn.disabled = true;
@@ -101,6 +108,7 @@
       }
       if (horas <= 0) {
         panel.innerHTML = '<div class="small text-secondary">Ingresa las horas semanales para ver el costo.</div>';
+        if (submitBtn) submitBtn.disabled = true;
         return;
       }
 

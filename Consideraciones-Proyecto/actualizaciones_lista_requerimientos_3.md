@@ -301,13 +301,14 @@ Por:
 > Como Administrador, quiero que el sistema calcule automáticamente el sueldo mensual de cada colaborador (sueldo base + bono por horas extra entregadas a tiempo), para remunerar el trabajo realizado sin penalizar los déficits de horas.
 
 **Criterios de Aceptación:**
-- Cada colaborador tiene una meta mensual fija de 160 horas y un sueldo base fijo, pagado siempre completo, **sin descuentos por déficit**.
+- Cada colaborador tiene una meta mensual fija de 160 horas y un sueldo base vigente, determinado por la combinación de su **cargo/puesto** y su **nivel de experiencia** (Junior, Semi Senior o Senior), pagado siempre completo y **sin descuentos por déficit**.
 - Si supera las 160 horas mensuales con tareas entregadas a tiempo, el excedente se paga como bono a la misma tarifa de su hora normal.
 - Solo las horas de tareas entregadas **a tiempo** cuentan para el bono; las tardías suman al total de 160 horas pero no generan bono.
 - El bono está topeado a un máximo de horas extra pagables por mes, **configurable por el Administrador** (20 por defecto — ver A16).
 - Fórmula: `valor_hora = sueldo_base / 160` · `horas_extra = max(0, horas_a_tiempo_del_mes - 160)` · `horas_extra_pagables = min(horas_extra, tope_bono)` · `bono = horas_extra_pagables × valor_hora` · `pago_total = sueldo_base + bono`.
+- Los cambios posteriores en el cargo, nivel o tabla salarial afectan los cálculos futuros, pero no modifican los snapshots de nómina ya generados.
 
-**DoR:** La Historia 9.2 está completada · El campo `sueldo_base` existe en el perfil del colaborador (ver C7) · El parámetro de tope de horas extra está configurado (A16) · La historia ha sido estimada.
+**DoR:** La Historia 9.2 está completada · El catálogo de cargos y su tabla salarial por nivel están configurados (A19) · El campo `sueldo_base` existe en el perfil del colaborador (ver C7) · El parámetro de tope de horas extra está configurado (A16) · La historia ha sido estimada.
 
 **DoD:** El sistema calcula correctamente el pago total para los 3 casos de ejemplo documentados por el equipo (exceso dentro del tope, exceso por encima del tope, déficit) · El bono respeta el tope configurado · Las tareas tardías no generan bono pero sí cuentan para las 160 horas.
 
@@ -350,12 +351,35 @@ Ya cubierto por A16 (`TOPE_HORAS_EXTRA_BONO`, editable por el Administrador). Si
 
 ---
 
-## A19. ACTUALIZAR — Épica 5, Historia de Gestión de usuarios (Admin asigna sueldo)
+## A19. ACTUALIZAR — Épica 5, Historia de Gestión de usuarios (catálogo de cargos y tabla salarial)
+
+**Descripción:**
+> Como Administrador, quiero gestionar los cargos o puestos de la organización y definir el sueldo base de cada cargo según el nivel Junior, Semi Senior o Senior, para que los perfiles y cálculos de asignaciones utilicen información laboral consistente.
 
 **Agregar a Criterios de Aceptación:**
-- El Administrador puede asignar y actualizar el **sueldo base** de cada colaborador.
+- El Administrador puede crear, editar, consultar y desactivar **cargos/puestos**.
+- Cada cargo/puesto tiene un sueldo base configurable para cada nivel de experiencia: **Junior**, **Semi Senior** y **Senior**.
+- El Administrador puede asignar o actualizar el cargo/puesto de cada colaborador.
+- El sueldo base vigente del colaborador se obtiene automáticamente de la combinación `cargo/puesto + nivel de experiencia` usando la tabla salarial configurada por el Administrador.
+- Si cambia el cargo, el nivel o el sueldo configurado para esa combinación, el sistema actualiza el sueldo base vigente para los cálculos futuros; los snapshots de nómina ya generados no se modifican.
+- Solo el Administrador puede crear o modificar cargos y valores de la tabla salarial. El PM y el RM pueden consultar el sueldo base, pero no editarlo (ver C7).
+- Un cargo/puesto asignado a colaboradores no puede desactivarse sin antes reasignar a esos colaboradores o confirmar una migración a otro cargo.
+- Un colaborador sin cargo, sin nivel o sin una tarifa salarial configurada se considera con **datos laborales incompletos**. El sistema debe mostrar una advertencia clara y no debe aprobar una asignación cuyo costo no pueda calcularse.
+- Todo cambio de cargo, nivel salarial configurado o sueldo base vigente queda registrado en auditoría con valor anterior, valor nuevo y Administrador responsable.
 
-**Agregar a DoD:** El campo sueldo base es editable únicamente por el Administrador.
+**Agregar a DoD:** El Administrador gestiona el catálogo de cargos y las tres tarifas salariales de cada cargo · Puede asignar un cargo a cada colaborador · El sueldo base se determina correctamente para Junior, Semi Senior y Senior · PM y RM lo consultan en modo de solo lectura · Los cambios quedan auditados · Los datos laborales incompletos se identifican antes de aprobar una asignación.
+
+**Subtareas:**
+- Crear el catálogo persistente de cargos/puestos y su estado activo/inactivo.
+- Modelar las tarifas de sueldo base por cargo y nivel de experiencia.
+- Implementar el CRUD de cargos y tarifas salariales para el Administrador.
+- Permitir al Administrador asignar un cargo/puesto al colaborador desde Gestión de usuarios.
+- Resolver y actualizar el sueldo base vigente cuando cambie el cargo, el nivel o la tarifa correspondiente.
+- Mostrar el sueldo base en modo de solo lectura a PM y RM, respetando el alcance de acceso definido en C7.
+- Registrar en auditoría los cambios de cargos y tarifas salariales.
+- Validar y señalizar colaboradores con datos laborales incompletos.
+
+**Estimación actualizada:** la Historia de Gestión de usuarios (A5) sube de **13 a 18 puntos** por incorporar un catálogo adicional, una matriz salarial por nivel, reglas de actualización y auditoría.
 
 ---
 
@@ -431,17 +455,17 @@ Ya cubierto por A16 (`TOPE_HORAS_EXTRA_BONO`, editable por el Administrador). Si
 *Esto reemplaza la nota anterior de "por ahora los certificados se suben sin validación" — ahora sí tienen dueño y flujo definidos.*
 
 **Descripción:**
-> Como Resource Manager, quiero revisar los certificados que suben los colaboradores y actualizar su nivel de habilidad y su nivel de experiencia general (Junior/Senior), para mantener el perfil profesional del colaborador validado y confiable.
+> Como Resource Manager, quiero revisar los certificados que suben los colaboradores y actualizar su nivel de habilidad y su nivel de experiencia general (Junior, Semi Senior o Senior), para mantener el perfil profesional del colaborador validado y confiable.
 
 **Criterios de Aceptación:**
 - El colaborador sube un certificado asociado a una habilidad de su perfil (ya definido en la Historia de habilidades y experiencia).
 - El certificado queda en estado "Pendiente de revisión" hasta que el RM lo evalúe.
 - El RM tiene una bandeja de certificados pendientes de revisión.
 - El RM puede **aprobar** el certificado (validando la habilidad, opcionalmente subiendo su nivel de dominio) o **rechazarlo** indicando un motivo.
-- El RM puede asignar o actualizar el **nivel de experiencia general** del colaborador (Junior/Senior).
+- El RM puede asignar o actualizar el **nivel de experiencia general** del colaborador (Junior, Semi Senior o Senior).
 - El colaborador puede ver el estado de sus certificados (pendiente, aprobado, rechazado).
 
-**DoR:** La Historia de Gestión de habilidades y experiencia está completada · Los niveles de experiencia (Junior/Senior) están definidos · La historia ha sido estimada.
+**DoR:** La Historia de Gestión de habilidades y experiencia está completada · Los niveles de experiencia (Junior, Semi Senior y Senior) están definidos · La tabla salarial por cargo y nivel existe (A19) · La historia ha sido estimada.
 
 **DoD:** El colaborador sube certificados asociados a una habilidad · El RM ve la bandeja de certificados pendientes · El RM aprueba/rechaza certificados · El nivel de experiencia es editable por el RM · Se probaron los flujos de aprobación y rechazo.
 
@@ -451,7 +475,7 @@ Ya cubierto por A16 (`TOPE_HORAS_EXTRA_BONO`, editable por el Administrador). Si
 - Agregar estado (pendiente/aprobado/rechazado) a los certificados subidos por el colaborador.
 - Implementar bandeja de certificados pendientes para el RM.
 - Implementar aprobación/rechazo de certificados con motivo.
-- Agregar campo "nivel de experiencia" (Junior/Senior) al perfil del colaborador, editable por el RM.
+- Agregar campo "nivel de experiencia" (Junior, Semi Senior o Senior) al perfil del colaborador, editable por el RM. Al cambiarlo, el sueldo base vigente se recalcula con la tarifa administrada en A19.
 - Implementar vista de estado de certificados para el colaborador.
 
 ---
@@ -639,7 +663,7 @@ División de responsabilidades: A6 es dueña de toda la lógica de activación y
 ✅ CONFIRMADO: La validación es doble — se detectan correos duplicados dentro del archivo cargado Y se cruzan contra los correos de usuarios ya existentes en la base de datos. Ambas validaciones son obligatorias.
 
 **C7. ¿Quién puede ver el sueldo base y el pago mensual de un colaborador?**
-✅ RESUELTO: Solo el propio colaborador y el Administrador. Ni el PM ni el RM tienen acceso al sueldo base ni al pago total calculado. Esta regla debe implementarse como restricción de acceso explícita en la Historia 9.3.
+✅ ACTUALIZADO: El **sueldo base** puede ser consultado por el propio colaborador, el Administrador, el RM y el PM. El RM puede consultarlo para evaluar costos y presupuesto de asignaciones; el PM puede consultarlo respecto de colaboradores vinculados, propuestos o candidatos para los proyectos que gestiona. Para PM y RM es un dato de **solo lectura**: únicamente el Administrador puede modificar los cargos/puestos y la tabla salarial que determina el sueldo base (A19). El **pago mensual total**, bonos y demás detalle de nómina continúan siendo visibles únicamente para el propio colaborador y el Administrador. Estas restricciones deben aplicarse explícitamente en service/controller y no solo ocultando campos en la interfaz.
 
 **C8. ¿El sistema de Horas y Pagos aplica solo a Colaboradores?**
 ✅ RESUELTO: Sí, aplica exclusivamente al rol Colaborador. PM, RM y Administrador no participan en el sistema de tareas ni en el cálculo de nómina.
@@ -666,8 +690,8 @@ La fecha de confirmación del PM es la que determina si fue a tiempo o tardía. 
 **C13. ¿Las horas se controlan por tareas (estimadas) o por registro libre de tiempo (cronómetro)?**
 ✅ CONFIRMADO: Las horas se controlan a través de las **tareas con horas estimadas** asignadas por el PM. No existe un cronómetro ni registro libre de tiempo. Las horas estimadas de la tarea son las que se contabilizan.
 
-**C14. ¿El nivel Junior/Senior del colaborador afecta el sueldo u otro cálculo automático?**
-✅ RESUELTO: Es **solo informativo**. No afecta el valor_hora, el sueldo_base ni ningún cálculo automático de la Épica 9. Sirve únicamente para filtros de búsqueda del RM y para el AI Talent Matching.
+**C14. ¿El nivel Junior/Semi Senior/Senior del colaborador afecta el sueldo u otro cálculo automático?**
+✅ ACTUALIZADO: Sí afecta el **sueldo base vigente**. El sistema selecciona la tarifa configurada por el Administrador para la combinación `cargo/puesto + nivel de experiencia` (Junior, Semi Senior o Senior). El nivel continúa utilizándose además para filtros del RM y AI Talent Matching. El RM puede actualizar el nivel de experiencia mediante el flujo definido en A23, pero no puede editar la tarifa: cualquier cambio de nivel recalcula el sueldo vigente usando la tabla salarial administrada en A19. Los snapshots de nómina ya generados no se modifican retroactivamente.
 
 **C15. ¿El presupuesto del proyecto se valida contra los pagos reales de la Épica 9?**
 ✅ RESUELTO: Por ahora es **solo informativo**. El RM declara un presupuesto que queda registrado en el proyecto, pero el sistema no lo valida automáticamente contra los pagos calculados en la Épica 9. Esta validación puede agregarse en una fase futura.
@@ -729,7 +753,7 @@ En ese momento, con el Tier 1 ya completo y evaluado, el equipo decide con datos
 | Gestión de asignaciones de colaboradores (A4) | 8 | **13** | Triple origen + doble aprobación condicional |
 | Gestión de publicaciones del foro (A7) | 8 | **13** | Votos + ordenamiento + control de acceso por rol |
 | Gestión de respuestas y soluciones del foro (A8) | 8 | **10** | Votos en respuestas + ordenamiento |
-| Gestión de usuarios (A5) | 8 | **13** | Carga masiva + activación + sueldo_base |
+| Gestión de usuarios (A5/A19) | 8 | **18** | Carga masiva + activación + catálogo de cargos + matriz salarial por nivel |
 | Consulta de proyectos y asignaciones del colaborador (A2, nueva) | — | **3** | Vista de solo lectura |
 | Colaborador solicita incorporarse a un proyecto (A3, nueva) | — | **5** | Flujo de solicitud + validaciones |
 | Activación de cuenta (A6, nueva) | — | **8** | Token + correo + formulario + expiración |
@@ -740,7 +764,7 @@ En ese momento, con el Tier 1 ya completo y evaluado, el equipo decide con datos
 | **Asignación de presupuesto al proyecto (A20, nueva)** | — | **5** | Campo presupuesto + edición solo RM |
 | **Reporte de horas por proyecto — PM (A21, nueva)** | — | **8** | Vista + filtros + exportación PDF/Excel (C18) |
 | **Reporte de presupuesto y horas — RM (A22, nueva)** | — | **8** | Vista + filtros + exportación PDF/Excel (C18) |
-| **Revisión de certificados y nivel de experiencia (A23, nueva)** | — | **8** | Bandeja RM + aprobación/rechazo + nivel Junior/Senior |
+| **Revisión de certificados y nivel de experiencia (A23, nueva)** | — | **8** | Bandeja RM + aprobación/rechazo + nivel Junior/Semi Senior/Senior |
 | **Sistema de Notificaciones (A24, nueva)** | — | **8** | Servicio central + integración con todos los flujos |
 | **Gestión del catálogo de cursos — Admin (A25, nueva)** | — | **5** | CRUD de cursos |
 | **Colaborador solicita inscripción a curso (A26, nueva)** | — | **3** | Catálogo + solicitud + estado |

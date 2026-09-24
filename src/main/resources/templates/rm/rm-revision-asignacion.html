@@ -132,6 +132,21 @@
               <div class="d-flex justify-content-between gap-3"><span class="text-secondary">Presupuesto disponible después</span><strong th:classappend="${impacto.suficiente} ? 'text-success' : 'text-danger'" th:text="'S/ ' + ${impacto.disponibleDespues}">S/ 0</strong></div>
               <div th:if="${impacto.suficiente}" class="alert alert-success mt-3 mb-0">Hay presupuesto suficiente para aprobar.</div>
               <div th:unless="${impacto.suficiente}" class="alert alert-danger mt-3 mb-0" th:text="'Presupuesto insuficiente: faltan S/ ' + ${impacto.deficit} + '. No se puede aprobar hasta aumentar el presupuesto del proyecto.'">Insuficiente</div>
+              <form th:unless="${impacto.suficiente}" class="row g-2 align-items-end mt-2" method="post"
+                    th:action="@{/rm/proyectos/{id}/presupuesto(id=${asignacion.asignacion.proyecto.id})}">
+                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="hidden" name="asignacionId" th:value="${asignacion.asignacion.id}">
+                <div class="col-sm-8">
+                  <label for="assignmentProjectBudget" class="form-label">Nuevo presupuesto total (S/)</label>
+                  <input id="assignmentProjectBudget" name="presupuesto" type="number" class="form-control"
+                         min="0.01" max="9999999999.99" step="0.01" required
+                         th:value="${asignacion.asignacion.proyecto.presupuesto}">
+                </div>
+                <div class="col-sm-4 d-grid">
+                  <button type="submit" class="btn btn-primary">Actualizar</button>
+                </div>
+                <div class="form-hint">Al guardar volverás a esta revisión para completar la decisión.</div>
+              </form>
             </div>
           </div>
         </div>

@@ -14,6 +14,8 @@ import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.rm.RmAsignacionService;
+import com.pucp.skillb_ia.service.pm.PmAsignacionService;
+import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +45,12 @@ class RmAsignacionTests {
     @Autowired private ProyectoRepository proyectoRepository;
     @Autowired private AsignacionRepository asignacionRepository;
     @Autowired private RmAsignacionService asignacionService;
+    @Autowired private PmAsignacionService pmAsignacionService;
+    @Autowired private RmProyectoRevisionService proyectoRevisionService;
 
     private MockMvc mockMvc;
     private Usuario rm;
+    private Usuario pm;
     private Usuario colaborador;
     private Proyecto proyecto;
 
@@ -59,7 +64,7 @@ class RmAsignacionTests {
         Rol rolColaborador = obtenerRol("COLABORADOR");
 
         rm = obtenerUsuario("rm.asignaciones@skillbridge.test", "Rosa", "RM", rolRm);
-        Usuario pm = obtenerUsuario("pm.asignaciones@skillbridge.test", "Pedro", "PM", rolPm);
+        pm = obtenerUsuario("pm.asignaciones@skillbridge.test", "Pedro", "PM", rolPm);
         colaborador = obtenerUsuario(
                 "col.asignaciones@skillbridge.test", "Carla", "Colaboradora", rolColaborador);
         colaborador.setCargo("Backend Developer");
@@ -97,6 +102,18 @@ class RmAsignacionTests {
     }
 
     @Test
+    void propuestaDelPmQuedaPendienteDelRm() {
+        Asignacion asignacion = pmAsignacionService.proponer(
+                proyecto.getId(), colaborador.getId(), new BigDecimal("12"),
+                "Tiene experiencia en el dominio.", pm);
+
+        assertEquals(EstadoAsignacion.PENDIENTE, asignacion.getEstado());
+        assertTrue(asignacion.isAprobadoPorPm());
+        assertFalse(asignacion.isAprobadoPorRm());
+        assertEquals(OrigenAsignacion.PROPUESTA_PM, asignacion.getOrigen());
+    }
+
+    @Test
     void aprobarPropuestaDelPmActivaLaAsignacion() {
         Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "12");
 
@@ -119,6 +136,67 @@ class RmAsignacionTests {
         assertEquals(EstadoAsignacion.PENDIENTE, actualizada.getEstado());
         assertTrue(actualizada.isAprobadoPorRm());
         assertFalse(actualizada.isAprobadoPorPm());
+    }
+
+    @Test
+    void solicitudDelColaboradorPuedeSerAprobadaPorAmbosYQuedaActiva() {
+        Asignacion asignacion = guardarPendiente(
+                OrigenAsignacion.SOLICITADA_COLABORADOR, false, false, "10");
+
+        asignacionService.aprobar(asignacion.getId(), null, rm.getId());
+        assertEquals(1, pmAsignacionService.listarPendientesPm(proyecto.getId(), pm).size());
+
+        pmAsignacionService.aprobar(asignacion.getId(), pm);
+
+        Asignacion actualizada = asignacionRepository.findById(asignacion.getId()).orElseThrow();
+        assertEquals(EstadoAsignacion.ACTIVA, actualizada.getEstado());
+        assertTrue(actualizada.isAprobadoPorRm());
+        assertTrue(actualizada.isAprobadoPorPm());
+        assertNotNull(actualizada.getFechaActivacion());
+    }
+
+    @Test
+    void presupuestoPuedeAumentarseTrasBloqueoYPermiteAprobar() {
+        proyecto.setPresupuesto(new BigDecimal("100.00"));
+        proyectoRepository.save(proyecto);
+        Asignacion asignacion = guardarPendiente(
+                OrigenAsignacion.PROPUESTA_PM, true, false, "12");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> asignacionService.aprobar(asignacion.getId(), null, rm.getId()));
+
+        proyectoRevisionService.asignarPresupuesto(
+                proyecto.getId(), new BigDecimal("10000.00"), rm.getId());
+        asignacionService.aprobar(asignacion.getId(), null, rm.getId());
+
+        Asignacion actualizada = asignacionRepository.findById(asignacion.getId()).orElseThrow();
+        assertEquals(EstadoAsignacion.ACTIVA, actualizada.getEstado());
+    }
+
+    @Test
+    void noPermiteReducirPresupuestoDebajoDelMontoReservado() {
+        guardarPendiente(OrigenAsignacion.PROPUESTA_RM, false, true, "12");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> proyectoRevisionService.asignarPresupuesto(
+                        proyecto.getId(), new BigDecimal("100.00"), rm.getId()));
+
+        assertTrue(error.getMessage().contains("comprometido o reservado"));
+    }
+
+    @Test
+    void pmRechazaSoloConMotivoYConservaElHistorial() {
+        Asignacion asignacion = guardarPendiente(
+                OrigenAsignacion.PROPUESTA_RM, false, true, "8");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> pmAsignacionService.rechazar(asignacion.getId(), " ", pm));
+
+        pmAsignacionService.rechazar(asignacion.getId(), "El perfil no cubre la necesidad.", pm);
+        Asignacion actualizada = asignacionRepository.findById(asignacion.getId()).orElseThrow();
+        assertEquals(EstadoAsignacion.RECHAZADA, actualizada.getEstado());
+        assertEquals("El perfil no cubre la necesidad.", actualizada.getMotivoRechazo());
+        assertEquals(pm.getId(), actualizada.getRechazadoPor().getId());
     }
 
     @Test

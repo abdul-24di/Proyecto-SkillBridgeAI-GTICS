@@ -141,6 +141,7 @@ public class RmAsignacionService {
         Usuario rm = obtenerRm(rmId);
         Asignacion asignacion = obtenerEntidad(asignacionId);
         validarDecisionRm(asignacion);
+        obtenerProyectoAsignable(asignacion.getProyecto().getId());
         // Al aprobar, el RM reserva el costo de esta asignación (sección 6/7.1).
         presupuestoService.validarPresupuestoSuficiente(
                 asignacion.getProyecto(), asignacion.getColaborador(), asignacion.getHorasSemanales());

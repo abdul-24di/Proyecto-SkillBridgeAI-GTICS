@@ -28,7 +28,7 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
             join fetch c.rol
             where a.proyecto = :proyecto
               and a.estado = 'PENDIENTE'
-              and a.origen = 'PROPUESTA_RM'
+              and a.origen in ('PROPUESTA_RM', 'SOLICITADA_COLABORADOR')
               and a.aprobadoPorPm = false
             order by a.fechaSolicitud desc
             """)

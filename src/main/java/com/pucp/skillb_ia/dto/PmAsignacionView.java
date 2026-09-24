@@ -37,16 +37,16 @@ public class PmAsignacionView {
     public BigDecimal getHorasSemanales() { return asignacion.getHorasSemanales(); }
     public LocalDateTime getFechaSolicitud() { return asignacion.getFechaSolicitud(); }
 
-    /** El PM puede aprobar si la asignación fue propuesta por el RM y aún espera su OK. */
+    /** El PM decide propuestas del RM y solicitudes directas del colaborador. */
     public boolean isPuedeAprobarPm() {
-        return asignacion.getOrigen() == OrigenAsignacion.PROPUESTA_RM
+        return asignacion.getOrigen() != OrigenAsignacion.PROPUESTA_PM
                 && asignacion.getEstado() == EstadoAsignacion.PENDIENTE
                 && !asignacion.isAprobadoPorPm();
     }
 
-    /** El PM puede rechazar asignaciones pendientes de cualquier origen. */
+    /** Rechazar sigue la misma regla de decisión que aprobar. */
     public boolean isPuedeRechazarPm() {
-        return asignacion.getEstado() == EstadoAsignacion.PENDIENTE;
+        return isPuedeAprobarPm();
     }
 
     /** El PM puede finalizar asignaciones activas (A18). */

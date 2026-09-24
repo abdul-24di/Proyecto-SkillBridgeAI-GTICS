@@ -217,6 +217,7 @@ public class RmViewController {
     public String assignProjectBudget(
             @PathVariable("id") Long proyectoId,
             @RequestParam("presupuesto") BigDecimal presupuesto,
+            @RequestParam(name = "asignacionId", required = false) Long asignacionId,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
@@ -224,13 +225,40 @@ public class RmViewController {
             EstadoProyecto estado = rmProyectoRevisionService.asignarPresupuesto(
                     proyectoId, presupuesto, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute("mensajeExito", "Presupuesto guardado correctamente.");
-            return estado == EstadoProyecto.EN_REVISION
-                    ? "redirect:/rm/proyectos/revision?id=" + proyectoId
-                    : "redirect:/rm/proyectos/detalle?id=" + proyectoId;
+            String redireccionAsignacion = redireccionAsignacionDelProyecto(proyectoId, asignacionId);
+            if (redireccionAsignacion != null) return redireccionAsignacion;
+            return redireccionPresupuestoProyecto(proyectoId, estado);
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
-            return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
+            String redireccionAsignacion = redireccionAsignacionDelProyecto(proyectoId, asignacionId);
+            if (redireccionAsignacion != null) return redireccionAsignacion;
+            return redireccionPresupuestoProyecto(proyectoId, null);
         }
+    }
+
+    private String redireccionAsignacionDelProyecto(Long proyectoId, Long asignacionId) {
+        if (asignacionId == null) return null;
+        try {
+            RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
+            if (!asignacion.getAsignacion().getProyecto().getId().equals(proyectoId)) return null;
+            return redirectDetalleAsignacion(asignacion);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private String redireccionPresupuestoProyecto(Long proyectoId, EstadoProyecto estadoConocido) {
+        EstadoProyecto estado = estadoConocido;
+        if (estado == null) {
+            try {
+                estado = rmProyectoConsultaService.obtener(proyectoId).getProyecto().getEstado();
+            } catch (IllegalArgumentException ex) {
+                return "redirect:/rm/proyectos";
+            }
+        }
+        return estado == EstadoProyecto.EN_REVISION
+                ? "redirect:/rm/proyectos/revision?id=" + proyectoId
+                : "redirect:/rm/proyectos/detalle?id=" + proyectoId;
     }
 
     @PostMapping("/proyectos/{id}/aprobar")

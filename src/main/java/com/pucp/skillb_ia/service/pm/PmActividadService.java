@@ -142,7 +142,7 @@ public class PmActividadService {
 
         //En caso de que el PM devuelva una actividad por no estar bien hecha se contará como un strike.
         penalizacionService.aplicarStrikePorDevolucion(actividad);
-        penalizacionService.verificarYRemoverPorStrikes(actividad.getColaborador(), actividad.getProyecto());
+        penalizacionService.verificarYNotificarPorStrikes(actividad.getColaborador(), actividad.getProyecto());
 
         notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_DEVUELTA", CategoriaNotificacion.ACTIVIDAD,
                 "Actividad devuelta",

@@ -7,7 +7,6 @@ import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
-import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
 import com.pucp.skillb_ia.model.enums.TipoPenalizacion;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.PenalizacionRepository;
@@ -16,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -81,7 +79,7 @@ public class PenalizacionService {
     }
 
     // ============================================================
-    // CONTAMOS Y REMOVEMOS AL TERCER STRIKE
+    // CONTAMOS Y AVISAMOS AL PM Y COLABORADOR AL LLEGAR AL LÍMITE DE STRIKES
     // ============================================================
 
     public int contarStrikes(Usuario colaborador, Proyecto proyecto) {
@@ -99,41 +97,42 @@ public class PenalizacionService {
     }
 
     @Transactional
-    public void verificarYRemoverPorStrikes(Usuario colaborador, Proyecto proyecto) {
+    public void verificarYNotificarPorStrikes(Usuario colaborador, Proyecto proyecto) {
         int strikes = contarStrikes(colaborador, proyecto);
-        if (strikes < MAXIMO_STRIKES) {
+
+        if (strikes != MAXIMO_STRIKES) {
             return;
         }
 
+        //Buscamos la asignación activa para poder enlazar la notificación a ella.
+        Long asignacionId = null;
         List<Asignacion> asignacionesActivas = asignacionRepository.findByColaboradorAndEstado(colaborador, EstadoAsignacion.ACTIVA);
         for (Asignacion asignacion : asignacionesActivas) {
-            boolean esDeEsteProyecto = asignacion.getProyecto().getId().equals(proyecto.getId());
-            if (!esDeEsteProyecto) {
-                continue;
+            if (asignacion.getProyecto().getId().equals(proyecto.getId())) {
+                asignacionId = asignacion.getId();
+                break;
             }
-
-            asignacion.setEstado(EstadoAsignacion.FINALIZADA);
-            asignacion.setMotivoFinalizacion(MotivoFinalizacion.BAJO_DESEMPENO);
-            asignacion.setFechaFinalizacion(LocalDateTime.now());
-            asignacionRepository.save(asignacion);
-
-            Penalizacion salida = new Penalizacion();
-            salida.setColaborador(colaborador);
-            salida.setProyecto(proyecto);
-            salida.setTipo(TipoPenalizacion.SALIDA_PROYECTO);
-            salida.setMotivo("Removido del proyecto \"" + proyecto.getNombre() + "\" por acumular " + strikes + " strikes.");
-            salida.setMonto(MONTO_PLACEHOLDER);
-            penalizacionRepository.save(salida);
-
-            auditoriaService.registrar(colaborador, "REMOVER_POR_STRIKES", "ASIGNACION", asignacion.getId(),
-                    "Removido del proyecto \"" + proyecto.getNombre() + "\" tras acumular " + strikes + " strikes.");
-
-            notificacionService.crear(colaborador, "REMOVIDO_POR_STRIKES",
-                    com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ASIGNACION,
-                    "Saliste de " + proyecto.getNombre(),
-                    "Fuiste removido del proyecto por acumular " + strikes + " strikes por bajo desempeño.",
-                    "ASIGNACION", asignacion.getId());
         }
+
+        String nombreColaborador = colaborador.getNombre() + " " + colaborador.getApellido();
+
+        notificacionService.crear(proyecto.getPm(), "STRIKES_LIMITE",
+                com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ASIGNACION,
+                "Evaluar rendimiento en " + proyecto.getNombre(),
+                nombreColaborador + " acumuló " + strikes + " strikes en \"" + proyecto.getNombre()
+                        + "\". Evalúa su rendimiento y decide si continúa en el proyecto.",
+                "ASIGNACION", asignacionId);
+
+        notificacionService.crear(colaborador, "STRIKES_LIMITE",
+                com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ASIGNACION,
+                "Alcanzaste el límite de strikes en " + proyecto.getNombre(),
+                "Acumulaste " + strikes + " strikes por bajo desempeño en \"" + proyecto.getNombre()
+                        + "\". Se te aplicará un descuento en tu sueldo, y el PM evaluará si continúas en el proyecto.",
+                "ASIGNACION", asignacionId);
+
+        auditoriaService.registrar(colaborador, "LIMITE_STRIKES_ALCANZADO", "ASIGNACION", asignacionId,
+                nombreColaborador + " alcanzó " + strikes + " strikes en el proyecto \"" + proyecto.getNombre()
+                        + "\" — se notificó al PM para que evalúe su rendimiento.");
     }
 
     @Transactional
@@ -141,13 +140,12 @@ public class PenalizacionService {
         LocalDate hoy = LocalDate.now();
 
         for (Actividad actividad : actividades) {
-            boolean sinEntregar = actividad.getEstado() == EstadoActividad.PENDIENTE
-                    || actividad.getEstado() == EstadoActividad.EN_PROGRESO;
+            boolean sinEntregar = actividad.getEstado() == EstadoActividad.PENDIENTE || actividad.getEstado() == EstadoActividad.EN_PROGRESO;
             boolean estaVencida = hoy.isAfter(actividad.getFechaLimite());
 
             if (sinEntregar && estaVencida) {
                 aplicarStrikePorTardanza(actividad);
-                verificarYRemoverPorStrikes(actividad.getColaborador(), actividad.getProyecto());
+                verificarYNotificarPorStrikes(actividad.getColaborador(), actividad.getProyecto());
             }
         }
     }

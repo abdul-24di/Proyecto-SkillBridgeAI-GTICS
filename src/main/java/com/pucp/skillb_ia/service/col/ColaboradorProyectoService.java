@@ -382,7 +382,7 @@ public class ColaboradorProyectoService {
         // Si la entregó después de la fecha límite, es un strike. No importa sí la entregó, esta fue entregada tarde.
         if (java.time.LocalDate.now().isAfter(actividad.getFechaLimite())) {
             penalizacionService.aplicarStrikePorTardanza(actividad);
-            penalizacionService.verificarYRemoverPorStrikes(colaborador, actividad.getProyecto());
+            penalizacionService.verificarYNotificarPorStrikes(colaborador, actividad.getProyecto());
         }
     }
 

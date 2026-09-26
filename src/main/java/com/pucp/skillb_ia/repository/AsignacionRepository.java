@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -97,4 +98,13 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
             order by a.fechaSolicitud desc
             """)
     List<Asignacion> findByColaboradorIdConDetalle(@Param("colaboradorId") Long colaboradorId);
+
+    @Query("SELECT COALESCE(SUM(a.horasSemanales), 0) FROM Asignacion a " +
+            "WHERE a.colaborador = :colaborador " +
+            "AND a.estado = EstadoAsignacion.ACTIVA")
+    BigDecimal sumHorasSemanalesActivasPorColaborador(@Param("colaborador") Usuario colaborador);
+
+
+
+
 }

@@ -1,14 +1,19 @@
 package com.pucp.skillb_ia.service.col;
 
+import com.pucp.skillb_ia.dto.ColBonoMensualView;
 import com.pucp.skillb_ia.dto.ColHorasResumenView;
 import com.pucp.skillb_ia.dto.ColProyectoAvanceView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.repository.ActividadRepository;
+import com.pucp.skillb_ia.repository.AsignacionRepository;
+import com.pucp.skillb_ia.repository.ConfiguracionSistemaRepository;
+import com.pucp.skillb_ia.service.PenalizacionService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -19,17 +24,21 @@ import java.util.List;
 public class ColaboradorActividadService {
 
     private final ActividadRepository actividadRepository;
-    private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
-    private final com.pucp.skillb_ia.repository.AsignacionRepository asignacionRepository;
+    private final PenalizacionService penalizacionService;
+    private final AsignacionRepository asignacionRepository;
+    private final ConfiguracionSistemaRepository configuracionSistemaRepository;
+
     //Establecemos que la meta mensual de horas sea de 160 horas al mes
     private static final BigDecimal META_MENSUAL_HORAS = new BigDecimal("160");
 
     public ColaboradorActividadService(ActividadRepository actividadRepository,
-                                       com.pucp.skillb_ia.service.PenalizacionService penalizacionService,
-                                       com.pucp.skillb_ia.repository.AsignacionRepository asignacionRepository) {
+                                       PenalizacionService penalizacionService,
+                                       AsignacionRepository asignacionRepository,
+                                       ConfiguracionSistemaRepository configuracionSistemaRepository) {
         this.actividadRepository = actividadRepository;
         this.penalizacionService = penalizacionService;
         this.asignacionRepository = asignacionRepository;
+        this.configuracionSistemaRepository = configuracionSistemaRepository;
     }
 
     //Listamos todas las actividades del colaborador, de la fecha límite más próxima a la más lejana
@@ -131,9 +140,50 @@ public class ColaboradorActividadService {
         return penalizacionService.calcularPorcentajeDescuentoMes(colaborador, YearMonth.now());
     }
 
-    public BigDecimal obtenerMontoDescuentoMesActual(Usuario colaborador) {
-        return penalizacionService.calcularMontoDescuentoMes(colaborador, YearMonth.now());
+    public java.math.BigDecimal obtenerMontoDescuentoMesActual(Usuario colaborador) {
+        return penalizacionService.calcularMontoDescuentoMes(colaborador, java.time.YearMonth.now());
     }
+
+    // ============================================================
+    // BONO MENSUAL POR HORAS EXTRA
+    // ============================================================
+    private static final String CLAVE_TOPE_HORAS_EXTRA = "TOPE_HORAS_EXTRA_BONO";
+    private static final BigDecimal TOPE_HORAS_EXTRA_POR_DEFECTO = new BigDecimal("20");
+    private static final BigDecimal HORAS_MES_REFERENCIA = new BigDecimal("160");
+
+    private BigDecimal obtenerTopeHorasExtra() {
+
+        return configuracionSistemaRepository.findByClave(CLAVE_TOPE_HORAS_EXTRA)
+
+                //En caso de que exista la configuración, convertimos su valor de String a BigDecimal.
+                .map(configuracion -> {
+                    try {
+                        return new BigDecimal(configuracion.getValor());
+
+                        //Si el valor no es numérico, usamos el valor por defecto.
+                    } catch (NumberFormatException e) {
+                        return TOPE_HORAS_EXTRA_POR_DEFECTO;
+                    }
+
+
+                    //Si no existe la configuración, usamos el valor por defecto.
+                }).orElse(TOPE_HORAS_EXTRA_POR_DEFECTO);
+
+
+    }
+
+    public ColBonoMensualView obtenerResumenBonoMensual(Usuario colaborador) {
+        ColHorasResumenView resumenHoras = obtenerResumenHoras(colaborador);
+        BigDecimal topeHorasExtra = obtenerTopeHorasExtra();
+
+        boolean tuvoDescuentoEsteMes = penalizacionService.calcularPorcentajeDescuentoMes(colaborador, YearMonth.now()) > 0;
+
+        BigDecimal valorHora = colaborador.getSueldoBase() == null ? BigDecimal.ZERO : colaborador.getSueldoBase().divide(HORAS_MES_REFERENCIA, 4, RoundingMode.HALF_UP);
+
+        return new ColBonoMensualView(resumenHoras.getHorasTrabajadasMes(), resumenHoras.getMetaMensual(), topeHorasExtra, tuvoDescuentoEsteMes, valorHora);
+    }
+
+
 
 
 

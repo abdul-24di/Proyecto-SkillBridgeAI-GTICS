@@ -17,7 +17,10 @@ public class ColHorasResumenView {
                                BigDecimal horasTrabajadasMes, BigDecimal metaMensual) {
         this.horasContratadasSemana = horasContratadasSemana == null ? BigDecimal.ZERO : horasContratadasSemana;
         this.horasDisponibles = horasDisponibles == null ? BigDecimal.ZERO : horasDisponibles;
-        this.horasComprometidas = this.horasContratadasSemana.subtract(this.horasDisponibles);
+
+        BigDecimal comprometidas = this.horasContratadasSemana.subtract(this.horasDisponibles);
+        this.horasComprometidas = comprometidas.signum() < 0 ? BigDecimal.ZERO : comprometidas;
+
         this.horasTrabajadasMes = horasTrabajadasMes == null ? BigDecimal.ZERO : horasTrabajadasMes;
         this.metaMensual = metaMensual;
 

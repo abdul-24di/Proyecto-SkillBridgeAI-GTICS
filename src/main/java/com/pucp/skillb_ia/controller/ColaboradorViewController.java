@@ -88,7 +88,7 @@ public class ColaboradorViewController {
         model.addAttribute("misPenalizaciones", colaboradorActividadService.listarMisPenalizaciones(colaborador));
         model.addAttribute("porcentajeDescuentoMes", colaboradorActividadService.obtenerPorcentajeDescuentoMesActual(colaborador));
         model.addAttribute("montoDescuentoMes", colaboradorActividadService.obtenerMontoDescuentoMesActual(colaborador));
-
+        model.addAttribute("resumenBono", colaboradorActividadService.obtenerResumenBonoMensual(colaborador));
 
         return "col/col-dashboard";
     }

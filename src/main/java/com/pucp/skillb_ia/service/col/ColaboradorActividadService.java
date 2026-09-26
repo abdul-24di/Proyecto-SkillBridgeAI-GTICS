@@ -1,15 +1,15 @@
 package com.pucp.skillb_ia.service.col;
 
+import com.pucp.skillb_ia.dto.ColHorasResumenView;
 import com.pucp.skillb_ia.dto.ColProyectoAvanceView;
-import com.pucp.skillb_ia.model.Actividad;
-import com.pucp.skillb_ia.model.Asignacion;
-import com.pucp.skillb_ia.model.Proyecto;
-import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.repository.ActividadRepository;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -21,6 +21,8 @@ public class ColaboradorActividadService {
     private final ActividadRepository actividadRepository;
     private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
     private final com.pucp.skillb_ia.repository.AsignacionRepository asignacionRepository;
+    //Establecemos que la meta mensual de horas sea de 160 horas al mes
+    private static final BigDecimal META_MENSUAL_HORAS = new BigDecimal("160");
 
     public ColaboradorActividadService(ActividadRepository actividadRepository,
                                        com.pucp.skillb_ia.service.PenalizacionService penalizacionService,
@@ -93,4 +95,51 @@ public class ColaboradorActividadService {
         }
         return resultado;
     }
+
+    // ============================================================
+    // RESUMEN DE HORAS PARA EL DASHBOARD (semanales y meta mensual)
+    // ============================================================
+
+    public ColHorasResumenView obtenerResumenHoras(Usuario colaborador) {
+
+        List<Actividad> todas = actividadRepository.findByColaborador(colaborador);
+        YearMonth mesActual = YearMonth.now();
+
+        BigDecimal horasTrabajadasMes = BigDecimal.ZERO;
+
+        for (Actividad actividad : todas) {
+
+            boolean estaCompletada = actividad.getEstado() == EstadoActividad.COMPLETADA;
+
+            boolean esDeEsteMes = actividad.getFechaEntrega() != null && YearMonth.from(actividad.getFechaEntrega()).equals(mesActual);
+
+            if (estaCompletada && esDeEsteMes && actividad.getHorasEstimadas() != null) {
+                horasTrabajadasMes = horasTrabajadasMes.add(actividad.getHorasEstimadas());
+            }
+        }
+
+        return new ColHorasResumenView(colaborador.getHorasContratadasSemana(), colaborador.getHorasDisponibles(), horasTrabajadasMes, META_MENSUAL_HORAS);
+    }
+
+    //Listamos las penalizaciones del colaborador
+    public List<Penalizacion> listarMisPenalizaciones(Usuario colaborador) {
+        return penalizacionService.listarPenalizaciones(colaborador);
+    }
+
+    //Obtenemos el porcentaje y monto real que se le descontara al colaborador, sumando todos sus strikes por mes
+    public int obtenerPorcentajeDescuentoMesActual(Usuario colaborador) {
+        return penalizacionService.calcularPorcentajeDescuentoMes(colaborador, YearMonth.now());
+    }
+
+    public BigDecimal obtenerMontoDescuentoMesActual(Usuario colaborador) {
+        return penalizacionService.calcularMontoDescuentoMes(colaborador, YearMonth.now());
+    }
+
+
+
+
 }
+
+
+
+

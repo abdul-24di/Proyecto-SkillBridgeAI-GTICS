@@ -199,7 +199,7 @@ public class PenalizacionService {
     }
 
     //Calculamos el monto en soles a descontar por mes, según el sueldo base del colaborador.
-    public BigDecimal calcularMontoDescuentoMes(Usuario colaborador, YearMonth mes) {
+    public BigDecimal calcularMontoDescuentoMes(Usuario colaborador, java.time.YearMonth mes) {
 
         int porcentaje = calcularPorcentajeDescuentoMes(colaborador, mes);
 
@@ -212,6 +212,31 @@ public class PenalizacionService {
         return sueldoBase.multiply(BigDecimal.valueOf(porcentaje)).divide(BigDecimal.valueOf(100));
 
     }
+
+    //Revisamos si el colaborador tuvo algún descuento durante el año
+    public boolean tuvoDescuentoEnElAnio(Usuario colaborador, int anio) {
+        YearMonth ahora = YearMonth.now();
+
+        for (int mes = 1; mes <= 12; mes++) {
+
+            YearMonth ym = YearMonth.of(anio, mes);
+
+            //no evaluamos meses que todavía no ocurren
+            if (ym.isAfter(ahora)) {
+                break;
+            }
+            //Si el porcentaje de descuento del mes es mayor a 0, el colaborador tuvo un descuento
+            if (calcularPorcentajeDescuentoMes(colaborador, ym) > 0) {
+                return true;
+            }
+
+        }
+
+        return false;
+
+    }
+
+
 
 
 

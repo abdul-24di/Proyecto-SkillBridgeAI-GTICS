@@ -2,10 +2,6 @@ package com.pucp.skillb_ia.model;
 
 import jakarta.persistence.*;
 
-// Clave-valor genérico para los parámetros globales del Admin (Historia de
-// Configuración de parámetros globales, Épica 5). Seed inicial en el schema:
-// MAX_ASIGNACIONES_POR_COLABORADOR, TOPE_HORAS_EXTRA_BONO (A16),
-// NOMBRE_ORGANIZACION.
 @Entity
 @Table(name = "configuracion_sistema")
 public class ConfiguracionSistema {

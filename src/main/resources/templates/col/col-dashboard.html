@@ -136,81 +136,13 @@
 
         </div>
 
-        <div class="row row-cards mb-4">
-
-            <div class="col-lg-7">
-                <div class="card section-card h-100">
-                    <div class="card-header section-header">
-                        <div><h3 class="card-title mb-1">Tus horas</h3><div class="section-description">Disponibilidad semanal y avance hacia tu meta mensual.</div></div>
-                    </div>
-                    <div class="card-body">
-                        <div class="info-grid mb-3">
-                            <div><div class="info-label">Contratadas</div><div class="info-value" th:text="${resumenHoras.horasContratadasSemana} + ' h/sem'">—</div></div>
-                            <div><div class="info-label">Comprometidas</div><div class="info-value" th:text="${resumenHoras.horasComprometidas} + ' h/sem'">—</div></div>
-                            <div><div class="info-label">Disponibles</div><div class="info-value" th:text="${resumenHoras.horasDisponibles} + ' h/sem'">—</div></div>
-                        </div>
-                        <hr>
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div class="info-label mb-0">Meta mensual (para tu sueldo completo)</div>
-                            <div class="small text-secondary" th:text="${resumenHoras.horasTrabajadasMes} + ' / ' + ${resumenHoras.metaMensual} + ' hrs'">0 / 160 hrs</div>
-                        </div>
-                        <div class="progress mb-2">
-                            <div class="progress-bar" role="progressbar" th:style="'width: ' + ${resumenHoras.porcentajeMeta} + '%'"></div>
-                        </div>
-                        <div th:if="${resumenHoras.metaCumplida}" class="alert alert-success small mb-0">¡Ya completaste tus horas de este mes!</div>
-                        <div th:if="${!resumenHoras.metaCumplida}" class="alert alert-warning small mb-0">
-                            Te faltan <strong th:text="${resumenHoras.horasFaltantesMes}"></strong> horas este mes.
-                            <a th:href="@{/colaborador/explorar}">Buscar proyectos</a> o
-                            <a th:href="@{/colaborador/explorar(tab='cursos')}">ver cursos disponibles</a>.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-
-            <div class="col-lg-5">
-                <div class="card section-card h-100">
-                    <div class="card-header section-header">
-                        <div><h3 class="card-title mb-1">Descuentos</h3><div class="section-description">Por bajo desempeño, cada 3 strikes en el mes suman 5%.</div></div>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded"
-                             th:classappend="${porcentajeDescuentoMes > 0} ? 'bg-red-lt' : 'bg-green-lt'">
-                            <div>
-                                <div class="small text-secondary">Descuento de este mes</div>
-                                <div class="fw-bold" th:text="${porcentajeDescuentoMes} + '%'">0%</div>
-                            </div>
-                            <div class="fw-bold" th:text="'- S/ ' + ${#numbers.formatDecimal(montoDescuentoMes, 1, 2)}">S/ 0.00</div>
-                        </div>
-                        <div th:if="${porcentajeDescuentoMes == 0}" class="small text-secondary mb-0">Vas bien: aún no acumulas suficientes strikes este mes para un descuento.</div>
-                    </div>
-                    <div class="card-header section-header"><div><h3 class="card-title mb-1 fs-6">Historial de strikes</h3></div></div>
-                    <div class="card-body p-0" style="max-height:200px; overflow-y:auto;">
-                        <div th:if="${misPenalizaciones.isEmpty()}" class="empty-state">Todavía no tienes strikes registrados.</div>
-                        <div th:each="p : ${misPenalizaciones}" class="timeline-entry">
-                            <span class="text-secondary small" th:text="${#temporals.format(p.fecha, 'dd/MM/yyyy')}">—</span>
-                            <div class="small" th:text="${p.motivo}">Motivo</div>
-                            <div class="text-secondary small" th:if="${p.proyecto != null}" th:text="${p.proyecto.nombre}">Proyecto</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-
-
-
-        </div>
 
         <div class="row row-cards">
 
-            <div class="col-lg-8">
-                <div class="card section-card h-100">
+            <div class="col-lg-7">
+
+                <div class="card section-card mb-4">
                     <div class="card-header section-header">
-
-
-
                         <div>
                             <h3 class="card-title mb-1">Actividades por completar</h3>
                             <div class="section-description">Tareas asignadas en tus proyectos activos que requieren tu atención.</div>
@@ -241,10 +173,8 @@
                         <a href="col-proyectos.html" class="btn btn-sm btn-light" th:href="@{/colaborador/proyectos}">Ver mis proyectos</a>
                     </div>
                 </div>
-            </div>
 
-            <div class="col-lg-4">
-                <div class="card section-card h-100">
+                <div class="card section-card">
                     <div class="card-header section-header">
                         <div><h3 class="card-title mb-1">Proyectos activos</h3><div class="section-description">Avance según tus actividades asignadas.</div></div>
                     </div>
@@ -256,11 +186,129 @@
                         </div>
                     </div>
                 </div>
+
+            </div>
+
+            <div class="col-lg-5">
+
+                <div class="card section-card mb-4">
+                    <div class="card-header section-header">
+                        <div><h3 class="card-title mb-1">Tus horas</h3><div class="section-description">Disponibilidad semanal y avance hacia tu meta mensual.</div></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-grid mb-3">
+                            <div><div class="info-label">Capacidad semanal (contrato)</div><div class="info-value" th:text="${resumenHoras.horasContratadasSemana} + ' h/sem'">—</div></div>
+                            <div><div class="info-label">Ya comprometidas</div><div class="info-value" th:text="${resumenHoras.horasComprometidas} + ' h/sem'">—</div></div>
+                            <div><div class="info-label">Te quedan libres</div><div class="info-value" th:text="${resumenHoras.horasDisponibles} + ' h/sem'">—</div></div>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="info-label mb-0">Meta mensual (para tu sueldo completo)</div>
+                            <div class="small text-secondary" th:text="${resumenHoras.horasTrabajadasMes} + ' / ' + ${resumenHoras.metaMensual} + ' hrs'">0 / 160 hrs</div>
+                        </div>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar" th:style="'width: ' + ${resumenHoras.porcentajeMeta} + '%'"></div>
+                        </div>
+                        <div th:if="${resumenHoras.metaCumplida}" class="alert alert-success small mb-0">¡Ya completaste tus horas de este mes!</div>
+                        <div th:if="${!resumenHoras.metaCumplida}" class="alert alert-warning small mb-0">
+                            Te faltan <strong th:text="${resumenHoras.horasFaltantesMes}"></strong> horas este mes.
+                            <a th:href="@{/colaborador/explorar}">Busca un proyecto o un curso para completarlas</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card section-card">
+                    <div class="card-header section-header">
+                        <div><h3 class="card-title mb-1">Descuentos</h3><div class="section-description">Por bajo desempeño, cada 3 strikes en el mes suman 5%.</div></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded"
+                             th:classappend="${porcentajeDescuentoMes > 0} ? 'bg-red-lt' : 'bg-green-lt'">
+                            <div>
+                                <div class="small text-secondary">Descuento de este mes</div>
+                                <div class="fw-bold" th:text="${porcentajeDescuentoMes} + '%'">0%</div>
+                            </div>
+                            <div class="fw-bold" th:text="'- S/ ' + ${#numbers.formatDecimal(montoDescuentoMes, 1, 2)}">S/ 0.00</div>
+                        </div>
+                        <div th:if="${porcentajeDescuentoMes == 0}" class="small text-secondary mb-3">Vas bien: aún no acumulas suficientes strikes este mes para un descuento.</div>
+
+
+
+
+
+
+
+
+                        <div class="info-label mb-2">Historial de strikes</div>
+                        <div style="max-height:180px; overflow-y:auto;">
+                            <div th:if="${misPenalizaciones.isEmpty()}" class="empty-state">Todavía no tienes strikes registrados.</div>
+                            <div th:each="p : ${misPenalizaciones}" class="timeline-entry">
+                                <span class="text-secondary small" th:text="${#temporals.format(p.fecha, 'dd/MM/yyyy')}">—</span>
+                                <div class="small" th:text="${p.motivo}">Motivo</div>
+                                <div class="text-secondary small" th:if="${p.proyecto != null}" th:text="${p.proyecto.nombre}">Proyecto</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+
+
+
+
+
+                <div class="card section-card mt-4">
+                    <div class="card-header section-header">
+                        <div><h3 class="card-title mb-1">Bono del mes</h3><div class="section-description">Por horas extra sobre tu meta, si no tuviste descuentos.</div></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div class="info-label mb-0">Horas extra bonificables</div>
+                            <div class="small text-secondary" th:text="${resumenBono.horasExtraBonificables} + ' / ' + ${resumenBono.topeHorasExtra} + ' hrs'">0 / 20 hrs</div>
+                        </div>
+                        <div class="progress mb-3">
+                            <div class="progress-bar bg-green" role="progressbar" th:style="'width: ' + ${resumenBono.porcentajeProgreso} + '%'"></div>
+                        </div>
+
+                        <div th:if="${resumenBono.tuvoDescuentoEsteMes}" class="alert alert-danger small mb-0">
+                            ⚠️ Tuviste un descuento este mes. No calificas para el bono, aunque hayas hecho horas extra.
+                        </div>
+                        <div th:if="${!resumenBono.tuvoDescuentoEsteMes and resumenBono.horasExtra.signum() > 0}" class="alert alert-success small mb-0">
+                            Bono estimado este mes: <strong th:text="'S/ ' + ${#numbers.formatDecimal(resumenBono.montoBono, 1, 2)}">S/ 0.00</strong>
+                            (<span th:text="${resumenBono.horasExtraBonificables}"></span> horas extra a tu tarifa por hora).
+                        </div>
+                        <div th:if="${!resumenBono.tuvoDescuentoEsteMes and resumenBono.horasExtra.signum() == 0}" class="small text-secondary mb-0">
+                            Aún no tienes horas extra este mes (primero completa tu meta de <span th:text="${resumenBono.metaMensual}"></span> horas).
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+
             </div>
 
         </div>
 
     </main>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>

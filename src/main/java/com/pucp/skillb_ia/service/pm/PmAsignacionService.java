@@ -4,6 +4,7 @@ import com.pucp.skillb_ia.dto.PmAsignacionView;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
@@ -12,6 +13,7 @@ import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.DisponibilidadService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,18 +33,23 @@ public class PmAsignacionService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final DisponibilidadService disponibilidadService;
+    private final NotificacionService notificacionService;
 
     public PmAsignacionService(AsignacionRepository asignacionRepository,
                                ProyectoRepository proyectoRepository,
                                UsuarioRepository usuarioRepository,
                                AuditoriaService auditoriaService,
-                               DisponibilidadService disponibilidadService) {
+                               DisponibilidadService disponibilidadService,
+                               NotificacionService notificacionService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.disponibilidadService = disponibilidadService;
+        this.notificacionService = notificacionService;
     }
+
+
 
     @Transactional(readOnly = true)
     public List<PmAsignacionView> listarPorProyecto(Long proyectoId, Usuario pm) {
@@ -97,6 +104,14 @@ public class PmAsignacionService {
         auditoriaService.registrar(pm, "PROPONER", "ASIGNACION", saved.getId(),
                 "PM propuso al colaborador ID " + colaboradorId
                 + " para el proyecto '" + proyecto.getNombre() + "'.");
+
+        notificacionService.crearParaTodosLosRm("ASIGNACION_PENDIENTE_RM", CategoriaNotificacion.ASIGNACION,
+                "Asignación pendiente de tu aprobación",
+                "El PM del proyecto \"" + proyecto.getNombre() + "\" propuso a " + colaborador.getNombre()
+                        + " " + colaborador.getApellido() + ".",
+                "ASIGNACION", saved.getId());
+
+
         return saved;
     }
 
@@ -115,11 +130,17 @@ public class PmAsignacionService {
             asignacion.setEstado(EstadoAsignacion.ACTIVA);
             asignacion.setFechaActivacion(LocalDateTime.now());
         }
+
+
         asignacionRepository.save(asignacion);
 
         //En caso de que quede activa, recalculamos la disponibilidad del colaborador
         if (asignacion.getEstado() == EstadoAsignacion.ACTIVA) {
             disponibilidadService.recalcular(asignacion.getColaborador());
+            notificacionService.crear(asignacion.getColaborador(), "ASIGNACION_APROBADA", CategoriaNotificacion.ASIGNACION,
+                    "Asignación aprobada",
+                    "Has sido asignado al proyecto \"" + asignacion.getProyecto().getNombre() + "\".",
+                    "ASIGNACION", asignacion.getId());
         }
 
         auditoriaService.registrar(pm, "APROBAR", "ASIGNACION", asignacionId,
@@ -132,10 +153,19 @@ public class PmAsignacionService {
         validarDecisionPm(asignacion);
         String motivoLimpio = textoObligatorio(motivo,
                 "Debes indicar el motivo del rechazo.", 300);
+
+
         asignacion.setEstado(EstadoAsignacion.RECHAZADA);
         asignacion.setRechazadoPor(pm);
         asignacion.setMotivoRechazo(motivoLimpio);
+
         asignacionRepository.save(asignacion);
+
+        notificacionService.crear(asignacion.getColaborador(), "ASIGNACION_RECHAZADA", CategoriaNotificacion.ASIGNACION,
+                "Asignación rechazada",
+                "Tu asignación al proyecto \"" + asignacion.getProyecto().getNombre()
+                        + "\" fue rechazada. Motivo: " + motivoLimpio,
+                "ASIGNACION", asignacion.getId());
 
         auditoriaService.registrar(pm, "RECHAZAR", "ASIGNACION", asignacionId,
                 "PM rechazó la asignación. Motivo: " + motivoLimpio);
@@ -152,15 +182,21 @@ public class PmAsignacionService {
         asignacion.setFechaFinalizacion(LocalDateTime.now());
         asignacion.setMotivoFinalizacion(
                 com.pucp.skillb_ia.model.enums.MotivoFinalizacion.OTRO);
+
         asignacionRepository.save(asignacion);
 
         //En caso de que se desasigne a un colaborador de un proyecto, tendremos que recalcular su disponibilidad
         disponibilidadService.recalcular(asignacion.getColaborador());
 
+        notificacionService.crear(asignacion.getColaborador(), "ASIGNACION_FINALIZADA", CategoriaNotificacion.ASIGNACION,
+                "Te desasignaron de un proyecto",
+                "El PM te desasignó del proyecto \"" + asignacion.getProyecto().getNombre() + "\".",
+                "ASIGNACION", asignacion.getId());
+
         auditoriaService.registrar(pm, "FINALIZAR", "ASIGNACION", asignacionId,
                 "PM finalizó la asignación del colaborador ID "
-                + asignacion.getColaborador().getId()
-                + " en el proyecto '" + asignacion.getProyecto().getNombre() + "'.");
+                        + asignacion.getColaborador().getId()
+                        + " en el proyecto '" + asignacion.getProyecto().getNombre() + "'.");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

@@ -4,10 +4,7 @@ import com.pucp.skillb_ia.dto.RmAsignacionView;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
-import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
-import com.pucp.skillb_ia.model.enums.EstadoProyecto;
-import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
-import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
+import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
 import com.pucp.skillb_ia.repository.ConfiguracionSistemaRepository;
@@ -15,6 +12,7 @@ import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.DisponibilidadService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,9 +37,11 @@ public class RmAsignacionService {
     private final UsuarioRepository usuarioRepository;
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     private final ConfiguracionSistemaRepository configuracionSistemaRepository;
+
     private final AuditoriaService auditoriaService;
     private final RmPresupuestoService presupuestoService;
     private final DisponibilidadService disponibilidadService;
+    private final NotificacionService notificacionService;
 
     public RmAsignacionService(
             AsignacionRepository asignacionRepository,
@@ -51,7 +51,8 @@ public class RmAsignacionService {
             ConfiguracionSistemaRepository configuracionSistemaRepository,
             AuditoriaService auditoriaService,
             RmPresupuestoService presupuestoService,
-            DisponibilidadService disponibilidadService) {
+            DisponibilidadService disponibilidadService,
+            NotificacionService notificacionService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -60,7 +61,10 @@ public class RmAsignacionService {
         this.auditoriaService = auditoriaService;
         this.presupuestoService = presupuestoService;
         this.disponibilidadService = disponibilidadService;
+        this.notificacionService = notificacionService;
     }
+
+
 
     @Transactional(readOnly = true)
     public List<RmAsignacionView> listar() {
@@ -158,6 +162,12 @@ public class RmAsignacionService {
                 rm, "PROPUESTA_ASIGNACION", "ASIGNACION", guardada.getId(),
                 "El RM propuso a " + nombreCompleto(colaborador)
                         + " para el proyecto " + proyecto.getNombre() + ".");
+
+        notificacionService.crear(proyecto.getPm(), "ASIGNACION_PENDIENTE_PM", CategoriaNotificacion.ASIGNACION,
+                "Asignación pendiente de tu aprobación",
+                "El Resource Manager propuso a " + nombreCompleto(colaborador)
+                        + " para tu proyecto \"" + proyecto.getNombre() + "\".",
+                "ASIGNACION", guardada.getId());
         return guardada;
     }
 
@@ -192,6 +202,10 @@ public class RmAsignacionService {
         //En caso de que quede activa, recalculamos la disponibilidad del colaborador
         if (asignacion.getEstado() == EstadoAsignacion.ACTIVA) {
             disponibilidadService.recalcular(asignacion.getColaborador());
+            notificacionService.crear(asignacion.getColaborador(), "ASIGNACION_APROBADA", CategoriaNotificacion.ASIGNACION,
+                    "Asignación aprobada",
+                    "Tu asignación al proyecto \"" + asignacion.getProyecto().getNombre() + "\" quedó activa.",
+                    "ASIGNACION", asignacion.getId());
         }
 
 
@@ -213,6 +227,12 @@ public class RmAsignacionService {
         asignacion.setMotivoRechazo(motivoLimpio);
         asignacion.setRechazadoPor(rm);
         asignacionRepository.save(asignacion);
+
+        notificacionService.crear(asignacion.getColaborador(), "ASIGNACION_RECHAZADA", CategoriaNotificacion.ASIGNACION,
+                "Asignación rechazada",
+                "Tu asignación al proyecto \"" + asignacion.getProyecto().getNombre()
+                        + "\" fue rechazada. Motivo: " + motivoLimpio,
+                "ASIGNACION", asignacion.getId());
 
         auditoriaService.registrar(
                 rm, "RECHAZO_ASIGNACION", "ASIGNACION", asignacion.getId(),
@@ -242,6 +262,11 @@ public class RmAsignacionService {
 
         //En caso de que se desasigne a un colaborador de un proyecto, tendremos que recalcular su disponibilidad
         disponibilidadService.recalcular(asignacion.getColaborador());
+
+        notificacionService.crear(asignacion.getColaborador(), "ASIGNACION_FINALIZADA", CategoriaNotificacion.ASIGNACION,
+                "Te desasignaron de un proyecto",
+                "El Resource Manager te desasignó del proyecto \"" + asignacion.getProyecto().getNombre() + "\".",
+                "ASIGNACION", asignacion.getId());
 
 
         if (observacion != null && !observacion.isBlank()) {

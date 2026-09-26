@@ -4,14 +4,12 @@ import com.pucp.skillb_ia.dto.RmCertificadoView;
 import com.pucp.skillb_ia.model.Certificado;
 import com.pucp.skillb_ia.model.ColaboradorHabilidad;
 import com.pucp.skillb_ia.model.Usuario;
-import com.pucp.skillb_ia.model.enums.EstadoCertificado;
-import com.pucp.skillb_ia.model.enums.EstadoValidacion;
-import com.pucp.skillb_ia.model.enums.NivelDominio;
-import com.pucp.skillb_ia.model.enums.NivelExperiencia;
+import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.CertificadoRepository;
 import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import com.pucp.skillb_ia.service.admin.AdminCargoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,15 +27,18 @@ public class RmCertificadoService {
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
+    private final NotificacionService notificacionService;
 
     public RmCertificadoService(CertificadoRepository certificadoRepository,
                                 ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                 UsuarioRepository usuarioRepository,
-                                AuditoriaService auditoriaService) {
+                                AuditoriaService auditoriaService,
+                                NotificacionService notificacionService) {
         this.certificadoRepository = certificadoRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
+        this.notificacionService = notificacionService;
     }
 
     @Transactional(readOnly = true)
@@ -91,6 +92,12 @@ public class RmCertificadoService {
         certificado.setRevisadoPor(rm);
         certificado.setFechaRevision(LocalDateTime.now());
         certificadoRepository.save(certificado);
+
+        notificacionService.crear(certificado.getColaborador(), "CERTIFICADO_APROBADO", CategoriaNotificacion.HABILIDAD,
+                "Certificado aprobado",
+                "Tu certificado de \"" + certificado.getHabilidad().getNombre() + "\" fue aprobado.",
+                "CERTIFICADO", certificado.getId());
+
         auditoriaService.registrar(rm, "APROBACION_CERTIFICADO", "CERTIFICADO", certificadoId,
                 "Se aprobó el certificado de " + certificado.getHabilidad().getNombre()
                         + " presentado por " + nombreCompleto(certificado.getColaborador()) + ".");
@@ -113,6 +120,13 @@ public class RmCertificadoService {
                 certificado.getColaborador(), certificado.getHabilidad(), EstadoCertificado.APROBADO) == 0) {
             obtenerHabilidadDelPerfil(certificado).setEstadoValidacion(EstadoValidacion.RECHAZADA);
         }
+
+        notificacionService.crear(certificado.getColaborador(), "CERTIFICADO_RECHAZADO", CategoriaNotificacion.HABILIDAD,
+                "Certificado rechazado",
+                "Tu certificado de \"" + certificado.getHabilidad().getNombre()
+                        + "\" fue rechazado. Motivo: " + motivoLimpio,
+                "CERTIFICADO", certificado.getId());
+
         auditoriaService.registrar(rm, "RECHAZO_CERTIFICADO", "CERTIFICADO", certificadoId,
                 "Se rechazó el certificado de " + certificado.getHabilidad().getNombre()
                         + ". Motivo: " + motivoLimpio);

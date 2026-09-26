@@ -49,6 +49,19 @@ public class NotificacionService {
         notificacionRepository.save(notificacion);
     }
 
+
+    //Creamos notificaciones para todos los RM
+    @Transactional
+    public void crearParaTodosLosRm(String tipo, CategoriaNotificacion categoria, String titulo, String descripcion, String entidad, Long entidadId) {
+
+        List<Usuario> resourceManagers = usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER");
+
+        for (Usuario rm : resourceManagers) {
+            crear(rm, tipo, categoria, titulo, descripcion, entidad, entidadId);
+        }
+
+    }
+
     @Transactional(readOnly = true)
     public List<NotificacionView> listar(Long usuarioId) {
         Usuario usuario = obtenerUsuario(usuarioId);
@@ -86,22 +99,39 @@ public class NotificacionService {
                 url(item));
     }
 
-    //Armamos el enlace al que redirige un clic en la notificación, según qué entidad referencia.
+    //Armamos el enlace al que redirige al hacer click en la notificación
     private String url(Notificacion item) {
+
+        boolean esColaborador = item.getUsuario().getRol().getNombre().equals("COLABORADOR");
+
+        if ("ASIGNACION".equals(item.getEntidad()) && item.getEntidadId() != null && esColaborador) {
+            return "/colaborador/proyectos/detalle?asignacionId=" + item.getEntidadId();
+        }
+        if ("CERTIFICADO".equals(item.getEntidad()) && esColaborador) {
+            return "/colaborador/perfil";
+        }
         if ("ACTIVIDAD".equals(item.getEntidad()) && item.getEntidadId() != null) {
+
             Optional<Actividad> actividadOpt = actividadRepository.findById(item.getEntidadId());
+
             if (actividadOpt.isPresent()) {
                 Actividad actividad = actividadOpt.get();
                 boolean esPm = item.getUsuario().getRol().getNombre().equals("PROJECT_MANAGER");
+
                 if (esPm) {
                     return "/pm/actividades?proyectoId=" + actividad.getProyecto().getId();
                 }
-                Optional<Asignacion> asignacionOpt = asignacionRepository.findFirstByProyectoAndColaboradorAndEstado(
-                        actividad.getProyecto(), actividad.getColaborador(), EstadoAsignacion.ACTIVA);
+
+                Optional<Asignacion> asignacionOpt = asignacionRepository.findFirstByProyectoAndColaboradorAndEstado(actividad.getProyecto(), actividad.getColaborador(), EstadoAsignacion.ACTIVA);
+
                 if (asignacionOpt.isPresent()) {
                     return "/colaborador/proyectos/detalle?asignacionId=" + asignacionOpt.get().getId();
                 }
+
+
             }
+
+
         }
         return "#";
     }

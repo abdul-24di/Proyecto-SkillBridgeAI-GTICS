@@ -1,11 +1,13 @@
 package com.pucp.skillb_ia.service.col;
 
 import com.pucp.skillb_ia.model.*;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -43,8 +45,11 @@ public class ColaboradorPerfilService {
     private final EducacionRepository educacionRepository;
     private final CertificadoRepository certificadoRepository;
     private final ExperienciaProfesionalRepository experienciaProfesionalRepository;
+
+
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaService auditoriaService;
+    private final NotificacionService notificacionService;
     private final String uploadDir;
 
     public ColaboradorPerfilService(UsuarioRepository usuarioRepository,
@@ -56,6 +61,7 @@ public class ColaboradorPerfilService {
                                     ExperienciaProfesionalRepository experienciaProfesionalRepository,
                                     PasswordEncoder passwordEncoder,
                                     AuditoriaService auditoriaService,
+                                    NotificacionService notificacionService,
                                     @Value("${app.upload-dir:uploads}") String uploadDir) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
@@ -66,6 +72,7 @@ public class ColaboradorPerfilService {
         this.experienciaProfesionalRepository = experienciaProfesionalRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
+        this.notificacionService = notificacionService;
         this.uploadDir = uploadDir;
     }
 
@@ -529,6 +536,12 @@ public class ColaboradorPerfilService {
         auditoriaService.registrar(colaborador, "SUBIR_CERTIFICADO", "CERTIFICADO",
                 certificado.getId(), "Subió un certificado para la habilidad \""
                         + habilidad.getNombre() + "\".");
+
+        notificacionService.crearParaTodosLosRm("CERTIFICADO_PENDIENTE", CategoriaNotificacion.HABILIDAD,
+                "Certificado pendiente de revisión",
+                colaborador.getNombre() + " " + colaborador.getApellido()
+                        + " subió un certificado para \"" + habilidad.getNombre() + "\".",
+                "CERTIFICADO", certificado.getId());
         return certificado;
     }
 

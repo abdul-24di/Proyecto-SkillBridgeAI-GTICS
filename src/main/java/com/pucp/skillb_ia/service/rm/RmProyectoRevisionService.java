@@ -2,10 +2,12 @@ package com.pucp.skillb_ia.service.rm;
 
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,15 +23,18 @@ public class RmProyectoRevisionService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final RmPresupuestoService presupuestoService;
+    private final NotificacionService notificacionService;
 
     public RmProyectoRevisionService(ProyectoRepository proyectoRepository,
                                      UsuarioRepository usuarioRepository,
                                      AuditoriaService auditoriaService,
-                                     RmPresupuestoService presupuestoService) {
+                                     RmPresupuestoService presupuestoService,
+                                     NotificacionService notificacionService) {
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.presupuestoService = presupuestoService;
+        this.notificacionService = notificacionService;
     }
 
     @Transactional
@@ -67,8 +72,15 @@ public class RmProyectoRevisionService {
         proyecto.setRmRevisor(rm);
         proyecto.setMotivoRechazo(null);
         proyectoRepository.save(proyecto);
+
+        notificacionService.crear(proyecto.getPm(), "PROYECTO_APROBADO", CategoriaNotificacion.PROYECTO,
+                "Proyecto aprobado",
+                "El Resource Manager aprobó tu proyecto \"" + proyecto.getNombre() + "\".",
+                "PROYECTO", proyecto.getId());
+
         auditoriaService.registrar(rm, "APROBAR_PROYECTO", "PROYECTO", proyectoId,
                 detalleDecision("Proyecto aprobado", observacion), "EN_REVISION", "ACTIVO", null);
+
     }
 
     @Transactional
@@ -87,7 +99,16 @@ public class RmProyectoRevisionService {
         proyecto.setRmRevisor(rm);
         proyecto.setMotivoRechazo(motivoValidado);
         proyectoRepository.save(proyecto);
+
+        notificacionService.crear(proyecto.getPm(), "PROYECTO_RECHAZADO", CategoriaNotificacion.PROYECTO,
+                "Proyecto rechazado",
+                "El Resource Manager rechazó tu proyecto \"" + proyecto.getNombre()
+                        + "\". Motivo: " + motivoValidado,
+                "PROYECTO", proyecto.getId());
+
         String detalleAuditoria = "Proyecto rechazado. Motivo: " + motivoValidado;
+
+
         auditoriaService.registrar(rm, "RECHAZAR_PROYECTO", "PROYECTO", proyectoId,
                 detalleAuditoria.substring(0, Math.min(detalleAuditoria.length(), 500)),
                 "EN_REVISION", "RECHAZADO", null);

@@ -5,11 +5,7 @@ import com.pucp.skillb_ia.dto.ColPerfilRequeridoView;
 import com.pucp.skillb_ia.dto.ColProyectoDetalleView;
 import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
 import com.pucp.skillb_ia.model.*;
-import com.pucp.skillb_ia.model.enums.EstadoActividad;
-import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
-import com.pucp.skillb_ia.model.enums.EstadoProyecto;
-import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
-import com.pucp.skillb_ia.model.enums.NivelDominio;
+import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import org.springframework.beans.factory.annotation.Value;
@@ -238,11 +234,23 @@ public class ColaboradorProyectoService {
         asignacion.setHabilidadesRelevantes(habilidadesRelevantes == null || habilidadesRelevantes.isBlank()
                 ? null : habilidadesRelevantes.trim());
         asignacion.setMensajeSolicitud(mensaje == null || mensaje.isBlank() ? null : mensaje.trim());
+
         Asignacion guardada = asignacionRepository.save(asignacion);
 
         auditoriaService.registrar(colaborador, "SOLICITAR_ASIGNACION", "ASIGNACION", guardada.getId(),
                 "Solicitó incorporarse al proyecto \"" + proyecto.getNombre() + "\" para el perfil \""
                         + habilidad.getNombre() + "\".");
+
+        String descripcionSolicitud = colaborador.getNombre() + " " + colaborador.getApellido() + " solicitó incorporarse al proyecto \"" + proyecto.getNombre() + "\".";
+
+        notificacionService.crear(proyecto.getPm(), "SOLICITUD_INCORPORACION", CategoriaNotificacion.ASIGNACION,
+                "Solicitud de incorporación pendiente",
+                descripcionSolicitud, "ASIGNACION", guardada.getId());
+
+        notificacionService.crearParaTodosLosRm("SOLICITUD_INCORPORACION", CategoriaNotificacion.ASIGNACION,
+                "Solicitud de incorporación pendiente",
+                descripcionSolicitud, "ASIGNACION", guardada.getId());
+
     }
 
     // ============================================================

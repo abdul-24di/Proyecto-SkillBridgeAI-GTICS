@@ -96,11 +96,18 @@
                                             <span th:if="${asignacion.estado.name() == 'FINALIZADA'}" class="badge bg-blue-lt">Finalizada</span>
                                         </div>
                                     </div>
+
+
+
+
                                     <div>
                                         <div class="info-label">Strikes en este proyecto</div>
                                         <div class="info-value">
                                             <span class="badge" th:classappend="${misStrikes == 0} ? 'bg-secondary-lt' : (${misStrikes < 3} ? 'bg-yellow-lt' : 'bg-red-lt')"
-                                                  th:text="${misStrikes} + ' / 3'">0 / 3</span>
+                                                  th:text="${misStrikes} + (${misStrikes == 1} ? ' strike' : ' strikes')">0 strikes</span>
+                                        </div>
+                                        <div class="text-secondary" style="font-size:.78rem; margin-top:.25rem;">
+                                            Cada 3 strikes que acumules en el mes (sumando todos tus proyectos) generan un 5% de descuento en tu sueldo de ese mes.
                                         </div>
                                     </div>
 
@@ -110,16 +117,25 @@
                                 </div>
                             </div>
                         </div>
+
+
+
                         <div class="card section-card">
                             <div class="card-header section-header"><h3 class="card-title mb-1">Fechas de tu asignación</h3></div>
                             <div class="card-body">
                                 <div class="info-grid">
+                                    <div>
+                                        <div class="info-label" th:text="${asignacion.origen.name() == 'SOLICITADA_COLABORADOR'} ? 'Solicitada el' : 'Asignada el'">Solicitada el</div>
+                                        <div class="info-value" th:text="${#temporals.format(asignacion.fechaSolicitud, 'dd/MM/yyyy')}">—</div>
+                                    </div>
                                     <div th:if="${asignacion.estado.name() == 'ACTIVA'}"><div class="info-label">Desde</div><div class="info-value" th:text="${asignacion.fechaActivacion != null ? #temporals.format(asignacion.fechaActivacion, 'dd/MM/yyyy') : '—'}">—</div></div>
                                     <div th:if="${asignacion.estado.name() == 'FINALIZADA'}"><div class="info-label">Finalizó el</div><div class="info-value" th:text="${asignacion.fechaFinalizacion != null ? #temporals.format(asignacion.fechaFinalizacion, 'dd/MM/yyyy') : '—'}">—</div></div>
-                                    <div><div class="info-label">Solicitada el</div><div class="info-value" th:text="${#temporals.format(asignacion.fechaSolicitud, 'dd/MM/yyyy')}">—</div></div>
                                 </div>
                             </div>
                         </div>
+
+
+
                     </div>
                 </div>
             </div>

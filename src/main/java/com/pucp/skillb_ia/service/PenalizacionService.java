@@ -72,11 +72,26 @@ public class PenalizacionService {
 
         auditoriaService.registrar(actividad.getColaborador(), "APLICAR_STRIKE", "ACTIVIDAD", actividad.getId(), motivo);
 
-        int totalStrikes = contarStrikes(actividad.getColaborador(), actividad.getProyecto());
+        int totalStrikesProyecto = contarStrikes(actividad.getColaborador(), actividad.getProyecto());
+        int strikesDelMes = contarStrikesDelMes(actividad.getColaborador(), YearMonth.now());
+
+        //Calculamos cuántos strikes faltan para completar el siguiente bloque
+        int faltanParaDescuento = STRIKES_POR_BLOQUE - (strikesDelMes % STRIKES_POR_BLOQUE);
+
+        String mensaje = motivo + " Llevas " + totalStrikesProyecto + " strike(s) en este proyecto y "
+                + strikesDelMes + " en total este mes.";
+        if (faltanParaDescuento == STRIKES_POR_BLOQUE) {
+            mensaje += " Esto completa un bloque de " + STRIKES_POR_BLOQUE
+                    + " strikes: se te aplicará un " + PORCENTAJE_POR_BLOQUE + "% de descuento este mes.";
+        } else {
+            mensaje += " Te faltan " + faltanParaDescuento + " strike(s) más este mes para el próximo descuento del "
+                    + PORCENTAJE_POR_BLOQUE + "%.";
+        }
+
         notificacionService.crear(actividad.getColaborador(), "STRIKE",
                 com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ACTIVIDAD,
                 "Strike en " + actividad.getProyecto().getNombre(),
-                motivo + " Llevas " + totalStrikes + " de " + MAXIMO_STRIKES + " strikes en este proyecto.",
+                mensaje,
                 "ACTIVIDAD", actividad.getId());
     }
 

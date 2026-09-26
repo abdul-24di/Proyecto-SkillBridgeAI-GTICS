@@ -406,19 +406,18 @@ public class ColaboradorPerfilService {
         if (categoriaId == null) {
             throw new IllegalArgumentException("Selecciona una categoría para la nueva habilidad.");
         }
+
         String nombreLimpio = nombre.trim();
 
-        // El nombre es único en todo el catálogo (no puede repetirse en otra
-        // categoría), así que la reutilizamos aunque el colaborador haya
-        // elegido una categoría distinta a la que ya tiene.
+        //El nombre es único en todo el catalogo. Si ya existe, se lo decimos al colaborador para que la busque en el
+        //selector del catálogo.
         Optional<Habilidad> existente = habilidadRepository.findByNombreIgnoreCase(nombreLimpio);
+
         if (existente.isPresent()) {
-            Habilidad habilidad = existente.get();
-            if (!habilidad.isActiva()) {
-                habilidad.setActiva(true);
-                habilidadRepository.save(habilidad);
-            }
-            return habilidad;
+            throw new IllegalArgumentException(
+                    "La habilidad \"" + existente.get().getNombre() + "\" ya existe en nuestro catálogo. "
+                            + "Búscala en \"Seleccionar del catálogo\" para agregarla, o si ya la tienes en tu "
+                            + "perfil, usa el botón \"Certificar un nivel superior\" junto a esa habilidad.");
         }
 
         CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
@@ -493,7 +492,8 @@ public class ColaboradorPerfilService {
     // ============================================================
 
     @Transactional
-    public Certificado subirCertificado(Usuario colaborador, Long habilidadId, MultipartFile archivo) {
+    public Certificado subirCertificado(Usuario colaborador, Long habilidadId, NivelDominio nuevoNivel,
+                                        MultipartFile archivo) {
         if (habilidadId == null) {
             throw new IllegalArgumentException("Selecciona la habilidad que deseas certificar.");
         }
@@ -545,9 +545,14 @@ public class ColaboradorPerfilService {
         certificado.setEstado(EstadoCertificado.PENDIENTE);
         certificado = certificadoRepository.save(certificado);
 
-        // Un nuevo intento vuelve a quedar pendiente, salvo que la habilidad ya
-        // estuviera validada por un certificado aprobado anteriormente.
-        if (perfilHabilidad.getEstadoValidacion() != EstadoValidacion.VALIDADA) {
+        //Si el colaborador cambia su nivel de dominio, la habilidad vuelve a quedar pendiente de validación.
+        if (nuevoNivel != null) {
+            perfilHabilidad.setNivelDominio(nuevoNivel);
+            perfilHabilidad.setEstadoValidacion(EstadoValidacion.PENDIENTE);
+            colaboradorHabilidadRepository.save(perfilHabilidad);
+
+            //Si no cambia el nivel y la habilidad todavía no está validada, la mantenemos como pendiente de validación.
+        } else if (perfilHabilidad.getEstadoValidacion() != EstadoValidacion.VALIDADA) {
             perfilHabilidad.setEstadoValidacion(EstadoValidacion.PENDIENTE);
             colaboradorHabilidadRepository.save(perfilHabilidad);
         }

@@ -132,15 +132,17 @@ public class RmColaboradorDetalle {
         private final LocalDate fechaFin;
         private final boolean actual;
         private final String estado;
+        private final String archivoUrl;
 
         public EducacionDetalle(String institucion, String titulo, LocalDate fechaInicio,
-                                LocalDate fechaFin, boolean actual, String estado) {
+                                LocalDate fechaFin, boolean actual, String estado, String archivoUrl) {
             this.institucion = institucion;
             this.titulo = titulo;
             this.fechaInicio = fechaInicio;
             this.fechaFin = fechaFin;
             this.actual = actual;
             this.estado = estado;
+            this.archivoUrl = archivoUrl;
         }
 
         public String getInstitucion() { return institucion; }
@@ -149,5 +151,6 @@ public class RmColaboradorDetalle {
         public LocalDate getFechaFin() { return fechaFin; }
         public boolean isActual() { return actual; }
         public String getEstado() { return estado; }
+        public String getArchivoUrl() { return archivoUrl; }
     }
 }

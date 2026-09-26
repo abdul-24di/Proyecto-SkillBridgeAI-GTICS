@@ -346,14 +346,28 @@
                 <div class="fw-semibold" th:text="${estudio.titulo}">Título</div>
                 <span class="badge bg-secondary-lt" th:text="${estudio.estado}">Pendiente</span>
               </div>
+
+
+
               <div class="text-secondary" th:text="${estudio.institucion}">Institución</div>
               <div class="small text-secondary mt-1">
                 <span th:text="${estudio.fechaInicio != null ? #temporals.format(estudio.fechaInicio, 'MM/yyyy') : 'Sin fecha'}">Inicio</span>
                 <span> — </span>
                 <span th:text="${estudio.actual ? 'Actualidad' : (estudio.fechaFin != null ? #temporals.format(estudio.fechaFin, 'MM/yyyy') : 'Sin fecha')}">Fin</span>
               </div>
+              <a th:if="${estudio.archivoUrl != null and !estudio.archivoUrl.isBlank()}"
+                 th:href="@{${estudio.archivoUrl}}" target="_blank" rel="noopener"
+                 class="small d-inline-block mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                Ver documento
+              </a>
             </div>
           </div>
+
+
+
+
+
           <div class="empty-state" th:if="${#lists.isEmpty(colaborador.educacion)}">
             No hay estudios registrados.
           </div>
@@ -404,8 +418,10 @@
               </div>
             </div>
             <div class="proyecto-opcion-datos small">
+
               <div><div class="text-secondary">Equipo</div>
-                <div class="fw-semibold" th:text="|${p.integrantesActivos}/${p.proyecto.colaboradoresRequeridos} · ${p.vacantes} vacantes|">0/0</div></div>
+                <div class="fw-semibold" th:text="${p.integrantesActivos} + '/' + ${p.proyecto.colaboradoresRequeridos} + ' - ' + ${p.vacantes} + ' vacantes'">0/0</div></div>
+
               <div><div class="text-secondary">Horas requeridas</div>
                 <div class="fw-semibold" th:text="${p.proyecto.horasSemanalesRequeridas != null ? p.proyecto.horasSemanalesRequeridas + ' h/sem' : 'Sin definir'}">0 h</div></div>
               <div><div class="text-secondary">Periodo</div>
@@ -413,9 +429,13 @@
               <div><div class="text-secondary">Presupuesto disponible</div>
                 <div class="fw-semibold" th:text="${p.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(p.resumenPresupuesto.disponible, 1, 'COMMA', 2, 'POINT') : 'Sin presupuesto'}">S/ 0</div></div>
             </div>
+
+
+
             <div class="mt-2" th:if="${!#lists.isEmpty(p.requisitos)}">
-              <span class="badge bg-blue-lt me-1" th:each="r : ${p.requisitos}" th:text="|${r.habilidad} · ${r.nivel}|">Java</span>
+              <span class="badge bg-blue-lt me-1" th:each="r : ${p.requisitos}" th:text="${r.habilidad} + ' - ' + ${r.nivel}">Java</span>
             </div>
+
           </button>
           <div id="proyectosSinResultados" class="text-center text-secondary py-4 d-none">Ningún proyecto coincide con la búsqueda.</div>
         </div>

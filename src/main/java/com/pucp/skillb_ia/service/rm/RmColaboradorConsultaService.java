@@ -231,7 +231,8 @@ public class RmColaboradorConsultaService {
                 educacion.getFechaInicio(),
                 educacion.getFechaFin(),
                 educacion.isActual(),
-                textoEnum(educacion.getEstado().name()));
+                textoEnum(educacion.getEstado().name()),
+                educacion.getArchivoUrl());
     }
 
     private String nombreCompleto(Usuario usuario) {

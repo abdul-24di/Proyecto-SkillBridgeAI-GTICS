@@ -143,12 +143,17 @@
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
                                             Ver certificado subido
                                         </a>
-                                        <button th:if="${ch.estadoValidacion.name() == 'RECHAZADA'}" type="button"
 
-                                                class="btn btn-sm btn-outline-danger mt-1" data-bs-toggle="modal"
-                                                th:attr="data-bs-target='#retryCertModal-' + ${ch.habilidad.id}">
-                                            Volver a subir certificado
+
+                                        <button type="button"
+                                                th:classappend="${ch.estadoValidacion.name() == 'RECHAZADA'} ? 'btn-outline-danger' : 'btn-outline-secondary'"
+                                                class="btn btn-sm mt-1" data-bs-toggle="modal"
+                                                th:attr="data-bs-target='#retryCertModal-' + ${ch.habilidad.id}"
+                                                th:text="${ch.estadoValidacion.name() == 'RECHAZADA'} ? 'Volver a subir certificado' : 'Certificar un nivel superior'">
+                                            Certificar un nivel superior
                                         </button>
+
+
                                     </div>
 
 
@@ -330,9 +335,14 @@
                             <div class="card-body">
                                 <form th:action="@{/colaborador/perfil/telefono}" method="post">
                                     <div class="row g-3">
+
+
+
                                         <div class="col-md-6">
                                             <label class="form-label">Número de celular</label>
                                             <input type="text" name="telefono" class="form-control"
+
+
                                                    th:value="${colaborador.telefono}" placeholder="Ej. 987654321">
                                         </div>
                                     </div>
@@ -457,8 +467,10 @@
                 <div class="modal-body">
 
 
+
+
                     <div class="mb-3" id="skillCatalogWrap">
-                        <label class="form-label">Habilidad</label>
+                        <label class="form-label">Habilidad <span class="text-red">*</span></label>
                         <select name="habilidadId" id="skillCatalogSelect" class="form-select">
                             <option value="" selected>Seleccionar del catálogo...</option>
                             <option th:each="h : ${habilidadesDisponibles}" th:value="${h.id}" th:text="${h.nombre}"></option>
@@ -466,9 +478,9 @@
                         <div class="form-hint">Solo puedes elegir habilidades del catálogo oficial de la organización, para mantener los términos estandarizados.</div>
                     </div>
                     <div class="mb-3" id="skillNewWrap" style="display:none;">
-                        <label class="form-label">Nombre de la nueva habilidad</label>
+                        <label class="form-label">Nombre de la nueva habilidad <span class="text-red">*</span></label>
                         <input type="text" name="nuevaHabilidadNombre" id="skillNewNameInput" class="form-control" placeholder="Ej. Kotlin">
-                        <label class="form-label mt-2">Categoría</label>
+                        <label class="form-label mt-2">Categoría <span class="text-red">*</span></label>
                         <select name="categoriaId" id="skillNewCategorySelect" class="form-select">
                             <option value="" selected>Seleccionar categoría...</option>
                             <option th:each="c : ${categoriasHabilidad}" th:value="${c.id}" th:text="${c.nombre}"></option>
@@ -476,7 +488,7 @@
                     </div>
                     <a href="#" id="toggleNewSkillLink" class="form-hint d-inline-block mb-3">¿No encuentras tu habilidad? Créala aquí</a>
                     <div class="mb-3">
-                        <label class="form-label">Nivel</label>
+                        <label class="form-label">Nivel <span class="text-red">*</span></label>
                         <select name="nivel" class="form-select">
                             <option value="" selected>Seleccionar nivel</option>
                             <option value="BASICO">Básico</option>
@@ -485,7 +497,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">Certificado</label>
+                        <label class="form-label">Certificado <span class="text-red">*</span></label>
                         <input type="file" name="certificado" class="form-control"
                                accept="application/pdf,image/jpeg,image/png">
                         <div class="form-hint">PDF, JPG o PNG; máximo 10MB. Quedará pendiente de revisión del Resource Manager.</div>
@@ -505,19 +517,26 @@
 </div>
 
 
-<!-- MODALES: REINTENTAR CERTIFICADO DE HABILIDAD RECHAZADA -->
+
+<!-- MODALES: SUBIR UN NUEVO CERTIFICADO (RECHAZADA -> reintentar, o VALIDADA/PENDIENTE -> pedir nivel superior) -->
 <div th:each="ch : ${habilidadesColaborador}">
-    <div th:if="${ch.estadoValidacion.name() == 'RECHAZADA'}"
-         class="modal modal-blur fade col-modal" th:id="'retryCertModal-' + ${ch.habilidad.id}" tabindex="-1" aria-hidden="true">
+    <div class="modal modal-blur fade col-modal" th:id="'retryCertModal-' + ${ch.habilidad.id}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form th:action="@{/colaborador/perfil/certificados}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="habilidadId" th:value="${ch.habilidad.id}">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title" th:text="|Volver a subir certificado - ${ch.habilidad.nombre}|">Volver a subir certificado</h5>
+                        <h5 class="modal-title" th:text="|Certificar ${ch.habilidad.nombre}|">Certificar habilidad</h5>
                         <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
+                        <label class="form-label">Nivel que quieres certificar</label>
+                        <select name="nivel" class="form-select mb-3">
+                            <option value="" selected>Mantener el nivel actual</option>
+                            <option value="BASICO" th:selected="${ch.nivelDominio.name() == 'BASICO'}">Básico</option>
+                            <option value="INTERMEDIO" th:selected="${ch.nivelDominio.name() == 'INTERMEDIO'}">Intermedio</option>
+                            <option value="AVANZADO" th:selected="${ch.nivelDominio.name() == 'AVANZADO'}">Avanzado</option>
+                        </select>
                         <label class="form-label">Nuevo certificado</label>
                         <input type="file" name="certificado" class="form-control" accept="application/pdf,image/jpeg,image/png">
                         <div class="form-hint">PDF, JPG o PNG; máximo 10MB.</div>
@@ -615,13 +634,12 @@
 
 
 
-
                         <div class="col-md-6">
-                            <label class="form-label">Institución</label>
+                            <label class="form-label">Institución <span class="text-red">*</span></label>
                             <input type="text" name="institucion" class="form-control" placeholder="Ej. Universidad X">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Título / carrera</label>
+                            <label class="form-label">Título / carrera <span class="text-red">*</span></label>
                             <input type="text" name="titulo" class="form-control" placeholder="Ej. Ingeniería de Software">
                         </div>
 
@@ -629,17 +647,17 @@
 
 
                         <div class="col-md-6">
-                            <label class="form-label">Fecha de inicio</label>
+                            <label class="form-label">Fecha de inicio <span class="text-red">*</span></label>
                             <input type="date" name="fechaInicio" id="eduStartInput" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Fecha de fin</label>
+                            <label class="form-label">Fecha de fin <span class="text-red">*</span></label>
                             <input type="date" name="fechaFin" id="eduEndInput" class="form-control" th:max="${T(java.time.LocalDate).now()}">
                         </div>
 
 
                         <div class="col-12">
-                            <label class="form-label">Certificado de estudios</label>
+                            <label class="form-label">Certificado de estudios <span class="text-red">*</span></label>
                             <input type="file" name="certificado" class="form-control"
                                    accept="application/pdf,image/jpeg,image/png">
                             <div class="form-hint">PDF, JPG o PNG; máximo 10MB.</div>

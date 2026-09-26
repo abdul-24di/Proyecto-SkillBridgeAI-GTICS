@@ -537,6 +537,13 @@ public class ColaboradorViewController {
         if (valor == null || valor.isBlank()) {
             throw new IllegalArgumentException("Selecciona un nivel.");
         }
+        return parseNivelOpcional(valor);
+    }
+
+    private NivelDominio parseNivelOpcional(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
         try {
             return NivelDominio.valueOf(valor.trim());
         } catch (IllegalArgumentException e) {
@@ -558,12 +565,13 @@ public class ColaboradorViewController {
     @PostMapping("/perfil/certificados")
     public String subirCertificado(@AuthenticationPrincipal UsuarioDetails principal,
                                    @RequestParam Long habilidadId,
+                                   @RequestParam(required = false) String nivel,
                                    @RequestParam("certificado") MultipartFile certificado,
                                    RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.subirCertificado(
-                    principal.getUsuario(), habilidadId, certificado);
+                    principal.getUsuario(), habilidadId, parseNivelOpcional(nivel), certificado);
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Certificado enviado. El Resource Manager podrá revisarlo desde su bandeja.");
         } catch (IllegalArgumentException e) {
@@ -571,6 +579,7 @@ public class ColaboradorViewController {
         }
         return "redirect:/colaborador/perfil";
     }
+
 
     @PostMapping("/perfil/educacion")
     public String agregarEducacion(@AuthenticationPrincipal UsuarioDetails principal,

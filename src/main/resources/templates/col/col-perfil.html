@@ -304,8 +304,11 @@
                                     <div class="col-md-12">
                                         <label class="form-label">Correo electrónico</label>
                                         <input type="email" class="form-control" th:value="${colaborador.correo}" readonly disabled>
-                                        <div class="form-hint">Solo el Administrador puede cambiar tu correo, ya que es tu identificador de acceso.</div>
+                                        <div class="form-hint">Solo el Administrador puede cambiar tu correo</div>
                                     </div>
+
+
+
                                     <div class="col-md-6">
                                         <label class="form-label">Cargo / puesto</label>
                                         <input type="text" class="form-control" th:value="${colaborador.cargo?.nombre}" readonly disabled>
@@ -314,10 +317,29 @@
                                         <label class="form-label">Horas disponibles por semana</label>
                                         <input type="text" class="form-control" th:value="${colaborador.horasDisponibles}" readonly disabled>
                                     </div>
-                                    <div class="col-12">
-                                        <div class="form-hint">Estos datos son administrados por el Resource Manager / Administrador y no se editan desde aquí.</div>
-                                    </div>
                                 </div>
+                            </div>
+                        </div>
+
+
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Teléfono</h3>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/colaborador/perfil/telefono}" method="post">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Número de celular</label>
+                                            <input type="text" name="telefono" class="form-control"
+                                                   th:value="${colaborador.telefono}" placeholder="Ej. 987654321">
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-primary">Guardar teléfono</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
 
@@ -612,7 +634,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha de fin</label>
-                            <input type="date" name="fechaFin" id="eduEndInput" class="form-control">
+                            <input type="date" name="fechaFin" id="eduEndInput" class="form-control" th:max="${T(java.time.LocalDate).now()}">
                         </div>
 
 

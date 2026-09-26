@@ -204,6 +204,25 @@ public class ColaboradorPerfilService {
     }
 
     // ============================================================
+    // TELÉFONO
+    // ============================================================
+    @Transactional
+    public void actualizarTelefono(Usuario colaborador, String telefono) {
+        if (telefono == null || telefono.isBlank()) {
+            throw new IllegalArgumentException("Indica tu número de teléfono.");
+        }
+        String limpio = telefono.trim();
+
+        if (!limpio.matches("\\d{9}")) {
+            throw new IllegalArgumentException("El teléfono debe tener exactamente 9 dígitos numéricos, sin letras ni otros caracteres.");
+        }
+
+        colaborador.setTelefono(limpio);
+        usuarioRepository.save(colaborador);
+        auditoriaService.registrar(colaborador, "ACTUALIZAR_PERFIL", "USUARIO", colaborador.getId(), "Actualizó su número de teléfono.");
+    }
+
+    // ============================================================
     // FOTO DE PERFIL
     // ============================================================
 
@@ -578,6 +597,9 @@ public class ColaboradorPerfilService {
 
         if (fechaFin.isBefore(fechaInicio)) {
             throw new IllegalArgumentException("La fecha de fin no puede ser anterior a la fecha de inicio.");
+        }
+        if (fechaFin.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La fecha de fin no puede ser una fecha futura.");
         }
 
         String archivoUrl = guardarCertificado(certificado, "certificados-educacion",

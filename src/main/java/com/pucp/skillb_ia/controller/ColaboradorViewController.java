@@ -434,6 +434,25 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil";
     }
 
+    @PostMapping("/perfil/telefono")
+    public String actualizarTelefono(@AuthenticationPrincipal UsuarioDetails principal,
+                                     @RequestParam String telefono,
+                                     RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+
+        try {
+            colaboradorPerfilService.actualizarTelefono(principal.getUsuario(), telefono);
+
+            redirectAttributes.addFlashAttribute("mensajeExito", "Tu teléfono se actualizó correctamente.");
+
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+
+        return "redirect:/colaborador/perfil";
+
+    }
+
     @PostMapping("/perfil/foto")
     public String actualizarFoto(@AuthenticationPrincipal UsuarioDetails principal,
                                  @RequestParam("foto") MultipartFile foto,

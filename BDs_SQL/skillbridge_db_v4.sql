@@ -375,13 +375,20 @@ CREATE TABLE curso (
     nombre          VARCHAR(150) NOT NULL,
     descripcion     VARCHAR(500) NULL,
     categoria       VARCHAR(50) NULL,
+    modalidad       VARCHAR(20) NULL,
+    autodidacta     BOOLEAN NOT NULL DEFAULT FALSE,
+    dias            VARCHAR(100) NULL,
+    fecha_inicio    DATE NULL,
+    fecha_fin       DATE NULL,
     horas           DECIMAL(6,2) NOT NULL,
     activo          BOOLEAN NOT NULL DEFAULT TRUE,
     creado_por      BIGINT NOT NULL,
     fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_curso_creador FOREIGN KEY (creado_por) REFERENCES usuario(id),
-    CONSTRAINT chk_curso_horas CHECK (horas > 0)
+    CONSTRAINT chk_curso_horas CHECK (horas > 0),
+    CONSTRAINT chk_curso_modalidad
+        CHECK (modalidad IS NULL OR modalidad IN ('VIRTUAL','PRESENCIAL','HIBRIDO'))
 ) ENGINE=InnoDB;
 
 

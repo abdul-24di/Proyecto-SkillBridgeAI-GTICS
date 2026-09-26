@@ -1,8 +1,10 @@
 package com.pucp.skillb_ia.model;
 
+import com.pucp.skillb_ia.model.enums.ModalidadCurso;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 // Catálogo de cursos gestionado por el Admin; el RM los asigna o los
@@ -23,6 +25,22 @@ public class Curso {
 
     @Column(length = 50)
     private String categoria;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private ModalidadCurso modalidad;
+
+    @Column(nullable = false)
+    private boolean autodidacta = false;
+
+    @Column(length = 100)
+    private String dias;
+
+    @Column(name = "fecha_inicio")
+    private LocalDate fechaInicio;
+
+    @Column(name = "fecha_fin")
+    private LocalDate fechaFin;
 
     @Column(nullable = false, precision = 6, scale = 2)
     private BigDecimal horas;
@@ -53,6 +71,21 @@ public class Curso {
 
     public String getCategoria() { return categoria; }
     public void setCategoria(String categoria) { this.categoria = categoria; }
+
+    public ModalidadCurso getModalidad() { return modalidad; }
+    public void setModalidad(ModalidadCurso modalidad) { this.modalidad = modalidad; }
+
+    public boolean isAutodidacta() { return autodidacta; }
+    public void setAutodidacta(boolean autodidacta) { this.autodidacta = autodidacta; }
+
+    public String getDias() { return dias; }
+    public void setDias(String dias) { this.dias = dias; }
+
+    public LocalDate getFechaInicio() { return fechaInicio; }
+    public void setFechaInicio(LocalDate fechaInicio) { this.fechaInicio = fechaInicio; }
+
+    public LocalDate getFechaFin() { return fechaFin; }
+    public void setFechaFin(LocalDate fechaFin) { this.fechaFin = fechaFin; }
 
     public BigDecimal getHoras() { return horas; }
     public void setHoras(BigDecimal horas) { this.horas = horas; }

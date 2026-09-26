@@ -187,15 +187,68 @@ function filtrarCursos() {
 document.getElementById("courseSearch")?.addEventListener("input", filtrarCursos);
 document.getElementById("courseCategoryFilter")?.addEventListener("change", filtrarCursos);
 
-document.querySelectorAll("#courseAccordion [data-open-request-course]").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        document.getElementById("requestCourseModalTitle").textContent = "Solicitar " + btn.dataset.courseName;
-        document.getElementById("requestCourseId").value = btn.dataset.courseId;
-        document.getElementById("requestCourseMessageInput").value = "";
+const cursoDetalleModalEl = document.getElementById("cursoDetalleModal");
 
-        const modalEl = document.getElementById("requestCourseModal");
-        const Modal = window.bootstrap?.Modal || window.tabler?.bootstrap?.Modal;
-        Modal.getOrCreateInstance(modalEl).show();
-    });
-});
+cursoDetalleModalEl?.addEventListener("show.bs.modal", (event) => {
+    const btn = event.relatedTarget;
+    if (!btn) return;
+
+    document.getElementById("cursoDetalleTitulo").textContent = btn.dataset.courseName;
+    document.getElementById("cursoDetalleCategoria").textContent =
+        btn.dataset.courseCategoria && btn.dataset.courseCategoria !== "" ? btn.dataset.courseCategoria : "Sin categoría";
+
+    const nombresModalidad = { VIRTUAL: "Virtual", PRESENCIAL: "Presencial", HIBRIDO: "Híbrido" };
+    const modalidadBadge = document.getElementById("cursoDetalleModalidad");
+    if (btn.dataset.courseModalidad) {
+        modalidadBadge.textContent = nombresModalidad[btn.dataset.courseModalidad] || "No especificada";
+        modalidadBadge.style.display = "";
+    } else {
+        modalidadBadge.style.display = "none";
+    }
+
+    document.getElementById("cursoDetalleDescripcion").textContent =
+        btn.dataset.courseDescripcion && btn.dataset.courseDescripcion !== "" ? btn.dataset.courseDescripcion : "Sin descripción registrada.";
+
+    document.getElementById("cursoDetalleHoras").textContent = btn.dataset.courseHoras + " horas";
+
+    const esAutodidacta = btn.dataset.courseAutodidacta === "true";
+    document.getElementById("cursoDetalleRitmo").textContent = esAutodidacta ? "Autodidáctico (a tu ritmo)" : "Con horario fijo";
+
+    const diasWrap = document.getElementById("cursoDetalleDiasWrap");
+    if (!esAutodidacta && btn.dataset.courseDias) {
+        document.getElementById("cursoDetalleDias").textContent = btn.dataset.courseDias;
+        diasWrap.style.display = "";
+    } else {
+        diasWrap.style.display = "none";
+    }
+
+    const fechasEl = document.getElementById("cursoDetalleFechas");
+    if (esAutodidacta) {
+        fechasEl.textContent = "A tu ritmo, sin fecha fija de inicio ni fin";
+    } else if (btn.dataset.courseFechaInicio && btn.dataset.courseFechaFin) {
+        fechasEl.textContent = btn.dataset.courseFechaInicio + " – " + btn.dataset.courseFechaFin;
+    } else {
+        fechasEl.textContent = "Por definir";
+    }
+
+    document.getElementById("cursoDetalleCursoId").value = btn.dataset.courseId;
+
+    const puedeSolicitar = btn.dataset.coursePuedeSolicitar === "true";
+    const solicitarWrap = document.getElementById("cursoDetalleSolicitarWrap");
+    const submitBtn = document.getElementById("cursoDetalleSubmitBtn");
+    const estadoWrap = document.getElementById("cursoDetalleEstadoWrap");
+    const estadoBadge = document.getElementById("cursoDetalleEstadoBadge");
+
+    if (puedeSolicitar) {
+        solicitarWrap.style.display = "";
+        submitBtn.style.display = "";
+        estadoWrap.style.display = "none";
+        document.getElementById("cursoDetalleForm").reset();
+    } else {
+        solicitarWrap.style.display = "none";
+        submitBtn.style.display = "none";
+        estadoWrap.style.display = "";
+        estadoBadge.textContent = btn.dataset.courseEstadoTexto || "No disponible";
+        estadoBadge.className = "badge " + (btn.dataset.courseEstadoClase || "bg-secondary-lt");
+    }
+});;

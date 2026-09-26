@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 
@@ -22,7 +23,8 @@ import java.util.List;
 public class PenalizacionService {
 
     private static final int MAXIMO_STRIKES = 3;
-    private static final BigDecimal MONTO_PLACEHOLDER = BigDecimal.ONE;
+    private static final int STRIKES_POR_BLOQUE = 3;
+    private static final int PORCENTAJE_POR_BLOQUE = 5;
 
     private final PenalizacionRepository penalizacionRepository;
     private final AsignacionRepository asignacionRepository;
@@ -65,7 +67,7 @@ public class PenalizacionService {
         strike.setActividad(actividad);
         strike.setTipo(TipoPenalizacion.ACTIVIDAD_TARDIA);
         strike.setMotivo(motivo);
-        strike.setMonto(MONTO_PLACEHOLDER);
+        strike.setMonto(BigDecimal.ONE);
         penalizacionRepository.save(strike);
 
         auditoriaService.registrar(actividad.getColaborador(), "APLICAR_STRIKE", "ACTIVIDAD", actividad.getId(), motivo);
@@ -149,4 +151,70 @@ public class PenalizacionService {
             }
         }
     }
+
+    // ============================================================
+    // LISTADO DE DESCUENTOS PARA MOSTRAR AL COLABORADOR
+    // ============================================================
+    public List<Penalizacion> listarPenalizaciones(Usuario colaborador) {
+        List<Penalizacion> todas = penalizacionRepository.findByColaborador(colaborador);
+
+        //Ordenamos las penalizaciones de la fecha más reciente a la más antigua
+        todas.sort( (a, b) -> b.getFecha().compareTo(a.getFecha()));
+
+        return todas;
+    }
+
+
+    // ============================================================
+    // DESCUENTO MENSUAL PARA MOSTRARLE AL COLABORADOR
+    // ============================================================
+
+    //Contamos los strikes totales del colaborador en todos sus proyectos en un mes
+    public int contarStrikesDelMes(Usuario colaborador, YearMonth mes) {
+        List<Penalizacion> todas = penalizacionRepository.findByColaborador(colaborador);
+        int contador = 0;
+
+        for (Penalizacion p : todas) {
+
+            boolean esStrike = p.getTipo() == TipoPenalizacion.ACTIVIDAD_TARDIA;
+            boolean esDeEseMes = p.getFecha() != null && YearMonth.from(p.getFecha()).equals(mes);
+
+            if (esStrike && esDeEseMes) {
+                contador++;
+            }
+
+        }
+        return contador;
+    }
+
+    //Calculamos el porcentaje total a descontar por mes (5% por cada bloque completo de 3 strikes)
+    public int calcularPorcentajeDescuentoMes(Usuario colaborador, YearMonth mes) {
+
+        int strikesDelMes = contarStrikesDelMes(colaborador, mes);
+
+        int bloquesCompletos = strikesDelMes / STRIKES_POR_BLOQUE;
+
+
+        return bloquesCompletos * PORCENTAJE_POR_BLOQUE;
+    }
+
+    //Calculamos el monto en soles a descontar por mes, según el sueldo base del colaborador.
+    public BigDecimal calcularMontoDescuentoMes(Usuario colaborador, YearMonth mes) {
+
+        int porcentaje = calcularPorcentajeDescuentoMes(colaborador, mes);
+
+        BigDecimal sueldoBase = colaborador.getSueldoBase();
+
+        if (porcentaje == 0 || sueldoBase == null) {
+            return BigDecimal.ZERO;
+        }
+
+        return sueldoBase.multiply(BigDecimal.valueOf(porcentaje)).divide(BigDecimal.valueOf(100));
+
+    }
+
+
+
+
+
 }

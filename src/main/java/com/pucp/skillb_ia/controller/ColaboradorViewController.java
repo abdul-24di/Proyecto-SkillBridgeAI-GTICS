@@ -84,6 +84,11 @@ public class ColaboradorViewController {
         model.addAttribute("totalActividadesPendientes", actividadesPendientes.size());
         model.addAttribute("porcentajePerfil", colaboradorPerfilService.calcularPorcentajeCompletado(colaborador));
         model.addAttribute("proyectosConAvance", colaboradorActividadService.listarProyectosActivosConAvance(colaborador, misAsignaciones));
+        model.addAttribute("resumenHoras", colaboradorActividadService.obtenerResumenHoras(colaborador));
+        model.addAttribute("misPenalizaciones", colaboradorActividadService.listarMisPenalizaciones(colaborador));
+        model.addAttribute("porcentajeDescuentoMes", colaboradorActividadService.obtenerPorcentajeDescuentoMesActual(colaborador));
+        model.addAttribute("montoDescuentoMes", colaboradorActividadService.obtenerMontoDescuentoMesActual(colaborador));
+
 
         return "col/col-dashboard";
     }

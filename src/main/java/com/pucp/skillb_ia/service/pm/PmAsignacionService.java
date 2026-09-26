@@ -11,6 +11,7 @@ import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.DisponibilidadService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,15 +30,18 @@ public class PmAsignacionService {
     private final ProyectoRepository proyectoRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
+    private final DisponibilidadService disponibilidadService;
 
     public PmAsignacionService(AsignacionRepository asignacionRepository,
                                ProyectoRepository proyectoRepository,
                                UsuarioRepository usuarioRepository,
-                               AuditoriaService auditoriaService) {
+                               AuditoriaService auditoriaService,
+                               DisponibilidadService disponibilidadService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
+        this.disponibilidadService = disponibilidadService;
     }
 
     @Transactional(readOnly = true)
@@ -113,6 +117,11 @@ public class PmAsignacionService {
         }
         asignacionRepository.save(asignacion);
 
+        //En caso de que quede activa, recalculamos la disponibilidad del colaborador
+        if (asignacion.getEstado() == EstadoAsignacion.ACTIVA) {
+            disponibilidadService.recalcular(asignacion.getColaborador());
+        }
+
         auditoriaService.registrar(pm, "APROBAR", "ASIGNACION", asignacionId,
                 "PM aprobó la asignación propuesta por el RM.");
     }
@@ -144,6 +153,9 @@ public class PmAsignacionService {
         asignacion.setMotivoFinalizacion(
                 com.pucp.skillb_ia.model.enums.MotivoFinalizacion.OTRO);
         asignacionRepository.save(asignacion);
+
+        //En caso de que se desasigne a un colaborador de un proyecto, tendremos que recalcular su disponibilidad
+        disponibilidadService.recalcular(asignacion.getColaborador());
 
         auditoriaService.registrar(pm, "FINALIZAR", "ASIGNACION", asignacionId,
                 "PM finalizó la asignación del colaborador ID "

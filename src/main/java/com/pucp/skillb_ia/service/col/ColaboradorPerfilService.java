@@ -123,13 +123,16 @@ public class ColaboradorPerfilService {
         return certificadoRepository.findByColaboradorIdConDetalle(colaborador.getId());
     }
 
-    //Calculamos el porcentaje que medira si el perfil esta completado del colaborador, considerando la sección de foto, sobre mí y habilidad.
+
+    //Calculamos el porcentaje que medira si el perfil esta completado del colaborador
+    //Considerando la sección de foto, sobre mí, habilidad y formación academica
     public int calcularPorcentajeCompletado(Usuario colaborador) {
         int total = 4;
         int listos = 0;
         if (colaborador.getFotoUrl() != null && !colaborador.getFotoUrl().isBlank()) listos++;
         if (colaborador.getDescripcion() != null && !colaborador.getDescripcion().isBlank()) listos++;
-        if (!listarHabilidades(colaborador).isEmpty()) listos++;
+        if (tieneHabilidadValidada(colaborador)) listos++;
+        if (tieneEducacionAprobada(colaborador)) listos++;
         return Math.round((listos * 100f) / total);
     }
 
@@ -143,14 +146,37 @@ public class ColaboradorPerfilService {
         if (colaborador.getDescripcion() == null || colaborador.getDescripcion().isBlank()) {
             pendientes.add("Agrega una descripción en \"Sobre mí\"");
         }
-        if (listarHabilidades(colaborador).isEmpty()) {
-            pendientes.add("Agrega una habilidad");
+        if (!tieneHabilidadValidada(colaborador)) {
+            pendientes.add(listarHabilidades(colaborador).isEmpty() ? "Agrega una habilidad" : "Espera a que el RM valide alguna de tus habilidades");
         }
-        if (listarEducacion(colaborador).isEmpty()) {
-            pendientes.add("Agrega tu formación académica");
+        if (!tieneEducacionAprobada(colaborador)) {
+            pendientes.add(listarEducacion(colaborador).isEmpty() ? "Agrega tu formación académica" : "Espera a que el RM apruebe tu formación académica");
         }
         return pendientes;
     }
+
+    //Evaluamos que el colaborador tenga al menos una habilidad ya validada por el RM.
+    private boolean tieneHabilidadValidada(Usuario colaborador) {
+        for (ColaboradorHabilidad ch : listarHabilidades(colaborador)) {
+            if (ch.getEstadoValidacion() == EstadoValidacion.VALIDADA) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //Evaluamos que el colaborador tenga al menos una formación académica ya aprobada por el RM
+    private boolean tieneEducacionAprobada(Usuario colaborador) {
+        for (Educacion edu : listarEducacion(colaborador)) {
+            if (edu.getEstado() == EstadoCertificado.APROBADO) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+
 
     // ============================================================
     // SOBRE MÍ

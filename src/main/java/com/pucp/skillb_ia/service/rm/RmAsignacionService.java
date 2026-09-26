@@ -14,6 +14,7 @@ import com.pucp.skillb_ia.repository.ConfiguracionSistemaRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.DisponibilidadService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +41,7 @@ public class RmAsignacionService {
     private final ConfiguracionSistemaRepository configuracionSistemaRepository;
     private final AuditoriaService auditoriaService;
     private final RmPresupuestoService presupuestoService;
+    private final DisponibilidadService disponibilidadService;
 
     public RmAsignacionService(
             AsignacionRepository asignacionRepository,
@@ -48,7 +50,8 @@ public class RmAsignacionService {
             ColaboradorHabilidadRepository colaboradorHabilidadRepository,
             ConfiguracionSistemaRepository configuracionSistemaRepository,
             AuditoriaService auditoriaService,
-            RmPresupuestoService presupuestoService) {
+            RmPresupuestoService presupuestoService,
+            DisponibilidadService disponibilidadService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -56,6 +59,7 @@ public class RmAsignacionService {
         this.configuracionSistemaRepository = configuracionSistemaRepository;
         this.auditoriaService = auditoriaService;
         this.presupuestoService = presupuestoService;
+        this.disponibilidadService = disponibilidadService;
     }
 
     @Transactional(readOnly = true)
@@ -184,6 +188,13 @@ public class RmAsignacionService {
         }
 
         asignacionRepository.save(asignacion);
+
+        //En caso de que quede activa, recalculamos la disponibilidad del colaborador
+        if (asignacion.getEstado() == EstadoAsignacion.ACTIVA) {
+            disponibilidadService.recalcular(asignacion.getColaborador());
+        }
+
+
         auditoriaService.registrar(
                 rm, "APROBACION_ASIGNACION", "ASIGNACION", asignacion.getId(),
                 asignacion.getEstado() == EstadoAsignacion.ACTIVA
@@ -228,6 +239,11 @@ public class RmAsignacionService {
         asignacionRepository.save(asignacion);
 
         String detalle = "El RM finalizó la asignación. Motivo: " + motivo.name();
+
+        //En caso de que se desasigne a un colaborador de un proyecto, tendremos que recalcular su disponibilidad
+        disponibilidadService.recalcular(asignacion.getColaborador());
+
+
         if (observacion != null && !observacion.isBlank()) {
             detalle += ". Observación: " + limitar(observacion.trim(), 220);
         }

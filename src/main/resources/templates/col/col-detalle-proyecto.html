@@ -120,19 +120,33 @@
 
 
 
+
+
+
                         <div class="card section-card">
                             <div class="card-header section-header"><h3 class="card-title mb-1">Fechas de tu asignación</h3></div>
                             <div class="card-body">
                                 <div class="info-grid">
                                     <div>
-                                        <div class="info-label" th:text="${asignacion.origen.name() == 'SOLICITADA_COLABORADOR'} ? 'Solicitada el' : 'Asignada el'">Solicitada el</div>
+                                        <div class="info-label" th:text="${asignacion.origen.name() == 'SOLICITADA_COLABORADOR'} ? 'Solicitada el' : 'Propuesta el'">Solicitada el</div>
                                         <div class="info-value" th:text="${#temporals.format(asignacion.fechaSolicitud, 'dd/MM/yyyy')}">—</div>
                                     </div>
-                                    <div th:if="${asignacion.estado.name() == 'ACTIVA'}"><div class="info-label">Desde</div><div class="info-value" th:text="${asignacion.fechaActivacion != null ? #temporals.format(asignacion.fechaActivacion, 'dd/MM/yyyy') : '—'}">—</div></div>
-                                    <div th:if="${asignacion.estado.name() == 'FINALIZADA'}"><div class="info-label">Finalizó el</div><div class="info-value" th:text="${asignacion.fechaFinalizacion != null ? #temporals.format(asignacion.fechaFinalizacion, 'dd/MM/yyyy') : '—'}">—</div></div>
+                                    <div th:if="${asignacion.fechaActivacion != null}">
+                                        <div class="info-label">Asignada el</div>
+                                        <div class="info-value" th:text="${#temporals.format(asignacion.fechaActivacion, 'dd/MM/yyyy')}">—</div>
+                                    </div>
+                                    <div th:if="${asignacion.estado.name() == 'FINALIZADA'}">
+                                        <div class="info-label">Finalizó el</div>
+                                        <div class="info-value" th:text="${asignacion.fechaFinalizacion != null ? #temporals.format(asignacion.fechaFinalizacion, 'dd/MM/yyyy') : '—'}">—</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+
+
+
+
 
 
 

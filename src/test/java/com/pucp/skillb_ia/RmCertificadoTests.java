@@ -136,7 +136,7 @@ class RmCertificadoTests {
                 "certificado", "java.pdf", "application/pdf", "%PDF-demo".getBytes());
 
         Certificado creado = colaboradorPerfilService.subirCertificado(
-                colaborador, habilidad.getId(), archivo);
+                colaborador, habilidad.getId(), NivelDominio.INTERMEDIO, archivo);
 
         assertNotNull(creado.getId());
         assertEquals(EstadoCertificado.PENDIENTE, creado.getEstado());
@@ -144,7 +144,7 @@ class RmCertificadoTests {
         assertEquals(1, colaboradorPerfilService.listarCertificados(colaborador).size());
         assertThrows(IllegalArgumentException.class,
                 () -> colaboradorPerfilService.subirCertificado(
-                        colaborador, habilidad.getId(), archivo));
+                        colaborador, habilidad.getId(), NivelDominio.INTERMEDIO, archivo));
     }
 
     @Test

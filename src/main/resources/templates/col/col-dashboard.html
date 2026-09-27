@@ -82,6 +82,11 @@
             </div>
         </div>
 
+
+
+
+
+
         <div class="row row-cards mb-4">
 
             <div class="col-md-4">
@@ -131,15 +136,74 @@
                 </div>
             </div>
 
-
-
-
         </div>
 
+        <div class="card section-card mb-4">
+            <div class="card-header section-header">
+                <div><h3 class="card-title mb-1">Tu resumen del mes</h3><div class="section-description">Horas, bono y descuentos.</div></div>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="dash-card-icon bg-blue-lt text-blue" style="width:36px;height:36px;min-width:36px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                            </div>
+                            <div class="fw-semibold">Meta mensual</div>
+                        </div>
+                        <div class="small text-secondary mb-1" th:text="${resumenHoras.horasTrabajadasMes} + ' / ' + ${resumenHoras.metaMensual} + ' hrs trabajadas'">0 / 160 hrs</div>
+                        <div class="progress mb-2" style="height:8px;">
+                            <div class="progress-bar" role="progressbar" th:style="'width: ' + ${resumenHoras.porcentajeMeta} + '%'"></div>
+                        </div>
+                        <div th:if="${resumenHoras.metaCumplida}" class="small text-green">✓ Meta cumplida este mes</div>
+                        <div th:if="${!resumenHoras.metaCumplida}" class="small text-secondary">
+                            Faltan <strong th:text="${resumenHoras.horasFaltantesMes}"></strong> hrs —
+                            <a th:href="@{/colaborador/explorar}">buscar proyecto o curso</a>
+                        </div>
+                        <div class="small text-secondary mt-2"
+                             th:text="${resumenHoras.horasDisponibles} + ' h/sem libres de tu contrato (' + ${resumenHoras.horasContratadasSemana} + ' h/sem)'">—</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="dash-card-icon bg-green-lt text-green" style="width:36px;height:36px;min-width:36px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            </div>
+                            <div class="fw-semibold">Bono del mes</div>
+                        </div>
+                        <div class="small text-secondary mb-1" th:text="${resumenBono.horasExtraBonificables} + ' / ' + ${resumenBono.topeHorasExtra} + ' hrs extra'">0 / 20 hrs</div>
+                        <div class="progress mb-2" style="height:8px;">
+                            <div class="progress-bar bg-green" role="progressbar" th:style="'width: ' + ${resumenBono.porcentajeProgreso} + '%'"></div>
+                        </div>
+                        <div th:if="${resumenBono.tuvoDescuentoEsteMes}" class="small text-red">⚠ No calificas este mes (tuviste un descuento)</div>
+                        <div th:if="${!resumenBono.tuvoDescuentoEsteMes}" class="small">
+                            <span class="fw-bold text-green" th:text="'S/ ' + ${#numbers.formatDecimal(resumenBono.montoBono, 1, 2)}">S/ 0.00</span>
+                            <span class="text-secondary"> estimado</span>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="dash-card-icon bg-red-lt text-red" style="width:36px;height:36px;min-width:36px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0z"/></svg>
+                            </div>
+                            <div class="fw-semibold">Descuentos</div>
+                        </div>
+                        <div class="fw-bold fs-3" th:text="${porcentajeDescuentoMes} + '%'"
+                             th:classappend="${porcentajeDescuentoMes > 0} ? 'text-red' : 'text-green'">0%</div>
+                        <div class="small text-secondary mb-2" th:text="'- S/ ' + ${#numbers.formatDecimal(montoDescuentoMes, 1, 2)} + ' este mes'">- S/ 0.00</div>
+                        <div th:if="${porcentajeDescuentoMes == 0}" class="small text-secondary">Vas bien, sin descuentos este mes.</div>
+                        <a th:if="${!misPenalizaciones.isEmpty()}" href="#historialStrikes" class="small">Ver historial de strikes ↓</a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
 
         <div class="row row-cards">
 
-            <div class="col-lg-7">
+            <div class="col-lg-8">
 
                 <div class="card section-card mb-4">
                     <div class="card-header section-header">
@@ -174,116 +238,56 @@
                     </div>
                 </div>
 
+
+
+
                 <div class="card section-card">
                     <div class="card-header section-header">
                         <div><h3 class="card-title mb-1">Proyectos activos</h3><div class="section-description">Avance según tus actividades asignadas.</div></div>
                     </div>
                     <div class="card-body">
                         <div th:if="${proyectosConAvance.isEmpty()}" class="empty-state">No tienes proyectos activos por ahora.</div>
-                        <div th:each="p : ${proyectosConAvance}" class="mini-project-card">
+                        <div th:each="p, iter : ${proyectosConAvance}" th:if="${iter.index < 5}" class="mini-project-card">
                             <div class="d-flex justify-content-between"><span class="fw-semibold" th:text="${p.proyecto.nombre}">Proyecto A</span><span class="text-secondary small" th:text="${p.porcentajeAvance} + '%'">78%</span></div>
                             <div class="mini-project-progress"><div class="mini-project-progress-bar" th:style="'width:' + ${p.porcentajeAvance} + '%'"></div></div>
                         </div>
                     </div>
+                    <div th:if="${#lists.size(proyectosConAvance) > 5}" class="card-footer table-footer">
+                        <div class="text-secondary small" th:text="'Mostrando 5 de ' + ${#lists.size(proyectosConAvance)} + ' proyectos activos'">—</div>
+                        <a th:href="@{/colaborador/proyectos}" class="btn btn-sm btn-light">Ver todos</a>
+                    </div>
                 </div>
+
+
+
+
 
             </div>
 
-            <div class="col-lg-5">
+            <div class="col-lg-4">
 
-                <div class="card section-card mb-4">
+
+
+
+                <div class="card section-card" id="historialStrikes">
                     <div class="card-header section-header">
-                        <div><h3 class="card-title mb-1">Tus horas</h3><div class="section-description">Disponibilidad semanal y avance hacia tu meta mensual.</div></div>
+                        <div><h3 class="card-title mb-1">Historial de strikes</h3><div class="section-description">Registro completo, de todos los meses.</div></div>
                     </div>
-                    <div class="card-body">
-                        <div class="info-grid mb-3">
-                            <div><div class="info-label">Capacidad semanal (contrato)</div><div class="info-value" th:text="${resumenHoras.horasContratadasSemana} + ' h/sem'">—</div></div>
-                            <div><div class="info-label">Ya comprometidas</div><div class="info-value" th:text="${resumenHoras.horasComprometidas} + ' h/sem'">—</div></div>
-                            <div><div class="info-label">Te quedan libres</div><div class="info-value" th:text="${resumenHoras.horasDisponibles} + ' h/sem'">—</div></div>
-                        </div>
-                        <hr>
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div class="info-label mb-0">Meta mensual (para tu sueldo completo)</div>
-                            <div class="small text-secondary" th:text="${resumenHoras.horasTrabajadasMes} + ' / ' + ${resumenHoras.metaMensual} + ' hrs'">0 / 160 hrs</div>
-                        </div>
-                        <div class="progress mb-2">
-                            <div class="progress-bar" role="progressbar" th:style="'width: ' + ${resumenHoras.porcentajeMeta} + '%'"></div>
-                        </div>
-                        <div th:if="${resumenHoras.metaCumplida}" class="alert alert-success small mb-0">¡Ya completaste tus horas de este mes!</div>
-                        <div th:if="${!resumenHoras.metaCumplida}" class="alert alert-warning small mb-0">
-                            Te faltan <strong th:text="${resumenHoras.horasFaltantesMes}"></strong> horas este mes.
-                            <a th:href="@{/colaborador/explorar}">Busca un proyecto o un curso para completarlas</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card section-card">
-                    <div class="card-header section-header">
-                        <div><h3 class="card-title mb-1">Descuentos</h3><div class="section-description">Por bajo desempeño, cada 3 strikes en el mes suman 5%.</div></div>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded"
-                             th:classappend="${porcentajeDescuentoMes > 0} ? 'bg-red-lt' : 'bg-green-lt'">
-                            <div>
-                                <div class="small text-secondary">Descuento de este mes</div>
-                                <div class="fw-bold" th:text="${porcentajeDescuentoMes} + '%'">0%</div>
-                            </div>
-                            <div class="fw-bold" th:text="'- S/ ' + ${#numbers.formatDecimal(montoDescuentoMes, 1, 2)}">S/ 0.00</div>
-                        </div>
-                        <div th:if="${porcentajeDescuentoMes == 0}" class="small text-secondary mb-3">Vas bien: aún no acumulas suficientes strikes este mes para un descuento.</div>
-
-
-
-
-
-
-
-
-                        <div class="info-label mb-2">Historial de strikes</div>
-                        <div style="max-height:180px; overflow-y:auto;">
-                            <div th:if="${misPenalizaciones.isEmpty()}" class="empty-state">Todavía no tienes strikes registrados.</div>
-                            <div th:each="p : ${misPenalizaciones}" class="timeline-entry">
-                                <span class="text-secondary small" th:text="${#temporals.format(p.fecha, 'dd/MM/yyyy')}">—</span>
-                                <div class="small" th:text="${p.motivo}">Motivo</div>
-                                <div class="text-secondary small" th:if="${p.proyecto != null}" th:text="${p.proyecto.nombre}">Proyecto</div>
+                    <div class="card-body p-0" style="max-height:320px; overflow-y:auto;">
+                        <div th:if="${misPenalizaciones.isEmpty()}" class="empty-state">Todavía no tienes strikes registrados.</div>
+                        <div th:each="p : ${misPenalizaciones}" class="strike-entry">
+                            <div class="strike-entry-dot"></div>
+                            <div class="strike-entry-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <span class="fw-semibold small" th:text="${p.proyecto != null ? p.proyecto.nombre : 'Sin proyecto'}">Proyecto</span>
+                                    <span class="text-secondary small" th:text="${#temporals.format(p.fecha, 'dd/MM/yyyy')}">—</span>
+                                </div>
+                                <div class="text-secondary small" th:text="${p.motivo}">Motivo</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-
-
-
-
-
-
-
-
-                <div class="card section-card mt-4">
-                    <div class="card-header section-header">
-                        <div><h3 class="card-title mb-1">Bono del mes</h3><div class="section-description">Por horas extra sobre tu meta, si no tuviste descuentos.</div></div>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <div class="info-label mb-0">Horas extra bonificables</div>
-                            <div class="small text-secondary" th:text="${resumenBono.horasExtraBonificables} + ' / ' + ${resumenBono.topeHorasExtra} + ' hrs'">0 / 20 hrs</div>
-                        </div>
-                        <div class="progress mb-3">
-                            <div class="progress-bar bg-green" role="progressbar" th:style="'width: ' + ${resumenBono.porcentajeProgreso} + '%'"></div>
-                        </div>
-
-                        <div th:if="${resumenBono.tuvoDescuentoEsteMes}" class="alert alert-danger small mb-0">
-                            ⚠️ Tuviste un descuento este mes. No calificas para el bono, aunque hayas hecho horas extra.
-                        </div>
-                        <div th:if="${!resumenBono.tuvoDescuentoEsteMes and resumenBono.horasExtra.signum() > 0}" class="alert alert-success small mb-0">
-                            Bono estimado este mes: <strong th:text="'S/ ' + ${#numbers.formatDecimal(resumenBono.montoBono, 1, 2)}">S/ 0.00</strong>
-                            (<span th:text="${resumenBono.horasExtraBonificables}"></span> horas extra a tu tarifa por hora).
-                        </div>
-                        <div th:if="${!resumenBono.tuvoDescuentoEsteMes and resumenBono.horasExtra.signum() == 0}" class="small text-secondary mb-0">
-                            Aún no tienes horas extra este mes (primero completa tu meta de <span th:text="${resumenBono.metaMensual}"></span> horas).
-                        </div>
-                    </div>
-                </div>
 
 
 

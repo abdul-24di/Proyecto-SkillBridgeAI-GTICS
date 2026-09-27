@@ -26,7 +26,4 @@ jobs:
         run: chmod +x mvnw
 
       - name: Compilar y ejecutar pruebas
-        run: ./mvnw --batch-mode clean verify
-        
-      - name: Compilar y ejecutar pruebas
         run: ./mvnw --batch-mode --no-transfer-progress clean verify

@@ -6,6 +6,7 @@ import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.repository.*;
+import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +52,7 @@ public class ColaboradorPerfilService {
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
     private final String uploadDir;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
 
     public ColaboradorPerfilService(UsuarioRepository usuarioRepository,
                                     ColaboradorHabilidadRepository colaboradorHabilidadRepository,
@@ -62,7 +64,8 @@ public class ColaboradorPerfilService {
                                     PasswordEncoder passwordEncoder,
                                     AuditoriaService auditoriaService,
                                     NotificacionService notificacionService,
-                                    @Value("${app.upload-dir:uploads}") String uploadDir) {
+                                    @Value("${app.upload-dir:uploads}") String uploadDir,
+                                    ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.habilidadRepository = habilidadRepository;
@@ -74,6 +77,7 @@ public class ColaboradorPerfilService {
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
         this.uploadDir = uploadDir;
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
     //Listado de categorías activas
@@ -238,38 +242,23 @@ public class ColaboradorPerfilService {
             throw new IllegalArgumentException("La imagen supera el máximo de 2MB.");
         }
 
-        try {
+        //Determinamos la extensión del archivo según el tipo de imagen
+        String extension = "image/png".equals(foto.getContentType()) ? ".png" : ".jpg";
 
-            //Definimos la ruta de la carpeta física donde se guardarán las fotos
-            Path carpeta = Path.of(uploadDir, "perfil");
-            // Creamos físicamente las carpetas de la ruta definida en caso de que todavía no existan
-            Files.createDirectories(carpeta);
+        //Generamos un nombre único e irrepetible para el archivo con la estructura de: usuario-idColaborador-codigoAleatorio.formato
+        //Esto lo hacemos para evitar que los archivos se reemplacen en caso de que dos usuarios los suban con el mismo nombre
+        String nombreArchivo = "usuario-" + colaborador.getId() + "-" + UUID.randomUUID() + extension;
 
-            //Determinamos la extensión del archivo según el tipo de imagen
-            String extension = "image/png".equals(foto.getContentType()) ? ".png" : ".jpg";
+        //Guardamos el archivo (en disco local o en S3, según la configuración) y obtenemos su URL
+        String fotoUrl = archivoAlmacenamientoService.guardar(foto, "perfil", nombreArchivo);
+        colaborador.setFotoUrl(fotoUrl);
 
-            //Generamos un nombre único e irrepetible para el archivo con la estructura de: usuario-idColaborador-codigoAleatorio.formato
-            //Esto lo hacemos para evitar que los archivos se reemplacen en caso de que dos usuarios los suban con el mismo nombre
-            String nombreArchivo = "usuario-" + colaborador.getId() + "-" + UUID.randomUUID() + extension;
+        //Guardamos los cambios del usuario en la base de datos.
+        usuarioRepository.save(colaborador);
 
-            //Combinamos la carpeta con el nombre del archivo para obtener la ruta completa donde se guardará la foto
-            Path destino = carpeta.resolve(nombreArchivo);
-
-            //Copiamos el contenido de la foto subida hacia la ruta destino y en caso de que ya exista un archivo con ese nombre, lo reemplazamos
-            Files.copy(foto.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
-
-            //Guardamos la URL con la cual se podrá acceder posteriormente a la foto desde la aplicación web
-            colaborador.setFotoUrl("/uploads/perfil/" + nombreArchivo);
-
-            //Guardamos los cambios del usuario en la base de datos.
-            usuarioRepository.save(colaborador);
-
-            // Registramos en el sistema de auditoría que el usuario actualizó su foto de perfil
-            auditoriaService.registrar(colaborador, "ACTUALIZAR_PERFIL", "USUARIO", colaborador.getId(),
-                    "Actualizó su foto de perfil.");
-        } catch (IOException e) {
-            throw new UncheckedIOException("No se pudo guardar la foto de perfil.", e);
-        }
+        // Registramos en el sistema de auditoría que el usuario actualizó su foto de perfil
+        auditoriaService.registrar(colaborador, "ACTUALIZAR_PERFIL", "USUARIO", colaborador.getId(),
+                "Actualizó su foto de perfil.");
     }
 
     @Transactional
@@ -454,16 +443,7 @@ public class ColaboradorPerfilService {
         }
         String nombreArchivo = prefijoArchivo + "-" + UUID.randomUUID() + extension;
 
-        try {
-            Path carpetaDestino = Path.of(uploadDir, carpeta);
-            Files.createDirectories(carpetaDestino);
-            Files.copy(archivo.getInputStream(), carpetaDestino.resolve(nombreArchivo),
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("No se pudo guardar el certificado. Inténtalo nuevamente.", e);
-        }
-
-        return "/uploads/" + carpeta + "/" + nombreArchivo;
+        return archivoAlmacenamientoService.guardar(archivo, carpeta, nombreArchivo);
     }
 
 
@@ -526,22 +506,18 @@ public class ColaboradorPerfilService {
             case "image/png" -> ".png";
             default -> ".jpg";
         };
+
+
         String nombreArchivo = "certificado-" + colaborador.getId() + "-"
                 + UUID.randomUUID() + extension;
 
-        try {
-            Path carpeta = Path.of(uploadDir, "certificados");
-            Files.createDirectories(carpeta);
-            Files.copy(archivo.getInputStream(), carpeta.resolve(nombreArchivo),
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("No se pudo guardar el certificado. Inténtalo nuevamente.", e);
-        }
+        String archivoUrl = archivoAlmacenamientoService.guardar(archivo, "certificados", nombreArchivo);
 
         Certificado certificado = new Certificado();
         certificado.setColaborador(colaborador);
         certificado.setHabilidad(habilidad);
-        certificado.setArchivoUrl("/uploads/certificados/" + nombreArchivo);
+        certificado.setArchivoUrl(archivoUrl);
+
         certificado.setEstado(EstadoCertificado.PENDIENTE);
         certificado = certificadoRepository.save(certificado);
 

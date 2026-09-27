@@ -380,6 +380,8 @@ CREATE TABLE curso (
     dias            VARCHAR(100) NULL,
     fecha_inicio    DATE NULL,
     fecha_fin       DATE NULL,
+    lugar 			VARCHAR(300) NULL,
+    institucion 	VARCHAR(150) NULL,
     horas           DECIMAL(6,2) NOT NULL,
     activo          BOOLEAN NOT NULL DEFAULT TRUE,
     creado_por      BIGINT NOT NULL,

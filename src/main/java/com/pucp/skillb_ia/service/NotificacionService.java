@@ -1,16 +1,10 @@
 package com.pucp.skillb_ia.service;
 
 import com.pucp.skillb_ia.dto.NotificacionView;
-import com.pucp.skillb_ia.model.Actividad;
-import com.pucp.skillb_ia.model.Asignacion;
-import com.pucp.skillb_ia.model.Notificacion;
-import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
-import com.pucp.skillb_ia.repository.ActividadRepository;
-import com.pucp.skillb_ia.repository.AsignacionRepository;
-import com.pucp.skillb_ia.repository.NotificacionRepository;
-import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,15 +17,21 @@ public class NotificacionService {
     private final UsuarioRepository usuarioRepository;
     private final ActividadRepository actividadRepository;
     private final AsignacionRepository asignacionRepository;
+    private final ForoRepository foroRepository;
+    private final DocumentoRepository documentoRepository;
 
     public NotificacionService(NotificacionRepository notificacionRepository,
                                UsuarioRepository usuarioRepository,
                                ActividadRepository actividadRepository,
-                               AsignacionRepository asignacionRepository) {
+                               AsignacionRepository asignacionRepository,
+                               ForoRepository foroRepository,
+                               DocumentoRepository documentoRepository) {
         this.notificacionRepository = notificacionRepository;
         this.usuarioRepository = usuarioRepository;
         this.actividadRepository = actividadRepository;
         this.asignacionRepository = asignacionRepository;
+        this.foroRepository = foroRepository;
+        this.documentoRepository = documentoRepository;
     }
 
     //Creamos una notificación para un usuario
@@ -109,6 +109,37 @@ public class NotificacionService {
         }
         if ("CERTIFICADO".equals(item.getEntidad()) && esColaborador) {
             return "/colaborador/perfil";
+        }
+        if ("FORO".equals(item.getEntidad()) && item.getEntidadId() != null) {
+            Optional<Foro> foroOpt = foroRepository.findById(item.getEntidadId());
+            if (foroOpt.isPresent()) {
+                Foro foro = foroOpt.get();
+                String rolNombre = item.getUsuario().getRol().getNombre();
+                if (rolNombre.equals("PROJECT_MANAGER") && foro.getProyecto() != null) {
+                    return "/pm/foro/detalle?proyectoId=" + foro.getProyecto().getId();
+                }
+                if (rolNombre.equals("RESOURCE_MANAGER")) {
+                    return "/rm/foros/detalle?id=" + foro.getId();
+                }
+                return "/colaborador/foros/detalle?foroId=" + foro.getId();
+            }
+        }
+        if ("DOCUMENTO".equals(item.getEntidad()) && item.getEntidadId() != null) {
+            Optional<Documento> documentoOpt = documentoRepository.findById(item.getEntidadId());
+            if (documentoOpt.isPresent()) {
+                Documento documento = documentoOpt.get();
+                String rolNombre = item.getUsuario().getRol().getNombre();
+                if (rolNombre.equals("PROJECT_MANAGER")) {
+                    return "/pm/proyectos/detalle?id=" + documento.getProyecto().getId();
+                }
+                if (esColaborador) {
+                    Optional<Asignacion> asignacionOpt = asignacionRepository.findFirstByProyectoAndColaboradorAndEstado(
+                            documento.getProyecto(), item.getUsuario(), EstadoAsignacion.ACTIVA);
+                    if (asignacionOpt.isPresent()) {
+                        return "/colaborador/proyectos/detalle?asignacionId=" + asignacionOpt.get().getId() + "&tab=documentos";
+                    }
+                }
+            }
         }
         if ("ACTIVIDAD".equals(item.getEntidad()) && item.getEntidadId() != null) {
 

@@ -1,0 +1,83 @@
+------------------------------
+## 📘 Manual de Despliegue de AWS S3 para el Proyecto
+Este documento contiene los pasos exactos que debes seguir en tu cuenta de AWS para que el sistema de archivos (fotos de perfil y certificados) funcione correctamente en el despliegue.
+------------------------------
+## 🛠️ Parte 1: Obtener las Credenciales Temporales de AWS
+Como estamos usando una cuenta de estudiante de Vocareum, las llaves de acceso cambian constantemente y requieren un token de sesión obligatorio.
+
+   1. Entra a tu plataforma de AWS Academy / Vocareum e inicia el laboratorio.
+   2. Junto al botón de abrir la consola de AWS, busca y haz clic en un botón gris que dice AWS Details (o Credentials).
+   3. Busca la sección AWS CLI y haz clic en el botón Show (Mostrar).
+   4. Verás tres líneas de código muy importantes. Cópialas y guárdalas en un bloc de notas. Las vas a necesitar al momento de levantar el servidor:
+   	* aws_access_key_id=...
+      * aws_secret_access_key=...
+      * aws_session_token=...
+   
+------------------------------
+## 🪣 Parte 2: Crear y Configurar el Bucket en S3
+
+   1. En la parte superior de la Consola de AWS, haz clic en la barra de búsqueda gris, escribe "S3" y entra al primer servicio que aparece.
+   2. Haz clic en el botón naranja grande que dice Create bucket (Crear bucket).
+   3. Configura los siguientes campos obligatorios:
+   	* Bucket name (Nombre): Escribe un nombre único a nivel mundial. Se recomienda usar: skillbridge-ia-archivos-tuapellido (ejemplo: skillbridge-ia-archivos-gonzales). Anota y guarda este nombre exacto.
+      * AWS Region (Región): Selecciona la región us-east-1 (N. Virginia).
+   
+   4. Desplázate hacia abajo hasta la sección Block Public Access settings for this bucket.
+   5. Desmarca la casilla principal que dice "Block all public access" (Bloquear todo el acceso público).
+   6. Inmediatamente abajo aparecerá un recuadro amarillo de advertencia. Marca la casilla de confirmación que aparece ahí para aceptar que el bucket tendrá elementos públicos (esto es necesario para que los links de las fotos se puedan ver en el navegador).
+   7. Deja todo lo demás como viene por defecto, baja hasta el final de la página y haz clic en el botón naranja Create bucket.
+   8. Volverás a la lista de buckets. Haz clic sobre el nombre del bucket que acabas de crear para entrar en él.
+   9. Ve a la pestaña Permissions (Permisos) ubicada en la parte superior central.
+   10. Desplázate hacia abajo hasta encontrar la sección Bucket policy (Política de bucket) y haz clic en el botón Edit (Editar).
+   11. En el cuadro de texto en blanco, borra lo que haya y pega el siguiente código JSON exacto, reemplazando TU-NOMBRE-DE-BUCKET-REAL por el nombre único que le pusiste en el paso 3:
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::TU-NOMBRE-DE-BUCKET-REAL/*"
+    }
+  ]
+}
+
+
+   1. Baja al final de la página y haz clic en el botón naranja Save changes (Guardar cambios). Debería aparecer un banner verde confirmando el éxito.
+
+------------------------------
+## 💻 Parte 3: Configurar las Variables de Entorno en el Servidor / IDE
+
+## Opción A: Si lo despliegas/corres desde IntelliJ IDEA (Recomendado)
+
+   1. Ve a la barra superior, al lado del botón de Play, haz clic en el nombre de la aplicación y selecciona Edit Configurations.
+   2. Haz clic en el texto azul Modify options y selecciona la casilla Environment variables.
+   3. En el nuevo campo de texto, pega todas tus variables en una sola línea separadas por un punto y coma (;) y sin dejar espacios en blanco (reemplaza con tus datos reales):
+
+AWS_ACCESS_KEY_ID=tu_access_key;AWS_SECRET_ACCESS_KEY=tu_secret_key;AWS_SESSION_TOKEN=tu_session_token;AWS_S3_BUCKET=tu-nombre-de-bucket-real
+
+   1. Haz clic en Apply y luego en OK.
+
+## Opción B: Si lo ejecutas desde una terminal (Git Bash)
+Abre tu Git Bash posicionado en la carpeta raíz del proyecto y ejecuta estas 5 líneas con tus datos reales antes de encender el servidor:
+
+export AWS_ACCESS_KEY_ID="tu_access_key_de_vocareum"
+export AWS_SECRET_ACCESS_KEY="tu_secret_key_de_vocareum"
+export AWS_SESSION_TOKEN="tu_session_token_de_vocareum"
+export AWS_S3_BUCKET="tu-nombre-de-bucket-real"
+
+------------------------------
+## 🚀 Parte 4: Ejecución del Proyecto
+Una vez cargadas las 5 variables mediante la Opción A o la Opción B, puedes proceder a arrancar la aplicación de manera normal.
+
+* Si usas la terminal externa (Git Bash), ejecútalo con el comando:
+
+./mvnw spring-boot:run
+
+* Si configuraste la Opción A en IntelliJ, simplemente presiona el botón verde de "Play".
+
+El backend interceptará tu configuración automáticamente, se conectará a AWS usando tus llaves temporales de estudiante y almacenará todos los archivos multimedia directamente en tu propia nube sin romper el código base.
+------------------------------
+

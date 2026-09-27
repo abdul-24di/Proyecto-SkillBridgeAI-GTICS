@@ -7,7 +7,10 @@ import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.*;
+import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
+import com.pucp.skillb_ia.service.PenalizacionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,10 +39,11 @@ public class ColaboradorProyectoService {
     private final HabilidadRepository habilidadRepository;
     private final ActividadRepository actividadRepository;
     private final AuditoriaService auditoriaService;
+
     private final com.pucp.skillb_ia.service.PenalizacionService penalizacionService;
-    private final String uploadDir;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
     private final ColaboradorExplorarService colaboradorExplorarService;
-    private final com.pucp.skillb_ia.service.NotificacionService notificacionService;
+    private final NotificacionService notificacionService;
 
     public ColaboradorProyectoService(ProyectoRepository proyectoRepository,
                                       AsignacionRepository asignacionRepository,
@@ -48,9 +52,9 @@ public class ColaboradorProyectoService {
                                       ActividadRepository actividadRepository,
                                       ColaboradorExplorarService colaboradorExplorarService,
                                       AuditoriaService auditoriaService,
-                                      com.pucp.skillb_ia.service.PenalizacionService penalizacionService,
-                                      com.pucp.skillb_ia.service.NotificacionService notificacionService,
-                                      @Value("${app.upload-dir:uploads}") String uploadDir) {
+                                      PenalizacionService penalizacionService,
+                                      NotificacionService notificacionService,
+                                      ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.notificacionService = notificacionService;
@@ -60,7 +64,7 @@ public class ColaboradorProyectoService {
         this.colaboradorExplorarService = colaboradorExplorarService;
         this.auditoriaService = auditoriaService;
         this.penalizacionService = penalizacionService;
-        this.uploadDir = uploadDir;
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
     // ============================================================
@@ -404,18 +408,10 @@ public class ColaboradorProyectoService {
         } else {
             extension = ".jpg";
         }
+
+
         String nombreArchivo = "actividad-" + actividadId + "-" + UUID.randomUUID() + extension;
-
-        try {
-            Path carpetaDestino = Path.of(uploadDir, "evidencias-actividades");
-            Files.createDirectories(carpetaDestino);
-            Files.copy(archivo.getInputStream(), carpetaDestino.resolve(nombreArchivo),
-                    StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("No se pudo guardar la evidencia. Inténtalo nuevamente.", e);
-        }
-
-        return "/uploads/evidencias-actividades/" + nombreArchivo;
+        return archivoAlmacenamientoService.guardar(archivo, "evidencias-actividades", nombreArchivo);
     }
 
     private String extensionDe(String nombreArchivo) {

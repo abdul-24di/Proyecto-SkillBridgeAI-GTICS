@@ -5,12 +5,14 @@ import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.SolicitudPersonal;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.EstadoSolicitudPersonal;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.SolicitudPersonalRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,18 +28,21 @@ public class RmSolicitudPersonalService {
     private final UsuarioRepository usuarioRepository;
     private final RmProyectoConsultaService proyectoConsultaService;
     private final AuditoriaService auditoriaService;
+    private final NotificacionService notificacionService;
 
     public RmSolicitudPersonalService(
             SolicitudPersonalRepository solicitudRepository,
             ProyectoRepository proyectoRepository,
             UsuarioRepository usuarioRepository,
             RmProyectoConsultaService proyectoConsultaService,
-            AuditoriaService auditoriaService) {
+            AuditoriaService auditoriaService,
+            NotificacionService notificacionService) {
         this.solicitudRepository = solicitudRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.proyectoConsultaService = proyectoConsultaService;
         this.auditoriaService = auditoriaService;
+        this.notificacionService = notificacionService;
     }
 
     @Transactional(readOnly = true)
@@ -86,6 +91,11 @@ public class RmSolicitudPersonalService {
         auditoriaService.registrar(pm, "CREACION_SOLICITUD_PERSONAL", "SOLICITUD_PERSONAL",
                 guardada.getId(), "El PM solicitó " + cantidad + " colaborador(es) para "
                         + proyecto.getNombre() + ".");
+
+        notificacionService.crearParaTodosLosRm("SOLICITUD_PERSONAL_PENDIENTE", CategoriaNotificacion.PROYECTO,
+                "Solicitud de personal pendiente",
+                "El PM del proyecto \"" + proyecto.getNombre() + "\" solicitó " + cantidad + " colaborador(es).",
+                "SOLICITUD_PERSONAL", guardada.getId());
         return guardada;
     }
 
@@ -100,6 +110,13 @@ public class RmSolicitudPersonalService {
         solicitud.setRmResponsable(rm);
         solicitud.setFechaInicioAtencion(LocalDateTime.now());
         solicitudRepository.save(solicitud);
+
+        notificacionService.crear(solicitud.getProyecto().getPm(), "SOLICITUD_PERSONAL_EN_ATENCION", CategoriaNotificacion.PROYECTO,
+                "Tu solicitud de personal está en atención",
+                "El Resource Manager comenzó a atender tu solicitud de personal para \""
+                        + solicitud.getProyecto().getNombre() + "\".",
+                "SOLICITUD_PERSONAL", id);
+
         auditoriaService.registrar(rm, "INICIO_ATENCION_SOLICITUD", "SOLICITUD_PERSONAL", id,
                 "El RM inició la atención de la solicitud del proyecto "
                         + solicitud.getProyecto().getNombre() + ".");
@@ -116,6 +133,13 @@ public class RmSolicitudPersonalService {
         solicitud.setRmResponsable(rm);
         solicitud.setFechaAtencion(LocalDateTime.now());
         solicitudRepository.save(solicitud);
+
+        notificacionService.crear(solicitud.getProyecto().getPm(), "SOLICITUD_PERSONAL_ATENDIDA", CategoriaNotificacion.PROYECTO,
+                "Solicitud de personal atendida",
+                "El Resource Manager marcó como atendida tu solicitud de personal para \""
+                        + solicitud.getProyecto().getNombre() + "\".",
+                "SOLICITUD_PERSONAL", id);
+
         auditoriaService.registrar(rm, "CIERRE_SOLICITUD_PERSONAL", "SOLICITUD_PERSONAL", id,
                 "El RM marcó como atendida la solicitud del proyecto "
                         + solicitud.getProyecto().getNombre() + ".");

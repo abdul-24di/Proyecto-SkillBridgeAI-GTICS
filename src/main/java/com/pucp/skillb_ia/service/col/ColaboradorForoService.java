@@ -3,11 +3,14 @@ package com.pucp.skillb_ia.service.col;
 import com.pucp.skillb_ia.dto.ColPublicacionForoView;
 import com.pucp.skillb_ia.dto.ColRespuestaForoView;
 import com.pucp.skillb_ia.model.*;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.TipoForo;
 import com.pucp.skillb_ia.model.enums.TipoVoto;
 import com.pucp.skillb_ia.repository.*;
+import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +45,9 @@ public class ColaboradorForoService {
     private final VotoPublicacionRepository votoPublicacionRepository;
     private final VotoRespuestaRepository votoRespuestaRepository;
     private final AuditoriaService auditoriaService;
-    private final String uploadDir;
+
+    private final NotificacionService notificacionService;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
 
     public ColaboradorForoService(ForoRepository foroRepository,
                                   PublicacionForoRepository publicacionForoRepository,
@@ -52,7 +57,8 @@ public class ColaboradorForoService {
                                   VotoPublicacionRepository votoPublicacionRepository,
                                   VotoRespuestaRepository votoRespuestaRepository,
                                   AuditoriaService auditoriaService,
-                                  @Value("${app.upload-dir:uploads}") String uploadDir) {
+                                  NotificacionService notificacionService,
+                                  ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.foroRepository = foroRepository;
         this.publicacionForoRepository = publicacionForoRepository;
         this.respuestaForoRepository = respuestaForoRepository;
@@ -61,7 +67,8 @@ public class ColaboradorForoService {
         this.votoPublicacionRepository = votoPublicacionRepository;
         this.votoRespuestaRepository = votoRespuestaRepository;
         this.auditoriaService = auditoriaService;
-        this.uploadDir = uploadDir;
+        this.notificacionService = notificacionService;
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
     // ============================================================
@@ -365,6 +372,15 @@ public class ColaboradorForoService {
 
         auditoriaService.registrar(colaborador, "CREAR_RESPUESTA_FORO", "RESPUESTA_FORO",
                 respuesta.getId(), "Respondió la publicación \"" + publicacion.getTitulo() + "\".");
+
+        //No nos notificamos a nosotros mismos si respondemos nuestra propia publicación
+        if (!publicacion.getAutor().getId().equals(colaborador.getId())) {
+            notificacionService.crear(publicacion.getAutor(), "RESPUESTA_FORO", CategoriaNotificacion.MENSAJE,
+                    "Nueva respuesta en tu publicación",
+                    colaborador.getNombre() + " " + colaborador.getApellido()
+                            + " respondió tu publicación \"" + publicacion.getTitulo() + "\".",
+                    "FORO", publicacion.getForo().getId());
+        }
     }
 
     @Transactional
@@ -482,15 +498,7 @@ public class ColaboradorForoService {
             extension = ".webp";
         }
 
-        try {
-            Path carpeta = Path.of(uploadDir, "foro");
-            Files.createDirectories(carpeta);
-            String nombreArchivo = "foro-" + UUID.randomUUID() + extension;
-            Path destino = carpeta.resolve(nombreArchivo);
-            Files.copy(imagen.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
-            return "/uploads/foro/" + nombreArchivo;
-        } catch (IOException e) {
-            throw new UncheckedIOException("No se pudo guardar la imagen del foro.", e);
-        }
+        String nombreArchivo = "foro-" + UUID.randomUUID() + extension;
+        return archivoAlmacenamientoService.guardar(imagen, "foro", nombreArchivo);
     }
 }

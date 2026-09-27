@@ -15,6 +15,7 @@ import com.pucp.skillb_ia.repository.ForoRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.PublicacionForoRepository;
 import com.pucp.skillb_ia.repository.RespuestaForoRepository;
+import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,8 +44,9 @@ public class PmForoService {
     private final RespuestaForoRepository respuestaRepository;
     private final AsignacionRepository asignacionRepository;
     private final ProyectoRepository proyectoRepository;
+
     private final AuditoriaService auditoriaService;
-    private final String uploadDir;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
 
     public PmForoService(ForoRepository foroRepository,
                          PublicacionForoRepository publicacionRepository,
@@ -52,14 +54,14 @@ public class PmForoService {
                          AsignacionRepository asignacionRepository,
                          ProyectoRepository proyectoRepository,
                          AuditoriaService auditoriaService,
-                         @Value("${app.upload-dir:uploads}") String uploadDir) {
+                         ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.foroRepository = foroRepository;
         this.publicacionRepository = publicacionRepository;
         this.respuestaRepository = respuestaRepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.auditoriaService = auditoriaService;
-        this.uploadDir = uploadDir;
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
     public String subirImagen(MultipartFile foto) {
@@ -73,21 +75,13 @@ public class PmForoService {
             throw new IllegalArgumentException("La imagen no puede superar los 5 MB.");
         }
 
-        try {
-            Path carpeta = Path.of(uploadDir, "foro");
-            Files.createDirectories(carpeta);
-            String extension = ".jpg";
-            if ("image/png".equals(foto.getContentType())) extension = ".png";
-            else if ("image/gif".equals(foto.getContentType())) extension = ".gif";
-            else if ("image/webp".equals(foto.getContentType())) extension = ".webp";
-            
-            String nombreArchivo = "foro-" + UUID.randomUUID() + extension;
-            Path destino = carpeta.resolve(nombreArchivo);
-            Files.copy(foto.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
-            return "/uploads/foro/" + nombreArchivo;
-        } catch (IOException e) {
-            throw new UncheckedIOException("No se pudo guardar la imagen del foro.", e);
-        }
+        String extension = ".jpg";
+        if ("image/png".equals(foto.getContentType())) extension = ".png";
+        else if ("image/gif".equals(foto.getContentType())) extension = ".gif";
+        else if ("image/webp".equals(foto.getContentType())) extension = ".webp";
+
+        String nombreArchivo = "foro-" + UUID.randomUUID() + extension;
+        return archivoAlmacenamientoService.guardar(foto, "foro", nombreArchivo);
     }
 
     /** Lista los foros de todos los proyectos que gestiona el PM. */

@@ -26,17 +26,18 @@ public class AdminPerfilService {
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+
     private final AuditoriaService auditoriaService;
-    private final String uploadDir;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
 
     public AdminPerfilService(UsuarioRepository usuarioRepository,
-                               PasswordEncoder passwordEncoder,
-                               AuditoriaService auditoriaService,
-                               @Value("${app.upload-dir:uploads}") String uploadDir) {
+                              PasswordEncoder passwordEncoder,
+                              AuditoriaService auditoriaService,
+                              ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
-        this.uploadDir = uploadDir;
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
     @Transactional
@@ -59,20 +60,14 @@ public class AdminPerfilService {
             throw new IllegalArgumentException("La foto no puede superar los 2 MB.");
         }
 
-        try {
-            Path carpeta = Path.of(uploadDir, "perfil");
-            Files.createDirectories(carpeta);
-            String extension = "image/png".equals(foto.getContentType()) ? ".png" : ".jpg";
-            String nombreArchivo = "usuario-" + admin.getId() + "-" + UUID.randomUUID() + extension;
-            Path destino = carpeta.resolve(nombreArchivo);
-            Files.copy(foto.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
-            admin.setFotoUrl("/uploads/perfil/" + nombreArchivo);
-            usuarioRepository.save(admin);
-            auditoriaService.registrar(admin, "ACTUALIZAR_PERFIL", "USUARIO", admin.getId(),
-                    "Administrador actualizó su foto de perfil.");
-        } catch (IOException e) {
-            throw new UncheckedIOException("No se pudo guardar la foto de perfil.", e);
-        }
+        String extension = "image/png".equals(foto.getContentType()) ? ".png" : ".jpg";
+        String nombreArchivo = "usuario-" + admin.getId() + "-" + UUID.randomUUID() + extension;
+
+        String fotoUrl = archivoAlmacenamientoService.guardar(foto, "perfil", nombreArchivo);
+        admin.setFotoUrl(fotoUrl);
+        usuarioRepository.save(admin);
+        auditoriaService.registrar(admin, "ACTUALIZAR_PERFIL", "USUARIO", admin.getId(),
+                "Administrador actualizó su foto de perfil.");
     }
 
     @Transactional

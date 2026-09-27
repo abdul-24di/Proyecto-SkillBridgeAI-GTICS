@@ -2,6 +2,7 @@ package com.pucp.skillb_ia.service.rm;
 
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,16 +30,16 @@ public class RmPerfilService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditoriaService auditoriaService;
-    private final String uploadDir;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
 
     public RmPerfilService(UsuarioRepository usuarioRepository,
-                            PasswordEncoder passwordEncoder,
-                            AuditoriaService auditoriaService,
-                            @Value("${app.upload-dir:uploads}") String uploadDir) {
+                           PasswordEncoder passwordEncoder,
+                           AuditoriaService auditoriaService,
+                           ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditoriaService = auditoriaService;
-        this.uploadDir = uploadDir;
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
     @Transactional(readOnly = true)
@@ -67,20 +68,14 @@ public class RmPerfilService {
             throw new IllegalArgumentException("La foto no puede superar los 2 MB.");
         }
 
-        try {
-            Path carpeta = Path.of(uploadDir, "perfil");
-            Files.createDirectories(carpeta);
-            String extension = "image/png".equals(foto.getContentType()) ? ".png" : ".jpg";
-            String nombreArchivo = "usuario-" + rm.getId() + "-" + UUID.randomUUID() + extension;
-            Path destino = carpeta.resolve(nombreArchivo);
-            Files.copy(foto.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
-            rm.setFotoUrl("/uploads/perfil/" + nombreArchivo);
-            usuarioRepository.save(rm);
-            auditoriaService.registrar(rm, "ACTUALIZAR_PERFIL", "USUARIO", rm.getId(),
-                    "RM actualizó su foto de perfil.");
-        } catch (IOException e) {
-            throw new UncheckedIOException("No se pudo guardar la foto de perfil.", e);
-        }
+        String extension = "image/png".equals(foto.getContentType()) ? ".png" : ".jpg";
+        String nombreArchivo = "usuario-" + rm.getId() + "-" + UUID.randomUUID() + extension;
+
+        String fotoUrl = archivoAlmacenamientoService.guardar(foto, "perfil", nombreArchivo);
+        rm.setFotoUrl(fotoUrl);
+        usuarioRepository.save(rm);
+        auditoriaService.registrar(rm, "ACTUALIZAR_PERFIL", "USUARIO", rm.getId(),
+                "RM actualizó su foto de perfil.");
     }
 
     @Transactional

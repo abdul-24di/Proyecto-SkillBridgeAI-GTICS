@@ -4,11 +4,14 @@ import com.pucp.skillb_ia.model.Documento;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.CategoriaDocumento;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.DocumentoRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
+import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,19 +55,24 @@ public class ColaboradorDocumentoService {
     private final DocumentoRepository documentoRepository;
     private final AsignacionRepository asignacionRepository;
     private final ProyectoRepository proyectoRepository;
+
     private final AuditoriaService auditoriaService;
-    private final String uploadDir;
+
+    private final NotificacionService notificacionService;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
 
     public ColaboradorDocumentoService(DocumentoRepository documentoRepository,
                                        AsignacionRepository asignacionRepository,
                                        ProyectoRepository proyectoRepository,
                                        AuditoriaService auditoriaService,
-                                       @Value("${app.upload-dir:uploads}") String uploadDir) {
+                                       NotificacionService notificacionService,
+                                       ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.documentoRepository = documentoRepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.auditoriaService = auditoriaService;
-        this.uploadDir = uploadDir;
+        this.notificacionService = notificacionService;
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
     // ============================================================
@@ -152,25 +160,28 @@ public class ColaboradorDocumentoService {
 
         CategoriaDocumento categoria = determinarCategoria(extension);
 
-        try {
-            Path carpeta = Path.of(uploadDir, "documentos", "proyecto-" + proyecto.getId());
-            Files.createDirectories(carpeta);
-            String nombreArchivo = "doc-" + UUID.randomUUID() + "." + extension;
-            Path destino = carpeta.resolve(nombreArchivo);
-            Files.copy(archivo.getInputStream(), destino, StandardCopyOption.REPLACE_EXISTING);
+        String nombreArchivo = "doc-" + UUID.randomUUID() + "." + extension;
+        String carpeta = "documentos/proyecto-" + proyecto.getId();
+        String archivoUrl = archivoAlmacenamientoService.guardar(archivo, carpeta, nombreArchivo);
 
-            Documento documento = new Documento();
-            documento.setProyecto(proyecto);
-            documento.setSubidoPor(colaborador);
-            documento.setNombre(nombreOriginal);
-            documento.setCategoria(categoria);
-            documento.setArchivoUrl("/uploads/documentos/proyecto-" + proyecto.getId() + "/" + nombreArchivo);
-            documentoRepository.save(documento);
+        Documento documento = new Documento();
+        documento.setProyecto(proyecto);
+        documento.setSubidoPor(colaborador);
+        documento.setNombre(nombreOriginal);
+        documento.setCategoria(categoria);
+        documento.setArchivoUrl(archivoUrl);
+        documentoRepository.save(documento);
 
-            auditoriaService.registrar(colaborador, "SUBIR_DOCUMENTO", "DOCUMENTO", documento.getId(),
-                    "Subió el documento \"" + nombreOriginal + "\" al proyecto \"" + proyecto.getNombre() + "\".");
-        } catch (IOException e) {
-            throw new UncheckedIOException("No se pudo guardar el documento.", e);
+        auditoriaService.registrar(colaborador, "SUBIR_DOCUMENTO", "DOCUMENTO", documento.getId(),
+                "Subió el documento \"" + nombreOriginal + "\" al proyecto \"" + proyecto.getNombre() + "\".");
+
+        //No notificamos al PM si el que sube el documento es el propio PM
+        if (!proyecto.getPm().getId().equals(colaborador.getId())) {
+            notificacionService.crear(proyecto.getPm(), "DOCUMENTO_SUBIDO", CategoriaNotificacion.PROYECTO,
+                    "Nuevo documento en tu proyecto",
+                    colaborador.getNombre() + " " + colaborador.getApellido()
+                            + " subió \"" + nombreOriginal + "\" a \"" + proyecto.getNombre() + "\".",
+                    "DOCUMENTO", documento.getId());
         }
     }
 

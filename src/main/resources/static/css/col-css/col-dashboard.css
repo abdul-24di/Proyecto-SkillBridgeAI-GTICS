@@ -71,3 +71,28 @@
     background: var(--tblr-primary);
     border-radius: 99px;
 }
+
+.strike-entry {
+    display: flex;
+    gap: .65rem;
+    padding: .85rem 1.1rem;
+    border-bottom: 1px solid #eef1f5;
+}
+
+.strike-entry:last-child {
+    border-bottom: none;
+}
+
+.strike-entry-dot {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    border-radius: 50%;
+    background: var(--tblr-red);
+    margin-top: .4rem;
+}
+
+.strike-entry-body {
+    flex: 1;
+    min-width: 0;
+}

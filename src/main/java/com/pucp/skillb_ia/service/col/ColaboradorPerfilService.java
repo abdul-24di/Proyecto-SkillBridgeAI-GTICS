@@ -623,6 +623,12 @@ public class ColaboradorPerfilService {
         auditoriaService.registrar(colaborador, "AGREGAR_EDUCACION", "EDUCACION", educacion.getId(),
                 "Agregó la formación académica \"" + titulo.trim() + "\" (" + institucion.trim()
                         + ") a su perfil y adjuntó un certificado.");
+
+        notificacionService.crearParaTodosLosRm("EDUCACION_PENDIENTE", CategoriaNotificacion.HABILIDAD,
+                "Formación académica pendiente de revisión",
+                colaborador.getNombre() + " " + colaborador.getApellido()
+                        + " agregó \"" + titulo.trim() + "\" (" + institucion.trim() + ") a su perfil.",
+                "EDUCACION", educacion.getId());
     }
 
     //Convertimos el texto del input type="date" a LocalDate, exigiendo que venga lleno y con formato válido

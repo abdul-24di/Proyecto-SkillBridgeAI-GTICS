@@ -27,15 +27,18 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -271,6 +274,92 @@ class RmAsignacionTests {
     }
 
     @Test
+    void presupuestoDesdeRevisionMuestraMensajeTrasLaRedireccion() throws Exception {
+        Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "12");
+        String destino = "/rm/asignaciones/revision?id=" + asignacion.getId();
+        autenticarRm();
+        try {
+            MvcResult exito = mockMvc.perform(post("/rm/proyectos/" + proyecto.getId() + "/presupuesto")
+                            .param("presupuesto", "150000")
+                            .param("asignacionId", asignacion.getId().toString()))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeExito", "Presupuesto guardado correctamente."))
+                    .andExpect(flash().attributeCount(1))
+                    .andReturn();
+            String html = renderizarTrasRedireccion(destino, exito);
+            assertTrue(html.contains(
+                    "<div class=\"alert alert-success\" role=\"alert\">Presupuesto guardado correctamente.</div>"));
+            assertFalse(html.contains("class=\"alert alert-danger\" role=\"alert\""));
+
+            MvcResult error = mockMvc.perform(post("/rm/proyectos/" + proyecto.getId() + "/presupuesto")
+                            .param("presupuesto", "-1")
+                            .param("asignacionId", asignacion.getId().toString()))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", "El presupuesto debe ser mayor que cero."))
+                    .andExpect(flash().attributeCount(1))
+                    .andReturn();
+            html = renderizarTrasRedireccion(destino, error);
+            assertTrue(html.contains(
+                    "<div class=\"alert alert-danger\" role=\"alert\">El presupuesto debe ser mayor que cero.</div>"));
+            assertFalse(html.contains("class=\"alert alert-success\" role=\"alert\""));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void presupuestoDesdePostulacionMuestraMensajeTrasLaRedireccion() throws Exception {
+        Asignacion asignacion = guardarPendiente(
+                OrigenAsignacion.SOLICITADA_COLABORADOR, false, false, "12");
+        String destino = "/rm/asignaciones/revision-postulacion?id=" + asignacion.getId();
+        autenticarRm();
+        try {
+            MvcResult exito = mockMvc.perform(post("/rm/proyectos/" + proyecto.getId() + "/presupuesto")
+                            .param("presupuesto", "150000")
+                            .param("asignacionId", asignacion.getId().toString()))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeExito", "Presupuesto guardado correctamente."))
+                    .andReturn();
+            String html = renderizarTrasRedireccion(destino, exito);
+            assertEquals(1, contar(html, "Presupuesto guardado correctamente."));
+            assertTrue(html.contains(
+                    "<div class=\"alert alert-success\" role=\"alert\">Presupuesto guardado correctamente.</div>"));
+
+            MvcResult error = mockMvc.perform(post("/rm/proyectos/" + proyecto.getId() + "/presupuesto")
+                            .param("presupuesto", "-1")
+                            .param("asignacionId", asignacion.getId().toString()))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", "El presupuesto debe ser mayor que cero."))
+                    .andReturn();
+            html = renderizarTrasRedireccion(destino, error);
+            assertTrue(html.contains(
+                    "<div class=\"alert alert-danger\" role=\"alert\">El presupuesto debe ser mayor que cero.</div>"));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void revisionOmiteMensajesVaciosYEscapaElHtml() throws Exception {
+        Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "12");
+
+        String html = mockMvc.perform(get("/rm/asignaciones/revision").param("id", asignacion.getId().toString())
+                        .flashAttr("mensajeExito", "")
+                        .flashAttr("mensajeError", "   "))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(html.contains("class=\"alert alert-success\" role=\"alert\""));
+        assertFalse(html.contains("class=\"alert alert-danger\" role=\"alert\""));
+
+        html = mockMvc.perform(get("/rm/asignaciones/revision").param("id", asignacion.getId().toString())
+                        .flashAttr("mensajeError", "<b>falló</b>"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("&lt;b&gt;falló&lt;/b&gt;"));
+        assertFalse(html.contains("<b>falló</b>"));
+    }
+
+    @Test
     void dashboardEnlazaCadaPendienteConSuRevisionEspecifica() throws Exception {
         Asignacion postulacion = guardarPendiente(
                 OrigenAsignacion.SOLICITADA_COLABORADOR, false, false, "12");
@@ -382,6 +471,24 @@ class RmAsignacionTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("rm/rm-asignaciones-colaborador"))
                 .andExpect(model().attributeExists("colaborador", "asignaciones"));
+    }
+
+    private void autenticarRm() {
+        UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER")
+                .stream().filter(u -> u.getId().equals(rm.getId())).findFirst().orElseThrow());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities()));
+    }
+
+    // Simula la solicitud GET que hace el navegador tras la redirección, con el flash del POST.
+    private String renderizarTrasRedireccion(String destino, MvcResult resultadoPost) throws Exception {
+        return mockMvc.perform(get(destino).flashAttrs(resultadoPost.getFlashMap()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    private int contar(String texto, String fragmento) {
+        return texto.split(java.util.regex.Pattern.quote(fragmento), -1).length - 1;
     }
 
     private Asignacion guardarPendiente(

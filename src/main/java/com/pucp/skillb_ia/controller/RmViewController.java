@@ -92,9 +92,10 @@ public class RmViewController {
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
+    // Se lee de la BD para que la foto y el nombre no dependan de la copia guardada al iniciar sesión.
     @org.springframework.web.bind.annotation.ModelAttribute("rm")
     public Usuario rm(@AuthenticationPrincipal UsuarioDetails principal) {
-        return principal != null ? principal.getUsuario() : null;
+        return principal != null ? rmPerfilService.obtenerPerfil(principal.getUsuario().getId()) : null;
     }
 
     @GetMapping({"", "/"})
@@ -474,9 +475,16 @@ public class RmViewController {
     }
 
     @GetMapping({"/colaboradores/certificados", "/rm-certificados-pendientes.html"})
-    public String pendingCertificates(Model model) {
+    public String pendingCertificates(
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String habilidad,
+            @RequestParam(required = false) String pagina,
+            Model model) {
         var certificados = rmCertificadoService.listarPendientes();
-        model.addAttribute("certificados", certificados);
+        var habilidades = rmCertificadoService.habilidadesDisponibles(certificados);
+        var filtros = rmCertificadoService.normalizarFiltros(busqueda, habilidad, null, habilidades);
+        agregarPaginaCertificados(model, rmCertificadoService.paginarPendientes(certificados, filtros, pagina),
+                filtros, habilidades);
         model.addAttribute("totalPendientes", certificados.size());
         model.addAttribute("totalColaboradores", certificados.stream()
                 .map(item -> item.getCertificado().getColaborador().getId()).distinct().count());
@@ -502,13 +510,22 @@ public class RmViewController {
     @GetMapping({"/colaboradores/historial-validaciones", "/rm-historial-validaciones.html"})
     public String validationHistory(
             @RequestParam(name = "id", required = false) Long colaboradorId,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String habilidad,
+            @RequestParam(required = false) String pagina,
             Model model) {
         if (colaboradorId == null) return "redirect:/rm/colaboradores";
         try {
             var colaborador = rmColaboradorConsultaService.obtenerDetalle(colaboradorId);
             var certificados = rmCertificadoService.listarHistorial(colaboradorId);
+            var habilidades = rmCertificadoService.habilidadesDisponibles(certificados);
+            var filtros = rmCertificadoService.normalizarFiltros(busqueda, habilidad, estado, habilidades);
             model.addAttribute("colaborador", colaborador);
-            model.addAttribute("certificados", certificados);
+            agregarPaginaCertificados(model, rmCertificadoService.paginarHistorial(certificados, filtros, pagina),
+                    filtros, habilidades);
+            model.addAttribute("estado", filtros.estado() == null ? null : filtros.estado().name());
+            model.addAttribute("totalDocumentos", certificados.size());
             model.addAttribute("aprobados", certificados.stream()
                     .filter(item -> item.getCertificado().getEstado().name().equals("APROBADO")).count());
             model.addAttribute("rechazados", certificados.stream()
@@ -518,6 +535,19 @@ public class RmViewController {
             return "redirect:/rm/colaboradores?noEncontrado=true";
         }
         return "rm/rm-historial-validaciones";
+    }
+
+    private void agregarPaginaCertificados(Model model, RmCertificadoService.PaginaCertificados pagina,
+                                           RmCertificadoService.FiltrosCertificados filtros,
+                                           List<String> habilidades) {
+        model.addAttribute("certificados", pagina.filas());
+        model.addAttribute("paginaActual", pagina.paginaActual());
+        model.addAttribute("totalPaginas", pagina.totalPaginas());
+        model.addAttribute("totalRegistros", pagina.totalRegistros());
+        model.addAttribute("tamanioPagina", RmCertificadoService.TAMANIO_PAGINA);
+        model.addAttribute("habilidades", habilidades);
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("habilidad", filtros.habilidad());
     }
 
     @PostMapping("/colaboradores/certificados/{id}/aprobar")
@@ -1031,6 +1061,7 @@ public class RmViewController {
             redirectAttributes.addFlashAttribute("mensajeExito", "Teléfono actualizado correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("telefonoIngresado", telefono);
         }
         return "redirect:/rm/perfil";
     }

@@ -126,6 +126,10 @@
   border: 1px solid rgba(255, 255, 255, .22);
 }
 
+.user-avatar-foto {
+  object-fit: cover;
+}
+
 .user-meta .small {
   color: rgba(255, 255, 255, .68);
 }

@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
@@ -120,6 +121,8 @@ public class PmViewController {
             @RequestParam(value = "habilidadIds", required = false) List<Long> habilidadIds,
             @RequestParam(value = "nivelesRequeridos", required = false) List<String> niveles,
             @RequestParam(value = "cantidadesPersonas", required = false) List<Integer> cantidades,
+            @RequestParam(value = "horasSemanalesHab", required = false) List<BigDecimal> horasSemanalesHab,
+            @RequestParam(value = "documentoProyecto", required = false) MultipartFile documentoProyecto,
             @RequestParam(value = "habilidadesExtra", required = false) String habilidadesExtra,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes ra) {
@@ -229,10 +232,12 @@ public class PmViewController {
     @PostMapping("/asignaciones/{id}/finalizar")
     public String finalizarAsignacion(@PathVariable("id") Long asignacionId,
                                       @RequestParam("proyectoId") Long proyectoId,
+                                      @RequestParam(name = "calificacion", required = false) Integer calificacion,
+                                      @RequestParam(name = "feedback", required = false) String feedback,
                                       @AuthenticationPrincipal UsuarioDetails principal,
                                       RedirectAttributes ra) {
         try {
-            pmAsignacionService.finalizar(asignacionId, principal.getUsuario());
+            pmAsignacionService.finalizar(asignacionId, calificacion, feedback, principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación finalizada.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());

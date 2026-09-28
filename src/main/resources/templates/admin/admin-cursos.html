@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Catálogo de Cursos</title>
+    <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-css/admin-common.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-css/admin-topbar.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('cursos')}"></header>
+
+    <main class="page-wrap">
+        <div class="breadcrumb-wrap">
+            <span class="text-secondary">Sistema</span> &nbsp;/&nbsp; 
+            <span class="text-secondary">Catálogo</span> &nbsp;/&nbsp; 
+            <span class="text-dark fw-medium">Cursos</span>
+        </div>
+
+        <div class="page-head page-head-stack-mobile page-head-button-mobile">
+            <div>
+                <h1 class="page-title">Catálogo de Cursos</h1>
+                <div class="text-secondary">Gestiona los cursos disponibles para los colaboradores de la empresa.</div>
+            </div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCrearCurso">
+                + Nuevo Curso
+            </button>
+        </div>
+
+        <!-- Alertas -->
+        <div th:if="${mensajeOk}" class="alert alert-success alert-dismissible" role="alert">
+            <div class="d-flex">
+                <div><i class="bi bi-check-circle me-2"></i></div>
+                <div th:text="${mensajeOk}"></div>
+            </div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+        <div th:if="${mensajeError}" class="alert alert-danger alert-dismissible" role="alert">
+            <div class="d-flex">
+                <div><i class="bi bi-exclamation-triangle me-2"></i></div>
+                <div th:text="${mensajeError}"></div>
+            </div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Modalidad</th>
+                        <th>Horas</th>
+                        <th>Estado</th>
+                        <th class="w-1">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(cursos)}">
+                        <td colspan="6" class="text-center text-muted py-4">No hay cursos registrados en el sistema.</td>
+                    </tr>
+                    <tr th:each="curso : ${cursos}">
+                        <td>
+                            <div class="fw-bold" th:text="${curso.nombre}">Nombre</div>
+                            <div class="text-muted small text-truncate" style="max-width:300px;" th:text="${curso.descripcion}">Desc</div>
+                        </td>
+                        <td th:text="${curso.categoria}">Categoría</td>
+                        <td>
+                            <span class="badge bg-blue-lt" th:text="${curso.modalidad}">ONLINE</span>
+                            <span th:if="${curso.autodidacta}" class="badge bg-purple-lt ms-1">Autodidacta</span>
+                        </td>
+                        <td th:text="${curso.horas != null ? curso.horas + ' h' : '0 h'}">10 h</td>
+                        <td>
+                            <span th:if="${curso.activo}" class="badge bg-green text-green-fg">Activo</span>
+                            <span th:unless="${curso.activo}" class="badge bg-secondary text-secondary-fg">Inactivo</span>
+                        </td>
+                        <td>
+                            <div class="btn-list flex-nowrap">
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal"
+                                        th:data-bs-target="|#modalEditarCurso${curso.id}|">
+                                    Editar
+                                </button>
+                                <form th:action="@{/admin/cursos/alternar}" method="post" style="display:inline;">
+                                    <input type="hidden" name="cursoId" th:value="${curso.id}"/>
+                                    <button type="submit" class="btn btn-sm" th:classappend="${curso.activo} ? 'btn-outline-danger' : 'btn-outline-success'"
+                                            th:text="${curso.activo} ? 'Desactivar' : 'Activar'">
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal Crear Curso -->
+<div class="modal fade" id="modalCrearCurso" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form th:action="@{/admin/cursos/crear}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Registrar Nuevo Curso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Nombre del Curso <span class="text-danger">*</span></label>
+                            <input type="text" name="nombre" class="form-control" required maxlength="150">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Categoría</label>
+                            <input type="text" name="categoria" class="form-control" maxlength="50" placeholder="Ej. Liderazgo">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Descripción</label>
+                            <textarea name="descripcion" class="form-control" rows="3" maxlength="500"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Modalidad <span class="text-danger">*</span></label>
+                            <select name="modalidad" class="form-select" required>
+                                <option th:each="m : ${modalidades}" th:value="${m}" th:text="${m}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Días (Opcional)</label>
+                            <input type="text" name="dias" class="form-control" maxlength="100" placeholder="Ej. Lunes y Miércoles">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Horas <span class="text-danger">*</span></label>
+                            <input type="number" name="horas" class="form-control" required step="0.5" min="0.5">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha Inicio</label>
+                            <input type="date" name="fechaInicio" id="newCursoInicio" class="form-control" onchange="document.getElementById('newCursoFin').min = this.value;">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha Fin</label>
+                            <input type="date" name="fechaFin" id="newCursoFin" class="form-control">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="autodidacta" id="newAutodidacta">
+                                <label class="form-check-label" for="newAutodidacta">Es curso autodidacta (sin profesor en vivo)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear curso</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modals Editar Cursos -->
+<th:block th:each="curso : ${cursos}">
+    <div class="modal fade" th:id="|modalEditarCurso${curso.id}|" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form th:action="@{/admin/cursos/editar}" method="post">
+                    <input type="hidden" name="cursoId" th:value="${curso.id}">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Curso</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label class="form-label">Nombre del Curso <span class="text-danger">*</span></label>
+                                <input type="text" name="nombre" class="form-control" th:value="${curso.nombre}" required maxlength="150">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Categoría</label>
+                                <input type="text" name="categoria" class="form-control" th:value="${curso.categoria}" maxlength="50">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Descripción</label>
+                                <textarea name="descripcion" class="form-control" rows="3" maxlength="500" th:text="${curso.descripcion}"></textarea>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Modalidad <span class="text-danger">*</span></label>
+                                <select name="modalidad" class="form-select" required>
+                                    <option th:each="m : ${modalidades}" th:value="${m}" th:text="${m}" th:selected="${m == curso.modalidad}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Días (Opcional)</label>
+                                <input type="text" name="dias" class="form-control" th:value="${curso.dias}" maxlength="100">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Horas <span class="text-danger">*</span></label>
+                                <input type="number" name="horas" class="form-control" th:value="${curso.horas}" required step="0.5" min="0.5">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" name="fechaInicio" th:id="|editInicio${curso.id}|" class="form-control" th:value="${curso.fechaInicio}" th:onchange="|document.getElementById('editFin${curso.id}').min = this.value;|">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" name="fechaFin" th:id="|editFin${curso.id}|" class="form-control" th:value="${curso.fechaFin}">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="autodidacta" th:id="|editAuto${curso.id}|" th:checked="${curso.autodidacta}">
+                                    <label class="form-check-label" th:for="|editAuto${curso.id}|">Es curso autodidacta</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

@@ -17,6 +17,8 @@ import com.pucp.skillb_ia.repository.ProyectoHabilidadRequeridaRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -158,7 +160,8 @@ public class PmProyectoService {
                         h.getHabilidad().getId(),
                         h.getHabilidad().getNombre(),
                         h.getNivelRequerido() != null ? h.getNivelRequerido().name() : "Cualquiera",
-                        h.getCantidadPersonas()))
+                        h.getCantidadPersonas(),
+                          h.getHorasSemanales()))
                 .toList();
 
         return new PmProyectoView(

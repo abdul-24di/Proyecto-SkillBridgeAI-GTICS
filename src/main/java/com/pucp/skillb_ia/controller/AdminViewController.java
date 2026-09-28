@@ -7,6 +7,8 @@ import com.pucp.skillb_ia.service.AdminHabilidadService;
 import com.pucp.skillb_ia.service.AdminPerfilService;
 import com.pucp.skillb_ia.service.AdminUsuarioService;
 import com.pucp.skillb_ia.service.admin.AdminCargoService;
+import com.pucp.skillb_ia.service.AdminCursoService;
+import com.pucp.skillb_ia.model.Curso;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -34,18 +37,21 @@ public class AdminViewController {
     private final AdminConfiguracionService adminConfiguracionService;
     private final AdminAuditoriaService adminAuditoriaService;
     private final AdminPerfilService adminPerfilService;
+    private final AdminCursoService adminCursoService;
 
     public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
                                 AdminConfiguracionService adminConfiguracionService,
                                 AdminAuditoriaService adminAuditoriaService,
                                 AdminPerfilService adminPerfilService,
-                                AdminCargoService adminCargoService) {
+                                AdminCargoService adminCargoService,
+                                AdminCursoService adminCursoService) {
         this.adminUsuarioService = adminUsuarioService;
         this.adminHabilidadService = adminHabilidadService;
         this.adminConfiguracionService = adminConfiguracionService;
         this.adminAuditoriaService = adminAuditoriaService;
         this.adminCargoService = adminCargoService;
         this.adminPerfilService = adminPerfilService;
+        this.adminCursoService = adminCursoService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -546,5 +552,53 @@ public class AdminViewController {
     private String csvEscapar(String valor) {
         if (valor == null) return "";
         return "\"" + valor.replace("\"", "\"\"") + "\"";
+    }
+
+    // ================== CURSOS ==================
+    @GetMapping({"/cursos", "/admin-cursos.html"})
+    public String cursos(Model model) {
+        model.addAttribute("cursos", adminCursoService.listarTodos());
+        model.addAttribute("modalidades", com.pucp.skillb_ia.model.enums.ModalidadCurso.values());
+        return "admin/admin-cursos";
+    }
+
+    @PostMapping("/cursos/crear")
+    public String crearCurso(@ModelAttribute Curso curso,
+                             @AuthenticationPrincipal UsuarioDetails principal,
+                             RedirectAttributes ra) {
+        try {
+            adminCursoService.crear(curso, principal.getUsuario());
+            ra.addFlashAttribute("mensajeOk", "Se creó el curso exitosamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/cursos";
+    }
+
+    @PostMapping("/cursos/editar")
+    public String editarCurso(@RequestParam("cursoId") Long cursoId,
+                              @ModelAttribute Curso curso,
+                              @AuthenticationPrincipal UsuarioDetails principal,
+                              RedirectAttributes ra) {
+        try {
+            adminCursoService.editar(cursoId, curso, principal.getUsuario());
+            ra.addFlashAttribute("mensajeOk", "Se guardaron los cambios del curso.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/cursos";
+    }
+
+    @PostMapping("/cursos/alternar")
+    public String alternarEstadoCurso(@RequestParam("cursoId") Long cursoId,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
+                                      RedirectAttributes ra) {
+        try {
+            adminCursoService.alternarEstado(cursoId, principal.getUsuario());
+            ra.addFlashAttribute("mensajeOk", "El estado del curso ha sido actualizado.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/cursos";
     }
 }

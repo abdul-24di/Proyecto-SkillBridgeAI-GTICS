@@ -187,10 +187,11 @@
                                     <h3 class="card-title mb-1">Experiencia profesional</h3>
                                     <div class="section-description">Historial laboral fuera de SkillBridge AI.</div>
                                 </div>
+                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addExperienciaModal">+ Agregar experiencia</button>
                             </div>
                             <div class="card-body p-0">
-                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada. Esta información la ingresa el Administrador.</div>
-                                <div th:each="exp : ${experienciaProfesional}" class="timeline-entry">
+                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada. Registra tus trabajos anteriores aquí.</div>
+                                <div th:each="exp : ${experienciaProfesional}" class="timeline-entry position-relative">
                                     <div class="timeline-entry-title"
                                          th:text="${exp.cargo != null and exp.empresa != null} ? (${exp.cargo} + ' — ' + ${exp.empresa}) : (${exp.cargo != null} ? ${exp.cargo} : ${exp.empresa})">Cargo — Empresa</div>
                                     <div class="timeline-entry-meta">
@@ -199,13 +200,50 @@
                                         <span th:text="${exp.actual} ? 'Actualidad' : (${exp.fechaFin != null} ? ${#temporals.format(exp.fechaFin, 'MM/yyyy')} : '¿?')">Actualidad</span>
                                     </div>
                                     <div class="timeline-entry-desc" th:text="${exp.descripcion}">Descripción</div>
+                                    <form th:action="@{/colaborador/perfil/experiencia/{id}/eliminar(id=${exp.id})}" method="post" class="position-absolute" style="top: 15px; right: 20px;" onsubmit="return confirm(\'¿Estás seguro de eliminar esta experiencia profesional?\');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-1" title="Eliminar experiencia">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="col-lg-6">
-                        <div class="card section-card h-100">
+                        
+          <!-- Evaluaciones / Feedback -->
+          <div class="card section-card h-100 mt-4">
+            <div class="card-header section-header">
+              <div>
+                <h3 class="card-title mb-1">Feedback y Evaluaciones</h3>
+                <div class="section-description">Comentarios sobre tu desempeño en proyectos finalizados.</div>
+              </div>
+            </div>
+            <div th:if="${!#lists.isEmpty(evaluaciones)}">
+              <div class="timeline-item" th:each="evaluacion : ${evaluaciones}">
+                <div class="d-flex justify-content-between gap-2 flex-wrap">
+                  <div class="fw-semibold">
+                    <span th:if="${evaluacion.asignacion != null}" th:text="${evaluacion.asignacion.proyecto.nombre}">Proyecto</span>
+                    <span th:if="${evaluacion.asignacion == null}">Actividad general</span>
+                    <span class="ms-2 badge" th:classappend="${evaluacion.calificacion >= 4 ? 'bg-success-lt' : (evaluacion.calificacion == 3 ? 'bg-warning-lt' : 'bg-danger-lt')}">
+                      <span th:text="${evaluacion.calificacion}">5</span> ⭐
+                    </span>
+                  </div>
+                  <span class="small text-secondary" th:text="${#temporals.format(evaluacion.fechaCreacion, 'dd/MM/yyyy')}">Fecha</span>
+                </div>
+                <div class="text-secondary small mt-1">
+                  Evaluado por: <span th:text="${evaluacion.evaluador.nombre + ' ' + evaluacion.evaluador.apellido}">Evaluador</span>
+                </div>
+                <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
+              </div>
+            </div>
+            <div class="empty-state" th:if="${#lists.isEmpty(evaluaciones)}">
+              Aún no tienes evaluaciones registradas.
+            </div>
+          </div>
+
+<div class="card section-card h-100">
                             <div class="card-header section-header">
                                 <div>
                                     <h3 class="card-title mb-1">Educación</h3>
@@ -648,7 +686,7 @@
 
                         <div class="col-md-6">
                             <label class="form-label">Fecha de inicio <span class="text-red">*</span></label>
-                            <input type="date" name="fechaInicio" id="eduStartInput" class="form-control">
+                            <input type="date" name="fechaInicio" id="eduStartInput" class="form-control" onchange="document.getElementById('eduEndInput').min = this.value;">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Fecha de fin <span class="text-red">*</span></label>
@@ -676,6 +714,53 @@
         </form>
     </div>
 </div>
+
+
+    <!-- Modal Agregar Experiencia -->
+    <div class="modal fade" id="addExperienciaModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/colaborador/perfil/experiencia}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Agregar Experiencia Profesional</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Cargo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="cargo" required maxlength="100">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Empresa <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="empresa" required maxlength="150">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha Inicio</label>
+                                <input type="date" class="form-control" name="fechaInicio" id="expFechaInicio" onchange="document.getElementById('expFechaFin').min = this.value;">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha Fin</label>
+                                <input type="date" class="form-control" name="fechaFin" id="expFechaFin">
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" name="actual" id="expActual" onchange="document.getElementById('expFechaFin').disabled = this.checked; if(this.checked) document.getElementById('expFechaFin').value = '';">
+                            <label class="form-check-label" for="expActual">Trabajo aquí actualmente</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="descripcion" rows="3" required maxlength="500"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/col-js/col-perfil.js" th:src="@{/js/col-js/col-perfil.js}"></script>

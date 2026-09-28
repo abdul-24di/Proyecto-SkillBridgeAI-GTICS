@@ -14,6 +14,7 @@ import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.DisponibilidadService;
 import com.pucp.skillb_ia.service.NotificacionService;
+import com.pucp.skillb_ia.service.EvaluacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,19 +35,22 @@ public class PmAsignacionService {
     private final AuditoriaService auditoriaService;
     private final DisponibilidadService disponibilidadService;
     private final NotificacionService notificacionService;
+    private final EvaluacionService evaluacionService;
 
     public PmAsignacionService(AsignacionRepository asignacionRepository,
                                ProyectoRepository proyectoRepository,
                                UsuarioRepository usuarioRepository,
                                AuditoriaService auditoriaService,
                                DisponibilidadService disponibilidadService,
-                               NotificacionService notificacionService) {
+                               NotificacionService notificacionService,
+                               EvaluacionService evaluacionService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.disponibilidadService = disponibilidadService;
         this.notificacionService = notificacionService;
+        this.evaluacionService = evaluacionService;
     }
 
 
@@ -172,7 +176,7 @@ public class PmAsignacionService {
     }
 
     @Transactional
-    public void finalizar(Long asignacionId, Usuario pm) {
+    public void finalizar(Long asignacionId, Integer calificacion, String feedback, Usuario pm) {
         Asignacion asignacion = obtenerAsignacionDelPm(asignacionId, pm);
 
         if (asignacion.getEstado() != EstadoAsignacion.ACTIVA) {
@@ -184,6 +188,10 @@ public class PmAsignacionService {
                 com.pucp.skillb_ia.model.enums.MotivoFinalizacion.OTRO);
 
         asignacionRepository.save(asignacion);
+        if (calificacion != null) {
+            evaluacionService.evaluarAsignacion(asignacion.getId(), calificacion, feedback, pm);
+        }
+
 
         //En caso de que se desasigne a un colaborador de un proyecto, tendremos que recalcular su disponibilidad
         disponibilidadService.recalcular(asignacion.getColaborador());

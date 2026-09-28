@@ -94,17 +94,20 @@ public class PmProyectoView {
         private final String habilidad;
         private final String nivel;
         private final int cantidadPersonas;
+        private final java.math.BigDecimal horasSemanales;
 
-        public RequisitoHabilidad(Long habilidadId, String habilidad, String nivel, int cantidadPersonas) {
+        public RequisitoHabilidad(Long habilidadId, String habilidad, String nivel, int cantidadPersonas, java.math.BigDecimal horasSemanales) {
             this.habilidadId = habilidadId;
             this.habilidad = habilidad;
             this.nivel = nivel;
             this.cantidadPersonas = cantidadPersonas;
+            this.horasSemanales = horasSemanales;
         }
 
         public Long getHabilidadId() { return habilidadId; }
         public String getHabilidad() { return habilidad; }
         public String getNivel() { return nivel; }
         public int getCantidadPersonas() { return cantidadPersonas; }
+        public java.math.BigDecimal getHorasSemanales() { return horasSemanales; }
     }
 }

@@ -552,6 +552,40 @@ public class ColaboradorPerfilService {
         return experienciaProfesionalRepository.findByColaboradorOrderByFechaInicioDesc(colaborador);
     }
 
+    @Transactional
+    public void agregarExperiencia(Usuario colaborador, ExperienciaProfesional exp) {
+        exp.setColaborador(colaborador);
+        
+        // Si dice que es actual, limpiamos la fecha de fin por seguridad
+        if (exp.isActual()) {
+            exp.setFechaFin(null);
+        }
+        
+        if (exp.getFechaInicio() != null && exp.getFechaFin() != null) {
+            if (exp.getFechaFin().isBefore(exp.getFechaInicio())) {
+                throw new IllegalArgumentException("La fecha de fin no puede ser anterior a la fecha de inicio.");
+            }
+        }
+        
+        experienciaProfesionalRepository.save(exp);
+        
+        auditoriaService.registrar(colaborador, "AGREGAR", "EXPERIENCIA", exp.getId(),
+                "Agregó experiencia profesional en: " + exp.getEmpresa());
+    }
+
+    @Transactional
+    public void eliminarExperiencia(Usuario colaborador, Long id) {
+        experienciaProfesionalRepository.findById(id).ifPresent(exp -> {
+            // Verificamos que esta experiencia pertenezca realmente al colaborador
+            if (exp.getColaborador().getId().equals(colaborador.getId())) {
+                experienciaProfesionalRepository.delete(exp);
+                
+                auditoriaService.registrar(colaborador, "ELIMINAR", "EXPERIENCIA", id,
+                        "Eliminó experiencia profesional en: " + exp.getEmpresa());
+            }
+        });
+    }
+
     // ============================================================
     // EDUCACIÓN
     // ============================================================

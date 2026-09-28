@@ -240,7 +240,7 @@ class RmAsignacionTests {
         asignacionService.aprobar(asignacion.getId(), null, rm.getId());
 
         asignacionService.finalizar(
-                asignacion.getId(), MotivoFinalizacion.OTRO, "Fin de participación acordado.", rm.getId());
+                asignacion.getId(), MotivoFinalizacion.OTRO, "Fin de participación acordado.", null, null, rm.getId());
 
         Asignacion actualizada = asignacionRepository.findById(asignacion.getId()).orElseThrow();
         assertEquals(EstadoAsignacion.FINALIZADA, actualizada.getEstado());

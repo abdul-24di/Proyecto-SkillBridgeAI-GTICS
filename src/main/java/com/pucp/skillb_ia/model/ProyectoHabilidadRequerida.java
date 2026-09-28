@@ -30,6 +30,9 @@ public class ProyectoHabilidadRequerida {
     @Column(name = "cantidad_personas", nullable = false)
     private int cantidadPersonas = 1;
 
+    @Column(name = "horas_semanales", precision = 5, scale = 2)
+    private java.math.BigDecimal horasSemanales = new java.math.BigDecimal("20.00");
+
     public ProyectoHabilidadRequeridaId getId() { return id; }
     public void setId(ProyectoHabilidadRequeridaId id) { this.id = id; }
 
@@ -44,4 +47,6 @@ public class ProyectoHabilidadRequerida {
 
     public int getCantidadPersonas() { return cantidadPersonas; }
     public void setCantidadPersonas(int cantidadPersonas) { this.cantidadPersonas = cantidadPersonas; }
+    public java.math.BigDecimal getHorasSemanales() { return horasSemanales; }
+    public void setHorasSemanales(java.math.BigDecimal horasSemanales) { this.horasSemanales = horasSemanales; }
 }

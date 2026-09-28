@@ -7,6 +7,7 @@ CREATE DATABASE IF NOT EXISTS skillbridge_db
 USE skillbridge_db;
 
 
+
 -- =====================================================================
 -- 1. ROL 
 -- =====================================================================
@@ -742,7 +743,28 @@ CREATE TABLE log_auditoria (
 
     CONSTRAINT fk_log_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 ) ENGINE=InnoDB;
+-- 1. Tabla de evaluaciones
+CREATE TABLE IF NOT EXISTS evaluacion (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    colaborador_id BIGINT NOT NULL,
+    evaluador_id BIGINT NOT NULL,
+    asignacion_id BIGINT,
+    calificacion INT NOT NULL,
+    comentarios VARCHAR(1000),
+    fecha_creacion DATETIME NOT NULL,
+    CONSTRAINT fk_eval_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
+    CONSTRAINT fk_eval_evaluador FOREIGN KEY (evaluador_id) REFERENCES usuario(id),
+    CONSTRAINT fk_eval_asignacion FOREIGN KEY (asignacion_id) REFERENCES asignacion(id)
+);
 
+-- 2. Columna de horas por habilidad
+-- 2. Columna de horas por habilidad
+ALTER TABLE proyecto_habilidad_requerida 
+    ADD COLUMN horas_semanales DECIMAL(5,2);
+
+-- 3. Columna de documento de contexto en proyecto
+ALTER TABLE proyecto 
+    ADD COLUMN documento_contexto_url VARCHAR(500);
 -- =====================================================================
 -- DATOS DE PRUEBA: USUARIOS (contraseña para todos: abc123)
 -- Hash generado con BCrypt $ (compatible con Spring Security Java)
@@ -754,5 +776,6 @@ INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, ca
   ('rm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Ricardo', 'Mendez',   3, 1, NULL, NULL),
   ('pm@skillbridge.com',     '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Pedro',   'Martinez', 2, 1, NULL, NULL),
   ('col@skillbridge.com',    '$2a$10$Oxug4hl7T.T7x8vUmeUfEu9g04cLzSg31v1G1zQlWEw3pLNib8Xom', 'Carlos',  'Lopez',    4, 1, (SELECT id FROM cargo WHERE nombre = 'Backend Developer'), 40);
+
 
 

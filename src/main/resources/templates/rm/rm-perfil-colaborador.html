@@ -156,7 +156,7 @@
 
     <div class="row row-cards mb-4">
       <div class="col-lg-8">
-        <div class="card section-card h-100">
+        <div class="card section-card h-100 mt-4">
           <div class="card-header section-header">
             <div>
               <h3 class="card-title mb-1">Información general</h3>
@@ -333,7 +333,38 @@
       </div>
 
       <div class="col-lg-6">
-        <div class="card section-card h-100">
+        
+          <!-- Evaluaciones / Feedback -->
+          <div class="card section-card h-100 mt-4">
+            <div class="card-header section-header">
+              <div>
+                <h3 class="card-title mb-1">Historial de Desempeño (Evaluaciones)</h3>
+                <div class="section-description">Calificaciones y feedback recibidos al finalizar proyectos.</div>
+              </div>
+            </div>
+            <div th:if="${!#lists.isEmpty(evaluaciones)}">
+              <div class="timeline-item" th:each="evaluacion : ${evaluaciones}">
+                <div class="d-flex justify-content-between gap-2 flex-wrap">
+                  <div class="fw-semibold">
+                    <span th:if="${evaluacion.asignacion != null}" th:text="${evaluacion.asignacion.proyecto.nombre}">Proyecto</span>
+                    <span th:if="${evaluacion.asignacion == null}">Actividad general</span>
+                    <span class="ms-2 badge" th:classappend="${evaluacion.calificacion >= 4 ? 'bg-success-lt' : (evaluacion.calificacion == 3 ? 'bg-warning-lt' : 'bg-danger-lt')}">
+                      <span th:text="${evaluacion.calificacion}">5</span> ⭐
+                    </span>
+                  </div>
+                  <span class="small text-secondary" th:text="${#temporals.format(evaluacion.fechaCreacion, 'dd/MM/yyyy')}">Fecha</span>
+                </div>
+                <div class="text-secondary small mt-1">
+                  Evaluado por: <span th:text="${evaluacion.evaluador.nombre + ' ' + evaluacion.evaluador.apellido + ' (' + evaluacion.evaluador.rol.nombre + ')'}">Evaluador</span>
+                </div>
+                <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
+              </div>
+            </div>
+            <div class="empty-state" th:if="${#lists.isEmpty(evaluaciones)}">
+              El colaborador aún no tiene evaluaciones registradas.
+            </div>
+          </div>
+<div class="card section-card h-100">
           <div class="card-header section-header">
             <div>
               <h3 class="card-title mb-1">Educación</h3>

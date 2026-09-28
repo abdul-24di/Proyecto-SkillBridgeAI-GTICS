@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.service.EvaluacionService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -63,6 +64,7 @@ public class RmViewController {
     private final RmReporteExportService rmReporteExportService;
     private final RmCursoService rmCursoService;
     private final RmPresupuestoService rmPresupuestoService;
+    private final EvaluacionService evaluacionService;
 
     public RmViewController(
             RmPerfilService rmPerfilService,
@@ -76,7 +78,8 @@ public class RmViewController {
             RmReporteService rmReporteService,
             RmReporteExportService rmReporteExportService,
             RmCursoService rmCursoService,
-            RmPresupuestoService rmPresupuestoService) {
+            RmPresupuestoService rmPresupuestoService,
+            EvaluacionService evaluacionService) {
         this.rmPerfilService = rmPerfilService;
         this.rmColaboradorConsultaService = rmColaboradorConsultaService;
         this.rmProyectoConsultaService = rmProyectoConsultaService;
@@ -89,6 +92,7 @@ public class RmViewController {
         this.rmReporteExportService = rmReporteExportService;
         this.rmCursoService = rmCursoService;
         this.rmPresupuestoService = rmPresupuestoService;
+        this.evaluacionService = evaluacionService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -266,6 +270,8 @@ public class RmViewController {
     public String approveProject(
             @PathVariable("id") Long proyectoId,
             @RequestParam(name = "observacion", required = false) String observacion,
+            @RequestParam(name = "calificacion", required = false) Integer calificacion,
+            @RequestParam(name = "feedback", required = false) String feedback,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
@@ -819,12 +825,14 @@ public class RmViewController {
             @PathVariable("id") Long asignacionId,
             @RequestParam("motivo") MotivoFinalizacion motivo,
             @RequestParam(name = "observacion", required = false) String observacion,
+            @RequestParam(name = "calificacion", required = false) Integer calificacion,
+            @RequestParam(name = "feedback", required = false) String feedback,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
             rmAsignacionService.finalizar(
-                    asignacionId, motivo, observacion, principal.getUsuario().getId());
+                    asignacionId, motivo, observacion, calificacion, feedback, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute("mensajeExito", "Asignación finalizada correctamente.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());

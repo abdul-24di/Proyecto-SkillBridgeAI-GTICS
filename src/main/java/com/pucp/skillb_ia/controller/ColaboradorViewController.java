@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.service.EvaluacionService;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Foro;
 import com.pucp.skillb_ia.model.Usuario;
@@ -25,6 +26,7 @@ import java.util.Optional;
 public class ColaboradorViewController {
 
     private final ColaboradorPerfilService colaboradorPerfilService;
+    private final EvaluacionService evaluacionService;
     private final ColaboradorProyectoService colaboradorProyectoService;
     private final ColaboradorExplorarService colaboradorExplorarService;
     private final ColChatService colChatService;
@@ -40,7 +42,8 @@ public class ColaboradorViewController {
                                      ColChatService colChatService,
                                      ColaboradorForoService colaboradorForoService,
                                      ColaboradorActividadService colaboradorActividadService,
-                                     ColaboradorDocumentoService colaboradorDocumentoService) {
+                                     ColaboradorDocumentoService colaboradorDocumentoService,
+                                     EvaluacionService evaluacionService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
         this.colaboradorExplorarService = colaboradorExplorarService;
@@ -49,6 +52,7 @@ public class ColaboradorViewController {
         this.colaboradorForoService = colaboradorForoService;
         this.colaboradorActividadService = colaboradorActividadService;
         this.colaboradorDocumentoService = colaboradorDocumentoService;
+        this.evaluacionService = evaluacionService;
     }
 
     @GetMapping({"", "/"})

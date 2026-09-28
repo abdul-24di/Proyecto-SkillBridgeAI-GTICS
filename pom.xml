@@ -11,6 +11,7 @@
 	<groupId>com.pucp</groupId>
 	<artifactId>skillb-ia</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>war</packaging>
 	<name/>
 	<description/>
 	<url/>
@@ -84,6 +85,11 @@
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
 		</dependency>
+			<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-tomcat</artifactId>
+			<scope>provided</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -96,3 +102,4 @@
 	</build>
 
 </project>
+

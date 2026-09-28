@@ -79,10 +79,7 @@
             <td th:text="${asig.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
             <td th:text="${#temporals.format(asig.asignacion.fechaActivacion, 'dd MMM yyyy')}">Fecha</td>
             <td class="text-end">
-              <form method="POST" th:action="@{/pm/asignaciones/{id}/finalizar(id=${asig.asignacion.id})}">
-                <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
-                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Finalizar asignación?');">Finalizar</button>
-              </form>
+              <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" th:data-bs-target="|#modalFinalizarAsig${asig.asignacion.id}|">Finalizar</button>
             </td>
           </tr>
           <tr th:if="${#lists.isEmpty(asignaciones.?[estadoTexto == 'Activa'])}">
@@ -293,5 +290,42 @@
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
 <script src="../../static/js/pm-js/pm-asignaciones-proyecto.js" th:src="@{/js/pm-js/pm-asignaciones-proyecto.js}"></script>
+
+<!-- Modals Finalizar Asignación -->
+<th:block th:each="asig : ${colaboradores}">
+    <div class="modal fade" th:id="|modalFinalizarAsig${asig.asignacion.id}|" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" th:action="@{/pm/asignaciones/{id}/finalizar(id=${asig.asignacion.id})}">
+                    <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">Finalizar Asignación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Estás seguro que deseas finalizar la participación de <strong th:text="${asig.asignacion.colaborador.nombre + ' ' + asig.asignacion.colaborador.apellido}"></strong> en este proyecto?</p>
+                        
+                        <label class="form-label mt-3">Calificación (Estrellas) <span class="text-secondary">(Opcional)</span></label>
+                        <select name="calificacion" class="form-select mb-2">
+                            <option value="">Sin calificar</option>
+                            <option value="5">5 - Excelente</option>
+                            <option value="4">4 - Bueno</option>
+                            <option value="3">3 - Regular</option>
+                            <option value="2">2 - Deficiente</option>
+                            <option value="1">1 - Muy deficiente</option>
+                        </select>
+                        <label class="form-label mt-2">Feedback de desempeño <span class="text-secondary">(Opcional)</span></label>
+                        <textarea name="feedback" maxlength="500" rows="3" class="form-control" placeholder="Escribe un comentario sobre el desempeño del colaborador..."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar finalización</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+
 </body>
 </html>

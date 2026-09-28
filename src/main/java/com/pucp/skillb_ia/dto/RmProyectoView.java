@@ -125,15 +125,18 @@ public class RmProyectoView {
         private final String habilidad;
         private final String nivel;
         private final int cantidadPersonas;
+        private final java.math.BigDecimal horasSemanales;
 
-        public RequisitoTalento(String habilidad, String nivel, int cantidadPersonas) {
+        public RequisitoTalento(String habilidad, String nivel, int cantidadPersonas, java.math.BigDecimal horasSemanales) {
             this.habilidad = habilidad;
             this.nivel = nivel;
             this.cantidadPersonas = cantidadPersonas;
+            this.horasSemanales = horasSemanales;
         }
 
         public String getHabilidad() { return habilidad; }
         public String getNivel() { return nivel; }
         public int getCantidadPersonas() { return cantidadPersonas; }
+        public java.math.BigDecimal getHorasSemanales() { return horasSemanales; }
     }
 }

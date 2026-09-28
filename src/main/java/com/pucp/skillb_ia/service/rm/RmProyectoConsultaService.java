@@ -65,7 +65,8 @@ public class RmProyectoConsultaService {
                 .map(r -> new RmProyectoView.RequisitoTalento(
                         r.getHabilidad().getNombre(),
                         r.getNivelRequerido() == null ? "Sin definir" : textoEnum(r.getNivelRequerido().name()),
-                        r.getCantidadPersonas()))
+                        r.getCantidadPersonas(),
+                          r.getHorasSemanales()))
                 .toList();
 
         int vacantes = Math.max(0, proyecto.getColaboradoresRequeridos() - activas.size());

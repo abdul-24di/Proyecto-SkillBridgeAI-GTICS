@@ -13,6 +13,7 @@ import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.DisponibilidadService;
 import com.pucp.skillb_ia.service.NotificacionService;
+import com.pucp.skillb_ia.service.EvaluacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,7 @@ public class RmAsignacionService {
     private final RmPresupuestoService presupuestoService;
     private final DisponibilidadService disponibilidadService;
     private final NotificacionService notificacionService;
+    private final EvaluacionService evaluacionService;
 
     public RmAsignacionService(
             AsignacionRepository asignacionRepository,
@@ -52,7 +54,8 @@ public class RmAsignacionService {
             AuditoriaService auditoriaService,
             RmPresupuestoService presupuestoService,
             DisponibilidadService disponibilidadService,
-            NotificacionService notificacionService) {
+            NotificacionService notificacionService,
+            EvaluacionService evaluacionService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -62,6 +65,7 @@ public class RmAsignacionService {
         this.presupuestoService = presupuestoService;
         this.disponibilidadService = disponibilidadService;
         this.notificacionService = notificacionService;
+        this.evaluacionService = evaluacionService;
     }
 
 
@@ -244,6 +248,8 @@ public class RmAsignacionService {
             Long asignacionId,
             MotivoFinalizacion motivo,
             String observacion,
+            Integer calificacion,
+            String feedback,
             Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Asignacion asignacion = obtenerEntidad(asignacionId);
@@ -257,6 +263,12 @@ public class RmAsignacionService {
         asignacion.setDesasignadoPor(rm);
         asignacion.setFechaFinalizacion(LocalDateTime.now());
         asignacionRepository.save(asignacion);
+
+        // Si se provee una calificación, registramos la evaluación
+        if (calificacion != null) {
+            evaluacionService.evaluarAsignacion(asignacion.getId(), calificacion, feedback, rm);
+        }
+
 
         String detalle = "El RM finalizó la asignación. Motivo: " + motivo.name();
 

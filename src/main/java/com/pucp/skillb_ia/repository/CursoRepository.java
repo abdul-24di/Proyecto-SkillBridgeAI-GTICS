@@ -8,4 +8,5 @@ import java.util.List;
 // Catálogo de cursos de la Épica 5.
 public interface CursoRepository extends JpaRepository<Curso, Long> {
     List<Curso> findByActivoTrueOrderByNombreAsc();
+    List<Curso> findAllByOrderByNombreAsc();
 }

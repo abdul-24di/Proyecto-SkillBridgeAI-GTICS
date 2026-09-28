@@ -74,6 +74,9 @@ public class Proyecto {
         if (fechaCreacion == null) fechaCreacion = LocalDateTime.now();
     }
 
+    @Column(name = "documento_contexto_url", length = 500)
+    private String documentoContextoUrl;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -124,4 +127,7 @@ public class Proyecto {
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+
+    public String getDocumentoContextoUrl() { return documentoContextoUrl; }
+    public void setDocumentoContextoUrl(String documentoContextoUrl) { this.documentoContextoUrl = documentoContextoUrl; }
 }

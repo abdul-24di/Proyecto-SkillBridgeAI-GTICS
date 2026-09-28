@@ -17,7 +17,7 @@
 
 <div th:if="${error != null}" class="alert alert-danger" th:text="${error}"></div>
 
-<form method="POST" th:action="@{/pm/proyectos/crear}">
+<form method="POST" th:action="@{/pm/proyectos/crear}" enctype="multipart/form-data">
 <div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Información general</h3><div class="section-description">Define alcance, fechas y prioridad.</div></div></div>
 <div class="card-body form-section"><div class="row g-4">
 <div class="col-lg-8"><label class="form-label">Nombre del proyecto <span class="text-danger">*</span></label><input type="text" name="nombre" class="form-control" placeholder="Ej. Sistema de Inventario V2" required></div>
@@ -30,7 +30,7 @@
 </select>
 </div>
 <div class="col-12"><label class="form-label">Descripción <span class="text-danger">*</span></label><textarea name="descripcion" class="form-control" rows="3" placeholder="Describe los objetivos y alcance del proyecto" required></textarea></div>
-<div class="col-lg-4"><label class="form-label">Fecha de inicio <span class="text-danger">*</span></label><input type="date" name="fechaInicio" id="fechaInicio" class="form-control" required th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}"></div>
+<div class="col-lg-4"><label class="form-label">Fecha de inicio <span class="text-danger">*</span></label><input type="date" name="fechaInicio" id="fechaInicio" class="form-control" required th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" onchange="document.getElementById('fechaFinEstimada').min = this.value;"></div>
 <div class="col-lg-4"><label class="form-label">Fecha de fin estimada <span class="text-danger">*</span></label><input type="date" name="fechaFinEstimada" id="fechaFinEstimada" class="form-control" required></div>
 <div class="col-lg-4"><label class="form-label">Estado inicial</label><input type="text" class="form-control" value="En revisión" disabled><div class="form-hint">El RM debe aprobarlo para pasar a Activo.</div></div>
 <div class="col-12"><label class="form-label">Justificación de prioridad <span class="text-danger">*</span></label><textarea name="justificacionPrioridad" class="form-control" rows="2" placeholder="Explica por qué el proyecto tiene esta prioridad" required></textarea></div>
@@ -52,9 +52,11 @@
   <div class="mb-3">
     <label class="form-label">Habilidades Requeridas</label>
     
+    
+    
     <!-- Controles para agregar habilidad (como carrito) -->
     <div class="row g-2 mb-2 align-items-end">
-      <div class="col-sm-5">
+      <div class="col-sm-3">
         <label class="form-label small text-secondary mb-1">Habilidad</label>
         <select id="habSelect" class="form-select">
            <option value="">Seleccione...</option>
@@ -74,9 +76,15 @@
         <input type="number" id="cantSelect" class="form-control" value="1" min="1">
       </div>
       <div class="col-sm-2">
+        <label class="form-label small text-secondary mb-1">Horas/sem</label>
+        <input type="number" id="horasSelect" class="form-control" value="16" min="1" max="40">
+      </div>
+      <div class="col-sm-2">
         <button type="button" class="btn btn-primary w-100" onclick="addSkillToCart()">Añadir</button>
       </div>
     </div>
+
+
     
     <!-- Carrito visual de habilidades seleccionadas -->
     <div id="skills-cart" class="d-flex flex-column gap-2 mb-3 mt-3">
@@ -95,7 +103,13 @@
 
 </div></div></div>
 <div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Contexto para Resource Manager</h3><div class="section-description">Añade restricciones o información adicional.</div></div></div><div class="card-body form-section">
-<div class="mb-3"><label class="form-label">Horas semanales esperadas por colaborador</label><input type="number" name="horasSemanalesRequeridas" min="1" max="40" class="form-control" value="16"><div class="form-hint">Horas propuestas de asignación; no son disponibilidad ni carga.</div></div>
+
+<div class="mb-3">
+  <label class="form-label">Documento de Contexto / Requisitos (Opcional)</label>
+  <input type="file" name="documentoProyecto" class="form-control">
+  <div class="form-hint">Sube un archivo (PDF, DOCX) con más detalle del proyecto para el RM.</div>
+</div>
+
 <div><label class="form-label">Notas para el Resource Manager (opcional)</label><textarea name="notasRM" class="form-control" rows="6" placeholder="Requisitos especiales, urgencia o experiencia deseada"></textarea></div>
 </div></div></div>
 </div>
@@ -125,11 +139,13 @@
         const habSelect = document.getElementById('habSelect');
         const nivelSelect = document.getElementById('nivelSelect');
         const cantSelect = document.getElementById('cantSelect');
+        const horasSelect = document.getElementById('horasSelect');
         
         const habId = habSelect.value;
         const habText = habSelect.options[habSelect.selectedIndex].text;
         const nivel = nivelSelect.value;
         const cant = cantSelect.value;
+        const horas = horasSelect.value;
         
         if (!habId) {
             alert("Por favor selecciona una habilidad primero.");
@@ -150,6 +166,7 @@
                 <strong>${habText}</strong> 
                 <span class="badge bg-blue-lt ms-2">${nivel}</span>
                 <span class="badge bg-secondary-lt ms-2">${cant} persona(s)</span>
+                <span class="badge bg-purple-lt ms-2">${horas} hrs/sem</span>
             </div>
             <button type="button" class="btn-close" aria-label="Eliminar" onclick="removeSkill('${uniqueId}')"></button>
         `;
@@ -162,6 +179,7 @@
             <input type="hidden" name="habilidadIds" value="${habId}">
             <input type="hidden" name="nivelesRequeridos" value="${nivel}">
             <input type="hidden" name="cantidadesPersonas" value="${cant}">
+            <input type="hidden" name="horasSemanalesHab" value="${horas}">
         `;
         hiddenContainer.appendChild(hiddenRow);
         

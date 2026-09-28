@@ -74,11 +74,7 @@
         <div class="review-summary-label">Habilidades requeridas</div><div class="review-summary-value" th:text="${#lists.size(proyecto.requisitos)}">0</div>
         <div class="small text-secondary">Requisitos registrados</div>
       </div></div></div>
-      <div class="col-sm-6 col-lg-3"><div class="card review-summary-card"><div class="card-body">
-        <div class="review-summary-label">Horas requeridas</div><div class="review-summary-value review-summary-text"
-          th:text="|${proyecto.proyecto.horasSemanalesRequeridas} h/sem|">0 h/sem</div>
-        <div class="small text-secondary">Por colaborador</div>
-      </div></div></div>
+      
       <div class="col-sm-6 col-lg-3"><div class="card review-summary-card"><div class="card-body">
         <div class="review-summary-label">Presupuesto asignado</div><div class="review-summary-value review-summary-text"
           th:text="${proyecto.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuesto, 1, 'COMMA', 2, 'POINT') : 'Sin asignar'}">Sin asignar</div>
@@ -103,6 +99,10 @@
                 th:classappend="${proyecto.prioridadClase}" th:text="${proyecto.prioridadTexto}">Prioridad</span></div></div>
               <div><div class="info-label">Presupuesto solicitado</div><div class="info-value"
                 th:text="${proyecto.proyecto.presupuestoSolicitado != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuestoSolicitado, 1, 'COMMA', 2, 'POINT') : 'No solicitado'}">No solicitado</div></div>
+              <div><div class="info-label">Documento de Contexto</div><div class="info-value">
+                <a th:if="${proyecto.proyecto.documentoContextoUrl != null}" th:href="${proyecto.proyecto.documentoContextoUrl}" target="_blank" class="btn btn-sm btn-outline-primary">Ver Documento</a>
+                <span th:if="${proyecto.proyecto.documentoContextoUrl == null}" class="text-secondary">No adjunto</span>
+              </div></div>
             </div>
             <div class="review-text-block mt-3"><div class="info-label mb-2">Descripción</div>
               <div class="text-secondary" th:text="${proyecto.proyecto.descripcion}">Descripción</div></div>
@@ -155,7 +155,10 @@
             <div class="requirement-row" th:each="requisito : ${proyecto.requisitos}">
               <div><div class="fw-semibold" th:text="${requisito.habilidad}">Habilidad</div>
                 <div class="small text-secondary" th:text="|${requisito.cantidadPersonas} persona(s)|">1 persona</div></div>
-              <div class="requirement-tags"><span class="badge bg-blue-lt" th:text="|Nivel ${requisito.nivel}|">Nivel</span></div>
+                              <div class="requirement-tags">
+                  <span class="badge bg-blue-lt" th:text="|Nivel ${requisito.nivel}|">Nivel</span>
+                  <span class="badge bg-purple-lt" th:if="${requisito.horasSemanales != null}" th:text="|${requisito.horasSemanales} hrs/sem|">Horas</span>
+                </div>
             </div>
           </div>
           <div class="empty-state" th:if="${#lists.isEmpty(proyecto.requisitos)}">No hay habilidades requeridas registradas.</div>

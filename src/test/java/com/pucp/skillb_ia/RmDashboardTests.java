@@ -13,6 +13,7 @@ import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.Prioridad;
 import com.pucp.skillb_ia.service.rm.*;
+import com.pucp.skillb_ia.service.EvaluacionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,6 +74,7 @@ class RmDashboardTests {
         RmReporteExportService reporteExportService = mock(RmReporteExportService.class);
         RmCursoService cursoService = mock(RmCursoService.class);
         RmPresupuestoService presupuestoService = mock(RmPresupuestoService.class);
+        EvaluacionService evaluacionService = mock(EvaluacionService.class);
 
         RmAsignacionView postulacion = asignacion(
                 OrigenAsignacion.SOLICITADA_COLABORADOR, false, true);
@@ -95,7 +97,7 @@ class RmDashboardTests {
         RmViewController controller = new RmViewController(
                 perfilService, colaboradorService, proyectoService, revisionService,
                 asignacionService, solicitudService, certificadoService, foroService,
-                reporteService, reporteExportService, cursoService, presupuestoService);
+                reporteService, reporteExportService, cursoService, presupuestoService, evaluacionService);
         ConcurrentModel model = new ConcurrentModel();
 
         assertEquals("rm/rm-dashboard", controller.dashboard(model));

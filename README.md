@@ -43,6 +43,13 @@ tarifas, el cargo o el nivel. Una base creada antes de este cambio (con
 [`BDs_SQL/migracion_cargos.sql`](BDs_SQL/migracion_cargos.sql); los textos de
 cargo existentes se conservan como cargos sin tarifa.
 
+`skillbridge_db_v4.sql` incluye además la tabla `evaluacion` (calificación de
+1 a 5 y comentarios al finalizar una asignación) y las columnas
+`proyecto_habilidad_requerida.horas_semanales` y
+`proyecto.documento_contexto_url`. No hay un archivo de migración para estos
+cambios: una base creada antes debe ejecutar una sola vez las sentencias de la
+sección *Resumen de Scripts SQL necesarios* de [`CHANGELOG.md`](CHANGELOG.md).
+
 Las fotos y los certificados que suben los colaboradores se guardan en la
 carpeta indicada por `UPLOAD_DIR`. En la nube esta variable debe apuntar a un
 directorio escribible y persistente; si se usa el almacenamiento temporal de
@@ -71,9 +78,10 @@ desde el formulario se asignan cursos directamente a colaboradores activos.
 Se impiden inscripciones pendientes o activas duplicadas. Cada decisión o
 asignación genera una notificación real en la campana del colaborador.
 
-Este alcance corresponde al RM: el mantenimiento del catálogo por el
-administrador y el envío de nuevas solicitudes desde la vista del colaborador
-todavía deben conectarse a la base de datos. Los datos de demostración permiten
+Este alcance corresponde al RM. El administrador mantiene el catálogo en
+`/admin/cursos` (crear, editar y activar/desactivar); el RM solo ve los cursos
+activos. El envío de nuevas solicitudes desde la vista del colaborador
+todavía debe conectarse a la base de datos. Los datos de demostración permiten
 probar la revisión del RM mientras se implementan esos módulos. Antes de iniciar
 esta versión en una base existente, ejecutar `migracion_cursos.sql`; no borra
 registros y solo agrega `colaborador_curso.motivo_respuesta`.

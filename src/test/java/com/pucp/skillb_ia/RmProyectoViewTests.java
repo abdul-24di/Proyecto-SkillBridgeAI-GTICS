@@ -8,20 +8,29 @@ import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -38,6 +47,7 @@ class RmProyectoViewTests {
     private Long proyectoId;
     private Long rmId;
     private Long pmId;
+    private UsuarioDetails rmDetails;
 
     @BeforeEach
     void prepararDatos() {
@@ -70,6 +80,8 @@ class RmProyectoViewTests {
             return usuarioRepository.save(usuario);
         });
         rmId = rm.getId();
+        rm.setRol(rolRm); // el rol cargado es LAZY
+        rmDetails = new UsuarioDetails(rm);
         Proyecto proyecto = new Proyecto();
         proyecto.setNombre("Proyecto de prueba RM");
         proyecto.setDescripcion("Proyecto utilizado para validar las vistas de consulta.");
@@ -164,5 +176,83 @@ class RmProyectoViewTests {
 
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
                 () -> revisionService.asignarPresupuesto(proyectoId, new BigDecimal("10000"), rmId));
+    }
+
+    @AfterEach
+    void limpiarSesion() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void presupuestoVacioEnRevisionVuelveConMensaje() throws Exception {
+        String destino = "/rm/proyectos/revision?id=" + proyectoId;
+        verificarPresupuestoRechazado("", destino, "El presupuesto debe ser mayor que cero.");
+    }
+
+    @Test
+    void presupuestoNoNumericoEnRevisionVuelveConMensaje() throws Exception {
+        String destino = "/rm/proyectos/revision?id=" + proyectoId;
+        verificarPresupuestoRechazado("abc", destino, "El presupuesto debe ser un monto numérico válido.");
+    }
+
+    @Test
+    void presupuestoVacioEnDetalleVuelveConMensaje() throws Exception {
+        activarProyecto();
+        String destino = "/rm/proyectos/detalle?id=" + proyectoId;
+        verificarPresupuestoRechazado("", destino, "El presupuesto debe ser mayor que cero.");
+        verificarPresupuestoRechazado(null, destino, "El presupuesto debe ser mayor que cero.");
+    }
+
+    @Test
+    void presupuestoNoNumericoEnDetalleVuelveConMensaje() throws Exception {
+        activarProyecto();
+        String destino = "/rm/proyectos/detalle?id=" + proyectoId;
+        verificarPresupuestoRechazado("12,5.0", destino, "El presupuesto debe ser un monto numérico válido.");
+    }
+
+    @Test
+    void presupuestoValidoSeGuardaDesdeRevisionYDetalle() throws Exception {
+        autenticarRm();
+        mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/presupuesto").param("presupuesto", "45000"))
+                .andExpect(redirectedUrl("/rm/proyectos/revision?id=" + proyectoId))
+                .andExpect(flash().attribute("mensajeExito", "Presupuesto guardado correctamente."));
+        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("45000.00"),
+                proyectoRepository.findById(proyectoId).orElseThrow().getPresupuesto());
+
+        activarProyecto();
+        mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/presupuesto").param("presupuesto", "52000.50"))
+                .andExpect(redirectedUrl("/rm/proyectos/detalle?id=" + proyectoId))
+                .andExpect(flash().attribute("mensajeExito", "Presupuesto guardado correctamente."));
+        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("52000.50"),
+                proyectoRepository.findById(proyectoId).orElseThrow().getPresupuesto());
+    }
+
+    private void verificarPresupuestoRechazado(String valor, String destino, String mensaje) throws Exception {
+        autenticarRm();
+        var peticion = post("/rm/proyectos/" + proyectoId + "/presupuesto");
+        if (valor != null) peticion.param("presupuesto", valor);
+        MvcResult resultado = mockMvc.perform(peticion)
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(destino))
+                .andExpect(flash().attribute("mensajeError", mensaje))
+                .andReturn();
+        String html = mockMvc.perform(get(destino).flashAttrs(resultado.getFlashMap()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                html.contains("<div class=\"alert alert-danger\">" + mensaje + "</div>"));
+        org.junit.jupiter.api.Assertions.assertNull(
+                proyectoRepository.findById(proyectoId).orElseThrow().getPresupuesto());
+    }
+
+    private void activarProyecto() {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setEstado(EstadoProyecto.ACTIVO);
+        proyectoRepository.save(proyecto);
+    }
+
+    private void autenticarRm() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(rmDetails, null, rmDetails.getAuthorities()));
     }
 }

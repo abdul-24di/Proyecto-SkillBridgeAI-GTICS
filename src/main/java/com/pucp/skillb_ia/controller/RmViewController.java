@@ -221,12 +221,14 @@ public class RmViewController {
     @PostMapping("/proyectos/{id}/presupuesto")
     public String assignProjectBudget(
             @PathVariable("id") Long proyectoId,
-            @RequestParam("presupuesto") BigDecimal presupuesto,
+            @RequestParam(name = "presupuesto", required = false) String presupuestoTexto,
             @RequestParam(name = "asignacionId", required = false) Long asignacionId,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
+            BigDecimal presupuesto = convertirDecimal(
+                    presupuestoTexto, "El presupuesto debe ser un monto numérico válido.");
             EstadoProyecto estado = rmProyectoRevisionService.asignarPresupuesto(
                     proyectoId, presupuesto, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute("mensajeExito", "Presupuesto guardado correctamente.");
@@ -249,6 +251,25 @@ public class RmViewController {
             return redirectDetalleAsignacion(asignacion);
         } catch (IllegalArgumentException ex) {
             return null;
+        }
+    }
+
+    // Vacío => null (el servicio aplica su validación); mal formado => error de negocio.
+    private static BigDecimal convertirDecimal(String valor, String mensajeFormato) {
+        if (valor == null || valor.isBlank()) return null;
+        try {
+            return new BigDecimal(valor.trim());
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException(mensajeFormato);
+        }
+    }
+
+    private static <E extends Enum<E>> E convertirEnum(Class<E> tipo, String valor, String mensajeFormato) {
+        if (valor == null || valor.isBlank()) return null;
+        try {
+            return Enum.valueOf(tipo, valor.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(mensajeFormato);
         }
     }
 
@@ -385,7 +406,7 @@ public class RmViewController {
     public String createAssignmentProposal(
             @RequestParam("proyectoId") Long proyectoId,
             @RequestParam("colaboradorId") Long colaboradorId,
-            @RequestParam("horasSemanales") BigDecimal horasSemanales,
+            @RequestParam(name = "horasSemanales", required = false) String horasSemanalesTexto,
             @RequestParam(name = "justificacion", required = false) String justificacion,
             @RequestParam(name = "motivoCapacidad", required = false) String motivoCapacidad,
             @RequestParam(name = "origen", required = false) String origen,
@@ -393,6 +414,8 @@ public class RmViewController {
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
+            BigDecimal horasSemanales = convertirDecimal(
+                    horasSemanalesTexto, "Las horas semanales deben ser un número válido.");
             rmAsignacionService.proponerDesdeRm(
                     proyectoId, colaboradorId, horasSemanales,
                     justificacion, motivoCapacidad, principal.getUsuario().getId());
@@ -595,11 +618,13 @@ public class RmViewController {
     @PostMapping("/colaboradores/{id}/nivel-experiencia")
     public String updateCollaboratorExperienceLevel(
             @PathVariable("id") Long colaboradorId,
-            @RequestParam("nivel") NivelExperiencia nivel,
+            @RequestParam(name = "nivel", required = false) String nivelTexto,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
+            NivelExperiencia nivel = convertirEnum(
+                    NivelExperiencia.class, nivelTexto, "Selecciona un nivel de experiencia válido.");
             rmCertificadoService.actualizarNivelExperiencia(
                     colaboradorId, nivel, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute("mensajeExito", "Nivel de experiencia actualizado.");
@@ -823,7 +848,7 @@ public class RmViewController {
     @PostMapping("/asignaciones/{id}/finalizar")
     public String finishAssignment(
             @PathVariable("id") Long asignacionId,
-            @RequestParam("motivo") MotivoFinalizacion motivo,
+            @RequestParam(name = "motivo", required = false) String motivoTexto,
             @RequestParam(name = "observacion", required = false) String observacion,
             @RequestParam(name = "calificacion", required = false) Integer calificacion,
             @RequestParam(name = "feedback", required = false) String feedback,
@@ -831,6 +856,8 @@ public class RmViewController {
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
+            MotivoFinalizacion motivo = convertirEnum(
+                    MotivoFinalizacion.class, motivoTexto, "Selecciona un motivo de finalización válido.");
             rmAsignacionService.finalizar(
                     asignacionId, motivo, observacion, calificacion, feedback, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute("mensajeExito", "Asignación finalizada correctamente.");

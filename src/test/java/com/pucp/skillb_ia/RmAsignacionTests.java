@@ -433,6 +433,75 @@ class RmAsignacionTests {
     }
 
     @Test
+    void horasSemanalesVaciasOInvalidasVuelvenConMensaje() throws Exception {
+        String destino = "/rm/proyectos/proponer-asignacion?proyectoId=" + proyecto.getId()
+                + "&colaboradorId=" + colaborador.getId();
+        autenticarRm();
+        try {
+            mockMvc.perform(post("/rm/asignaciones/proponer")
+                            .param("proyectoId", proyecto.getId().toString())
+                            .param("colaboradorId", colaborador.getId().toString())
+                            .param("horasSemanales", ""))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", "Las horas semanales deben ser mayores que cero."));
+            mockMvc.perform(post("/rm/asignaciones/proponer")
+                            .param("proyectoId", proyecto.getId().toString())
+                            .param("colaboradorId", colaborador.getId().toString())
+                            .param("horasSemanales", "ocho"))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", "Las horas semanales deben ser un número válido."));
+            assertEquals(0, asignacionRepository.count());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void nivelDeExperienciaVacioOInvalidoVuelveConMensaje() throws Exception {
+        String destino = "/rm/colaboradores/perfil?id=" + colaborador.getId();
+        var nivelAnterior = usuarioRepository.findById(colaborador.getId()).orElseThrow().getNivelExperiencia();
+        autenticarRm();
+        try {
+            mockMvc.perform(post("/rm/colaboradores/" + colaborador.getId() + "/nivel-experiencia")
+                            .param("nivel", ""))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", "Selecciona un nivel de experiencia."));
+            mockMvc.perform(post("/rm/colaboradores/" + colaborador.getId() + "/nivel-experiencia")
+                            .param("nivel", "EXPERTO"))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", "Selecciona un nivel de experiencia válido."));
+            assertEquals(nivelAnterior,
+                    usuarioRepository.findById(colaborador.getId()).orElseThrow().getNivelExperiencia());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void motivoDeFinalizacionVacioOInvalidoVuelveConMensaje() throws Exception {
+        Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "12");
+        asignacionService.aprobar(asignacion.getId(), null, rm.getId());
+        autenticarRm();
+        try {
+            MvcResult vacio = mockMvc.perform(post("/rm/asignaciones/" + asignacion.getId() + "/finalizar")
+                            .param("motivo", ""))
+                    .andExpect(redirectedUrl("/rm/asignaciones"))
+                    .andExpect(flash().attribute("mensajeError", "Selecciona un motivo de finalización."))
+                    .andReturn();
+            assertTrue(renderizarTrasRedireccion("/rm/asignaciones", vacio)
+                    .contains("Selecciona un motivo de finalización."));
+            mockMvc.perform(post("/rm/asignaciones/" + asignacion.getId() + "/finalizar")
+                            .param("motivo", "DESPIDO"))
+                    .andExpect(redirectedUrl("/rm/asignaciones"))
+                    .andExpect(flash().attribute("mensajeError", "Selecciona un motivo de finalización válido."));
+            assertEquals(EstadoAsignacion.ACTIVA,
+                    asignacionRepository.findById(asignacion.getId()).orElseThrow().getEstado());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
     void renderizaPropuestaPendientePmActivaEHistorialDelColaborador() throws Exception {
         mockMvc.perform(get("/rm/proyectos/proponer-asignacion"))
                 .andExpect(status().isOk())

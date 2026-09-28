@@ -13,6 +13,8 @@
 <div class="app-shell">
   <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}"></header>
   <main class="page-wrap">
+    <div th:if="${not #strings.isEmpty(mensajeExito)}" class="alert alert-success" role="alert" th:text="${mensajeExito}"></div>
+    <div th:if="${not #strings.isEmpty(mensajeError)}" class="alert alert-danger" role="alert" th:text="${mensajeError}"></div>
     <div class="page-head page-head-stack-mobile">
       <div>
         <a class="text-secondary text-decoration-none small" th:href="@{/rm/asignaciones}">← Volver a asignaciones</a>

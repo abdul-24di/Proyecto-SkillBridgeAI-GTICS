@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 // Perfil del RM: solo foto, teléfono y contraseña — nombre/apellido/correo son
 // de solo lectura (los administra el Admin), igual que en pm-perfil.html.
@@ -26,6 +27,11 @@ public class RmPerfilService {
 
     private static final Set<String> TIPOS_IMAGEN_PERMITIDOS = Set.of("image/jpeg", "image/png");
     private static final long TAMANO_MAXIMO_FOTO_BYTES = 2L * 1024 * 1024; // 2 MB
+    // Solo dígitos y un '+' inicial opcional; 7 a 20 caracteres en total (columna VARCHAR(20)).
+    private static final Pattern TELEFONO_PATRON = Pattern.compile("^(?:[0-9]{7,20}|\\+[0-9]{7,19})$");
+    public static final String MENSAJE_TELEFONO_OBLIGATORIO = "El teléfono es obligatorio.";
+    public static final String MENSAJE_TELEFONO_FORMATO = "El teléfono debe tener entre 7 y 20 caracteres, solo dígitos "
+            + "y, opcionalmente, un signo + al inicio (sin espacios, guiones ni paréntesis).";
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
@@ -50,7 +56,14 @@ public class RmPerfilService {
 
     @Transactional
     public void actualizarTelefono(String telefono, Usuario rm) {
-        rm.setTelefono(telefono != null ? telefono.strip() : null);
+        if (telefono == null || telefono.isBlank()) {
+            throw new IllegalArgumentException(MENSAJE_TELEFONO_OBLIGATORIO);
+        }
+        String telefonoLimpio = telefono.strip();
+        if (!TELEFONO_PATRON.matcher(telefonoLimpio).matches()) {
+            throw new IllegalArgumentException(MENSAJE_TELEFONO_FORMATO);
+        }
+        rm.setTelefono(telefonoLimpio);
         usuarioRepository.save(rm);
         auditoriaService.registrar(rm, "ACTUALIZAR_PERFIL", "USUARIO", rm.getId(),
                 "RM actualizó su teléfono.");

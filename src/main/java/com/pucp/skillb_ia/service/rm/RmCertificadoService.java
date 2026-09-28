@@ -14,14 +14,28 @@ import com.pucp.skillb_ia.service.admin.AdminCargoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
 
 @Service
 public class RmCertificadoService {
     private static final String ROL_RM = "RESOURCE_MANAGER";
     private static final String ROL_COLABORADOR = "COLABORADOR";
+    private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
+
+    public static final int TAMANIO_PAGINA = 6;
+
+    public record FiltrosCertificados(String busqueda, String habilidad, EstadoCertificado estado) {
+    }
+
+    public record PaginaCertificados(List<RmCertificadoView> filas, int paginaActual,
+                                     int totalPaginas, long totalRegistros) {
+    }
 
     private final CertificadoRepository certificadoRepository;
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
@@ -54,6 +68,51 @@ public class RmCertificadoService {
         return certificadoRepository.findByColaboradorIdConDetalle(colaboradorId).stream()
                 .map(this::crearVista)
                 .toList();
+    }
+
+    /** Nombres de habilidad distintos (sin repetir) de los certificados recibidos, en orden alfabético. */
+    public List<String> habilidadesDisponibles(List<RmCertificadoView> certificados) {
+        return certificados.stream()
+                .map(item -> item.getCertificado().getHabilidad().getNombre())
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    /**
+     * Normaliza los filtros recibidos por GET: recorta la búsqueda y descarta
+     * habilidades o estados que no correspondan a una opción válida.
+     */
+    public FiltrosCertificados normalizarFiltros(String busqueda, String habilidad, String estado,
+                                                 List<String> habilidadesDisponibles) {
+        String busquedaLimpia = busqueda == null ? "" : busqueda.trim();
+        if (busquedaLimpia.length() > LONGITUD_MAXIMA_BUSQUEDA) {
+            busquedaLimpia = busquedaLimpia.substring(0, LONGITUD_MAXIMA_BUSQUEDA);
+        }
+
+        String habilidadValida = habilidad == null ? null : habilidadesDisponibles.stream()
+                .filter(nombre -> nombre.equalsIgnoreCase(habilidad.trim()))
+                .findFirst().orElse(null);
+
+        EstadoCertificado estadoValido = estado == null ? null : Arrays.stream(EstadoCertificado.values())
+                .filter(valor -> valor.name().equalsIgnoreCase(estado.trim()))
+                .findFirst().orElse(null);
+
+        return new FiltrosCertificados(busquedaLimpia.isEmpty() ? null : busquedaLimpia,
+                habilidadValida, estadoValido);
+    }
+
+    /** Filtra (búsqueda y habilidad) y pagina la bandeja de certificados pendientes. */
+    public PaginaCertificados paginarPendientes(List<RmCertificadoView> pendientes,
+                                                FiltrosCertificados filtros, String pagina) {
+        return filtrarYPaginar(pendientes, filtros, pagina, RmCertificadoView::getTextoBusqueda);
+    }
+
+    /** Filtra (búsqueda, estado y habilidad) y pagina el historial de un colaborador. */
+    public PaginaCertificados paginarHistorial(List<RmCertificadoView> historial,
+                                               FiltrosCertificados filtros, String pagina) {
+        return filtrarYPaginar(historial, filtros, pagina,
+                item -> item.getNombreArchivo() + " " + item.getCertificado().getHabilidad().getNombre());
     }
 
     @Transactional(readOnly = true)
@@ -169,6 +228,40 @@ public class RmCertificadoService {
                 certificadoRepository.countByColaboradorAndEstado(
                         colaborador, EstadoCertificado.APROBADO),
                 habilidades);
+    }
+
+    private PaginaCertificados filtrarYPaginar(List<RmCertificadoView> certificados, FiltrosCertificados filtros,
+                                               String pagina, Function<RmCertificadoView, String> textoBusqueda) {
+        String busqueda = textoComparable(filtros.busqueda());
+        List<RmCertificadoView> filtrados = certificados.stream()
+                .filter(item -> busqueda.isEmpty() || textoComparable(textoBusqueda.apply(item)).contains(busqueda))
+                .filter(item -> filtros.habilidad() == null
+                        || filtros.habilidad().equals(item.getCertificado().getHabilidad().getNombre()))
+                .filter(item -> filtros.estado() == null || filtros.estado() == item.getCertificado().getEstado())
+                .toList();
+
+        int totalPaginas = Math.max(1, (int) Math.ceil(filtrados.size() / (double) TAMANIO_PAGINA));
+        int paginaActual = Math.min(Math.max(1, numeroPagina(pagina)), totalPaginas);
+        int desde = (paginaActual - 1) * TAMANIO_PAGINA;
+        int hasta = Math.min(desde + TAMANIO_PAGINA, filtrados.size());
+        List<RmCertificadoView> filas = desde < hasta ? filtrados.subList(desde, hasta) : List.of();
+        return new PaginaCertificados(filas, paginaActual, totalPaginas, filtrados.size());
+    }
+
+    private int numeroPagina(String pagina) {
+        if (pagina == null) return 1;
+        try {
+            return Integer.parseInt(pagina.trim());
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
+    }
+
+    private String textoComparable(String texto) {
+        if (texto == null) return "";
+        return Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private Certificado obtenerEntidad(Long id) {

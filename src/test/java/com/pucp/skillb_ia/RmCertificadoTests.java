@@ -14,7 +14,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -188,12 +193,153 @@ class RmCertificadoTests {
         }
     }
 
+    @Test
+    void bandejaPendientesFiltraPorBusquedaYHabilidadSinDuplicarOpciones() throws Exception {
+        Habilidad python = otraHabilidad("Python Cert Test");
+        guardarPendiente("/uploads/certificados/java-uno.pdf");
+        guardarPendiente("/uploads/certificados/java-dos.pdf");
+        guardar("/uploads/certificados/python-uno.pdf", python, EstadoCertificado.PENDIENTE);
+
+        MvcResult sinFiltros = mockMvc.perform(get("/rm/colaboradores/certificados"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalRegistros", 3L))
+                .andExpect(model().attribute("totalPendientes", 3))
+                .andExpect(model().attribute("habilidades", List.of("Java Cert Test", "Python Cert Test")))
+                .andReturn();
+        String html = sinFiltros.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(1, contar(html, "<option value=\"Java Cert Test\""));
+        assertTrue(html.contains("<button type=\"submit\" class=\"btn btn-primary\">Filtrar</button>"));
+        assertFalse(html.contains("rm-certificados-pendientes.js"));
+
+        mockMvc.perform(get("/rm/colaboradores/certificados").param("habilidad", "python cert test"))
+                .andExpect(model().attribute("habilidad", "Python Cert Test"))
+                .andExpect(model().attribute("totalRegistros", 1L));
+        mockMvc.perform(get("/rm/colaboradores/certificados").param("busqueda", "  JAVA-DOS "))
+                .andExpect(model().attribute("busqueda", "JAVA-DOS"))
+                .andExpect(model().attribute("totalRegistros", 1L));
+        mockMvc.perform(get("/rm/colaboradores/certificados").param("habilidad", "Inexistente"))
+                .andExpect(model().attribute("habilidad", (Object) null))
+                .andExpect(model().attribute("totalRegistros", 3L))
+                .andExpect(model().attribute("totalPendientes", 3));
+    }
+
+    @Test
+    void bandejaPendientesPaginaDeSeisYNormalizaLaPagina() throws Exception {
+        for (int i = 1; i <= 8; i++) guardarPendiente("/uploads/certificados/pagina-" + i + ".pdf");
+
+        assertEquals(6, filas(mockMvc.perform(get("/rm/colaboradores/certificados"))
+                .andExpect(model().attribute("paginaActual", 1))
+                .andExpect(model().attribute("totalPaginas", 2))
+                .andReturn()));
+        MvcResult segunda = mockMvc.perform(get("/rm/colaboradores/certificados")
+                        .param("pagina", "2").param("busqueda", "pagina"))
+                .andExpect(model().attribute("paginaActual", 2))
+                .andReturn();
+        assertEquals(2, filas(segunda));
+        String html = segunda.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("Mostrando 7-8 de 8 certificados"));
+        String anterior = enlace(html, "Anterior");
+        assertTrue(anterior.contains("busqueda=pagina"), anterior);
+        assertTrue(anterior.contains("pagina=1"), anterior);
+
+        mockMvc.perform(get("/rm/colaboradores/certificados").param("pagina", "99"))
+                .andExpect(model().attribute("paginaActual", 2));
+        mockMvc.perform(get("/rm/colaboradores/certificados").param("pagina", "0"))
+                .andExpect(model().attribute("paginaActual", 1));
+        mockMvc.perform(get("/rm/colaboradores/certificados").param("pagina", "abc"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 1));
+    }
+
+    @Test
+    void historialFiltraPorEstadoHabilidadYBusquedaYConservaElIdAlPaginar() throws Exception {
+        Habilidad python = otraHabilidad("Python Cert Test");
+        for (int i = 1; i <= 7; i++) {
+            guardar("/uploads/certificados/aprobado-" + i + ".pdf", habilidad, EstadoCertificado.APROBADO);
+        }
+        guardar("/uploads/certificados/rechazado-1.pdf", python, EstadoCertificado.RECHAZADO);
+        guardar("/uploads/certificados/rechazado-2.pdf", python, EstadoCertificado.RECHAZADO);
+        guardarPendiente("/uploads/certificados/pendiente.pdf");
+        String id = colaborador.getId().toString();
+
+        mockMvc.perform(get("/rm/colaboradores/historial-validaciones").param("id", id))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalRegistros", 10L))
+                .andExpect(model().attribute("totalDocumentos", 10))
+                .andExpect(model().attribute("aprobados", 7L))
+                .andExpect(model().attribute("habilidades", List.of("Java Cert Test", "Python Cert Test")));
+        mockMvc.perform(get("/rm/colaboradores/historial-validaciones").param("id", id)
+                        .param("estado", "rechazado"))
+                .andExpect(model().attribute("estado", "RECHAZADO"))
+                .andExpect(model().attribute("totalRegistros", 2L));
+        mockMvc.perform(get("/rm/colaboradores/historial-validaciones").param("id", id)
+                        .param("estado", "CUALQUIERA"))
+                .andExpect(model().attribute("estado", (Object) null))
+                .andExpect(model().attribute("totalRegistros", 10L));
+        mockMvc.perform(get("/rm/colaboradores/historial-validaciones").param("id", id)
+                        .param("habilidad", "Python Cert Test"))
+                .andExpect(model().attribute("totalRegistros", 2L));
+        mockMvc.perform(get("/rm/colaboradores/historial-validaciones").param("id", id)
+                        .param("busqueda", "pendiente"))
+                .andExpect(model().attribute("totalRegistros", 1L));
+
+        MvcResult filtrado = mockMvc.perform(get("/rm/colaboradores/historial-validaciones").param("id", id)
+                        .param("busqueda", "aprobado").param("estado", "APROBADO")
+                        .param("habilidad", "Java Cert Test").param("pagina", "2"))
+                .andExpect(model().attribute("paginaActual", 2))
+                .andExpect(model().attribute("totalPaginas", 2))
+                .andExpect(model().attribute("totalRegistros", 7L))
+                .andReturn();
+        assertEquals(1, filas(filtrado));
+        String html = filtrado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("Mostrando 7-7 de 7 documentos"));
+        assertEquals(1, contar(html, "<option value=\"Java Cert Test\""));
+        assertTrue(html.contains("<input type=\"hidden\" name=\"id\" value=\"" + id + "\""));
+        assertTrue(html.contains("<button type=\"submit\" class=\"btn btn-primary\">Filtrar</button>"));
+        assertFalse(html.contains("rm-historial-validaciones.js"));
+        String anterior = enlace(html, "Anterior");
+        for (String parametro : List.of("id=" + id, "busqueda=aprobado", "estado=APROBADO",
+                "habilidad=Java", "pagina=1")) {
+            assertTrue(anterior.contains(parametro), anterior);
+        }
+    }
+
+    private int filas(MvcResult resultado) {
+        Object certificados = resultado.getModelAndView().getModel().get("certificados");
+        return ((List<?>) certificados).size();
+    }
+
+    private int contar(String texto, String fragmento) {
+        return texto.split(Pattern.quote(fragmento), -1).length - 1;
+    }
+
+    private String enlace(String html, String texto) {
+        Matcher matcher = Pattern.compile("href=\"([^\"]*)\">" + texto + "<").matcher(html);
+        assertTrue(matcher.find(), "No se encontró el enlace " + texto);
+        return matcher.group(1);
+    }
+
+    private Habilidad otraHabilidad(String nombre) {
+        return habilidadRepository.findByActivaTrue().stream()
+                .filter(item -> nombre.equals(item.getNombre()))
+                .findFirst().orElseGet(() -> {
+                    Habilidad nueva = new Habilidad();
+                    nueva.setNombre(nombre);
+                    nueva.setCategoria(habilidad.getCategoria());
+                    return habilidadRepository.save(nueva);
+                });
+    }
+
     private Certificado guardarPendiente(String archivo) {
+        return guardar(archivo, habilidad, EstadoCertificado.PENDIENTE);
+    }
+
+    private Certificado guardar(String archivo, Habilidad habilidadCertificado, EstadoCertificado estado) {
         Certificado certificado = new Certificado();
         certificado.setColaborador(colaborador);
-        certificado.setHabilidad(habilidad);
+        certificado.setHabilidad(habilidadCertificado);
         certificado.setArchivoUrl(archivo);
-        certificado.setEstado(EstadoCertificado.PENDIENTE);
+        certificado.setEstado(estado);
         return certificadoRepository.save(certificado);
     }
 

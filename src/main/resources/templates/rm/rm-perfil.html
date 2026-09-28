@@ -96,7 +96,12 @@
                             <form th:action="@{/rm/perfil/telefono}" method="post" class="row g-3 mt-1">
                                 <div class="col-md-12">
                                     <label class="form-label">Teléfono</label>
-                                    <input type="tel" class="form-control" name="telefono" th:value="${rm.telefono}" maxlength="20" placeholder="Ejemplo: 999 999 999">
+                                    <input type="tel" class="form-control" name="telefono"
+                                           th:value="${telefonoIngresado != null ? telefonoIngresado : rm.telefono}"
+                                           required minlength="7" maxlength="20" pattern="[0-9]{7,20}|\+[0-9]{7,19}"
+                                           title="Solo dígitos y un + inicial opcional, entre 7 y 20 caracteres."
+                                           placeholder="Ejemplo: 987654321 o +51987654321">
+                                    <div class="form-hint">Solo dígitos y, opcionalmente, un + al inicio (7 a 20 caracteres, sin espacios ni guiones).</div>
                                 </div>
                                 <div class="col-12 d-flex justify-content-end">
                                     <button type="submit" class="btn btn-primary">Guardar teléfono</button>

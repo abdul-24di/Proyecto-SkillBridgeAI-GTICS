@@ -88,10 +88,10 @@
       </div>
       <div class="card-body">
         <div class="project-info-grid mb-3">
-          <div><div class="info-label">Presupuesto total</div><div class="info-value" th:text="'S/ ' + ${resumen.total}">S/ 0</div></div>
-          <div><div class="info-label">Comprometido (activas)</div><div class="info-value" th:text="'S/ ' + ${resumen.comprometido}">S/ 0</div></div>
-          <div><div class="info-label">Reservado (pendientes RM)</div><div class="info-value" th:text="'S/ ' + ${resumen.reservado}">S/ 0</div></div>
-          <div><div class="info-label">Disponible</div><div class="info-value text-success" th:text="'S/ ' + ${resumen.disponible}">S/ 0</div></div>
+          <div><div class="info-label">Presupuesto total</div><div class="info-value" th:text="'S/ ' + ${#numbers.formatDecimal(resumen.total, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+          <div><div class="info-label">Comprometido (activas)</div><div class="info-value" th:text="'S/ ' + ${#numbers.formatDecimal(resumen.comprometido, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+          <div><div class="info-label">Reservado (pendientes RM)</div><div class="info-value" th:text="'S/ ' + ${#numbers.formatDecimal(resumen.reservado, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+          <div><div class="info-label">Disponible</div><div class="info-value text-success" th:text="'S/ ' + ${#numbers.formatDecimal(resumen.disponible, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
         </div>
         <div class="progress" style="height: 10px;">
           <div class="progress-bar" role="progressbar" th:style="'width: ' + ${resumen.porcentajeConsumido} + '%'"
@@ -177,8 +177,8 @@
                   <div><div class="fw-semibold" th:text="${miembro.nombre}">Nombre</div><div class="small text-secondary" th:text="${miembro.cargo}">Cargo</div></div></div></td>
                 <td th:text="${miembro.nivel}">Nivel</td>
                 <td th:text="|${miembro.horasSemanales} h|">0 h</td>
-                <td th:text="${miembro.costoCalculable} ? ('S/ ' + ${miembro.costoSemanal}) : '—'">S/ 0</td>
-                <td th:text="${miembro.costoCalculable} ? ('S/ ' + ${miembro.costoTotal}) : '—'">S/ 0</td>
+                <td th:text="${miembro.costoCalculable} ? ('S/ ' + ${#numbers.formatDecimal(miembro.costoSemanal, 1, 'COMMA', 2, 'POINT')}) : '—'">S/ 0</td>
+                <td th:text="${miembro.costoCalculable} ? ('S/ ' + ${#numbers.formatDecimal(miembro.costoTotal, 1, 'COMMA', 2, 'POINT')}) : '—'">S/ 0</td>
                 <td><a class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${miembro.id})}">Ver</a></td>
               </tr></tbody>
             </table>

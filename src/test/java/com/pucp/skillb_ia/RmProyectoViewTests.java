@@ -345,6 +345,95 @@ class RmProyectoViewTests {
         verificarCampoPresupuesto("/rm/asignaciones/revision?id=" + asignacion.getId(), "assignmentProjectBudget");
     }
 
+    // TASK-017: los montos mostrados usan "S/ 12,345.00"; los campos de TASK-044 conservan el decimal sin formato.
+    // Costo de referencia: sueldo 5000.00 / 160 = 31.25 por hora; 37.5 h/sem; 70 días = 10 semanas.
+    @Test
+    void detalleMuestraResumenYCostosConFormatoMonetario() throws Exception {
+        autenticarRm();
+        prepararProyectoConCosto("12345");
+        guardarAsignacion(EstadoAsignacion.ACTIVA, true, "5000.00", "37.5");
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+        verificarMontos(html, "S/ 12,345.00", "S/ 11,718.75", "S/ 0.00", "S/ 626.25", "S/ 1,171.88");
+        verificarSinFormatoAnterior(html, "S/ 12345.00", "S/ 11718.75", "S/ 1171.88");
+        verificarCampoSinFormato(html, "projectBudget", "12345.00");
+    }
+
+    @Test
+    void listadoMuestraDisponibleConFormatoMonetario() throws Exception {
+        autenticarRm();
+        fijarPresupuesto(EstadoProyecto.ACTIVO, "9999999999.99");
+        String html = renderizar("/rm/proyectos");
+        verificarMontos(html, "Disponible: S/ 9,999,999,999.99 (0% consumido)");
+        verificarSinFormatoAnterior(html, "S/ 9999999999.99");
+    }
+
+    @Test
+    void revisionDeAsignacionMuestraImpactoConFormatoMonetario() throws Exception {
+        autenticarRm();
+        prepararProyectoConCosto("1000.5");
+        Asignacion asignacion = guardarAsignacion(EstadoAsignacion.PENDIENTE, false, "5000.00", "37.5");
+        String html = renderizar("/rm/asignaciones/revision?id=" + asignacion.getId());
+        verificarMontos(html, "S/ 1,000.50", "S/ 31.25", "S/ 1,171.88", "S/ 11,718.75", "S/ 0.00",
+                "Presupuesto insuficiente: faltan S/ 10,718.25.");
+        verificarSinFormatoAnterior(html, "S/ 1000.50", "S/ 1171.88", "S/ 11718.75", "S/ 10718.25");
+        verificarCampoSinFormato(html, "assignmentProjectBudget", "1000.50");
+    }
+
+    @Test
+    void busquedaDeColaboradoresMuestraCostoEstimadoConFormatoMonetario() throws Exception {
+        autenticarRm();
+        Proyecto proyecto = prepararProyectoConCosto("1234567.89");
+        proyecto.setHorasSemanalesRequeridas(new BigDecimal("37.5"));
+        proyectoRepository.save(proyecto);
+        guardarAsignacion(EstadoAsignacion.PENDIENTE, false, "5000.00", "37.5");
+        String html = renderizar("/rm/proyectos/buscar-colaboradores?proyectoId=" + proyectoId);
+        verificarMontos(html, "S/ 11,718.75");
+        verificarSinFormatoAnterior(html, "S/ 11718.75");
+        // Los data-* los consume el JS: siguen con el decimal sin formato.
+        verificarMontos(html, "data-proyecto-presupuesto=\"1234567.89\"");
+    }
+
+    private Proyecto prepararProyectoConCosto(String presupuesto) {
+        Proyecto proyecto = fijarPresupuesto(EstadoProyecto.ACTIVO, presupuesto);
+        proyecto.setFechaInicio(java.time.LocalDate.now());
+        proyecto.setFechaFinEstimada(java.time.LocalDate.now().plusDays(70));
+        return proyectoRepository.save(proyecto);
+    }
+
+    private String renderizar(String url) throws Exception {
+        return mockMvc.perform(get(url))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    private void verificarMontos(String html, String... esperados) {
+        for (String esperado : esperados) {
+            org.junit.jupiter.api.Assertions.assertTrue(html.contains(esperado), esperado);
+        }
+    }
+
+    private void verificarSinFormatoAnterior(String html, String... anteriores) {
+        for (String anterior : anteriores) {
+            org.junit.jupiter.api.Assertions.assertFalse(html.contains(anterior), anterior);
+        }
+    }
+
+    // El campo de TASK-044 envía el decimal crudo: sin comas, sin "S/" y con su validación.
+    private void verificarCampoSinFormato(String html, String idCampo, String valor) {
+        int inicio = html.indexOf("id=\"" + idCampo + "\"");
+        org.junit.jupiter.api.Assertions.assertTrue(inicio >= 0, idCampo);
+        String campo = html.substring(html.lastIndexOf("<input", inicio), html.indexOf('>', inicio) + 1);
+        org.junit.jupiter.api.Assertions.assertTrue(campo.contains("value=\"" + valor + "\""), campo);
+        org.junit.jupiter.api.Assertions.assertFalse(valor.contains(","), valor);
+        org.junit.jupiter.api.Assertions.assertFalse(campo.contains("S/"), campo);
+        org.junit.jupiter.api.Assertions.assertTrue(campo.contains("type=\"text\""), campo);
+        org.junit.jupiter.api.Assertions.assertTrue(campo.contains("inputmode=\"decimal\""), campo);
+        org.junit.jupiter.api.Assertions.assertTrue(campo.contains(PATRON_PRESUPUESTO), campo);
+        org.junit.jupiter.api.Assertions.assertTrue(campo.contains("required"), campo);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                html.contains("<div id=\"" + idCampo + "Ayuda\" class=\"form-hint\">" + AYUDA_PRESUPUESTO + "</div>"), idCampo);
+    }
+
     private void verificarDecimalesRechazados(String valor, Long asignacionId, String destino) throws Exception {
         autenticarRm();
         BigDecimal anterior = presupuestoActual();
@@ -400,6 +489,10 @@ class RmProyectoViewTests {
     }
 
     private Asignacion guardarAsignacion(EstadoAsignacion estado, boolean aprobadoRm) {
+        return guardarAsignacion(estado, aprobadoRm, "4800.00", "40");
+    }
+
+    private Asignacion guardarAsignacion(EstadoAsignacion estado, boolean aprobadoRm, String sueldo, String horas) {
         Rol rolColaborador = rolRepository.findByNombre("COLABORADOR").orElseGet(() -> {
             Rol rol = new Rol();
             rol.setNombre("COLABORADOR");
@@ -413,7 +506,7 @@ class RmProyectoViewTests {
             usuario.setRol(rolColaborador);
             return usuario;
         });
-        colaborador.setSueldoBase(new BigDecimal("4800.00"));
+        colaborador.setSueldoBase(new BigDecimal(sueldo));
         colaborador.setHorasDisponibles(new BigDecimal("20.00"));
         colaborador.setHorasContratadasSemana(new BigDecimal("40.00"));
         colaborador = usuarioRepository.save(colaborador);
@@ -421,7 +514,7 @@ class RmProyectoViewTests {
         Asignacion asignacion = new Asignacion();
         asignacion.setProyecto(proyectoRepository.findById(proyectoId).orElseThrow());
         asignacion.setColaborador(colaborador);
-        asignacion.setHorasSemanales(new BigDecimal("40"));
+        asignacion.setHorasSemanales(new BigDecimal(horas));
         asignacion.setOrigen(OrigenAsignacion.PROPUESTA_PM);
         asignacion.setEstado(estado);
         asignacion.setAprobadoPorPm(true);

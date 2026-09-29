@@ -115,9 +115,10 @@
           <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
           <div class="col-md-8">
             <label for="projectBudget" class="form-label">Presupuesto asignado (S/)</label>
-            <input id="projectBudget" name="presupuesto" type="number" class="form-control"
-                   min="0.01" max="9999999999.99" step="0.01" required
+            <input id="projectBudget" name="presupuesto" type="text" class="form-control"
+                   inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required aria-describedby="projectBudgetAyuda"
                    th:value="${proyecto.proyecto.presupuesto}">
+            <div id="projectBudgetAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
             <div class="form-hint">El sistema usa este monto para reservar el costo estimado de propuestas aprobadas por el RM y controlar que nuevas asignaciones tengan cobertura.</div>
           </div>
           <div class="col-md-4 d-grid">

@@ -146,6 +146,10 @@ public class RmProyectoRevisionService {
         if (presupuesto == null || presupuesto.signum() <= 0) {
             throw new IllegalArgumentException("El presupuesto debe ser mayor que cero.");
         }
+        // Se rechaza antes de redondear: "1.000" o "12345.675" no deben guardarse como otro monto.
+        if (presupuesto.scale() > 2) {
+            throw new IllegalArgumentException("El presupuesto admite como máximo 2 decimales.");
+        }
         if (presupuesto.compareTo(PRESUPUESTO_MAXIMO) > 0) {
             throw new IllegalArgumentException("El presupuesto supera el monto máximo permitido.");
         }

@@ -140,9 +140,10 @@
                 <input type="hidden" name="asignacionId" th:value="${asignacion.asignacion.id}">
                 <div class="col-sm-8">
                   <label for="assignmentProjectBudget" class="form-label">Nuevo presupuesto total (S/)</label>
-                  <input id="assignmentProjectBudget" name="presupuesto" type="number" class="form-control"
-                         min="0.01" max="9999999999.99" step="0.01" required
+                  <input id="assignmentProjectBudget" name="presupuesto" type="text" class="form-control"
+                         inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required aria-describedby="assignmentProjectBudgetAyuda"
                          th:value="${asignacion.asignacion.proyecto.presupuesto}">
+                  <div id="assignmentProjectBudgetAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
                 </div>
                 <div class="col-sm-4 d-grid">
                   <button type="submit" class="btn btn-primary">Actualizar</button>

@@ -1,5 +1,17 @@
 /* Modales del flujo "Asignar colaboradores" (fragments/rm-asignacion-modales.html). */
 
+/* Usan el estilo común .rm-modal (encabezado con degradado, rm-common.css), pero conservan
+   el ancho modal-xl: .rm-modal limita el diálogo a 560px. */
+@media (min-width: 576px) {
+  .rm-modal .modal-dialog.modal-xl {
+    max-width: var(--tblr-modal-width);
+  }
+}
+
+.rm-modal .modal-header .text-secondary {
+  color: rgba(255, 255, 255, .78) !important;
+}
+
 .propuesta-bloque {
   border: 1px solid var(--tblr-border-color);
   border-radius: 8px;

@@ -50,6 +50,8 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
 
     long countByProyectoAndEstado(Proyecto proyecto, EstadoAsignacion estado);
 
+    long countByProyectoAndEstadoIn(Proyecto proyecto, Collection<EstadoAsignacion> estados);
+
     long countByColaboradorAndEstado(Usuario colaborador, EstadoAsignacion estado);
 
     @Query("""

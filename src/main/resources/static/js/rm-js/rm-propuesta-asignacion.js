@@ -8,20 +8,31 @@
  * Claves: proyectoId, proyectoNombre, proyectoPm, proyectoInicio, proyectoFin,
  *         proyectoPresupuesto, proyectoDisponible, colaboradorId, colaboradorNombre,
  *         colaboradorCargo, colaboradorNivel, colaboradorHoras, colaboradorCarga,
- *         colaboradorMax, colaboradorSueldo.
+ *         colaboradorMax, colaboradorSueldo, proyectoRequeridos, proyectoOcupados
+ *         (cupos: activas + pendientes) y filtroBusqueda, filtroDisponibilidad,
+ *         filtroCarga, filtroPagina (para volver a la misma búsqueda).
+ * Orígenes cerrados (data-origen): buscar, perfil y colaborador. En la bandeja no hay
+ * modal de propuesta: elegir un proyecto abre su búsqueda de candidatos (data-buscar-url).
  */
 document.addEventListener("DOMContentLoaded", function () {
   var Modal = (window.bootstrap && window.bootstrap.Modal)
     || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
   var contexto = document.getElementById("propuestaContexto");
   var propuestaModal = document.getElementById("propuestaModal");
-  if (!Modal || !propuestaModal) return;
+  if (!Modal) return;
+  if (!propuestaModal) {
+    iniciarModalProyectos();
+    return;
+  }
 
   var form = document.getElementById("propuestaForm");
   var horasInput = document.getElementById("propuestaHoras");
   var justificacion = document.getElementById("propuestaJustificacion");
   var capacidadWrap = document.getElementById("propuestaCapacidadWrap");
   var motivoCapacidad = document.getElementById("propuestaMotivoCapacidad");
+  var cupoWrap = document.getElementById("propuestaCupoWrap");
+  var cupoAviso = document.getElementById("propuestaCupoAviso");
+  var justificacionCupo = document.getElementById("propuestaJustificacionCupo");
   var impacto = document.getElementById("propuestaImpacto");
   var enviarBtn = document.getElementById("propuestaEnviar");
   var datosActuales = {};
@@ -116,6 +127,17 @@ document.addEventListener("DOMContentLoaded", function () {
       input.value = datos[input.dataset.campo] || "";
     });
 
+    // Cupos del proyecto: con activas + pendientes >= requeridos se pide la justificación
+    // de cupo. Es solo ayuda: el servidor vuelve a contar y valida.
+    var hayCupos = datos.proyectoRequeridos !== undefined && datos.proyectoRequeridos !== "";
+    var ocupados = numero(datos.proyectoOcupados);
+    var requeridos = numero(datos.proyectoRequeridos);
+    var cupoCompleto = hayCupos && ocupados >= requeridos;
+    cupoWrap.classList.toggle("d-none", !cupoCompleto);
+    justificacionCupo.required = cupoCompleto;
+    cupoAviso.textContent = "El proyecto ya tiene " + ocupados + " de " + requeridos
+      + " cupos ocupados (asignaciones activas y pendientes). Justifica por qué propones otro colaborador.";
+
     var inicio = fecha(datos.proyectoInicio);
     var fin = fecha(datos.proyectoFin);
     var textos = {
@@ -123,6 +145,7 @@ document.addEventListener("DOMContentLoaded", function () {
       proyectoPm: datos.proyectoPm || "—",
       proyectoPeriodo: inicio && fin ? inicio + " — " + fin : "Sin fechas definidas",
       proyectoDisponibleTexto: datos.proyectoPresupuesto ? soles(numero(datos.proyectoDisponible)) : "Sin presupuesto",
+      proyectoCuposTexto: hayCupos ? ocupados + " / " + requeridos : "—",
       colaboradorNombre: datos.colaboradorNombre || "—",
       colaboradorCargo: datos.colaboradorCargo || "—",
       colaboradorNivel: datos.colaboradorNivel || "—",
@@ -193,9 +216,12 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // ---- Modal "Seleccionar proyecto" (Perfil del colaborador) ----
-  var proyectosModal = document.getElementById("proyectosModal");
-  if (proyectosModal) {
+  // ---- Modal "Seleccionar proyecto" (Perfil, asignaciones del colaborador y bandeja) ----
+  iniciarModalProyectos();
+
+  function iniciarModalProyectos() {
+    var proyectosModal = document.getElementById("proyectosModal");
+    if (!proyectosModal) return;
     var busqueda = document.getElementById("proyectoBusqueda");
     var filas = Array.prototype.slice.call(proyectosModal.querySelectorAll("[data-seleccionar-proyecto]"));
     var sinResultados = document.getElementById("proyectosSinResultados");
@@ -203,6 +229,11 @@ document.addEventListener("DOMContentLoaded", function () {
     filas.forEach(function (fila) {
       fila.addEventListener("click", function () {
         if (fila.disabled) return;
+        // Bandeja: sin colaborador conocido, se elige en la búsqueda de candidatos del proyecto.
+        if (fila.dataset.buscarUrl) {
+          window.location.href = fila.dataset.buscarUrl;
+          return;
+        }
         cambiarAPropuesta(proyectosModal, combinar(fila));
       });
     });

@@ -7,6 +7,7 @@
   <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}" href="../../static/tabler/css/tabler.min.css">
   <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}" href="../../static/css/rm-css/rm-common.css">
   <link rel="stylesheet" th:href="@{/css/rm-css/rm-asignaciones.css}" href="../../static/css/rm-css/rm-asignaciones.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-asignacion-modales.css}" href="../../static/css/rm-css/rm-asignacion-modales.css">
   <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}" href="../../static/css/rm-css/rm-topbar.css">
 </head>
 <body>
@@ -19,7 +20,8 @@
 
     <div class="page-head page-head-stack-mobile page-head-button-mobile">
       <div><h1 class="page-title">Asignaciones</h1><div class="text-secondary">Gestiona aprobaciones, propuestas del RM, asignaciones activas e historial.</div></div>
-      <a class="btn btn-primary" th:href="@{/rm/proyectos/proponer-asignacion}">+ Proponer asignación</a>
+      <!-- TASK-034: elegir el proyecto abre su búsqueda de candidatos, donde se propone con el modal -->
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#proyectosModal">+ Proponer asignación</button>
     </div>
 
     <div class="row row-cards mb-4">
@@ -87,7 +89,9 @@
     </div>
   </main>
 </div>
+<div th:replace="~{fragments/rm-asignacion-modales :: modalProyectos(true)}"></div>
 <script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
+<script th:src="@{/js/rm-js/rm-propuesta-asignacion.js}" src="../../static/js/rm-js/rm-propuesta-asignacion.js"></script>
 <script th:src="@{/js/rm-js/rm-navigation.js}" src="../../static/js/rm-js/rm-navigation.js"></script>
 </body>
 </html>

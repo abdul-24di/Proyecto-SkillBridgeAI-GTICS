@@ -41,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -441,6 +442,7 @@ public class RmViewController {
             model.addAttribute("carga", filtros.carga());
             model.addAttribute("colaboradoresConAsignacion",
                     rmAsignacionService.colaboradoresConAsignacionVigente(proyecto.getProyecto()));
+            model.addAttribute("cuposOcupados", rmAsignacionService.contarCuposOcupados(proyecto.getProyecto()));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/proyectos?noEncontrado=true";
         }
@@ -486,31 +488,86 @@ public class RmViewController {
             @RequestParam(name = "horasSemanales", required = false) String horasSemanalesTexto,
             @RequestParam(name = "justificacion", required = false) String justificacion,
             @RequestParam(name = "motivoCapacidad", required = false) String motivoCapacidad,
+            @RequestParam(name = "justificacionCupo", required = false) String justificacionCupo,
             @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String disponibilidad,
+            @RequestParam(required = false) String carga,
+            @RequestParam(required = false) String pagina,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
+        // Orígenes cerrados del modal (TASK-034): buscar, perfil y colaborador (sus asignaciones).
+        // Con "buscar", éxito y error vuelven a la misma búsqueda (filtros y página).
         try {
             BigDecimal horasSemanales = convertirDecimal(
                     horasSemanalesTexto, "Las horas semanales deben ser un número válido.");
             rmAsignacionService.proponerDesdeRm(
                     proyectoId, colaboradorId, horasSemanales,
-                    justificacion, motivoCapacidad, principal.getUsuario().getId());
+                    justificacion, motivoCapacidad, justificacionCupo, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute(
                     "mensajeExito", "Propuesta enviada al Project Manager correctamente.");
+            if ("buscar".equals(origen)) {
+                return "redirect:" + urlBusquedaCandidatos(proyectoId, busqueda, disponibilidad, carga, pagina);
+            }
+            if ("colaborador".equals(origen)) {
+                return "redirect:/rm/colaboradores/asignaciones?id=" + colaboradorId;
+            }
             return "redirect:/rm/asignaciones";
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
             // Si la propuesta vino de un modal, se vuelve a la pantalla de origen.
             if ("buscar".equals(origen)) {
-                return "redirect:/rm/proyectos/buscar-colaboradores?proyectoId=" + proyectoId;
+                return "redirect:" + urlBusquedaCandidatos(proyectoId, busqueda, disponibilidad, carga, pagina);
             }
             if ("perfil".equals(origen)) {
                 return "redirect:/rm/colaboradores/perfil?id=" + colaboradorId;
             }
+            if ("colaborador".equals(origen)) {
+                return "redirect:/rm/colaboradores/asignaciones?id=" + colaboradorId;
+            }
             return "redirect:/rm/proyectos/proponer-asignacion?proyectoId=" + proyectoId
                     + "&colaboradorId=" + colaboradorId;
         }
+    }
+
+    // Vuelta a la búsqueda de candidatos: solo parámetros conocidos, normalizados y codificados
+    // (nunca una URL enviada por el navegador). Los valores por defecto no se agregan.
+    private String urlBusquedaCandidatos(
+            Long proyectoId, String busqueda, String disponibilidad, String carga, String pagina) {
+        var filtros = rmColaboradorConsultaService.normalizarFiltrosCandidatos(busqueda, disponibilidad, carga);
+        java.util.Map<String, Object> valores = new java.util.LinkedHashMap<>();
+        valores.put("proyectoId", proyectoId);
+        if (filtros.busqueda() != null) valores.put("busqueda", filtros.busqueda());
+        if (!"0".equals(filtros.disponibilidad())) valores.put("disponibilidad", filtros.disponibilidad());
+        if (filtros.carga() != null) valores.put("carga", filtros.carga());
+        try {
+            int numeroPagina = Integer.parseInt(pagina == null ? "" : pagina.trim());
+            if (numeroPagina > 1) valores.put("pagina", numeroPagina);
+        } catch (NumberFormatException ignorado) {
+            // Página vacía o inválida: la búsqueda abre la primera.
+        }
+        // Cada valor va como variable de URI: se codifica completo (incluidos "+", "&" y tildes).
+        UriComponentsBuilder url = UriComponentsBuilder.fromPath("/rm/proyectos/buscar-colaboradores");
+        valores.keySet().forEach(nombre -> url.queryParam(nombre, "{" + nombre + "}"));
+        return url.encode().buildAndExpand(valores).toUriString();
+    }
+
+    // Proyectos del modal "Selecciona un proyecto" (perfil, asignaciones del colaborador y bandeja)
+    // con sus cupos ocupados; si se indica un proyecto asignable, el modal lista solo ese.
+    private void agregarProyectosAsignables(Model model, Long proyectoContextoId) {
+        List<RmProyectoView> proyectos = rmProyectoConsultaService.listar().stream()
+                .filter(p -> rmAsignacionService.esProyectoAsignable(p.getProyecto()))
+                .toList();
+        if (proyectoContextoId != null && proyectos.stream()
+                .anyMatch(p -> p.getProyecto().getId().equals(proyectoContextoId))) {
+            proyectos = proyectos.stream()
+                    .filter(p -> p.getProyecto().getId().equals(proyectoContextoId))
+                    .toList();
+        }
+        model.addAttribute("proyectosAsignables", proyectos);
+        model.addAttribute("cuposOcupados", rmAsignacionService.cuposOcupadosPorProyecto(
+                proyectos.stream().map(RmProyectoView::getProyecto).toList()));
     }
 
     @GetMapping({"/colaboradores", "/rm-colaboradores.html"})
@@ -558,10 +615,7 @@ public class RmViewController {
             model.addAttribute("colaborador", colaborador);
             // Datos para el modal "Proponer asignación": proyectos que aceptan
             // colaboradores (activos o en espera) y el sueldo para estimar el costo.
-            model.addAttribute("proyectosAsignables", rmProyectoConsultaService.listar().stream()
-                    .filter(p -> p.getProyecto().getEstado() == EstadoProyecto.ACTIVO
-                            || p.getProyecto().getEstado() == EstadoProyecto.EN_ESPERA)
-                    .toList());
+            agregarProyectosAsignables(model, null);
             model.addAttribute("proyectosConAsignacion",
                     rmAsignacionService.proyectosConAsignacionVigente(colaboradorId));
             model.addAttribute("sueldoColaborador",
@@ -581,6 +635,12 @@ public class RmViewController {
         try {
             model.addAttribute("colaborador", rmColaboradorConsultaService.obtenerDetalle(colaboradorId));
             model.addAttribute("asignaciones", rmAsignacionService.listarPorColaborador(colaboradorId));
+            // Modal "Proponer asignación" (TASK-034): el colaborador ya es conocido.
+            agregarProyectosAsignables(model, null);
+            model.addAttribute("proyectosConAsignacion",
+                    rmAsignacionService.proyectosConAsignacionVigente(colaboradorId));
+            model.addAttribute("sueldoColaborador",
+                    rmColaboradorConsultaService.mapaSueldosBase().get(colaboradorId));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/colaboradores?noEncontrado=true";
         }
@@ -929,6 +989,8 @@ public class RmViewController {
         model.addAttribute("solicitudesColaborador", contadores.solicitudesColaborador());
         model.addAttribute("activas", contadores.activas());
         model.addAttribute("historial", contadores.historial());
+        // "+ Proponer asignación" (TASK-034): elegir proyecto en el modal abre su búsqueda de candidatos.
+        agregarProyectosAsignables(model, filtros.proyectoId());
         return "rm/rm-asignaciones";
     }
 

@@ -110,6 +110,14 @@ public class NotificacionService {
         if ("CERTIFICADO".equals(item.getEntidad()) && esColaborador) {
             return "/colaborador/perfil";
         }
+        if ("EDUCACION".equals(item.getEntidad()) && item.getEntidadId() != null) {
+            if (item.getUsuario().getRol().getNombre().equals("RESOURCE_MANAGER")) {
+                return "/rm/colaboradores/educacion/revision?id=" + item.getEntidadId();
+            }
+            if (esColaborador) {
+                return "/colaborador/perfil";
+            }
+        }
         if ("FORO".equals(item.getEntidad()) && item.getEntidadId() != null) {
             Optional<Foro> foroOpt = foroRepository.findById(item.getEntidadId());
             if (foroOpt.isPresent()) {

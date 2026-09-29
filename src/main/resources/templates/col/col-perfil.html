@@ -211,43 +211,11 @@
                     </div>
 
                     <div class="col-lg-6">
-                        
-          <!-- Evaluaciones / Feedback -->
-          <div class="card section-card h-100 mt-4">
-            <div class="card-header section-header">
-              <div>
-                <h3 class="card-title mb-1">Feedback y Evaluaciones</h3>
-                <div class="section-description">Comentarios sobre tu desempeño en proyectos finalizados.</div>
-              </div>
-            </div>
-            <div th:if="${!#lists.isEmpty(evaluaciones)}">
-              <div class="timeline-item" th:each="evaluacion : ${evaluaciones}">
-                <div class="d-flex justify-content-between gap-2 flex-wrap">
-                  <div class="fw-semibold">
-                    <span th:if="${evaluacion.asignacion != null}" th:text="${evaluacion.asignacion.proyecto.nombre}">Proyecto</span>
-                    <span th:if="${evaluacion.asignacion == null}">Actividad general</span>
-                    <span class="ms-2 badge" th:classappend="${evaluacion.calificacion >= 4 ? 'bg-success-lt' : (evaluacion.calificacion == 3 ? 'bg-warning-lt' : 'bg-danger-lt')}">
-                      <span th:text="${evaluacion.calificacion}">5</span> ⭐
-                    </span>
-                  </div>
-                  <span class="small text-secondary" th:text="${#temporals.format(evaluacion.fechaCreacion, 'dd/MM/yyyy')}">Fecha</span>
-                </div>
-                <div class="text-secondary small mt-1">
-                  Evaluado por: <span th:text="${evaluacion.evaluador.nombre + ' ' + evaluacion.evaluador.apellido}">Evaluador</span>
-                </div>
-                <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
-              </div>
-            </div>
-            <div class="empty-state" th:if="${#lists.isEmpty(evaluaciones)}">
-              Aún no tienes evaluaciones registradas.
-            </div>
-          </div>
-
-<div class="card section-card h-100">
+                        <div class="card section-card h-100">
                             <div class="card-header section-header">
                                 <div>
                                     <h3 class="card-title mb-1">Educación</h3>
-                                    <div class="section-description">Formación académica registrada. El Administrador la revisa antes de validarla.</div>
+                                    <div class="section-description">Formación académica registrada. El Resource Manager la revisa antes de validarla.</div>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addEducationModal">+ Agregar formación</button>
                             </div>
@@ -276,8 +244,14 @@
                                         </a>
                                     </div>
 
-
-
+                                    <div th:if="${edu.estado.name() == 'RECHAZADO' and edu.motivoRechazo != null and !edu.motivoRechazo.isBlank()}"
+                                         class="edu-rm-comment">
+                                        <div class="edu-rm-comment-label">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9h8M8 13h6"/><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-5l-5 3v-3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/></svg>
+                                            Comentario del RM
+                                        </div>
+                                        <div class="edu-rm-comment-text" th:text="${edu.motivoRechazo}">Motivo del rechazo</div>
+                                    </div>
 
                                     <button type="button" class="skill-remove-btn" aria-label="Quitar formación"
                                             data-bs-toggle="modal" th:attr="data-bs-target='#deleteEduModal-' + ${edu.id}">
@@ -286,6 +260,37 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Evaluaciones / Feedback -->
+                <div class="card section-card mb-4">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Feedback y Evaluaciones</h3>
+                            <div class="section-description">Comentarios sobre tu desempeño en proyectos finalizados.</div>
+                        </div>
+                    </div>
+                    <div th:if="${!#lists.isEmpty(evaluaciones)}">
+                        <div class="timeline-item" th:each="evaluacion : ${evaluaciones}">
+                            <div class="d-flex justify-content-between gap-2 flex-wrap">
+                                <div class="fw-semibold">
+                                    <span th:if="${evaluacion.asignacion != null}" th:text="${evaluacion.asignacion.proyecto.nombre}">Proyecto</span>
+                                    <span th:if="${evaluacion.asignacion == null}">Actividad general</span>
+                                    <span class="ms-2 badge" th:classappend="${evaluacion.calificacion >= 4 ? 'bg-success-lt' : (evaluacion.calificacion == 3 ? 'bg-warning-lt' : 'bg-danger-lt')}">
+                                        <span th:text="${evaluacion.calificacion}">5</span> ⭐
+                                    </span>
+                                </div>
+                                <span class="small text-secondary" th:text="${#temporals.format(evaluacion.fechaCreacion, 'dd/MM/yyyy')}">Fecha</span>
+                            </div>
+                            <div class="text-secondary small mt-1">
+                                Evaluado por: <span th:text="${evaluacion.evaluador.nombre + ' ' + evaluacion.evaluador.apellido}">Evaluador</span>
+                            </div>
+                            <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
+                        </div>
+                    </div>
+                    <div class="empty-state" th:if="${#lists.isEmpty(evaluaciones)}">
+                        Aún no tienes evaluaciones registradas.
                     </div>
                 </div>
 

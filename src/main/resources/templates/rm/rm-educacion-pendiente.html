@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Formación académica pendiente</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}" href="../../static/tabler/css/tabler.min.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}" href="../../static/css/rm-css/rm-common.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-certificados-pendientes.css}" href="../../static/css/rm-css/rm-certificados-pendientes.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}" href="../../static/css/rm-css/rm-topbar.css">
+</head><body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}"></header>
+<main class="page-wrap">
+  <nav class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/colaboradores}">Colaboradores</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Formación académica pendiente</span></nav>
+  <div class="page-head page-head-button-mobile"><div><h1 class="page-title">Formación académica pendiente</h1><div class="text-secondary">Revisa los documentos antes de validar la formación declarada por los colaboradores.</div></div><a class="btn btn-outline-secondary" th:href="@{/rm/colaboradores}">Volver a colaboradores</a></div>
+  <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+  <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+  <div class="row row-cards mb-4">
+    <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Pendientes</div><div class="metric-number" th:text="${totalPendientes}">0</div><div class="small text-secondary">Por revisar</div></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body"><div class="metric-label">Colaboradores</div><div class="metric-number" th:text="${totalColaboradores}">0</div><div class="small text-secondary">Con pendientes</div></div></div></div>
+  </div>
+  <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Bandeja de revisión</h3><div class="section-description">Las solicitudes más antiguas aparecen primero. Aprobar solo valida la formación; no cambia el nivel ni el sueldo.</div></div></div>
+    <form id="filtersForm" method="get" th:action="@{/rm/colaboradores/educacion}" class="card-body filters-panel border-bottom"><div class="row g-3 align-items-end"><div class="col-md-5"><label for="searchInput" class="form-label">Buscar</label><input id="searchInput" name="busqueda" class="form-control" maxlength="100" th:value="${busqueda}" placeholder="Colaborador, correo, título o institución"></div><div class="col-md-3"><label for="institutionFilter" class="form-label">Institución</label><select id="institutionFilter" name="institucion" class="form-select"><option value="">Todas</option><option th:each="nombre : ${instituciones}" th:value="${nombre}" th:text="${nombre}" th:selected="${nombre == institucion}">Institución</option></select></div><div class="col-md-2 d-grid"><button type="submit" class="btn btn-primary">Filtrar</button></div><div class="col-md-2 d-grid"><a id="clearFilters" class="btn btn-outline-secondary" th:href="@{/rm/colaboradores/educacion}">Limpiar</a></div></div></form>
+    <div class="table-responsive"><table class="table table-vcenter card-table mb-0"><thead><tr><th>Colaborador</th><th>Título o carrera</th><th>Institución</th><th>Periodo</th><th>Enviada</th><th>Estado</th><th class="text-end">Acción</th></tr></thead><tbody>
+      <tr th:each="item : ${formaciones}" class="education-row"><td><div class="d-flex align-items-center gap-2"><span class="avatar person-avatar bg-blue-lt text-blue" th:text="${item.colaboradorIniciales}">CO</span><div><div class="fw-semibold" th:text="${item.colaboradorNombre}">Nombre</div><div class="small text-secondary" th:text="${item.cargo}">Cargo</div></div></div></td><td class="document-title" th:text="${item.educacion.titulo}">Título</td><td th:text="${item.educacion.institucion}">Institución</td><td th:text="|${#temporals.format(item.educacion.fechaInicio, 'MMM yyyy')} – ${#temporals.format(item.educacion.fechaFin, 'MMM yyyy')}|">Periodo</td><td th:text="${#temporals.format(item.educacion.fechaCreacion, 'dd MMM yyyy')}">Fecha</td><td><span class="badge bg-yellow-lt">Pendiente</span></td><td class="text-end"><a class="btn btn-primary btn-sm" th:href="@{/rm/colaboradores/educacion/revision(id=${item.educacion.id})}">Revisar</a></td></tr>
+      <tr id="emptyEducation" th:if="${#lists.isEmpty(formaciones)}"><td colspan="7" class="text-center text-secondary py-5">No hay formaciones académicas pendientes con estos filtros.</td></tr>
+    </tbody></table></div>
+    <div class="pagination-wrap">
+      <div id="paginationInfo" class="text-secondary small"
+           th:with="desdeFila=${totalRegistros == 0 ? 0 : ((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(formaciones)}"
+           th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} formaciones|">Mostrando 0-0 de 0 formaciones</div>
+      <ul id="pagination" class="pagination pagination-sm m-0" th:if="${totalPaginas > 1}">
+        <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/colaboradores/educacion(busqueda=${busqueda}, institucion=${institucion}, pagina=${paginaActual - 1})}">Anterior</a></li>
+        <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/colaboradores/educacion(busqueda=${busqueda}, institucion=${institucion}, pagina=${n})}" th:text="${n}">1</a></li>
+        <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/colaboradores/educacion(busqueda=${busqueda}, institucion=${institucion}, pagina=${paginaActual + 1})}">Siguiente</a></li>
+      </ul>
+    </div>
+  </div>
+</main></div><script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body></html>

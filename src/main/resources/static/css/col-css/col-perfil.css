@@ -334,3 +334,47 @@
     resize: vertical;
     font-size: 0.9rem;
 }
+/* Comentario del RM al rechazar una formación académica (perfil del colaborador) */
+.edu-rm-comment {
+    flex: 1 1 auto;
+    max-width: 55%;
+    margin-left: auto;
+    padding: 0.5rem 0.75rem;
+    background: #fff5f5;
+    border: 1px solid #f5c2c2;
+    border-left: 3px solid #d63939;
+    border-radius: 6px;
+}
+
+.edu-rm-comment-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #d63939;
+    margin-bottom: 0.2rem;
+}
+
+.edu-rm-comment-text {
+    font-size: 0.8125rem;
+    font-style: italic;
+    color: #495057;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 575.98px) {
+    .timeline-entry:has(.edu-rm-comment) {
+        flex-wrap: wrap;
+    }
+
+    .edu-rm-comment {
+        order: 3;
+        max-width: 100%;
+        flex-basis: 100%;
+        margin-left: 0;
+    }
+}

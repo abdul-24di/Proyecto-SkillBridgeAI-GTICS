@@ -615,7 +615,15 @@
               <div class="text-secondary small">Esperan validación del Resource Manager.</div>
             </a>
 
-            <div th:if="${proyectoPrioritario == null and totalSolicitudesAbiertas == 0 and totalCertificadosPendientes == 0}"
+            <a th:if="${totalEducacionPendiente > 0}"
+               class="attention-item attention-link border-warning"
+               th:href="@{/rm/colaboradores/educacion}">
+              <span class="badge bg-yellow-lt mb-2">Formación académica</span>
+              <div class="fw-semibold" th:text="|${totalEducacionPendiente} formación(es) pendiente(s)|">0 formaciones</div>
+              <div class="text-secondary small">Esperan revisión del Resource Manager.</div>
+            </a>
+
+            <div th:if="${proyectoPrioritario == null and totalSolicitudesAbiertas == 0 and totalCertificadosPendientes == 0 and totalEducacionPendiente == 0}"
                  class="empty-attention text-center text-secondary">
               No hay alertas operativas pendientes.
             </div>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"><head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SkillBridge AI — Revisión de formación académica</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}" href="../../static/tabler/css/tabler.min.css"><link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}" href="../../static/css/rm-css/rm-common.css"><link rel="stylesheet" th:href="@{/css/rm-css/rm-revision-certificado.css}" href="../../static/css/rm-css/rm-revision-certificado.css"><link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}" href="../../static/css/rm-css/rm-topbar.css">
+</head><body><div class="app-shell"><header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}"></header><main class="page-wrap">
+  <nav class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/colaboradores}">Colaboradores</a><span class="breadcrumb-separator">›</span><a class="breadcrumb-link" th:href="@{/rm/colaboradores/educacion}">Formación académica</a><span class="breadcrumb-separator">›</span><span class="text-secondary" th:text="${formacion.codigo}">EDU</span></nav>
+  <div class="page-head page-head-button-mobile"><div><div class="d-flex align-items-center gap-2"><h1 class="page-title mb-0">Revisión de formación académica</h1><span class="badge" th:classappend="${formacion.estadoClase}" th:text="${formacion.estadoTexto}">Estado</span></div><div class="text-secondary mt-2" th:text="|Solicitud #${formacion.codigo} · Enviada el ${#temporals.format(formacion.educacion.fechaCreacion, 'dd MMM yyyy')}|">Solicitud</div></div><a class="btn btn-outline-secondary" th:href="@{/rm/colaboradores/educacion}">Volver a pendientes</a></div>
+  <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+  <div class="row row-cards mb-4"><div class="col-lg-7"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Formación declarada</h3><div class="section-description">Revisa el documento antes de validar la formación.</div></div></div><div class="card-body review-body">
+    <div class="document-preview"><div class="document-icon">DOC</div><div class="flex-fill"><div class="document-name" th:text="${formacion.nombreArchivo}">Documento</div><div class="text-secondary small">Documento enviado por el colaborador</div></div><a th:if="${formacion.tieneArchivo}" class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener" th:href="@{/rm/colaboradores/educacion/{id}/documento(id=${formacion.educacion.id})}">Ver documento</a></div>
+    <div class="info-grid info-grid-three mt-4"><div><div class="info-label">Título o carrera</div><div class="info-value" th:text="${formacion.educacion.titulo}">Título</div></div><div><div class="info-label">Institución</div><div class="info-value" th:text="${formacion.educacion.institucion}">Institución</div></div><div><div class="info-label">Estado</div><div class="info-value" th:text="${formacion.estadoTexto}">Estado</div></div><div><div class="info-label">Fecha de inicio</div><div class="info-value" th:text="${formacion.educacion.fechaInicio != null ? #temporals.format(formacion.educacion.fechaInicio, 'dd MMM yyyy') : '—'}">Fecha</div></div><div><div class="info-label">Fecha de fin</div><div class="info-value" th:text="${formacion.educacion.fechaFin != null ? #temporals.format(formacion.educacion.fechaFin, 'dd MMM yyyy') : '—'}">Fecha</div></div><div><div class="info-label">Fecha de envío</div><div class="info-value" th:text="${#temporals.format(formacion.educacion.fechaCreacion, 'dd MMM yyyy HH:mm')}">Fecha</div></div><div th:if="${formacion.educacion.fechaRevision != null}"><div class="info-label">Fecha de revisión</div><div class="info-value" th:text="${#temporals.format(formacion.educacion.fechaRevision, 'dd MMM yyyy HH:mm')}">Fecha</div></div><div><div class="info-label">Revisado por</div><div class="info-value" th:text="${formacion.revisorNombre}">RM</div></div></div>
+    <div class="evidence-note mt-4"><div class="fw-semibold">Criterio de revisión</div><div class="small text-secondary">Aprobar solo valida la formación: no cambia el nivel general de experiencia ni el sueldo. Rechazar conserva el registro y exige el motivo.</div></div>
+  </div></div></div>
+    <div class="col-lg-5"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Colaborador</h3></div></div><div class="card-body review-body"><div class="d-flex gap-3"><span class="avatar profile-avatar bg-blue-lt text-blue" th:text="${formacion.colaboradorIniciales}">CO</span><div><h3 class="mb-1" th:text="${formacion.colaboradorNombre}">Nombre</h3><div class="text-secondary" th:text="${formacion.cargo}">Cargo</div><div class="text-secondary small" th:text="${formacion.educacion.colaborador.correo}">Correo</div><span class="badge bg-secondary-lt mt-2" th:text="${formacion.nivelGeneral}">Nivel</span></div></div><div class="context-grid mt-4"><div><div class="info-label">Nivel general</div><div class="info-value" th:text="${formacion.nivelGeneral}">Nivel</div></div><div><div class="info-label">Formaciones aprobadas</div><div class="info-value" th:text="${formacion.formacionesAprobadas}">0</div></div></div><a class="btn btn-outline-primary btn-sm mt-4" th:href="@{/rm/colaboradores/perfil(id=${formacion.educacion.colaborador.id})}">Ver perfil completo</a></div></div></div></div>
+  <div th:if="${formacion.pendiente}" class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Decisión del Resource Manager</h3><div class="section-description">Confirma la decisión antes de aplicarla.</div></div></div><div class="card-body decision-body">
+    <div class="action-bar">
+      <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectEducationModal">Rechazar formación</button>
+      <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveEducationModal">Aprobar formación</button>
+    </div>
+  </div></div>
+  <div th:unless="${formacion.pendiente}" class="alert" th:classappend="${formacion.educacion.estado.name() == 'APROBADO' ? 'alert-success' : 'alert-danger'}"><strong th:text="|Formación ${formacion.estadoTexto.toLowerCase()}.|">Resultado</strong> <span th:text="${formacion.observacion}">Observación</span></div>
+</main></div>
+
+<div th:if="${formacion.pendiente}" class="modal modal-blur fade rm-modal" id="approveEducationModal" tabindex="-1" aria-labelledby="approveEducationModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="approveEducationModalTitle">Confirmar aprobación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" th:action="@{/rm/colaboradores/educacion/{id}/aprobar(id=${formacion.educacion.id})}">
+        <div class="modal-body">
+          <p class="mb-0">¿Confirmas que deseas aprobar esta formación académica?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Confirmar aprobación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div th:if="${formacion.pendiente}" class="modal modal-blur fade rm-modal" id="rejectEducationModal" tabindex="-1" aria-labelledby="rejectEducationModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rejectEducationModalTitle">Confirmar rechazo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" th:action="@{/rm/colaboradores/educacion/{id}/rechazar(id=${formacion.educacion.id})}">
+        <div class="modal-body">
+          <label for="educationRejectReason" class="form-label">Motivo del rechazo</label>
+          <textarea id="educationRejectReason" name="motivo" maxlength="300" rows="4" class="form-control" required placeholder="Explica al colaborador por qué se rechaza la formación"></textarea>
+          <div class="form-hint">El motivo es obligatorio y puede tener hasta 300 caracteres.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Confirmar rechazo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body></html>

@@ -6,12 +6,18 @@ import com.pucp.skillb_ia.dto.RmCertificadoView;
 import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.Educacion;
 import com.pucp.skillb_ia.model.Proyecto;
+import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
+import com.pucp.skillb_ia.model.enums.EstadoCertificado;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.Prioridad;
+import com.pucp.skillb_ia.repository.EducacionRepository;
+import com.pucp.skillb_ia.repository.RolRepository;
+import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.rm.*;
 import com.pucp.skillb_ia.service.EvaluacionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,11 +31,16 @@ import org.springframework.ui.ConcurrentModel;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -41,6 +52,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class RmDashboardTests {
     @Autowired private WebApplicationContext context;
+    @Autowired private EducacionRepository educacionRepository;
+    @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private RolRepository rolRepository;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -57,7 +71,57 @@ class RmDashboardTests {
                         "totalAprobacionesRm", "totalEsperandoPm", "totalPostulaciones",
                         "totalProyectosVacantes", "totalProyectosRevision",
                         "accionesPendientes", "solicitudesRecientes", "proyectosAtencion",
-                        "totalSolicitudesAbiertas", "totalCertificadosPendientes"));
+                        "totalSolicitudesAbiertas", "totalCertificadosPendientes",
+                        "totalEducacionPendiente"));
+    }
+
+    @Test
+    void dashboardCuentaSoloFormacionesPendientesYEnlazaALaBandeja() throws Exception {
+        educacionRepository.deleteAll();
+        Usuario colaborador = usuarioRepository.findByCorreo("col.dashboard.edu@skillbridge.test")
+                .orElseGet(() -> {
+                    Rol rol = rolRepository.findByNombre("COLABORADOR").orElseGet(() -> {
+                        Rol nuevo = new Rol(); nuevo.setNombre("COLABORADOR"); return rolRepository.save(nuevo);
+                    });
+                    Usuario nuevo = new Usuario();
+                    nuevo.setCorreo("col.dashboard.edu@skillbridge.test");
+                    nuevo.setNombre("Dana");
+                    nuevo.setApellido("Dashboard");
+                    nuevo.setRol(rol);
+                    return usuarioRepository.save(nuevo);
+                });
+        guardarEducacion(colaborador, EstadoCertificado.PENDIENTE, true);
+        guardarEducacion(colaborador, EstadoCertificado.PENDIENTE, true);
+        guardarEducacion(colaborador, EstadoCertificado.APROBADO, true);
+        guardarEducacion(colaborador, EstadoCertificado.RECHAZADO, true);
+        guardarEducacion(colaborador, EstadoCertificado.PENDIENTE, false);
+
+        String html = mockMvc.perform(get("/rm/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalEducacionPendiente", 2L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        Matcher tarjeta = Pattern.compile("href=\"([^\"]*)\">\\s*<span class=\"badge bg-yellow-lt mb-2\">Formación académica")
+                .matcher(html);
+        assertTrue(tarjeta.find(), "No se encontró la tarjeta de formación académica");
+        assertEquals("/rm/colaboradores/educacion", tarjeta.group(1));
+        assertTrue(html.contains("2 formación(es) pendiente(s)"));
+
+        educacionRepository.deleteAll();
+        String sinPendientes = mockMvc.perform(get("/rm/dashboard"))
+                .andExpect(model().attribute("totalEducacionPendiente", 0L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(sinPendientes.contains("formación(es) pendiente(s)"));
+    }
+
+    private void guardarEducacion(Usuario colaborador, EstadoCertificado estado, boolean activo) {
+        Educacion educacion = new Educacion();
+        educacion.setColaborador(colaborador);
+        educacion.setTitulo("Formación dashboard");
+        educacion.setInstitucion("PUCP");
+        educacion.setArchivoUrl("/uploads/certificados-educacion/dashboard.pdf");
+        educacion.setEstado(estado);
+        educacion.setActivo(activo);
+        educacionRepository.save(educacion);
     }
 
     @Test
@@ -69,6 +133,7 @@ class RmDashboardTests {
         RmAsignacionService asignacionService = mock(RmAsignacionService.class);
         RmSolicitudPersonalService solicitudService = mock(RmSolicitudPersonalService.class);
         RmCertificadoService certificadoService = mock(RmCertificadoService.class);
+        RmEducacionService educacionService = mock(RmEducacionService.class);
         RmForoConsultaService foroService = mock(RmForoConsultaService.class);
         RmReporteService reporteService = mock(RmReporteService.class);
         RmReporteExportService reporteExportService = mock(RmReporteExportService.class);
@@ -93,10 +158,11 @@ class RmDashboardTests {
         when(solicitudService.listar()).thenReturn(List.of(solicitudAbierta));
         when(certificadoService.listarPendientes()).thenReturn(List.of(
                 mock(RmCertificadoView.class), mock(RmCertificadoView.class)));
+        when(educacionService.contarPendientes()).thenReturn(3L);
 
         RmViewController controller = new RmViewController(
                 perfilService, colaboradorService, proyectoService, revisionService,
-                asignacionService, solicitudService, certificadoService, foroService,
+                asignacionService, solicitudService, certificadoService, educacionService, foroService,
                 reporteService, reporteExportService, cursoService, presupuestoService, evaluacionService);
         ConcurrentModel model = new ConcurrentModel();
 
@@ -108,6 +174,7 @@ class RmDashboardTests {
         assertEquals(1L, model.getAttribute("totalProyectosRevision"));
         assertEquals(1L, model.getAttribute("totalSolicitudesAbiertas"));
         assertEquals(2L, model.getAttribute("totalCertificadosPendientes"));
+        assertEquals(3L, model.getAttribute("totalEducacionPendiente"));
         assertEquals(2, model.getAttribute("totalAccionesPendientes"));
         assertEquals(2, model.getAttribute("totalProyectosAtencion"));
         assertSame(enRevision, model.getAttribute("proyectoPrioritario"));

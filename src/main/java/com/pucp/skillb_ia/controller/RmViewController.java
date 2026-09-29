@@ -26,6 +26,7 @@ import com.pucp.skillb_ia.service.rm.RmProyectoConsultaService;
 import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
 import com.pucp.skillb_ia.service.rm.RmSolicitudPersonalService;
 import com.pucp.skillb_ia.service.rm.RmCertificadoService;
+import com.pucp.skillb_ia.service.rm.RmEducacionService;
 import com.pucp.skillb_ia.service.rm.RmForoConsultaService;
 import com.pucp.skillb_ia.service.rm.RmReporteExportService;
 import com.pucp.skillb_ia.service.rm.RmReporteService;
@@ -59,6 +60,7 @@ public class RmViewController {
     private final RmAsignacionService rmAsignacionService;
     private final RmSolicitudPersonalService rmSolicitudPersonalService;
     private final RmCertificadoService rmCertificadoService;
+    private final RmEducacionService rmEducacionService;
     private final RmForoConsultaService rmForoConsultaService;
     private final RmReporteService rmReporteService;
     private final RmReporteExportService rmReporteExportService;
@@ -74,6 +76,7 @@ public class RmViewController {
             RmAsignacionService rmAsignacionService,
             RmSolicitudPersonalService rmSolicitudPersonalService,
             RmCertificadoService rmCertificadoService,
+            RmEducacionService rmEducacionService,
             RmForoConsultaService rmForoConsultaService,
             RmReporteService rmReporteService,
             RmReporteExportService rmReporteExportService,
@@ -87,6 +90,7 @@ public class RmViewController {
         this.rmAsignacionService = rmAsignacionService;
         this.rmSolicitudPersonalService = rmSolicitudPersonalService;
         this.rmCertificadoService = rmCertificadoService;
+        this.rmEducacionService = rmEducacionService;
         this.rmForoConsultaService = rmForoConsultaService;
         this.rmReporteService = rmReporteService;
         this.rmReporteExportService = rmReporteExportService;
@@ -125,6 +129,7 @@ public class RmViewController {
                 .filter(item -> item.isPendiente() || item.isEnAtencion())
                 .count();
         long certificadosPendientes = rmCertificadoService.listarPendientes().size();
+        long educacionPendiente = rmEducacionService.contarPendientes();
 
         model.addAttribute("totalAprobacionesRm", asignaciones.stream()
                 .filter(RmAsignacionView::isRequiereDecisionRm).count());
@@ -143,6 +148,7 @@ public class RmViewController {
         model.addAttribute("solicitudesRecientes", solicitudes.stream().limit(3).toList());
         model.addAttribute("totalSolicitudesAbiertas", solicitudesAbiertas);
         model.addAttribute("totalCertificadosPendientes", certificadosPendientes);
+        model.addAttribute("totalEducacionPendiente", educacionPendiente);
         model.addAttribute("proyectosAtencion", proyectosAtencion.stream().limit(5).toList());
         model.addAttribute("totalProyectosAtencion", proyectosAtencion.size());
         model.addAttribute("proyectoPrioritario",
@@ -612,6 +618,95 @@ public class RmViewController {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
             return "redirect:/rm/colaboradores/certificados/revision?id=" + certificadoId;
+        }
+    }
+
+    @GetMapping("/colaboradores/educacion")
+    public String pendingEducation(
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String institucion,
+            @RequestParam(required = false) String pagina,
+            Model model) {
+        var formaciones = rmEducacionService.listarPendientes();
+        var instituciones = rmEducacionService.institucionesDisponibles(formaciones);
+        var filtros = rmEducacionService.normalizarFiltros(busqueda, institucion, instituciones);
+        var paginaEducacion = rmEducacionService.paginarPendientes(formaciones, filtros, pagina);
+        model.addAttribute("formaciones", paginaEducacion.filas());
+        model.addAttribute("paginaActual", paginaEducacion.paginaActual());
+        model.addAttribute("totalPaginas", paginaEducacion.totalPaginas());
+        model.addAttribute("totalRegistros", paginaEducacion.totalRegistros());
+        model.addAttribute("tamanioPagina", RmEducacionService.TAMANIO_PAGINA);
+        model.addAttribute("instituciones", instituciones);
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("institucion", filtros.institucion());
+        model.addAttribute("totalPendientes", formaciones.size());
+        model.addAttribute("totalColaboradores", formaciones.stream()
+                .map(item -> item.getEducacion().getColaborador().getId()).distinct().count());
+        return "rm/rm-educacion-pendiente";
+    }
+
+    @GetMapping("/colaboradores/educacion/revision")
+    public String educationReview(
+            @RequestParam(name = "id", required = false) Long educacionId,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+        if (educacionId == null) return "redirect:/rm/colaboradores/educacion";
+        try {
+            model.addAttribute("formacion", rmEducacionService.obtener(educacionId));
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/colaboradores/educacion";
+        }
+        return "rm/rm-revision-educacion";
+    }
+
+    // Redirige a la URL que generó ArchivoAlmacenamientoService: /uploads/... en local o la URL pública en S3.
+    @GetMapping("/colaboradores/educacion/{id}/documento")
+    public String educationDocument(
+            @PathVariable("id") Long educacionId,
+            RedirectAttributes redirectAttributes) {
+        try {
+            return "redirect:" + rmEducacionService.obtenerUrlDocumento(educacionId);
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/colaboradores/educacion";
+        } catch (IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/colaboradores/educacion/revision?id=" + educacionId;
+        }
+    }
+
+    @PostMapping("/colaboradores/educacion/{id}/aprobar")
+    public String approveEducation(
+            @PathVariable("id") Long educacionId,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmEducacionService.aprobar(educacionId, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica aprobada.");
+            return "redirect:/rm/colaboradores/educacion";
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/colaboradores/educacion/revision?id=" + educacionId;
+        }
+    }
+
+    @PostMapping("/colaboradores/educacion/{id}/rechazar")
+    public String rejectEducation(
+            @PathVariable("id") Long educacionId,
+            @RequestParam(name = "motivo", required = false) String motivo,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmEducacionService.rechazar(educacionId, motivo, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Formación académica rechazada; el motivo quedó guardado.");
+            return "redirect:/rm/colaboradores/educacion";
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+            return "redirect:/rm/colaboradores/educacion/revision?id=" + educacionId;
         }
     }
 

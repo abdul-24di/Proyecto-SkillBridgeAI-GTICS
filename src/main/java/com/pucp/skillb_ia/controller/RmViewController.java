@@ -872,11 +872,14 @@ public class RmViewController {
             @RequestParam(name = "busqueda", required = false) String busqueda,
             @RequestParam(name = "categoria", required = false) String categoria,
             @RequestParam(name = "duracion", required = false) String duracion,
+            @RequestParam(name = "pagina", required = false) String pagina,
             Model model) {
-        model.addAttribute("catalogo", rmCursoService.obtenerCatalogo(busqueda, categoria, duracion));
-        model.addAttribute("busqueda", busqueda == null ? "" : busqueda);
-        model.addAttribute("categoriaSeleccionada", categoria == null ? "" : categoria);
-        model.addAttribute("duracionSeleccionada", duracion == null ? "" : duracion);
+        var filtros = rmCursoService.normalizarFiltrosCatalogo(busqueda, categoria, duracion);
+        model.addAttribute("catalogo", rmCursoService.obtenerCatalogo(filtros, pagina));
+        model.addAttribute("tamanioPagina", RmCursoService.TAMANIO_PAGINA_CATALOGO);
+        model.addAttribute("busqueda", filtros.busqueda() == null ? "" : filtros.busqueda());
+        model.addAttribute("categoriaSeleccionada", filtros.categoria() == null ? "" : filtros.categoria());
+        model.addAttribute("duracionSeleccionada", filtros.duracion() == null ? "" : filtros.duracion());
         return "rm/rm-cursos";
     }
 
@@ -885,12 +888,15 @@ public class RmViewController {
             @RequestParam(name = "busqueda", required = false) String busqueda,
             @RequestParam(name = "estado", required = false) String estado,
             @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(name = "pagina", required = false) String pagina,
             Model model) {
-        String filtroEstado = estado == null ? "SOLICITADO" : estado;
-        model.addAttribute("bandeja", rmCursoService.obtenerBandeja(busqueda, filtroEstado, origen));
-        model.addAttribute("busqueda", busqueda == null ? "" : busqueda);
-        model.addAttribute("estadoSeleccionado", filtroEstado);
-        model.addAttribute("origenSeleccionado", origen == null ? "" : origen);
+        var filtros = rmCursoService.normalizarFiltrosBandeja(busqueda, estado, origen);
+        model.addAttribute("bandeja", rmCursoService.obtenerBandeja(filtros, pagina));
+        model.addAttribute("tamanioPagina", RmCursoService.TAMANIO_PAGINA_BANDEJA);
+        model.addAttribute("busqueda", filtros.busqueda() == null ? "" : filtros.busqueda());
+        // "Todos" viaja como estado= en los enlaces: sin el parámetro se vuelve a las pendientes.
+        model.addAttribute("estadoSeleccionado", filtros.estado() == null ? "" : filtros.estado().name());
+        model.addAttribute("origenSeleccionado", filtros.origen() == null ? "" : filtros.origen().name());
         return "rm/rm-solicitudes-cursos";
     }
 

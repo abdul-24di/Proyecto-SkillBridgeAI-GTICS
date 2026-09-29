@@ -30,6 +30,19 @@ public class RmCursoService {
     private static final String ROL_COLABORADOR = "COLABORADOR";
     private static final List<EstadoColaboradorCurso> ESTADOS_DUPLICADOS =
             List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO);
+    // Paginación en el servidor (TASK-030).
+    public static final int TAMANIO_PAGINA_CATALOGO = 6;
+    public static final int TAMANIO_PAGINA_BANDEJA = 10;
+    public static final List<String> OPCIONES_DURACION = List.of("corta", "media", "larga");
+    private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
+
+    /** Filtros del catálogo ya validados: los valores nulos significan "Todas". */
+    public record FiltrosCatalogo(String busqueda, String categoria, String duracion) {
+    }
+
+    /** Filtros de la bandeja ya validados: los valores nulos significan "Todos". */
+    public record FiltrosBandeja(String busqueda, EstadoColaboradorCurso estado, OrigenCurso origen) {
+    }
 
     private final CursoRepository cursoRepository;
     private final ColaboradorCursoRepository colaboradorCursoRepository;
@@ -46,14 +59,49 @@ public class RmCursoService {
         this.notificacionRepository = notificacionRepository;
     }
 
+    /**
+     * Normaliza los parámetros GET del catálogo. Vacíos o desconocidos significan "Todas";
+     * la categoría debe existir entre los cursos activos y la búsqueda se recorta a 100 caracteres.
+     */
     @Transactional(readOnly = true)
-    public RmCursoView.Catalogo obtenerCatalogo(String busqueda, String categoria,
-                                                 String duracion) {
+    public FiltrosCatalogo normalizarFiltrosCatalogo(String busqueda, String categoria, String duracion) {
+        String categoriaValida = categoria == null || categoria.isBlank() ? null
+                : categoriasDisponibles(cursoRepository.findByActivoTrueOrderByNombreAsc()).stream()
+                        .filter(item -> normalizar(item).equals(normalizar(categoria)))
+                        .findFirst().orElse(null);
+        String duracionValida = duracion == null ? null : OPCIONES_DURACION.stream()
+                .filter(opcion -> opcion.equalsIgnoreCase(duracion.trim())).findFirst().orElse(null);
+        return new FiltrosCatalogo(busquedaLimpia(busqueda), categoriaValida, duracionValida);
+    }
+
+    /**
+     * Normaliza los parámetros GET de la bandeja. Sin parámetro "estado" se muestran las pendientes
+     * (SOLICITADO); vacío o desconocido significa "Todos". Origen vacío o desconocido: "Todos".
+     */
+    public FiltrosBandeja normalizarFiltrosBandeja(String busqueda, String estado, String origen) {
+        EstadoColaboradorCurso estadoValido = estado == null
+                ? EstadoColaboradorCurso.SOLICITADO
+                : enumSeguro(EstadoColaboradorCurso.class, estado.trim());
+        return new FiltrosBandeja(busquedaLimpia(busqueda), estadoValido,
+                enumSeguro(OrigenCurso.class, origen == null ? null : origen.trim()));
+    }
+
+    /**
+     * Filtra y pagina el catálogo (6 por página, por nombre). Las categorías y los indicadores
+     * se calculan sobre todos los cursos activos e inscripciones, sin filtros ni página.
+     */
+    @Transactional(readOnly = true)
+    public RmCursoView.Catalogo obtenerCatalogo(FiltrosCatalogo filtros, String pagina) {
         List<Curso> cursosActivos = cursoRepository.findByActivoTrueOrderByNombreAsc();
         List<ColaboradorCurso> inscripciones = colaboradorCursoRepository.findAllConDetalle();
 
-        List<RmCursoView.CursoItem> cursos = cursosActivos.stream()
-                .filter(curso -> coincide(curso, busqueda, categoria, duracion))
+        List<Curso> filtrados = cursosActivos.stream()
+                .filter(curso -> coincide(curso, filtros.busqueda(), filtros.categoria(), filtros.duracion()))
+                .toList();
+        int totalPaginas = totalPaginas(filtrados.size(), TAMANIO_PAGINA_CATALOGO);
+        int paginaActual = paginaActual(pagina, totalPaginas);
+
+        List<RmCursoView.CursoItem> cursos = recortar(filtrados, paginaActual, TAMANIO_PAGINA_CATALOGO).stream()
                 .map(curso -> new RmCursoView.CursoItem(
                         curso.getId(), curso.getNombre(),
                         valor(curso.getDescripcion(), "Sin descripción registrada."),
@@ -64,13 +112,10 @@ public class RmCursoService {
                                 .count()))
                 .toList();
 
-        List<String> categorias = cursosActivos.stream()
-                .map(Curso::getCategoria).filter(Objects::nonNull)
-                .filter(item -> !item.isBlank()).distinct()
-                .sorted(String.CASE_INSENSITIVE_ORDER).toList();
         YearMonth mesActual = YearMonth.now();
         return new RmCursoView.Catalogo(
-                cursos, categorias, cursosActivos.size(),
+                cursos, paginaActual, totalPaginas, filtrados.size(),
+                categoriasDisponibles(cursosActivos), cursosActivos.size(),
                 inscripciones.stream().filter(this::esSolicitudPendiente).count(),
                 inscripciones.stream().filter(item -> item.getEstado() == EstadoColaboradorCurso.EN_CURSO).count(),
                 inscripciones.stream()
@@ -85,23 +130,30 @@ public class RmCursoService {
                 OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
     }
 
+    /**
+     * Filtra y pagina la bandeja (10 por página, fecha de solicitud descendente). Los cuatro
+     * indicadores se calculan sobre todas las inscripciones, sin filtros ni página.
+     */
     @Transactional(readOnly = true)
-    public RmCursoView.Bandeja obtenerBandeja(String busqueda, String estadoValor,
-                                               String origenValor) {
+    public RmCursoView.Bandeja obtenerBandeja(FiltrosBandeja filtros, String pagina) {
         List<ColaboradorCurso> todas = colaboradorCursoRepository.findAllConDetalle();
-        EstadoColaboradorCurso estado = enumSeguro(EstadoColaboradorCurso.class, estadoValor);
-        OrigenCurso origen = enumSeguro(OrigenCurso.class, origenValor);
-        String textoBusqueda = normalizar(busqueda);
+        EstadoColaboradorCurso estado = filtros.estado();
+        OrigenCurso origen = filtros.origen();
+        String textoBusqueda = normalizar(filtros.busqueda());
 
-        List<RmCursoView.InscripcionItem> filtradas = todas.stream()
+        List<ColaboradorCurso> filtradas = todas.stream()
                 .filter(item -> estado == null || item.getEstado() == estado)
                 .filter(item -> origen == null || item.getOrigen() == origen)
                 .filter(item -> textoBusqueda.isBlank() || textoBusqueda(item).contains(textoBusqueda))
-                .map(this::crearInscripcionItem).toList();
+                .toList();
+        int totalPaginas = totalPaginas(filtradas.size(), TAMANIO_PAGINA_BANDEJA);
+        int paginaActual = paginaActual(pagina, totalPaginas);
 
         YearMonth mesActual = YearMonth.now();
         return new RmCursoView.Bandeja(
-                filtradas,
+                recortar(filtradas, paginaActual, TAMANIO_PAGINA_BANDEJA).stream()
+                        .map(this::crearInscripcionItem).toList(),
+                paginaActual, totalPaginas, filtradas.size(),
                 todas.stream().filter(this::esSolicitudPendiente).count(),
                 todas.stream()
                         .filter(item -> item.getOrigen() == OrigenCurso.SOLICITUD_COLABORADOR)
@@ -233,6 +285,40 @@ public class RmCursoService {
         notificacion.setEntidad("COLABORADOR_CURSO");
         notificacion.setEntidadId(inscripcion.getId());
         notificacionRepository.save(notificacion);
+    }
+
+    private List<String> categoriasDisponibles(List<Curso> cursosActivos) {
+        return cursosActivos.stream()
+                .map(Curso::getCategoria).filter(Objects::nonNull)
+                .filter(item -> !item.isBlank()).distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER).toList();
+    }
+
+    private String busquedaLimpia(String busqueda) {
+        String limpia = busqueda == null ? "" : busqueda.trim();
+        if (limpia.length() > LONGITUD_MAXIMA_BUSQUEDA) limpia = limpia.substring(0, LONGITUD_MAXIMA_BUSQUEDA);
+        return limpia.isEmpty() ? null : limpia;
+    }
+
+    private int totalPaginas(int totalRegistros, int tamanioPagina) {
+        return Math.max(1, (int) Math.ceil(totalRegistros / (double) tamanioPagina));
+    }
+
+    /** Página pedida entre 1 y el total: vacía o no numérica → 1, menor que 1 → 1, mayor que el total → última. */
+    private int paginaActual(String pagina, int totalPaginas) {
+        int numero;
+        try {
+            numero = pagina == null ? 1 : Integer.parseInt(pagina.trim());
+        } catch (NumberFormatException ex) {
+            numero = 1;
+        }
+        return Math.min(Math.max(1, numero), totalPaginas);
+    }
+
+    private <T> List<T> recortar(List<T> registros, int paginaActual, int tamanioPagina) {
+        int desde = (paginaActual - 1) * tamanioPagina;
+        int hasta = Math.min(desde + tamanioPagina, registros.size());
+        return desde < hasta ? registros.subList(desde, hasta) : List.of();
     }
 
     private boolean coincide(Curso curso, String busqueda, String categoria, String duracion) {

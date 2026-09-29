@@ -9,16 +9,23 @@ public final class RmCursoView {
 
     public static class Catalogo {
         private final List<CursoItem> cursos;
+        private final int paginaActual;
+        private final int totalPaginas;
+        private final long totalRegistros;
         private final List<String> categorias;
         private final long cursosActivos;
         private final long solicitudesPendientes;
         private final long inscripcionesActivas;
         private final long asignadosPorRmEsteMes;
 
-        public Catalogo(List<CursoItem> cursos, List<String> categorias,
+        public Catalogo(List<CursoItem> cursos, int paginaActual, int totalPaginas,
+                        long totalRegistros, List<String> categorias,
                         long cursosActivos, long solicitudesPendientes,
                         long inscripcionesActivas, long asignadosPorRmEsteMes) {
             this.cursos = List.copyOf(cursos);
+            this.paginaActual = paginaActual;
+            this.totalPaginas = totalPaginas;
+            this.totalRegistros = totalRegistros;
             this.categorias = List.copyOf(categorias);
             this.cursosActivos = cursosActivos;
             this.solicitudesPendientes = solicitudesPendientes;
@@ -27,6 +34,9 @@ public final class RmCursoView {
         }
 
         public List<CursoItem> getCursos() { return cursos; }
+        public int getPaginaActual() { return paginaActual; }
+        public int getTotalPaginas() { return totalPaginas; }
+        public long getTotalRegistros() { return totalRegistros; }
         public List<String> getCategorias() { return categorias; }
         public long getCursosActivos() { return cursosActivos; }
         public long getSolicitudesPendientes() { return solicitudesPendientes; }
@@ -36,14 +46,21 @@ public final class RmCursoView {
 
     public static class Bandeja {
         private final List<InscripcionItem> inscripciones;
+        private final int paginaActual;
+        private final int totalPaginas;
+        private final long totalRegistros;
         private final long pendientes;
         private final long aprobadasEsteMes;
         private final long rechazadasEsteMes;
         private final long enCurso;
 
-        public Bandeja(List<InscripcionItem> inscripciones, long pendientes,
+        public Bandeja(List<InscripcionItem> inscripciones, int paginaActual, int totalPaginas,
+                       long totalRegistros, long pendientes,
                        long aprobadasEsteMes, long rechazadasEsteMes, long enCurso) {
             this.inscripciones = List.copyOf(inscripciones);
+            this.paginaActual = paginaActual;
+            this.totalPaginas = totalPaginas;
+            this.totalRegistros = totalRegistros;
             this.pendientes = pendientes;
             this.aprobadasEsteMes = aprobadasEsteMes;
             this.rechazadasEsteMes = rechazadasEsteMes;
@@ -51,6 +68,9 @@ public final class RmCursoView {
         }
 
         public List<InscripcionItem> getInscripciones() { return inscripciones; }
+        public int getPaginaActual() { return paginaActual; }
+        public int getTotalPaginas() { return totalPaginas; }
+        public long getTotalRegistros() { return totalRegistros; }
         public long getPendientes() { return pendientes; }
         public long getAprobadasEsteMes() { return aprobadasEsteMes; }
         public long getRechazadasEsteMes() { return rechazadasEsteMes; }

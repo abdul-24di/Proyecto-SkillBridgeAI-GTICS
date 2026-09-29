@@ -73,7 +73,16 @@
       <tr th:if="${#lists.isEmpty(bandeja.inscripciones)}"><td colspan="7" class="text-center text-secondary py-5">No se encontraron inscripciones con estos filtros.</td></tr>
       </tbody>
     </table></div>
-    <div class="pagination-wrap"><div id="paginationInfo" class="text-secondary small"></div><ul id="pagination" class="pagination pagination-sm m-0"></ul></div>
+    <div class="pagination-wrap">
+      <div id="paginationInfo" class="text-secondary small"
+           th:with="desdeFila=${bandeja.totalRegistros == 0 ? 0 : ((bandeja.paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((bandeja.paginaActual - 1) * tamanioPagina) + #lists.size(bandeja.inscripciones)}"
+           th:text="|Mostrando ${desdeFila}-${hastaFila} de ${bandeja.totalRegistros} solicitudes|">Mostrando 0-0 de 0 solicitudes</div>
+      <ul id="pagination" class="pagination pagination-sm m-0" th:if="${bandeja.totalPaginas > 1}">
+        <li class="page-item" th:classappend="${bandeja.paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/cursos/solicitudes(busqueda=${busqueda}, estado=${estadoSeleccionado}, origen=${origenSeleccionado}, pagina=${bandeja.paginaActual - 1})}">Anterior</a></li>
+        <li class="page-item" th:each="n : ${#numbers.sequence(1, bandeja.totalPaginas)}" th:classappend="${n == bandeja.paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/cursos/solicitudes(busqueda=${busqueda}, estado=${estadoSeleccionado}, origen=${origenSeleccionado}, pagina=${n})}" th:text="${n}">1</a></li>
+        <li class="page-item" th:classappend="${bandeja.paginaActual == bandeja.totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/cursos/solicitudes(busqueda=${busqueda}, estado=${estadoSeleccionado}, origen=${origenSeleccionado}, pagina=${bandeja.paginaActual + 1})}">Siguiente</a></li>
+      </ul>
+    </div>
   </div>
 
   <div class="modal modal-blur fade rm-modal course-decision-modal" id="approveCourseModal" tabindex="-1" aria-labelledby="approveCourseModalTitle" aria-hidden="true">

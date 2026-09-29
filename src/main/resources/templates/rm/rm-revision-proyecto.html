@@ -137,8 +137,9 @@
             <form class="mt-3" method="post" th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}">
               <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
               <label for="budgetInput" class="form-label">Presupuesto asignado (S/)</label>
-              <input id="budgetInput" name="presupuesto" type="number" min="0.01" max="9999999999.99" step="0.01" required
-                     class="form-control" th:value="${proyecto.proyecto.presupuesto}">
+              <input id="budgetInput" name="presupuesto" type="text" inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required
+                     aria-describedby="budgetInputAyuda" class="form-control" th:value="${proyecto.proyecto.presupuesto}">
+              <div id="budgetInputAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
               <button type="submit" class="btn btn-outline-primary w-100 mt-3">Guardar presupuesto</button>
             </form>
           </div>

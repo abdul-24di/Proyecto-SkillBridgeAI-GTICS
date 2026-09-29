@@ -50,6 +50,12 @@ public class RmForoConsultaService {
         return crearVista(foro, "votos".equalsIgnoreCase(orden) ? "votos" : "fecha");
     }
 
+    /** Id del foro del proyecto (como máximo uno), para enlazarlo desde su detalle. */
+    @Transactional(readOnly = true)
+    public Optional<Long> buscarIdPorProyecto(Proyecto proyecto) {
+        return foroRepository.findByProyecto(proyecto).map(Foro::getId);
+    }
+
     private RmForoView crearVista(Foro foro, String orden) {
         List<RmForoView.Publicacion> publicaciones = publicacionRepository
                 .findByForoConDetalle(foro).stream()

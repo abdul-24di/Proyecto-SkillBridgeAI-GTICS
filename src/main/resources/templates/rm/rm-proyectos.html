@@ -511,7 +511,7 @@
                            th:classappend="${item.resumenPresupuesto.porcentajeConsumido >= 90} ? 'bg-red' : (${item.resumenPresupuesto.porcentajeConsumido >= 70} ? 'bg-yellow' : 'bg-green')"></div>
                     </div>
                     <div class="small text-secondary mt-1"
-                         th:text="'Disponible: S/ ' + ${item.resumenPresupuesto.disponible} + ' (' + ${item.resumenPresupuesto.porcentajeConsumido} + '% consumido)'">
+                         th:text="'Disponible: S/ ' + ${#numbers.formatDecimal(item.resumenPresupuesto.disponible, 1, 'COMMA', 2, 'POINT')} + ' (' + ${item.resumenPresupuesto.porcentajeConsumido} + '% consumido)'">
                       Disponible
                     </div>
                   </div>

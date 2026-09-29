@@ -104,6 +104,8 @@
                 <span th:if="${proyecto.proyecto.documentoContextoUrl == null}" class="text-secondary">No adjunto</span>
               </div></div>
             </div>
+            <!-- TASK-021: mismo formulario que el detalle (fragments/rm-proyecto-fechas). -->
+            <form th:replace="~{fragments/rm-proyecto-fechas :: formulario(${proyecto.proyecto}, 'revision')}"></form>
             <div class="review-text-block mt-3"><div class="info-label mb-2">Descripción</div>
               <div class="text-secondary" th:text="${proyecto.proyecto.descripcion}">Descripción</div></div>
             <div class="review-text-block mt-3"><div class="info-label mb-2">Justificación de prioridad</div>
@@ -116,7 +118,8 @@
       </div>
 
       <div class="col-lg-5">
-        <div class="card section-card h-100">
+        <!-- Sin h-100: la tarjeta toma la altura de su contenido aunque "Información del proyecto" sea más alta. -->
+        <div class="card section-card">
           <div class="card-header section-header"><div><h3 class="card-title mb-1">Presupuesto del proyecto</h3>
             <div class="section-description">Campo administrado exclusivamente por el Resource Manager.</div></div></div>
           <div class="card-body">
@@ -326,5 +329,6 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/rm-js/rm-presupuesto-confirmacion.js" th:src="@{/js/rm-js/rm-presupuesto-confirmacion.js}"></script>
+<script src="../../static/js/rm-js/rm-proyecto-fechas.js" th:src="@{/js/rm-js/rm-proyecto-fechas.js}"></script>
 </body>
 </html>

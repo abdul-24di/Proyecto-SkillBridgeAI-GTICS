@@ -1,7 +1,9 @@
 package com.pucp.skillb_ia;
 
+import com.pucp.skillb_ia.model.Actividad;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.LogAuditoria;
+import com.pucp.skillb_ia.model.Notificacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
@@ -9,8 +11,10 @@ import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.Prioridad;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.LogAuditoriaRepository;
+import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
@@ -31,6 +35,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -50,6 +55,8 @@ class RmProyectoViewTests {
     @Autowired private RmProyectoRevisionService revisionService;
     @Autowired private AsignacionRepository asignacionRepository;
     @Autowired private LogAuditoriaRepository logAuditoriaRepository;
+    @Autowired private ActividadRepository actividadRepository;
+    @Autowired private NotificacionRepository notificacionRepository;
 
     private MockMvc mockMvc;
     private Long proyectoId;
@@ -710,6 +717,307 @@ class RmProyectoViewTests {
         asignacion.setAprobadoPorRm(aprobadoRm);
         asignacion.setMensajeSolicitud("Solicitud de prueba.");
         return asignacionRepository.save(asignacion);
+    }
+
+    // TASK-021: cambio de fechas del proyecto por el RM.
+    private static final String AUDITORIA_FECHAS = "ACTUALIZAR_FECHAS_PROYECTO";
+    private static final String NOTIFICACION_FECHAS = "PROYECTO_FECHAS_ACTUALIZADAS";
+    private static final String EXITO_FECHAS = "Fechas del proyecto actualizadas correctamente.";
+    private static final String MENSAJE_FIN_POSTERIOR = "La fecha de fin debe ser posterior a la fecha de inicio.";
+    private static final java.time.LocalDate HOY = java.time.LocalDate.now();
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = EstadoProyecto.class, names = {"EN_REVISION", "ACTIVO", "EN_ESPERA"})
+    void cambioDeFechasValidoGuardaAuditaYNotificaEnEstadosPermitidos(EstadoProyecto estado) {
+        fijarFechas(estado, HOY, HOY.plusDays(70));
+
+        revisionService.cambiarFechas(proyectoId, HOY.plusDays(7), HOY.plusDays(90), rmId);
+
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(HOY.plusDays(7), proyecto.getFechaInicio());
+        org.junit.jupiter.api.Assertions.assertEquals(HOY.plusDays(90), proyecto.getFechaFinEstimada());
+        org.junit.jupiter.api.Assertions.assertEquals(estado, proyecto.getEstado());
+        LogAuditoria auditoria = ultimaAuditoria(AUDITORIA_FECHAS);
+        org.junit.jupiter.api.Assertions.assertEquals(rmId, auditoria.getUsuario().getId());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "Inicio: " + fecha(HOY) + " | Fin: " + fecha(HOY.plusDays(70)), auditoria.getValorAnterior());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "Inicio: " + fecha(HOY.plusDays(7)) + " | Fin: " + fecha(HOY.plusDays(90)), auditoria.getValorNuevo());
+        List<Notificacion> notificaciones = notificacionesDeFechas();
+        org.junit.jupiter.api.Assertions.assertEquals(1, notificaciones.size());
+        org.junit.jupiter.api.Assertions.assertTrue(notificaciones.get(0).getDescripcion()
+                .contains("del " + fecha(HOY.plusDays(7)) + " al " + fecha(HOY.plusDays(90))));
+        org.junit.jupiter.api.Assertions.assertEquals(1, auditoriasDeFechas());
+    }
+
+    @Test
+    void cambioDeFechasSinFechasPreviasAuditaSinDefinir() {
+        revisionService.cambiarFechas(proyectoId, HOY, HOY.plusDays(1), rmId);
+        org.junit.jupiter.api.Assertions.assertEquals("Inicio: sin definir | Fin: sin definir",
+                ultimaAuditoria(AUDITORIA_FECHAS).getValorAnterior());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = EstadoProyecto.class, names = {"RECHAZADO", "CANCELADO", "FINALIZADO"})
+    void cambioDeFechasSeRechazaEnEstadosCerrados(EstadoProyecto estado) {
+        fijarFechas(estado, HOY, HOY.plusDays(70));
+        verificarFechasSinCambios(IllegalStateException.class, HOY.plusDays(1), HOY.plusDays(80), rmId,
+                "Las fechas no pueden modificarse en el estado actual del proyecto.");
+    }
+
+    @Test
+    void cambioDeFechasExigeAmbasFechasYFinPosterior() {
+        fijarFechas(EstadoProyecto.ACTIVO, HOY, HOY.plusDays(70));
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY.plusDays(5), HOY.plusDays(5), rmId,
+                MENSAJE_FIN_POSTERIOR);
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY.plusDays(5), HOY.plusDays(4), rmId,
+                MENSAJE_FIN_POSTERIOR);
+        String obligatorias = "Debes indicar la fecha de inicio y la fecha de fin del proyecto.";
+        verificarFechasSinCambios(IllegalArgumentException.class, null, HOY.plusDays(4), rmId, obligatorias);
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY, null, rmId, obligatorias);
+    }
+
+    @Test
+    void fechaDeInicioNuevaNoPuedeSerAnteriorAHoy() {
+        String mensaje = "La fecha de inicio no puede ser anterior a la fecha actual.";
+        fijarFechas(EstadoProyecto.EN_REVISION, null, null);
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY.minusDays(1), HOY.plusDays(30), rmId, mensaje);
+        fijarFechas(EstadoProyecto.ACTIVO, HOY.minusDays(30), HOY.plusDays(30));
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY.minusDays(10), HOY.plusDays(30), rmId, mensaje);
+
+        // Un proyecto ya iniciado conserva su inicio pasado y solo extiende el fin.
+        revisionService.cambiarFechas(proyectoId, HOY.minusDays(30), HOY.plusDays(60), rmId);
+        verificarFechas(HOY.minusDays(30), HOY.plusDays(60));
+    }
+
+    @Test
+    void cambioDeFechasSeRechazaSiUnaActividadQuedaFueraDelRango() {
+        fijarFechas(EstadoProyecto.ACTIVO, HOY, HOY.plusDays(70));
+        guardarActividad("Diseño de pantallas", HOY.plusDays(30));
+        String mensaje = "No se cambiaron las fechas: 1 actividad(es) vencen fuera del nuevo rango, por ejemplo "
+                + "\"Diseño de pantallas\" con fecha límite " + fecha(HOY.plusDays(30)) + ".";
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY.plusDays(31), HOY.plusDays(90), rmId, mensaje);
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY, HOY.plusDays(29), rmId, mensaje);
+
+        // Los extremos del rango son válidos.
+        revisionService.cambiarFechas(proyectoId, HOY.plusDays(30), HOY.plusDays(60), rmId);
+        revisionService.cambiarFechas(proyectoId, HOY, HOY.plusDays(30), rmId);
+        org.junit.jupiter.api.Assertions.assertEquals(HOY.plusDays(30),
+                proyectoRepository.findById(proyectoId).orElseThrow().getFechaFinEstimada());
+    }
+
+    // Costo de referencia: 31.25 por hora x 37.5 h/sem = 1171.875 por semana; 70 días = 11 718.75; 84 días = 14 062.50.
+    @Test
+    void cambioDeFechasSeRechazaSiComprometidoOReservadoSuperanElPresupuesto() {
+        prepararProyectoConCosto("12345");
+        Asignacion asignacion = guardarAsignacion(EstadoAsignacion.ACTIVA, true, "5000.00", "37.5");
+        String mensaje = "No se cambiaron las fechas: con el nuevo rango, el costo comprometido y reservado "
+                + "(S/ 14062.50) supera el presupuesto del proyecto (S/ 12345.00).";
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY, HOY.plusDays(84), rmId, mensaje);
+
+        asignacion.setEstado(EstadoAsignacion.PENDIENTE);
+        asignacionRepository.save(asignacion); // reservado: pendiente ya aprobada por el RM
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY, HOY.plusDays(84), rmId, mensaje);
+
+        revisionService.cambiarFechas(proyectoId, HOY, HOY.plusDays(56), rmId);
+        org.junit.jupiter.api.Assertions.assertEquals(HOY.plusDays(56),
+                proyectoRepository.findById(proyectoId).orElseThrow().getFechaFinEstimada());
+    }
+
+    @Test
+    void usuarioQueNoEsRmNoPuedeCambiarFechas() throws Exception {
+        fijarFechas(EstadoProyecto.ACTIVO, HOY, HOY.plusDays(70));
+        verificarFechasSinCambios(IllegalArgumentException.class, HOY.plusDays(1), HOY.plusDays(80), pmId,
+                "El usuario autenticado no es un Resource Manager activo.");
+
+        Usuario pm = usuarioRepository.findById(pmId).orElseThrow();
+        pm.setRol(rolRepository.findByNombre("PROJECT_MANAGER").orElseThrow()); // el rol cargado es LAZY
+        UsuarioDetails pmDetails = new UsuarioDetails(pm);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(pmDetails, null, pmDetails.getAuthorities()));
+        mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/fechas")
+                        .param("fechaInicio", HOY.plusDays(1).toString())
+                        .param("fechaFin", HOY.plusDays(80).toString()))
+                .andExpect(redirectedUrl("/rm/proyectos/detalle?id=" + proyectoId))
+                .andExpect(flash().attribute("mensajeError", "El usuario autenticado no es un Resource Manager activo."));
+        verificarFechas(HOY, HOY.plusDays(70));
+        org.junit.jupiter.api.Assertions.assertEquals(0, auditoriasDeFechas());
+        org.junit.jupiter.api.Assertions.assertTrue(notificacionesDeFechas().isEmpty());
+    }
+
+    @Test
+    void formularioDeFechasSoloApareceEnEstadosPermitidosConLasFechasActuales() throws Exception {
+        autenticarRm();
+        for (EstadoProyecto estado : EstadoProyecto.values()) {
+            fijarFechas(estado, HOY, HOY.plusDays(70));
+            String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+            boolean permitido = estado == EstadoProyecto.EN_REVISION || estado == EstadoProyecto.ACTIVO
+                    || estado == EstadoProyecto.EN_ESPERA;
+            org.junit.jupiter.api.Assertions.assertEquals(permitido, html.contains("id=\"projectDatesForm\""), estado.name());
+            if (!permitido) continue;
+            int inicio = html.indexOf("id=\"projectDatesForm\"");
+            String formulario = html.substring(html.lastIndexOf("<form", inicio), html.indexOf("</form>", inicio));
+            verificarMontos(formulario, "/rm/proyectos/" + proyectoId + "/fechas",
+                    "name=\"fechaInicio\"", "value=\"" + HOY + "\"", "name=\"fechaFin\"", "value=\"" + HOY.plusDays(70) + "\"");
+            // Convive con el modal de presupuesto de TASK-018 sin que su JS lo intercepte.
+            verificarSinFormatoAnterior(formulario, "data-rm-budget-form");
+            verificarMontos(html, "id=\"budgetChangeModal\"", "/js/rm-js/rm-presupuesto-confirmacion.js");
+        }
+        // Mínimos del calendario: inicio desde hoy y fin desde el día siguiente al inicio.
+        fijarFechas(EstadoProyecto.ACTIVO, HOY.plusDays(5), HOY.plusDays(70));
+        verificarMontos(formularioDeFechas(), "id=\"projectStartDate\"", "min=\"" + HOY + "\"",
+                "min=\"" + HOY.plusDays(6) + "\"", "/js/rm-js/rm-proyecto-fechas.js");
+        // Si el inicio actual ya pasó, se permite conservarlo (el servidor rechaza otro día pasado).
+        fijarFechas(EstadoProyecto.ACTIVO, HOY.minusDays(30), HOY.plusDays(70));
+        verificarMontos(formularioDeFechas(), "min=\"" + HOY.minusDays(30) + "\"", "min=\"" + HOY.minusDays(29) + "\"");
+        fijarFechas(EstadoProyecto.EN_REVISION, null, null);
+        verificarMontos(formularioDeFechas(), "min=\"" + HOY + "\"", "min=\"" + HOY.plusDays(1) + "\"");
+
+        verificarMontos(formularioDeFechas(), "name=\"origen\" value=\"detalle\"");
+
+        // En revisión el mismo fragmento aparece también en la revisión, con sus mínimos y su script.
+        fijarFechas(EstadoProyecto.EN_REVISION, HOY.plusDays(5), HOY.plusDays(70));
+        String revision = renderizar("/rm/proyectos/revision?id=" + proyectoId);
+        int inicio = revision.indexOf("id=\"projectDatesForm\"");
+        org.junit.jupiter.api.Assertions.assertTrue(inicio >= 0, "revisión sin formulario de fechas");
+        org.junit.jupiter.api.Assertions.assertEquals(inicio, revision.lastIndexOf("id=\"projectDatesForm\""));
+        String formulario = revision.substring(revision.lastIndexOf("<form", inicio), revision.indexOf("</form>", inicio));
+        verificarMontos(formulario, "/rm/proyectos/" + proyectoId + "/fechas", "name=\"origen\" value=\"revision\"",
+                "value=\"" + HOY.plusDays(5) + "\"", "min=\"" + HOY + "\"", "min=\"" + HOY.plusDays(6) + "\"");
+        verificarSinFormatoAnterior(formulario, "data-rm-budget-form");
+        verificarMontos(revision, "id=\"budgetChangeModal\"", "/js/rm-js/rm-proyecto-fechas.js");
+    }
+
+    @Test
+    void postDeFechasDesdeLaRevisionVuelveALaRevisionConMensaje() throws Exception {
+        autenticarRm();
+        fijarFechas(EstadoProyecto.EN_REVISION, HOY, HOY.plusDays(70));
+        String destino = "/rm/proyectos/revision?id=" + proyectoId;
+
+        MvcResult error = mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/fechas").param("origen", "revision")
+                        .param("fechaInicio", HOY.minusDays(1).toString())
+                        .param("fechaFin", HOY.plusDays(30).toString()))
+                .andExpect(redirectedUrl(destino))
+                .andExpect(flash().attribute("mensajeError", "La fecha de inicio no puede ser anterior a la fecha actual."))
+                .andReturn();
+        verificarMontos(mockMvc.perform(get(destino).flashAttrs(error.getFlashMap()))
+                        .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8),
+                "<div class=\"alert alert-danger\">La fecha de inicio no puede ser anterior a la fecha actual.</div>");
+        verificarFechas(HOY, HOY.plusDays(70));
+
+        MvcResult exito = mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/fechas").param("origen", "revision")
+                        .param("fechaInicio", HOY.plusDays(3).toString())
+                        .param("fechaFin", HOY.plusDays(40).toString()))
+                .andExpect(redirectedUrl(destino))
+                .andExpect(flash().attribute("mensajeExito", EXITO_FECHAS))
+                .andReturn();
+        verificarMontos(mockMvc.perform(get(destino).flashAttrs(exito.getFlashMap()))
+                        .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8),
+                "<div class=\"alert alert-success\">" + EXITO_FECHAS + "</div>", fecha(HOY.plusDays(40)));
+        verificarFechas(HOY.plusDays(3), HOY.plusDays(40));
+        org.junit.jupiter.api.Assertions.assertEquals(EstadoProyecto.EN_REVISION,
+                proyectoRepository.findById(proyectoId).orElseThrow().getEstado());
+        org.junit.jupiter.api.Assertions.assertEquals(1, auditoriasDeFechas());
+        org.junit.jupiter.api.Assertions.assertEquals(1, notificacionesDeFechas().size());
+    }
+
+    @Test
+    void postDeFechasVuelveAlDetalleConMensaje() throws Exception {
+        autenticarRm();
+        fijarFechas(EstadoProyecto.ACTIVO, HOY, HOY.plusDays(70));
+        String destino = "/rm/proyectos/detalle?id=" + proyectoId;
+
+        MvcResult error = mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/fechas")
+                        .param("fechaInicio", HOY.plusDays(10).toString())
+                        .param("fechaFin", HOY.plusDays(10).toString()))
+                .andExpect(redirectedUrl(destino))
+                .andExpect(flash().attribute("mensajeError", MENSAJE_FIN_POSTERIOR))
+                .andReturn();
+        verificarMontos(mockMvc.perform(get(destino).flashAttrs(error.getFlashMap()))
+                        .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8),
+                "<div class=\"alert alert-danger\">" + MENSAJE_FIN_POSTERIOR + "</div>");
+        mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/fechas")
+                        .param("fechaInicio", "01/10/2026").param("fechaFin", ""))
+                .andExpect(redirectedUrl(destino))
+                .andExpect(flash().attribute("mensajeError", "Las fechas deben tener el formato AAAA-MM-DD."));
+        verificarFechas(HOY, HOY.plusDays(70));
+
+        MvcResult exito = mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/fechas")
+                        .param("fechaInicio", HOY.plusDays(10).toString())
+                        .param("fechaFin", HOY.plusDays(100).toString()))
+                .andExpect(redirectedUrl(destino))
+                .andExpect(flash().attribute("mensajeExito", EXITO_FECHAS))
+                .andReturn();
+        verificarMontos(mockMvc.perform(get(destino).flashAttrs(exito.getFlashMap()))
+                        .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8),
+                "<div class=\"alert alert-success\">" + EXITO_FECHAS + "</div>", fecha(HOY.plusDays(100)));
+        verificarFechas(HOY.plusDays(10), HOY.plusDays(100));
+        org.junit.jupiter.api.Assertions.assertEquals(1, auditoriasDeFechas());
+        org.junit.jupiter.api.Assertions.assertEquals(1, notificacionesDeFechas().size());
+    }
+
+    private String formularioDeFechas() throws Exception {
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+        int inicio = html.indexOf("id=\"projectDatesForm\"");
+        return html.substring(html.lastIndexOf("<form", inicio), html.indexOf("</form>", inicio))
+                + html.substring(html.lastIndexOf("<script"));
+    }
+
+    // Un cambio inválido no guarda, no audita ni notifica.
+    private void verificarFechasSinCambios(Class<? extends RuntimeException> tipo, java.time.LocalDate inicio,
+                                           java.time.LocalDate fin, Long usuarioId, String mensaje) {
+        Proyecto antes = proyectoRepository.findById(proyectoId).orElseThrow();
+        long auditorias = auditoriasDeFechas();
+        int notificaciones = notificacionesDeFechas().size();
+        RuntimeException ex = org.junit.jupiter.api.Assertions.assertThrows(tipo,
+                () -> revisionService.cambiarFechas(proyectoId, inicio, fin, usuarioId));
+        org.junit.jupiter.api.Assertions.assertEquals(mensaje, ex.getMessage());
+        verificarFechas(antes.getFechaInicio(), antes.getFechaFinEstimada());
+        org.junit.jupiter.api.Assertions.assertEquals(auditorias, auditoriasDeFechas());
+        org.junit.jupiter.api.Assertions.assertEquals(notificaciones, notificacionesDeFechas().size());
+    }
+
+    private void verificarFechas(java.time.LocalDate inicio, java.time.LocalDate fin) {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(inicio, proyecto.getFechaInicio());
+        org.junit.jupiter.api.Assertions.assertEquals(fin, proyecto.getFechaFinEstimada());
+    }
+
+    private void fijarFechas(EstadoProyecto estado, java.time.LocalDate inicio, java.time.LocalDate fin) {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setEstado(estado);
+        proyecto.setFechaInicio(inicio);
+        proyecto.setFechaFinEstimada(fin);
+        proyectoRepository.save(proyecto);
+    }
+
+    private void guardarActividad(String titulo, java.time.LocalDate fechaLimite) {
+        Usuario pm = usuarioRepository.findById(pmId).orElseThrow();
+        Actividad actividad = new Actividad();
+        actividad.setProyecto(proyectoRepository.findById(proyectoId).orElseThrow());
+        actividad.setColaborador(pm);
+        actividad.setCreadoPor(pm);
+        actividad.setTitulo(titulo);
+        actividad.setHorasEstimadas(new BigDecimal("8.00"));
+        actividad.setFechaLimite(fechaLimite);
+        actividadRepository.save(actividad);
+    }
+
+    private long auditoriasDeFechas() {
+        return logAuditoriaRepository.findAll().stream()
+                .filter(log -> AUDITORIA_FECHAS.equals(log.getAccion()) && proyectoId.equals(log.getEntidadId()))
+                .count();
+    }
+
+    private List<Notificacion> notificacionesDeFechas() {
+        return notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(
+                        usuarioRepository.findById(pmId).orElseThrow()).stream()
+                .filter(n -> NOTIFICACION_FECHAS.equals(n.getTipo()) && proyectoId.equals(n.getEntidadId()))
+                .toList();
+    }
+
+    private static String fecha(java.time.LocalDate valor) {
+        return valor.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
     private void activarProyecto() {

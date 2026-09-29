@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
 // Especificación funcional "presupuesto y costos de asignaciones del RM" que
@@ -72,15 +73,30 @@ public class RmPresupuestoService {
     // (pendientes ya aprobadas por el RM, esperando al PM) / disponible.
     @Transactional(readOnly = true)
     public ResumenPresupuesto calcularResumen(Proyecto proyecto) {
+        return calcularResumen(proyecto, proyecto);
+    }
+
+    // TASK-021: el mismo resumen si el proyecto tuviera otras fechas, sin modificar la entidad
+    // (se valida antes de guardar un cambio de fechas).
+    @Transactional(readOnly = true)
+    public ResumenPresupuesto calcularResumenConFechas(Proyecto proyecto, LocalDate fechaInicio, LocalDate fechaFin) {
+        Proyecto conFechas = new Proyecto();
+        conFechas.setFechaInicio(fechaInicio);
+        conFechas.setFechaFinEstimada(fechaFin);
+        return calcularResumen(proyecto, conFechas);
+    }
+
+    // "fechas" solo aporta la duración para calcularCosto; asignaciones y total salen de "proyecto".
+    private ResumenPresupuesto calcularResumen(Proyecto proyecto, Proyecto fechas) {
         BigDecimal total = proyecto.getPresupuesto() != null ? proyecto.getPresupuesto() : BigDecimal.ZERO;
 
         BigDecimal comprometido = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA).stream()
-                .map(a -> calcularCosto(proyecto, a.getColaborador(), a.getHorasSemanales()).costoTotal())
+                .map(a -> calcularCosto(fechas, a.getColaborador(), a.getHorasSemanales()).costoTotal())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal reservado = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.PENDIENTE).stream()
                 .filter(Asignacion::isAprobadoPorRm)
-                .map(a -> calcularCosto(proyecto, a.getColaborador(), a.getHorasSemanales()).costoTotal())
+                .map(a -> calcularCosto(fechas, a.getColaborador(), a.getHorasSemanales()).costoTotal())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal disponible = total.subtract(comprometido).subtract(reservado);

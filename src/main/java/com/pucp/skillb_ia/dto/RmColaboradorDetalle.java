@@ -47,6 +47,13 @@ public class RmColaboradorDetalle {
     public BigDecimal getHorasContratadasSemana() { return horasContratadasSemana; }
     public LocalDate getFechaContratacion() { return fechaContratacion; }
     public List<HabilidadDetalle> getHabilidades() { return habilidades; }
+
+    // Modal "Ver perfil" de la propuesta: solo las habilidades que cuentan para asignar (TASK-015).
+    public List<HabilidadDetalle> getHabilidadesValidadas() {
+        return habilidades.stream()
+                .filter(habilidad -> "VALIDADA".equals(habilidad.getEstadoCodigo()))
+                .toList();
+    }
     public List<AsignacionDetalle> getAsignaciones() { return asignaciones; }
     public List<ExperienciaDetalle> getExperiencias() { return experiencias; }
     public List<EducacionDetalle> getEducacion() { return educacion; }
@@ -61,16 +68,26 @@ public class RmColaboradorDetalle {
         private final String nombre;
         private final String nivel;
         private final String estadoValidacion;
+        private final String estadoCodigo;
 
-        public HabilidadDetalle(String nombre, String nivel, String estadoValidacion) {
+        public HabilidadDetalle(String nombre, String nivel, String estadoValidacion, String estadoCodigo) {
             this.nombre = nombre;
             this.nivel = nivel;
             this.estadoValidacion = estadoValidacion;
+            this.estadoCodigo = estadoCodigo;
         }
 
         public String getNombre() { return nombre; }
         public String getNivel() { return nivel; }
         public String getEstadoValidacion() { return estadoValidacion; }
+        public String getEstadoCodigo() { return estadoCodigo; }
+
+        // Insignia distinta por estado: solo las validadas cuentan para asignar.
+        public String getEstadoClase() {
+            if ("VALIDADA".equals(estadoCodigo)) return "bg-green-lt";
+            if ("RECHAZADA".equals(estadoCodigo)) return "bg-red-lt";
+            return "bg-yellow-lt";
+        }
     }
 
     public static class AsignacionDetalle {

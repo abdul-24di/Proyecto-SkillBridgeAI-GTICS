@@ -78,15 +78,17 @@
 
     <div class="row g-4">
       <div class="col-lg-6">
-        <h4 class="perfil-subtitulo">Habilidades</h4>
-        <div th:each="habilidad : ${colaborador.habilidades}" class="perfil-item d-flex justify-content-between gap-2">
+        <h4 class="perfil-subtitulo">Habilidades validadas</h4>
+        <div th:each="habilidad : ${colaborador.habilidadesValidadas}" class="perfil-item d-flex justify-content-between gap-2">
           <div>
             <div class="fw-semibold" th:text="${habilidad.nombre}">Habilidad</div>
             <div class="small text-secondary" th:text="|Dominio: ${habilidad.nivel}|">Dominio</div>
           </div>
-          <span class="badge bg-secondary-lt align-self-start" th:text="${habilidad.estadoValidacion}">Validada</span>
+          <span class="badge align-self-start" th:classappend="${habilidad.estadoClase}"
+                th:attr="data-estado-habilidad=${habilidad.estadoCodigo}"
+                th:text="${habilidad.estadoValidacion}">Validada</span>
         </div>
-        <div th:if="${#lists.isEmpty(colaborador.habilidades)}" class="small text-secondary">Sin habilidades registradas.</div>
+        <div th:if="${#lists.isEmpty(colaborador.habilidadesValidadas)}" class="small text-secondary">Sin habilidades validadas.</div>
       </div>
       <div class="col-lg-6">
         <h4 class="perfil-subtitulo">Asignaciones activas</h4>

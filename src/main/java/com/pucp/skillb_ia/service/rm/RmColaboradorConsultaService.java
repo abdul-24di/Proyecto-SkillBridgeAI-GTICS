@@ -10,6 +10,7 @@ import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
+import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.model.enums.NivelExperiencia;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.CertificadoRepository;
@@ -115,12 +116,14 @@ public class RmColaboradorConsultaService {
         int maxAsignaciones = obtenerMaxAsignaciones();
         RmColaboradorResumen resumen = crearResumen(colaborador, maxAsignaciones);
 
-        List<RmColaboradorDetalle.HabilidadDetalle> habilidades = obtenerHabilidades(colaborador)
+        // Perfil completo: todas las habilidades activas, con su estado de validación.
+        List<RmColaboradorDetalle.HabilidadDetalle> habilidades = obtenerHabilidadesPerfil(colaborador)
                 .stream()
                 .map(item -> new RmColaboradorDetalle.HabilidadDetalle(
                         item.getHabilidad().getNombre(),
                         textoEnum(item.getNivelDominio().name()),
-                        textoEnum(item.getEstadoValidacion().name())))
+                        textoEnum(item.getEstadoValidacion().name()),
+                        item.getEstadoValidacion().name()))
                 .toList();
 
         List<RmColaboradorDetalle.AsignacionDetalle> asignaciones = obtenerAsignacionesActivas(colaborador)
@@ -159,8 +162,9 @@ public class RmColaboradorConsultaService {
                 educacion);
     }
 
+    // El resumen alimenta tarjetas, texto de búsqueda y propuestas: solo habilidades validadas.
     private RmColaboradorResumen crearResumen(Usuario colaborador, int maxAsignaciones) {
-        List<String> habilidades = obtenerHabilidades(colaborador)
+        List<String> habilidades = obtenerHabilidadesValidadas(colaborador)
                 .stream()
                 .map(item -> item.getHabilidad().getNombre())
                 .toList();
@@ -188,9 +192,19 @@ public class RmColaboradorConsultaService {
                 certificadosAprobados);
     }
 
-    private List<ColaboradorHabilidad> obtenerHabilidades(Usuario colaborador) {
-        return colaboradorHabilidadRepository.findByColaboradorAndActivoTrue(colaborador)
-                .stream()
+    // Para buscar, recomendar y proponer solo cuentan las habilidades VALIDADA (TASK-015).
+    private List<ColaboradorHabilidad> obtenerHabilidadesValidadas(Usuario colaborador) {
+        return ordenarPorNombre(colaboradorHabilidadRepository
+                .findByColaboradorAndActivoTrueAndEstadoValidacion(colaborador, EstadoValidacion.VALIDADA));
+    }
+
+    // Perfil e historial: todas las habilidades activas (validadas, pendientes y rechazadas).
+    private List<ColaboradorHabilidad> obtenerHabilidadesPerfil(Usuario colaborador) {
+        return ordenarPorNombre(colaboradorHabilidadRepository.findByColaboradorAndActivoTrue(colaborador));
+    }
+
+    private List<ColaboradorHabilidad> ordenarPorNombre(List<ColaboradorHabilidad> habilidades) {
+        return habilidades.stream()
                 .sorted(Comparator.comparing(item -> item.getHabilidad().getNombre(), String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }

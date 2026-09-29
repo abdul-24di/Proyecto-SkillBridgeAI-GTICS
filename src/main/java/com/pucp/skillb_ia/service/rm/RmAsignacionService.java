@@ -301,8 +301,9 @@ public class RmAsignacionService {
                 asignacion.getProyecto(), EstadoAsignacion.ACTIVA);
         int vacantes = Math.max(0,
                 asignacion.getProyecto().getColaboradoresRequeridos() - equipoActual);
+        // Criterios de asignación: solo habilidades validadas (TASK-015).
         List<String> habilidades = colaboradorHabilidadRepository
-                .findByColaboradorAndActivoTrue(colaborador).stream()
+                .findByColaboradorAndActivoTrueAndEstadoValidacion(colaborador, EstadoValidacion.VALIDADA).stream()
                 .map(item -> item.getHabilidad().getNombre())
                 .sorted(String.CASE_INSENSITIVE_ORDER)
                 .toList();

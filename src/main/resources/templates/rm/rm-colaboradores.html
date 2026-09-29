@@ -323,8 +323,8 @@
       </div>
 
 
-      <!-- FILTERS -->
-      <div class="card-body border-bottom">
+      <!-- FILTROS (TASK-029): GET en el servidor, sin JS -->
+      <form id="filtersForm" method="get" th:action="@{/rm/colaboradores}" class="card-body border-bottom">
 
         <div class="row g-3 align-items-end">
 
@@ -336,8 +336,11 @@
             </label>
 
             <input id="searchInput"
+                   name="busqueda"
                    class="form-control"
                    type="text"
+                   maxlength="100"
+                   th:value="${busqueda}"
                    placeholder="Nombre, cargo o habilidad">
 
           </div>
@@ -351,25 +354,26 @@
             </label>
 
             <select id="availabilityFilter"
+                    name="disponibilidad"
                     class="form-select">
 
               <option value="all">
                 Todas
               </option>
 
-              <option value="24">
+              <option value="24" th:selected="${disponibilidad == '24'}">
                 24 h/sem o más
               </option>
 
-              <option value="16">
+              <option value="16" th:selected="${disponibilidad == '16'}">
                 16 h/sem o más
               </option>
 
-              <option value="8">
+              <option value="8" th:selected="${disponibilidad == '8'}">
                 8 h/sem o más
               </option>
 
-              <option value="0">
+              <option value="0" th:selected="${disponibilidad == '0'}">
                 Sin disponibilidad
               </option>
 
@@ -386,25 +390,26 @@
             </label>
 
             <select id="loadFilter"
+                    name="carga"
                     class="form-select">
 
               <option value="all">
                 Todas
               </option>
 
-              <option value="0">
+              <option value="0" th:selected="${carga == '0'}">
                 0 asignaciones
               </option>
 
-              <option value="1">
+              <option value="1" th:selected="${carga == '1'}">
                 1 asignación
               </option>
 
-              <option value="2">
+              <option value="2" th:selected="${carga == '2'}">
                 2 asignaciones
               </option>
 
-              <option value="max">
+              <option value="max" th:selected="${carga == 'max'}">
                 Carga máxima
               </option>
 
@@ -421,21 +426,22 @@
             </label>
 
             <select id="levelFilter"
+                    name="nivel"
                     class="form-select">
 
               <option value="all">
                 Todos
               </option>
 
-              <option value="Junior">
+              <option value="Junior" th:selected="${nivel == 'Junior'}">
                 Junior
               </option>
 
-              <option value="Semi Senior">
+              <option value="Semi Senior" th:selected="${nivel == 'Semi Senior'}">
                 Semi Senior
               </option>
 
-              <option value="Senior">
+              <option value="Senior" th:selected="${nivel == 'Senior'}">
                 Senior
               </option>
 
@@ -444,13 +450,18 @@
           </div>
 
 
-          <div class="col-xl-2 d-grid">
+          <div class="col-xl-2 d-flex gap-2">
 
-            <button id="clearFilters"
-                    type="button"
-                    class="btn btn-outline-secondary">
-              Limpiar filtros
+            <button type="submit"
+                    class="btn btn-primary flex-fill">
+              Filtrar
             </button>
+
+            <a id="clearFilters"
+               class="btn btn-outline-secondary flex-fill"
+               th:href="@{/rm/colaboradores}">
+              Limpiar filtros
+            </a>
 
           </div>
 
@@ -470,7 +481,7 @@
 
         </div>
 
-      </div>
+      </form>
 
 
       <!-- GRID -->
@@ -480,12 +491,7 @@
              class="row row-cards">
 
           <div class="col-lg-4 col-md-6 collaborator-item"
-               th:each="colaborador : ${colaboradores}"
-               th:attr="data-search=${colaborador.textoBusqueda},
-                        data-hours=${colaborador.horasDisponibles},
-                        data-load=${colaborador.asignacionesActivas},
-                        data-max=${colaborador.maxAsignaciones},
-                        data-level=${colaborador.nivel}">
+               th:each="colaborador : ${colaboradores}">
 
             <div class="card collab-card">
               <div class="card-body">
@@ -569,13 +575,13 @@
             </div>
           </div>
 
-          <div class="col-12" th:if="${#lists.isEmpty(colaboradores)}">
+          <div class="col-12" th:if="${totalColaboradores == 0}">
             <div class="card">
               <div class="empty-state">No hay colaboradores activos registrados.</div>
             </div>
           </div>
 
-          <div id="noFilterResults" class="col-12 d-none">
+          <div id="noFilterResults" class="col-12" th:if="${totalColaboradores > 0 and #lists.isEmpty(colaboradores)}">
             <div class="card">
               <div class="empty-state">No se encontraron colaboradores con los filtros seleccionados.</div>
             </div>
@@ -585,15 +591,22 @@
       </div>
 
 
-      <!-- PAGINATION -->
+      <!-- PAGINACIÓN -->
       <div class="pagination-wrap">
 
         <div id="paginationInfo"
-             class="text-secondary small">
+             class="text-secondary small"
+             th:with="desdeFila=${totalRegistros == 0 ? 0 : ((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(colaboradores)}"
+             th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} colaboradores|">
+          Mostrando 0-0 de 0 colaboradores
         </div>
 
         <ul id="pagination"
-            class="pagination pagination-sm m-0">
+            class="pagination pagination-sm m-0"
+            th:if="${totalPaginas > 1}">
+          <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/colaboradores(busqueda=${busqueda}, disponibilidad=${disponibilidad}, carga=${carga}, nivel=${nivel}, pagina=${paginaActual - 1})}">Anterior</a></li>
+          <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/colaboradores(busqueda=${busqueda}, disponibilidad=${disponibilidad}, carga=${carga}, nivel=${nivel}, pagina=${n})}" th:text="${n}">1</a></li>
+          <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/colaboradores(busqueda=${busqueda}, disponibilidad=${disponibilidad}, carga=${carga}, nivel=${nivel}, pagina=${paginaActual + 1})}">Siguiente</a></li>
         </ul>
 
       </div>
@@ -611,9 +624,6 @@
 
 <script src="../../static/js/rm-js/rm-navigation.js"
         th:src="@{/js/rm-js/rm-navigation.js}">
-</script>
-<script src="../../static/js/rm-js/rm-colaboradores.js"
-        th:src="@{/js/rm-js/rm-colaboradores.js}">
 </script>
 
 </body>

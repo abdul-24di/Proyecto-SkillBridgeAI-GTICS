@@ -29,6 +29,7 @@ import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.rm.RmAsignacionService;
 import com.pucp.skillb_ia.service.pm.PmAsignacionService;
 import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +103,9 @@ class RmAsignacionTests {
     private Usuario pm;
     private Usuario colaborador;
     private Proyecto proyecto;
+    // Búsqueda de candidatos (TASK-029): lote que se desactiva al terminar cada prueba.
+    private static final String BUSCAR = "/rm/proyectos/buscar-colaboradores";
+    private final List<Usuario> loteCandidatos = new ArrayList<>();
 
     @BeforeEach
     void prepararDatos() {
@@ -140,6 +144,16 @@ class RmAsignacionTests {
         proyecto.setFechaInicio(java.time.LocalDate.now());
         proyecto.setFechaFinEstimada(java.time.LocalDate.now().plusMonths(3));
         proyecto = proyectoRepository.save(proyecto);
+    }
+
+    // El lote de candidatos no debe aparecer en las demás clases.
+    @AfterEach
+    void desactivarLoteCandidatos() {
+        loteCandidatos.forEach(usuario -> {
+            usuario.setActivo(false);
+            usuarioRepository.save(usuario);
+        });
+        loteCandidatos.clear();
     }
 
     @Test
@@ -770,22 +784,21 @@ class RmAsignacionTests {
     @Test
     void candidatosYPropuestaUsanSoloHabilidadesValidadas() throws Exception {
         // Regla en el servicio: el resumen del candidato solo lleva habilidades validadas.
-        RmColaboradorResumen candidato = consultaService.listarCandidatosParaProyecto(proyecto).stream()
+        RmColaboradorResumen candidato = consultaService.listarPaginaCandidatos(proyecto,
+                        consultaService.normalizarFiltrosCandidatos("Carla Colaboradora", null, null), "1")
+                .filas().stream()
                 .map(RmColaboradorConsultaService.CandidatoConCosto::resumen)
                 .filter(resumen -> resumen.getId().equals(colaborador.getId()))
                 .findFirst().orElseThrow();
         assertEquals(java.util.List.of(HAB_VALIDADA), candidato.getHabilidades());
         assertFalse(candidato.getTextoBusqueda().contains(HAB_PENDIENTE));
         assertFalse(candidato.getTextoBusqueda().contains(HAB_RECHAZADA));
+        // La búsqueda GET por habilidad: busquedaDeCandidatosSoloCoincideConHabilidadesValidadas.
 
-        // Búsqueda por habilidad (misma comparación que el filtro sobre data-search).
-        assertTrue(coincidenConBusqueda(HAB_VALIDADA).contains(colaborador.getId()));
-        assertFalse(coincidenConBusqueda(HAB_PENDIENTE).contains(colaborador.getId()));
-        assertFalse(coincidenConBusqueda(HAB_RECHAZADA).contains(colaborador.getId()));
-        assertFalse(coincidenConBusqueda(HAB_INACTIVA).contains(colaborador.getId()));
-
+        // Con 6 tarjetas por página se acota por nombre para que la tarjeta de Carla esté visible.
         String tarjetas = mockMvc.perform(get("/rm/proyectos/buscar-colaboradores")
-                        .param("proyectoId", proyecto.getId().toString()))
+                        .param("proyectoId", proyecto.getId().toString())
+                        .param("busqueda", "Carla Colaboradora"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertTrue(tarjetas.contains(HAB_VALIDADA));
@@ -860,13 +873,250 @@ class RmAsignacionTests {
         assertEquals(EstadoValidacion.RECHAZADA, estadoGuardado(HAB_RECHAZADA));
     }
 
-    private java.util.List<Long> coincidenConBusqueda(String termino) {
-        String buscado = termino.toLowerCase();
-        return consultaService.listarCandidatosParaProyecto(proyecto).stream()
-                .map(RmColaboradorConsultaService.CandidatoConCosto::resumen)
-                .filter(resumen -> resumen.getTextoBusqueda().toLowerCase().contains(buscado))
-                .map(RmColaboradorResumen::getId)
+    // ---- TASK-029: filtros GET y paginación de la búsqueda de candidatos en el servidor ----
+
+    @Test
+    void candidatosPaginanDeSeisEnSeisYLaVistaFuncionaSinJavaScript() throws Exception {
+        crearLoteCandidatos();
+        String proyectoId = proyecto.getId().toString();
+
+        MvcResult primera = mockMvc.perform(get(BUSCAR).param("proyectoId", proyectoId).param("busqueda", "cand029"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 1))
+                .andExpect(model().attribute("totalPaginas", 2))
+                .andExpect(model().attribute("totalRegistros", 9L))
+                .andReturn();
+        assertEquals(List.of("K01", "K02", "K03", "K04", "K05", "K06"), codigosCandidatos(primera));
+        String html = primera.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("Mostrando 1-6 de 9 colaboradores"));
+        assertTrue(html.contains("id=\"candidateFiltersForm\" method=\"get\""));
+        assertTrue(html.contains("type=\"hidden\" name=\"proyectoId\" value=\"" + proyectoId + "\""));
+        assertFalse(html.contains("rm-buscar-colaboradores-proyecto.js"));
+        assertFalse(html.contains("data-search="));
+        // El flujo de propuesta (modales) no cambia.
+        assertTrue(html.contains("id=\"propuestaModal\"") && html.contains("id=\"perfilModal\""));
+
+        MvcResult segunda = mockMvc.perform(get(BUSCAR).param("proyectoId", proyectoId)
+                        .param("busqueda", "cand029").param("pagina", "2"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 2))
+                .andReturn();
+        assertEquals(List.of("K07", "K08", "K09"), codigosCandidatos(segunda));
+        assertTrue(segunda.getResponse().getContentAsString(StandardCharsets.UTF_8)
+                .contains("Mostrando 7-9 de 9 colaboradores"));
+    }
+
+    @Test
+    void enlacesDeCandidatosConservanProyectoIdYLosFiltros() throws Exception {
+        crearLoteCandidatos();
+        String proyectoId = proyecto.getId().toString();
+        // Puede recibir otra: K01..K05, K07 y K09 (7), dos páginas.
+        String html = mockMvc.perform(get(BUSCAR).param("proyectoId", proyectoId).param("busqueda", "cand029")
+                        .param("disponibilidad", "0").param("carga", "available"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalRegistros", 7L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        List<String> enlaces = enlaces(html, "/rm/proyectos/buscar-colaboradores\\?[^\"]*pagina=\\d+");
+        assertEquals(4, enlaces.size()); // Anterior, 1, 2, Siguiente
+        for (String enlace : enlaces) {
+            assertTrue(enlace.contains("proyectoId=" + proyectoId), enlace);
+            assertTrue(enlace.contains("busqueda=cand029"), enlace);
+            assertTrue(enlace.contains("disponibilidad=0"), enlace);
+            assertTrue(enlace.contains("carga=available"), enlace);
+        }
+        assertTrue(html.contains("value=\"cand029\""));
+        assertTrue(html.contains("<option value=\"available\" selected=\"selected\">"));
+        // "Limpiar filtros" también conserva el proyecto.
+        assertTrue(html.contains("href=\"/rm/proyectos/buscar-colaboradores?proyectoId=" + proyectoId + "\""));
+
+        String siguiente = enlaces.get(enlaces.size() - 1);
+        assertTrue(siguiente.endsWith("pagina=2"), siguiente);
+        MvcResult segunda = mockMvc.perform(conParametros(BUSCAR, siguiente.substring(siguiente.indexOf('?') + 1)))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 2))
+                .andExpect(model().attribute("carga", "available"))
+                .andReturn();
+        assertEquals(List.of("K09"), codigosCandidatos(segunda));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @CsvSource(delimiter = '|', value = {
+            "busqueda=cand029 | K01,K02,K03,K04,K05,K06,K07,K08,K09",
+            "busqueda=  CAND029 k03  | K03",
+            "busqueda=cand029&disponibilidad=0 | K01,K02,K03,K04,K05,K06,K07,K08,K09",
+            "busqueda=cand029&disponibilidad=8 | K01,K02,K03,K04,K05,K06,K07,K08",
+            "busqueda=cand029&disponibilidad=16 | K04,K05,K06,K07,K08",
+            "busqueda=cand029&disponibilidad=24 | K06,K07,K08",
+            "busqueda=cand029&carga=available | K01,K02,K03,K04,K05,K07,K09",
+            "busqueda=cand029&carga=full | K06,K08",
+            "busqueda=cand029&disponibilidad=16&carga=available | K04,K05,K07",
+            "busqueda=cand029&disponibilidad=24&carga=FULL | K06,K08",
+    })
+    void filtrosDeCandidatosAplicanElCriterioAnterior(String filtros, String esperados) throws Exception {
+        crearLoteCandidatos();
+        assertEquals(Arrays.asList(esperados.split(",")), codigosDeTodasLasPaginas(filtros));
+    }
+
+    @Test
+    void candidatosConservanLasExclusionesActuales() throws Exception {
+        List<Usuario> lote = crearLoteCandidatos();
+        // Mismo nombre del lote, pero inactivo o con otro rol: no son candidatos.
+        Usuario inactivo = obtenerUsuario("cand029.z98@skillbridge.test", "Cand029", "Z98", obtenerRol("COLABORADOR"));
+        inactivo.setActivo(false);
+        usuarioRepository.save(inactivo);
+        Usuario otroRol = obtenerUsuario("cand029.z99@skillbridge.test", "Cand029", "Z99",
+                obtenerRol("PROJECT_MANAGER"));
+        otroRol.setActivo(true);
+        loteCandidatos.add(usuarioRepository.save(otroRol));
+        // K01 ya tiene una propuesta pendiente en este proyecto: sigue listado con "Proponer" bloqueado.
+        guardarAsignacion(proyecto, lote.get(0), OrigenAsignacion.PROPUESTA_RM, EstadoAsignacion.PENDIENTE,
+                false, true, LocalDateTime.now());
+
+        assertEquals(List.of("K01", "K02", "K03", "K04", "K05", "K06", "K07", "K08", "K09"),
+                codigosDeTodasLasPaginas("busqueda=cand029"));
+        String html = mockMvc.perform(get(BUSCAR).param("proyectoId", proyecto.getId().toString())
+                        .param("busqueda", "cand029"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("colaboradoresConAsignacion",
+                        org.hamcrest.Matchers.hasItem(lote.get(0).getId())))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(1, contar(html, ">Ya en el proyecto</span>"));
+        assertEquals(5, contar(html, "data-abrir-propuesta"));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @CsvSource(delimiter = '|', value = {
+            HAB_VALIDADA + " | true",
+            HAB_PENDIENTE + " | false",
+            HAB_RECHAZADA + " | false",
+            HAB_INACTIVA + " | false",
+    })
+    void busquedaDeCandidatosSoloCoincideConHabilidadesValidadas(String habilidad, boolean encontrado)
+            throws Exception {
+        MvcResult resultado = mockMvc.perform(get(BUSCAR).param("proyectoId", proyecto.getId().toString())
+                        .param("busqueda", habilidad))
+                .andExpect(status().isOk())
+                .andReturn();
+        List<Long> ids = candidatosDeLaPagina(resultado).stream()
+                .map(candidato -> candidato.resumen().getId())
                 .toList();
+        // Solo Carla tiene estas habilidades de prueba.
+        assertEquals(encontrado ? List.of(colaborador.getId()) : List.of(), ids);
+        if (!encontrado) {
+            assertTrue(resultado.getResponse().getContentAsString(StandardCharsets.UTF_8)
+                    .contains("No se encontraron colaboradores con esos filtros."));
+        }
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @CsvSource(delimiter = '|', value = {
+            "disponibilidad=abc | 1",
+            "disponibilidad=12 | 1",
+            "disponibilidad= | 1",
+            "carga=xyz | 1",
+            "carga=all | 1",
+            "pagina=abc | 1",
+            "pagina=0 | 1",
+            "pagina=-2 | 1",
+            "pagina=99 | 2",
+    })
+    void parametrosInvalidosDeCandidatosVuelvenAValoresSeguros(String filtros, int paginaEsperada)
+            throws Exception {
+        crearLoteCandidatos();
+        mockMvc.perform(conParametros(BUSCAR,
+                        "proyectoId=" + proyecto.getId() + "&busqueda=cand029&" + filtros))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-buscar-colaboradores-proyecto"))
+                .andExpect(model().attribute("totalRegistros", 9L))
+                .andExpect(model().attribute("paginaActual", paginaEsperada))
+                .andExpect(model().attribute("disponibilidad", "0"))
+                .andExpect(model().attribute("carga", nullValue()));
+    }
+
+    /**
+     * Crea 9 colaboradores "Cand029 K01".."K09" (horas disponibles, asignaciones activas en otros
+     * proyectos): K01 8 0 · K02 8 0 · K03 12 1 · K04 16 2 · K05 20 0 · K06 24 máx ·
+     * K07 30 0 · K08 24 máx · K09 0 0.
+     */
+    private List<Usuario> crearLoteCandidatos() {
+        int maximo = consultaService.listarColaboradoresActivos().get(0).getMaxAsignaciones();
+        Object[][] datos = {
+                {"K01", "8", 0}, {"K02", "8", 0}, {"K03", "12", 1}, {"K04", "16", 2}, {"K05", "20", 0},
+                {"K06", "24", maximo}, {"K07", "30", 0}, {"K08", "24", maximo}, {"K09", "0", 0},
+        };
+        List<Proyecto> cargas = new ArrayList<>();
+        for (int i = 0; i < maximo; i++) {
+            Proyecto carga = new Proyecto();
+            carga.setNombre("Carga Cand029 " + i + " " + System.nanoTime());
+            carga.setDescripcion("Proyecto para la carga de los candidatos de TASK-029.");
+            carga.setEstado(EstadoProyecto.ACTIVO);
+            carga.setPrioridad(Prioridad.BAJA);
+            carga.setJustificacionPrioridad("Filtros de candidatos.");
+            carga.setColaboradoresRequeridos(20);
+            carga.setPm(pm);
+            cargas.add(proyectoRepository.save(carga));
+        }
+        Rol rolColaborador = obtenerRol("COLABORADOR");
+        List<Usuario> lote = new ArrayList<>();
+        for (Object[] fila : datos) {
+            String codigo = (String) fila[0];
+            Usuario usuario = obtenerUsuario("cand029." + codigo.toLowerCase() + "@skillbridge.test",
+                    "Cand029", codigo, rolColaborador);
+            usuario.setActivo(true);
+            usuario.setHorasDisponibles(new BigDecimal((String) fila[1]));
+            usuario = usuarioRepository.save(usuario);
+            lote.add(usuario);
+            for (int i = 0; i < (int) fila[2]; i++) {
+                guardarAsignacion(cargas.get(i), usuario, OrigenAsignacion.PROPUESTA_RM,
+                        EstadoAsignacion.ACTIVA, true, true, LocalDateTime.now());
+            }
+        }
+        loteCandidatos.addAll(lote);
+        return lote;
+    }
+
+    // Recorre todas las páginas de la búsqueda del proyecto y devuelve los códigos en orden.
+    private List<String> codigosDeTodasLasPaginas(String filtros) throws Exception {
+        List<String> codigos = new ArrayList<>();
+        int pagina = 1;
+        int totalPaginas;
+        do {
+            MvcResult resultado = mockMvc.perform(conParametros(BUSCAR,
+                            "proyectoId=" + proyecto.getId() + "&" + filtros + "&pagina=" + pagina))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            totalPaginas = (int) resultado.getModelAndView().getModel().get("totalPaginas");
+            codigos.addAll(codigosCandidatos(resultado));
+            pagina++;
+        } while (pagina <= totalPaginas);
+        return codigos;
+    }
+
+    private List<String> codigosCandidatos(MvcResult resultado) {
+        return candidatosDeLaPagina(resultado).stream()
+                .map(candidato -> candidato.resumen().getNombreCompleto())
+                .map(nombre -> nombre.substring(nombre.lastIndexOf(' ') + 1))
+                .toList();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<RmColaboradorConsultaService.CandidatoConCosto> candidatosDeLaPagina(MvcResult resultado) {
+        List<RmColaboradorConsultaService.CandidatoConCosto> filas =
+                (List<RmColaboradorConsultaService.CandidatoConCosto>) resultado.getModelAndView()
+                        .getModel().get("candidatos");
+        assertTrue(filas.size() <= RmColaboradorConsultaService.TAMANIO_PAGINA);
+        return filas;
+    }
+
+    // Igual que conParametros(consulta), para otra ruta.
+    private MockHttpServletRequestBuilder conParametros(String ruta, String consulta) {
+        MockHttpServletRequestBuilder solicitud = get(ruta);
+        for (String par : consulta.split("&")) {
+            int igual = par.indexOf('=');
+            if (igual > 0) solicitud.param(par.substring(0, igual), par.substring(igual + 1));
+        }
+        return solicitud;
     }
 
     private void assertSinHabilidadesNoValidadas(String html) {

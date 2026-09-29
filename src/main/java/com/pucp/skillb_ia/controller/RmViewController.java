@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.dto.RmColaboradorDetalle;
-import com.pucp.skillb_ia.dto.RmColaboradorResumen;
 import com.pucp.skillb_ia.dto.RmAsignacionView;
 import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
@@ -407,6 +406,10 @@ public class RmViewController {
     @GetMapping({"/proyectos/buscar-colaboradores", "/rm-buscar-colaboradores-proyecto.html"})
     public String searchProjectCollaborators(
             @RequestParam(name = "proyectoId", required = false) String proyectoIdTexto,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String disponibilidad,
+            @RequestParam(required = false) String carga,
+            @RequestParam(required = false) String pagina,
             Model model,
             RedirectAttributes redirectAttributes) {
         if (proyectoIdTexto == null || proyectoIdTexto.isBlank()) return "redirect:/rm/proyectos";
@@ -424,9 +427,18 @@ public class RmViewController {
                                 + proyecto.getEstadoTexto().toLowerCase(Locale.ROOT) + ".");
                 return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
             }
+            var filtros = rmColaboradorConsultaService.normalizarFiltrosCandidatos(busqueda, disponibilidad, carga);
+            var paginaCandidatos = rmColaboradorConsultaService.listarPaginaCandidatos(
+                    proyecto.getProyecto(), filtros, pagina);
             model.addAttribute("proyecto", proyecto);
-            model.addAttribute("candidatos",
-                    rmColaboradorConsultaService.listarCandidatosParaProyecto(proyecto.getProyecto()));
+            model.addAttribute("candidatos", paginaCandidatos.filas());
+            model.addAttribute("paginaActual", paginaCandidatos.paginaActual());
+            model.addAttribute("totalPaginas", paginaCandidatos.totalPaginas());
+            model.addAttribute("totalRegistros", paginaCandidatos.totalRegistros());
+            model.addAttribute("tamanioPagina", RmColaboradorConsultaService.TAMANIO_PAGINA);
+            model.addAttribute("busqueda", filtros.busqueda());
+            model.addAttribute("disponibilidad", filtros.disponibilidad());
+            model.addAttribute("carga", filtros.carga());
             model.addAttribute("colaboradoresConAsignacion",
                     rmAsignacionService.colaboradoresConAsignacionVigente(proyecto.getProyecto()));
         } catch (IllegalArgumentException ex) {
@@ -504,22 +516,29 @@ public class RmViewController {
     @GetMapping({"/colaboradores", "/rm-colaboradores.html"})
     public String collaborators(
             @RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String disponibilidad,
+            @RequestParam(required = false) String carga,
+            @RequestParam(required = false) String nivel,
+            @RequestParam(required = false) String pagina,
             Model model) {
-        List<RmColaboradorResumen> colaboradores =
-                rmColaboradorConsultaService.listarColaboradoresActivos();
+        var filtros = rmColaboradorConsultaService.normalizarFiltrosDirectorio(busqueda, disponibilidad, carga, nivel);
+        var paginaColaboradores = rmColaboradorConsultaService.listarPaginaDirectorio(filtros, pagina);
+        var contadores = paginaColaboradores.contadores();
 
-        model.addAttribute("colaboradores", colaboradores);
-        model.addAttribute("totalColaboradores", colaboradores.size());
-        model.addAttribute("totalDisponibles", colaboradores.stream()
-                .filter(colaborador -> colaborador.getHorasDisponibles()
-                        .compareTo(BigDecimal.valueOf(16)) >= 0)
-                .count());
-        model.addAttribute("totalSinAsignaciones", colaboradores.stream()
-                .filter(colaborador -> colaborador.getAsignacionesActivas() == 0)
-                .count());
-        model.addAttribute("totalCargaMaxima", colaboradores.stream()
-                .filter(RmColaboradorResumen::isCargaMaxima)
-                .count());
+        model.addAttribute("colaboradores", paginaColaboradores.filas());
+        model.addAttribute("paginaActual", paginaColaboradores.paginaActual());
+        model.addAttribute("totalPaginas", paginaColaboradores.totalPaginas());
+        model.addAttribute("totalRegistros", paginaColaboradores.totalRegistros());
+        model.addAttribute("tamanioPagina", RmColaboradorConsultaService.TAMANIO_PAGINA);
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("disponibilidad", filtros.disponibilidad());
+        model.addAttribute("carga", filtros.carga());
+        model.addAttribute("nivel", filtros.nivel());
+        model.addAttribute("totalColaboradores", contadores.total());
+        model.addAttribute("totalDisponibles", contadores.disponibles());
+        model.addAttribute("totalSinAsignaciones", contadores.sinAsignaciones());
+        model.addAttribute("totalCargaMaxima", contadores.cargaMaxima());
         model.addAttribute("colaboradorNoEncontrado", Boolean.TRUE.equals(noEncontrado));
 
         return "rm/rm-colaboradores";

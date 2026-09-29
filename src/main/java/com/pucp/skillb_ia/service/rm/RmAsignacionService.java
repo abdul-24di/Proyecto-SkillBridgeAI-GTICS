@@ -18,9 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -32,6 +35,33 @@ public class RmAsignacionService {
     private static final String CLAVE_MAX_ASIGNACIONES = "MAX_ASIGNACIONES_POR_COLABORADOR";
     private static final int MAX_ASIGNACIONES_POR_DEFECTO = 3;
     private static final BigDecimal MAX_HORAS_SEMANALES = new BigDecimal("168");
+    private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
+
+    // Bandeja de asignaciones (TASK-027): filtros GET y paginación en el servidor.
+    public static final int TAMANIO_PAGINA = 10;
+    public static final String GRUPO_POR_DEFECTO = "pending";
+    public static final List<String> ORIGENES = List.of("PM", "RM", "Colaborador");
+    // Estados que los flujos pueden producir en cada pestaña. No se ofrece "Pendiente" a secas:
+    // ninguna propuesta ni postulación queda PENDIENTE sin ser "Pendiente RM", "Pendiente PM" o
+    // "Pendiente RM y PM" (con ambas aprobaciones pasa a ACTIVA en la misma transacción).
+    private static final Map<String, List<String>> ESTADOS_POR_GRUPO = Map.of(
+            "pending", List.of("Pendiente RM", "Pendiente PM", "Pendiente RM y PM"),
+            "active", List.of("Activa"),
+            "history", List.of("Finalizada", "Rechazada"));
+
+    /** Filtros ya validados: los valores nulos significan "Todos". */
+    public record FiltrosAsignacion(String grupo, String busqueda, String origen, String estado,
+                                    Long proyectoId, String proyectoNombre) {
+    }
+
+    /** Contadores de tarjetas y pestañas sobre el conjunto completo (todo o solo el proyecto filtrado). */
+    public record ContadoresAsignaciones(long pendientesRm, long pendientesPm, long solicitudesColaborador,
+                                         long activas, long historial) {
+    }
+
+    public record PaginaAsignaciones(List<RmAsignacionView> filas, int paginaActual, int totalPaginas,
+                                     long totalRegistros, ContadoresAsignaciones contadores) {
+    }
 
     private final AsignacionRepository asignacionRepository;
     private final ProyectoRepository proyectoRepository;
@@ -76,6 +106,69 @@ public class RmAsignacionService {
         return asignacionRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
                 .map(asignacion -> crearVista(asignacion, maxAsignaciones))
                 .toList();
+    }
+
+    /** Opciones de estado de la pestaña indicada (grupo ya normalizado). */
+    public List<String> estadosDelGrupo(String grupo) {
+        return ESTADOS_POR_GRUPO.getOrDefault(grupo, ESTADOS_POR_GRUPO.get(GRUPO_POR_DEFECTO));
+    }
+
+    /**
+     * Normaliza los parámetros GET de la bandeja. Vacíos, "all" o valores desconocidos
+     * vuelven al comportamiento general: pestaña "pending" y sin filtro.
+     */
+    @Transactional(readOnly = true)
+    public FiltrosAsignacion normalizarFiltros(String grupo, String busqueda, String origen,
+                                               String estado, String proyectoId) {
+        String grupoValido = grupo != null && ESTADOS_POR_GRUPO.containsKey(grupo.trim())
+                ? grupo.trim() : GRUPO_POR_DEFECTO;
+        String busquedaLimpia = busqueda == null ? "" : busqueda.trim();
+        if (busquedaLimpia.length() > LONGITUD_MAXIMA_BUSQUEDA) {
+            busquedaLimpia = busquedaLimpia.substring(0, LONGITUD_MAXIMA_BUSQUEDA);
+        }
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        return new FiltrosAsignacion(
+                grupoValido,
+                busquedaLimpia.isEmpty() ? null : busquedaLimpia,
+                opcionValida(origen, ORIGENES),
+                opcionValida(estado, estadosDelGrupo(grupoValido)),
+                proyecto == null ? null : proyecto.getId(),
+                proyecto == null ? null : proyecto.getNombre());
+    }
+
+    /**
+     * Filtra, cuenta y pagina la bandeja en orden de fechaSolicitud descendente. Solo las filas
+     * de la página se construyen con la vista completa (consultas de capacidad y habilidades).
+     */
+    @Transactional(readOnly = true)
+    public PaginaAsignaciones listarPagina(FiltrosAsignacion filtros, String pagina) {
+        List<RmAsignacionView> conjunto = asignacionRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
+                .filter(asignacion -> filtros.proyectoId() == null
+                        || filtros.proyectoId().equals(asignacion.getProyecto().getId()))
+                .map(this::crearVistaBasica)
+                .toList();
+
+        String busqueda = textoComparable(filtros.busqueda());
+        List<RmAsignacionView> filtrados = conjunto.stream()
+                .filter(item -> item.getGrupo().equals(filtros.grupo()))
+                .filter(item -> filtros.origen() == null || filtros.origen().equals(item.getOrigenCodigo()))
+                .filter(item -> filtros.estado() == null || filtros.estado().equals(item.getEstadoBandeja()))
+                .filter(item -> busqueda.isEmpty() || textoComparable(
+                        item.getColaboradorNombre() + " " + item.getAsignacion().getProyecto().getNombre())
+                        .contains(busqueda))
+                .toList();
+
+        int totalPaginas = Math.max(1, (int) Math.ceil(filtrados.size() / (double) TAMANIO_PAGINA));
+        int paginaActual = Math.min(Math.max(1, numeroPagina(pagina)), totalPaginas);
+        int desde = (paginaActual - 1) * TAMANIO_PAGINA;
+        int hasta = Math.min(desde + TAMANIO_PAGINA, filtrados.size());
+        int maxAsignaciones = obtenerMaxAsignaciones();
+        List<RmAsignacionView> filas = desde < hasta
+                ? filtrados.subList(desde, hasta).stream()
+                        .map(item -> crearVista(item.getAsignacion(), maxAsignaciones))
+                        .toList()
+                : List.of();
+        return new PaginaAsignaciones(filas, paginaActual, totalPaginas, filtrados.size(), contar(conjunto));
     }
 
     @Transactional(readOnly = true)
@@ -319,6 +412,57 @@ public class RmAsignacionService {
                 equipoActual,
                 vacantes,
                 habilidades);
+    }
+
+    // Vista sin consultas adicionales: basta para clasificar (grupo, origen, estado) y buscar.
+    private RmAsignacionView crearVistaBasica(Asignacion asignacion) {
+        Usuario colaborador = asignacion.getColaborador();
+        return new RmAsignacionView(asignacion, nombreCompleto(colaborador), iniciales(colaborador),
+                null, 0, 0, BigDecimal.ZERO, 0, 0, List.of());
+    }
+
+    private ContadoresAsignaciones contar(List<RmAsignacionView> conjunto) {
+        return new ContadoresAsignaciones(
+                conjunto.stream().filter(RmAsignacionView::isRequiereDecisionRm).count(),
+                conjunto.stream().filter(RmAsignacionView::isPendientePm).count(),
+                conjunto.stream()
+                        .filter(RmAsignacionView::isSolicitudColaborador)
+                        .filter(item -> item.getAsignacion().getEstado() == EstadoAsignacion.PENDIENTE)
+                        .count(),
+                conjunto.stream().filter(RmAsignacionView::isActiva).count(),
+                conjunto.stream().filter(item -> "history".equals(item.getGrupo())).count());
+    }
+
+    private Proyecto buscarProyecto(String proyectoId) {
+        if (proyectoId == null || proyectoId.isBlank()) return null;
+        try {
+            return proyectoRepository.findById(Long.valueOf(proyectoId.trim())).orElse(null);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private String opcionValida(String valor, List<String> opciones) {
+        if (valor == null) return null;
+        return opciones.stream()
+                .filter(opcion -> opcion.equalsIgnoreCase(valor.trim()))
+                .findFirst().orElse(null);
+    }
+
+    private int numeroPagina(String pagina) {
+        if (pagina == null) return 1;
+        try {
+            return Integer.parseInt(pagina.trim());
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
+    }
+
+    private String textoComparable(String texto) {
+        if (texto == null) return "";
+        return Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private Asignacion obtenerEntidad(Long asignacionId) {

@@ -92,7 +92,8 @@
   display: none;
 }
 
-.assignment-tabs button {
+.assignment-tabs button,
+.assignment-tabs a {
   display: inline-flex;
   align-items: center;
   gap: .5rem;
@@ -103,13 +104,16 @@
   color: #667085;
   font-weight: 700;
   white-space: nowrap;
+  text-decoration: none;
 }
 
-.assignment-tabs button:hover {
+.assignment-tabs button:hover,
+.assignment-tabs a:hover {
   background: #f8fafc;
 }
 
-.assignment-tabs button.active {
+.assignment-tabs button.active,
+.assignment-tabs a.active {
   border-bottom-color: #206bc4;
   background: #f8fbff;
   color: #206bc4;
@@ -125,7 +129,8 @@
   text-align: center;
 }
 
-.assignment-tabs button.active .tab-count {
+.assignment-tabs button.active .tab-count,
+.assignment-tabs a.active .tab-count {
   background: #dfeeff;
   color: #206bc4;
 }

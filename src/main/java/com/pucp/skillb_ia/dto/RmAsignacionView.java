@@ -131,6 +131,18 @@ public class RmAsignacionView {
         };
     }
 
+    // Estado que ve el RM en la bandeja y valor del filtro "estado": una postulación
+    // pendiente sin ninguna aprobación se muestra como "Pendiente RM y PM" (TASK-027).
+    public String getEstadoBandeja() {
+        if (isSolicitudColaborador()
+                && asignacion.getEstado() == EstadoAsignacion.PENDIENTE
+                && !asignacion.isAprobadoPorPm()
+                && !asignacion.isAprobadoPorRm()) {
+            return "Pendiente RM y PM";
+        }
+        return getEstadoTexto();
+    }
+
     public String getEstadoClase() {
         if (isRequiereDecisionRm()) return "bg-yellow-lt";
         if (isPendientePm()) return "bg-blue-lt";

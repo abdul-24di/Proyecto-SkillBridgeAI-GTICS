@@ -449,7 +449,9 @@ class RmProyectoViewTests {
         proyecto.setHorasSemanalesRequeridas(new BigDecimal("37.5"));
         proyectoRepository.save(proyecto);
         guardarAsignacion(EstadoAsignacion.PENDIENTE, false, "5000.00", "37.5");
-        String html = renderizar("/rm/proyectos/buscar-colaboradores?proyectoId=" + proyectoId);
+        // Desde TASK-029 la búsqueda pagina de 6 en 6: se acota por nombre para ver la tarjeta.
+        String html = renderizar("/rm/proyectos/buscar-colaboradores?proyectoId=" + proyectoId
+                + "&busqueda=Colaborador Presupuesto");
         verificarMontos(html, "S/ 11,718.75");
         verificarSinFormatoAnterior(html, "S/ 11718.75");
         // Los data-* los consume el JS: siguen con el decimal sin formato.

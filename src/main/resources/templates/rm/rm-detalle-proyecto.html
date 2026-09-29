@@ -55,7 +55,9 @@
       </div>
     </div>
 
-    <div class="row row-cards mb-4">
+    <!-- TASK-024: en EN_REVISION todavía no hay equipo aprobado; se muestran los presupuestos solicitado y asignado. -->
+    <div class="row row-cards mb-4" th:with="enRevision=${proyecto.proyecto.estado.name() == 'EN_REVISION'}">
+      <th:block th:unless="${enRevision}">
       <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
         <div class="info-label">Equipo activo</div>
         <div class="h2 mt-2 mb-1" th:text="|${proyecto.integrantesActivos}/${proyecto.proyecto.colaboradoresRequeridos}|">0/0</div>
@@ -77,6 +79,21 @@
              th:text="${proyecto.presupuestoVisible != null ? 'S/ ' + #numbers.formatDecimal(proyecto.presupuestoVisible, 1, 'COMMA', 2, 'POINT') : 'Sin definir'}">Sin definir</div>
         <div class="small text-secondary">Monto registrado.</div>
       </div></div></div>
+      </th:block>
+      <th:block th:if="${enRevision}">
+      <div class="col-sm-6"><div class="card metric-card"><div class="card-body">
+        <div class="info-label">Presupuesto solicitado</div>
+        <div class="h3 mt-2 mb-1" id="presupuestoSolicitadoRevision"
+             th:text="${proyecto.proyecto.presupuestoSolicitado != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuestoSolicitado, 1, 'COMMA', 2, 'POINT') : 'No solicitado'}">No solicitado</div>
+        <div class="small text-secondary">Monto pedido por el Project Manager.</div>
+      </div></div></div>
+      <div class="col-sm-6"><div class="card metric-card"><div class="card-body">
+        <div class="info-label">Presupuesto asignado</div>
+        <div class="h3 mt-2 mb-1" id="presupuestoAsignadoRevision"
+             th:text="${proyecto.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuesto, 1, 'COMMA', 2, 'POINT') : 'Sin asignar'}">Sin asignar</div>
+        <div class="small text-secondary">Definido por el Resource Manager.</div>
+      </div></div></div>
+      </th:block>
     </div>
 
     <div class="card mb-4" th:if="${proyecto.proyecto.presupuesto != null}">
@@ -141,12 +158,14 @@
       </div>
       <div class="card-body">
         <div class="project-info-grid">
+          <div><div class="info-label">Fecha de creación</div><div class="info-value"
+               th:text="${proyecto.proyecto.fechaCreacion != null ? #temporals.format(proyecto.proyecto.fechaCreacion, 'dd/MM/yyyy') : 'Sin registrar'}">Sin registrar</div></div>
           <div><div class="info-label">Fecha de inicio</div><div class="info-value"
                th:text="${proyecto.proyecto.fechaInicio != null ? #temporals.format(proyecto.proyecto.fechaInicio, 'dd/MM/yyyy') : 'Sin definir'}">Sin definir</div></div>
           <div><div class="info-label">Fin estimado</div><div class="info-value"
                th:text="${proyecto.proyecto.fechaFinEstimada != null ? #temporals.format(proyecto.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : 'Sin definir'}">Sin definir</div></div>
           <div><div class="info-label">Horas semanales requeridas</div><div class="info-value"
-               th:text="|${proyecto.proyecto.horasSemanalesRequeridas} h|">0 h</div></div>
+               th:text="${proyecto.proyecto.horasSemanalesRequeridas != null ? proyecto.proyecto.horasSemanalesRequeridas + ' h' : 'Sin definir'}">0 h</div></div>
           <div><div class="info-label">Colaboradores requeridos</div><div class="info-value"
                th:text="${proyecto.proyecto.colaboradoresRequeridos}">0</div></div>
           <div><div class="info-label">Estado</div><div class="info-value" th:text="${proyecto.estadoTexto}">Estado</div></div>
@@ -156,11 +175,13 @@
         <form th:replace="~{fragments/rm-proyecto-fechas :: formulario(${proyecto.proyecto}, 'detalle')}"></form>
         <div class="priority-message mt-4">
           <strong>Justificación de prioridad:</strong>
-          <span th:text="${proyecto.proyecto.justificacionPrioridad}">Sin justificación.</span>
+          <span th:text="${proyecto.proyecto.justificacionPrioridad != null and !proyecto.proyecto.justificacionPrioridad.isBlank() ? proyecto.proyecto.justificacionPrioridad : 'Sin justificación registrada.'}">Sin justificación.</span>
         </div>
-        <div class="priority-message mt-3" th:if="${proyecto.proyecto.justificacionPresupuesto != null and !proyecto.proyecto.justificacionPresupuesto.isBlank()}">
-          <strong>Justificación de presupuesto:</strong>
-          <span th:text="${proyecto.proyecto.justificacionPresupuesto}">Justificación.</span>
+        <!-- TASK-024: en EN_REVISION se muestra siempre, con texto alternativo si el PM no la registró. -->
+        <div class="priority-message mt-3"
+             th:if="${proyecto.proyecto.estado.name() == 'EN_REVISION' or (proyecto.proyecto.justificacionPresupuesto != null and !proyecto.proyecto.justificacionPresupuesto.isBlank())}">
+          <strong>Justificación de presupuesto solicitado:</strong>
+          <span th:text="${proyecto.proyecto.justificacionPresupuesto != null and !proyecto.proyecto.justificacionPresupuesto.isBlank() ? proyecto.proyecto.justificacionPresupuesto : 'Sin justificación registrada.'}">Justificación.</span>
         </div>
         <div class="alert alert-danger mt-3 mb-0"
              th:if="${proyecto.proyecto.motivoRechazo != null and !proyecto.proyecto.motivoRechazo.isBlank()}">
@@ -169,8 +190,9 @@
       </div>
     </div>
 
-    <div class="row row-cards mb-4">
-      <div class="col-lg-7">
+    <!-- TASK-024: en EN_REVISION se oculta el equipo y los requerimientos ocupan todo el ancho. -->
+    <div class="row row-cards mb-4" th:with="enRevision=${proyecto.proyecto.estado.name() == 'EN_REVISION'}">
+      <div class="col-lg-7" th:unless="${enRevision}">
         <div class="card team-card h-100">
           <div class="card-header section-header"><div><h3 class="card-title mb-1">Equipo del proyecto</h3>
             <div class="section-description">Colaboradores con una asignación activa.</div></div></div>
@@ -192,7 +214,7 @@
         </div>
       </div>
 
-      <div class="col-lg-5">
+      <div th:class="${enRevision ? 'col-12' : 'col-lg-5'}">
         <div class="card h-100">
           <div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3>
             <div class="section-description">Habilidades solicitadas para el proyecto.</div></div></div>

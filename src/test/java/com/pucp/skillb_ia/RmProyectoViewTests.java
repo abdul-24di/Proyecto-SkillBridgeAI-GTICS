@@ -2,19 +2,26 @@ package com.pucp.skillb_ia;
 
 import com.pucp.skillb_ia.model.Actividad;
 import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.CategoriaHabilidad;
+import com.pucp.skillb_ia.model.Habilidad;
 import com.pucp.skillb_ia.model.LogAuditoria;
 import com.pucp.skillb_ia.model.Notificacion;
 import com.pucp.skillb_ia.model.Proyecto;
+import com.pucp.skillb_ia.model.ProyectoHabilidadRequerida;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
+import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.Prioridad;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
+import com.pucp.skillb_ia.repository.CategoriaHabilidadRepository;
+import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.LogAuditoriaRepository;
 import com.pucp.skillb_ia.repository.NotificacionRepository;
+import com.pucp.skillb_ia.repository.ProyectoHabilidadRequeridaRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
@@ -57,6 +64,9 @@ class RmProyectoViewTests {
     @Autowired private LogAuditoriaRepository logAuditoriaRepository;
     @Autowired private ActividadRepository actividadRepository;
     @Autowired private NotificacionRepository notificacionRepository;
+    @Autowired private CategoriaHabilidadRepository categoriaHabilidadRepository;
+    @Autowired private HabilidadRepository habilidadRepository;
+    @Autowired private ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository;
 
     private MockMvc mockMvc;
     private Long proyectoId;
@@ -1014,6 +1024,141 @@ class RmProyectoViewTests {
                         usuarioRepository.findById(pmId).orElseThrow()).stream()
                 .filter(n -> NOTIFICACION_FECHAS.equals(n.getTipo()) && proyectoId.equals(n.getEntidadId()))
                 .toList();
+    }
+
+    // TASK-024: en EN_REVISION el detalle oculta el equipo y muestra los datos ingresados por el PM.
+    private static final String[] BLOQUES_DE_EQUIPO = {
+            "<div class=\"info-label\">Equipo activo</div>", "<div class=\"info-label\">Vacantes</div>",
+            "<div class=\"info-label\">Pendientes del RM</div>", "Equipo del proyecto", "team-card"};
+
+    @Test
+    void detalleEnRevisionOcultaEquipoYMuestraLosDatosDelPm() throws Exception {
+        autenticarRm();
+        Proyecto proyecto = completarDatosDelPm();
+        guardarRequisito("Java T024", NivelDominio.AVANZADO, 3);
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+
+        verificarSinFormatoAnterior(html, BLOQUES_DE_EQUIPO);
+        org.junit.jupiter.api.Assertions.assertEquals(fecha(proyecto.getFechaCreacion().toLocalDate()), valorDe(html, "Fecha de creación"));
+        org.junit.jupiter.api.Assertions.assertEquals(fecha(HOY.plusDays(5)), valorDe(html, "Fecha de inicio"));
+        org.junit.jupiter.api.Assertions.assertEquals(fecha(HOY.plusDays(70)), valorDe(html, "Fin estimado"));
+        org.junit.jupiter.api.Assertions.assertEquals("Alta", valorDe(html, "Prioridad"));
+        org.junit.jupiter.api.Assertions.assertEquals("4", valorDe(html, "Colaboradores requeridos"));
+        org.junit.jupiter.api.Assertions.assertEquals("30.00 h", valorDe(html, "Horas semanales requeridas"));
+        org.junit.jupiter.api.Assertions.assertEquals("S/ 15,000.50", textoDeId(html, "presupuestoSolicitadoRevision"));
+        org.junit.jupiter.api.Assertions.assertEquals("Sin asignar", textoDeId(html, "presupuestoAsignadoRevision"));
+        verificarMontos(html, "Justificación de prioridad:", "Validación de la consulta del Resource Manager.",
+                "Justificación de presupuesto solicitado:", "Licencias y horas de consultoría.",
+                "Java T024", "Nivel Avanzado", "3 persona(s)", "<div class=\"col-12\">");
+        // TASK-021: el formulario de fechas sigue en el detalle en revisión.
+        verificarMontos(html, "id=\"projectDatesForm\"", "name=\"origen\" value=\"detalle\"");
+    }
+
+    @Test
+    void detalleEnRevisionMuestraSolicitadoYAsignadoPorSeparado() throws Exception {
+        autenticarRm();
+        completarDatosDelPm();
+        fijarPresupuesto(EstadoProyecto.EN_REVISION, "12000");
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+
+        org.junit.jupiter.api.Assertions.assertEquals("S/ 15,000.50", textoDeId(html, "presupuestoSolicitadoRevision"));
+        org.junit.jupiter.api.Assertions.assertEquals("S/ 12,000.00", textoDeId(html, "presupuestoAsignadoRevision"));
+        verificarSinFormatoAnterior(html, BLOQUES_DE_EQUIPO);
+    }
+
+    @Test
+    void detalleActivoConservaTarjetaYMetricasDeEquipo() throws Exception {
+        autenticarRm();
+        prepararProyectoConCosto("12345");
+        guardarAsignacion(EstadoAsignacion.ACTIVA, true, "5000.00", "37.5");
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+
+        verificarMontos(html, BLOQUES_DE_EQUIPO);
+        verificarMontos(html, "Colaborador Presupuesto", "<div class=\"col-lg-5\">", "Presupuesto asignado", "S/ 12,345.00");
+        verificarSinFormatoAnterior(html, "presupuestoSolicitadoRevision", "presupuestoAsignadoRevision");
+    }
+
+    @Test
+    void revisionNoMuestraVerDetalleYConservaSusAcciones() throws Exception {
+        autenticarRm();
+        completarDatosDelPm();
+        fijarPresupuesto(EstadoProyecto.EN_REVISION, "12000");
+        String html = renderizar("/rm/proyectos/revision?id=" + proyectoId);
+
+        verificarSinFormatoAnterior(html, "Ver detalle", "/rm/proyectos/detalle?id=");
+        verificarMontos(html, "Guardar presupuesto", "Usar presupuesto solicitado", "Aprobar proyecto",
+                "id=\"budgetChangeModal\"", "id=\"projectDatesForm\"", "name=\"origen\" value=\"revision\"");
+    }
+
+    @Test
+    void datosOpcionalesAusentesNoMuestranNull() throws Exception {
+        autenticarRm();
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setDescripcion(null);
+        proyectoRepository.save(proyecto);
+
+        String detalle = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+        org.junit.jupiter.api.Assertions.assertEquals("Sin definir", valorDe(detalle, "Fecha de inicio"));
+        org.junit.jupiter.api.Assertions.assertEquals("Sin definir", valorDe(detalle, "Fin estimado"));
+        org.junit.jupiter.api.Assertions.assertEquals("No solicitado", textoDeId(detalle, "presupuestoSolicitadoRevision"));
+        org.junit.jupiter.api.Assertions.assertEquals("Sin asignar", textoDeId(detalle, "presupuestoAsignadoRevision"));
+        verificarMontos(detalle, "Sin descripción registrada.", "Justificación de presupuesto solicitado:",
+                "Sin justificación registrada.", "No se registraron habilidades requeridas.");
+        verificarSinNull(detalle);
+        verificarSinNull(renderizar("/rm/proyectos/revision?id=" + proyectoId));
+    }
+
+    private Proyecto completarDatosDelPm() {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setFechaInicio(HOY.plusDays(5));
+        proyecto.setFechaFinEstimada(HOY.plusDays(70));
+        proyecto.setPrioridad(Prioridad.ALTA);
+        proyecto.setPresupuestoSolicitado(new BigDecimal("15000.50"));
+        proyecto.setJustificacionPresupuesto("Licencias y horas de consultoría.");
+        proyecto.setColaboradoresRequeridos(4);
+        proyecto.setHorasSemanalesRequeridas(new BigDecimal("30.00"));
+        return proyectoRepository.save(proyecto);
+    }
+
+    private void guardarRequisito(String nombre, NivelDominio nivel, int cantidad) {
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.findByNombreIgnoreCase("Proyectos T024")
+                .orElseGet(() -> {
+                    CategoriaHabilidad nueva = new CategoriaHabilidad();
+                    nueva.setNombre("Proyectos T024");
+                    return categoriaHabilidadRepository.save(nueva);
+                });
+        Habilidad habilidad = habilidadRepository.findByNombreIgnoreCase(nombre).orElseGet(() -> {
+            Habilidad nueva = new Habilidad();
+            nueva.setNombre(nombre);
+            nueva.setCategoria(categoria);
+            return habilidadRepository.save(nueva);
+        });
+        ProyectoHabilidadRequerida requisito = new ProyectoHabilidadRequerida();
+        requisito.setProyecto(proyectoRepository.findById(proyectoId).orElseThrow());
+        requisito.setHabilidad(habilidad);
+        requisito.setNivelRequerido(nivel);
+        requisito.setCantidadPersonas(cantidad);
+        habilidadRequeridaRepository.save(requisito);
+    }
+
+    // Texto del info-value que sigue a la etiqueta indicada.
+    private static String valorDe(String html, String etiqueta) {
+        int etiquetaInicio = html.indexOf("<div class=\"info-label\">" + etiqueta + "</div>");
+        org.junit.jupiter.api.Assertions.assertTrue(etiquetaInicio >= 0, etiqueta);
+        int valor = html.indexOf("class=\"info-value\"", etiquetaInicio);
+        return html.substring(html.indexOf('>', valor) + 1, html.indexOf('<', valor)).trim();
+    }
+
+    private static String textoDeId(String html, String id) {
+        int inicio = html.indexOf("id=\"" + id + "\"");
+        org.junit.jupiter.api.Assertions.assertTrue(inicio >= 0, id);
+        return html.substring(html.indexOf('>', inicio) + 1, html.indexOf('<', inicio)).trim();
+    }
+
+    // Revisa el texto visible (sin etiquetas ni scripts) para no depender de atributos.
+    private static void verificarSinNull(String html) {
+        String texto = html.replaceAll("(?s)<script.*?</script>", " ").replaceAll("(?s)<[^>]*>", " ");
+        org.junit.jupiter.api.Assertions.assertFalse(java.util.regex.Pattern.compile("\\bnull\\b").matcher(texto).find(), texto);
     }
 
     private static String fecha(java.time.LocalDate valor) {

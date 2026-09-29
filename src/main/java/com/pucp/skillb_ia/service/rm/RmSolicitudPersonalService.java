@@ -8,6 +8,7 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.EstadoSolicitudPersonal;
+import com.pucp.skillb_ia.model.enums.Prioridad;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.SolicitudPersonalRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
@@ -17,11 +18,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class RmSolicitudPersonalService {
+
+    // Listado de solicitudes de personal (TASK-038): filtros GET y paginación en el servidor.
+    public static final int TAMANIO_PAGINA = 6;
+    private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
+    // Igual que toLowerCase() del JS anterior: sin mayúsculas, con tildes.
+    private static final Locale LOCALE_BUSQUEDA = Locale.forLanguageTag("es");
+
+    /** Filtros ya validados: los valores nulos significan "Todos". */
+    public record FiltrosSolicitud(String busqueda, String estado, String prioridad) {
+    }
+
+    /** Indicadores de las tarjetas sobre todas las solicitudes. */
+    public record ContadoresSolicitudes(long pendientes, long enAtencion, long atendidas, long totalSolicitados) {
+    }
+
+    public record PaginaSolicitudes(List<RmSolicitudPersonalView> filas, int paginaActual, int totalPaginas,
+                                    long totalRegistros, ContadoresSolicitudes contadores) {
+    }
 
     private final SolicitudPersonalRepository solicitudRepository;
     private final ProyectoRepository proyectoRepository;
@@ -50,6 +71,55 @@ public class RmSolicitudPersonalService {
         return solicitudRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
                 .map(this::crearVista)
                 .toList();
+    }
+
+    /**
+     * Normaliza los parámetros GET del listado. Vacíos, "all" o valores desconocidos
+     * significan "Todos" (null); la búsqueda se recorta a 100 caracteres.
+     */
+    public FiltrosSolicitud normalizarFiltros(String busqueda, String estado, String prioridad) {
+        String busquedaLimpia = busqueda == null ? "" : busqueda.trim();
+        if (busquedaLimpia.length() > LONGITUD_MAXIMA_BUSQUEDA) {
+            busquedaLimpia = busquedaLimpia.substring(0, LONGITUD_MAXIMA_BUSQUEDA);
+        }
+        return new FiltrosSolicitud(
+                busquedaLimpia.isEmpty() ? null : busquedaLimpia,
+                opcionValida(estado, Arrays.stream(EstadoSolicitudPersonal.values()).map(Enum::name).toList()),
+                opcionValida(prioridad, Arrays.stream(Prioridad.values()).map(Enum::name).toList()));
+    }
+
+    /**
+     * Filtra, cuenta y pagina el listado conservando el orden de listar() (fecha de solicitud
+     * descendente). Los indicadores se calculan sobre todas las solicitudes, sin filtros ni página.
+     */
+    @Transactional(readOnly = true)
+    public PaginaSolicitudes listarPagina(FiltrosSolicitud filtros, String pagina) {
+        List<SolicitudPersonal> todas = solicitudRepository.findAllConDetalleOrderByFechaSolicitudDesc();
+        ContadoresSolicitudes contadores = new ContadoresSolicitudes(
+                contarPorEstado(todas, EstadoSolicitudPersonal.PENDIENTE),
+                contarPorEstado(todas, EstadoSolicitudPersonal.EN_ATENCION),
+                contarPorEstado(todas, EstadoSolicitudPersonal.ATENDIDA),
+                todas.stream().mapToLong(SolicitudPersonal::getCantidadColaboradores).sum());
+
+        // Estado y prioridad se filtran sobre la entidad; la vista solo se arma para la búsqueda.
+        String busqueda = filtros.busqueda() == null ? "" : filtros.busqueda().toLowerCase(LOCALE_BUSQUEDA);
+        List<RmSolicitudPersonalView> filtradas = todas.stream()
+                .filter(solicitud -> filtros.estado() == null
+                        || filtros.estado().equals(solicitud.getEstado().name()))
+                .filter(solicitud -> filtros.prioridad() == null
+                        || (solicitud.getProyecto().getPrioridad() != null
+                        && filtros.prioridad().equals(solicitud.getProyecto().getPrioridad().name())))
+                .map(this::crearVista)
+                .filter(item -> busqueda.isEmpty()
+                        || item.getTextoBusqueda().toLowerCase(LOCALE_BUSQUEDA).contains(busqueda))
+                .toList();
+
+        int totalPaginas = Math.max(1, (int) Math.ceil(filtradas.size() / (double) TAMANIO_PAGINA));
+        int paginaActual = Math.min(Math.max(1, numeroPagina(pagina)), totalPaginas);
+        int desde = (paginaActual - 1) * TAMANIO_PAGINA;
+        int hasta = Math.min(desde + TAMANIO_PAGINA, filtradas.size());
+        List<RmSolicitudPersonalView> filas = desde < hasta ? filtradas.subList(desde, hasta) : List.of();
+        return new PaginaSolicitudes(filas, paginaActual, totalPaginas, filtradas.size(), contadores);
     }
 
     @Transactional(readOnly = true)
@@ -143,6 +213,26 @@ public class RmSolicitudPersonalService {
         auditoriaService.registrar(rm, "CIERRE_SOLICITUD_PERSONAL", "SOLICITUD_PERSONAL", id,
                 "El RM marcó como atendida la solicitud del proyecto "
                         + solicitud.getProyecto().getNombre() + ".");
+    }
+
+    private long contarPorEstado(List<SolicitudPersonal> solicitudes, EstadoSolicitudPersonal estado) {
+        return solicitudes.stream().filter(solicitud -> solicitud.getEstado() == estado).count();
+    }
+
+    private String opcionValida(String valor, List<String> opciones) {
+        if (valor == null) return null;
+        return opciones.stream()
+                .filter(opcion -> opcion.equalsIgnoreCase(valor.trim()))
+                .findFirst().orElse(null);
+    }
+
+    private int numeroPagina(String pagina) {
+        if (pagina == null) return 1;
+        try {
+            return Integer.parseInt(pagina.trim());
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
     }
 
     private SolicitudPersonal obtenerEntidad(Long id) {

@@ -54,7 +54,16 @@
         <div class="col-12" th:if="${#lists.isEmpty(catalogo.cursos)}"><div class="card"><div class="card-body text-center text-secondary py-5">No se encontraron cursos activos con estos filtros.</div></div></div>
       </div>
     </div>
-    <div class="pagination-wrap"><div class="text-secondary small" th:text="|${#lists.size(catalogo.cursos)} curso(s) mostrado(s)|">0 cursos</div></div>
+    <div class="pagination-wrap">
+      <div id="paginationInfo" class="text-secondary small"
+           th:with="desdeFila=${catalogo.totalRegistros == 0 ? 0 : ((catalogo.paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((catalogo.paginaActual - 1) * tamanioPagina) + #lists.size(catalogo.cursos)}"
+           th:text="|Mostrando ${desdeFila}-${hastaFila} de ${catalogo.totalRegistros} cursos|">Mostrando 0-0 de 0 cursos</div>
+      <ul id="pagination" class="pagination pagination-sm m-0" th:if="${catalogo.totalPaginas > 1}">
+        <li class="page-item" th:classappend="${catalogo.paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/cursos(busqueda=${busqueda}, categoria=${categoriaSeleccionada}, duracion=${duracionSeleccionada}, pagina=${catalogo.paginaActual - 1})}">Anterior</a></li>
+        <li class="page-item" th:each="n : ${#numbers.sequence(1, catalogo.totalPaginas)}" th:classappend="${n == catalogo.paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/cursos(busqueda=${busqueda}, categoria=${categoriaSeleccionada}, duracion=${duracionSeleccionada}, pagina=${n})}" th:text="${n}">1</a></li>
+        <li class="page-item" th:classappend="${catalogo.paginaActual == catalogo.totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/cursos(busqueda=${busqueda}, categoria=${categoriaSeleccionada}, duracion=${duracionSeleccionada}, pagina=${catalogo.paginaActual + 1})}">Siguiente</a></li>
+      </ul>
+    </div>
   </div>
 </main></div>
 <script th:src="@{/tabler/js/tabler.min.js}"></script>

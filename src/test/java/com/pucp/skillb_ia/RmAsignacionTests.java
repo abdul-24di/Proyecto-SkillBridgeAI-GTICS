@@ -15,6 +15,8 @@ import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.repository.CategoriaHabilidadRepository;
 import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
+import com.pucp.skillb_ia.repository.LogAuditoriaRepository;
+import com.pucp.skillb_ia.model.LogAuditoria;
 import com.pucp.skillb_ia.service.rm.RmColaboradorConsultaService;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
@@ -91,6 +93,7 @@ class RmAsignacionTests {
     @Autowired private HabilidadRepository habilidadRepository;
     @Autowired private ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     @Autowired private RmColaboradorConsultaService consultaService;
+    @Autowired private LogAuditoriaRepository logAuditoriaRepository;
 
     // Habilidades de Carla por estado; nombres únicos para que la coincidencia sea exacta.
     private static final String HAB_VALIDADA = "Java Asig T015";
@@ -160,7 +163,7 @@ class RmAsignacionTests {
     void propuestaDelRmQuedaPendienteDelPm() {
         Asignacion asignacion = asignacionService.proponerDesdeRm(
                 proyecto.getId(), colaborador.getId(), new BigDecimal("12"),
-                "Tiene las habilidades requeridas.", null, rm.getId());
+                "Tiene las habilidades requeridas.", null, null, rm.getId());
 
         assertEquals(EstadoAsignacion.PENDIENTE, asignacion.getEstado());
         assertTrue(asignacion.isAprobadoPorRm());
@@ -621,7 +624,7 @@ class RmAsignacionTests {
                 .andExpect(content().string(containsString("data-origen=\"buscar\"")));
 
         asignacionService.proponerDesdeRm(proyecto.getId(), colaborador.getId(), new BigDecimal("8"),
-                "Primera propuesta.", null, rm.getId());
+                "Primera propuesta.", null, null, rm.getId());
         mockMvc.perform(get("/rm/proyectos/buscar-colaboradores")
                         .param("proyectoId", proyecto.getId().toString()))
                 .andExpect(status().isOk())
@@ -871,6 +874,363 @@ class RmAsignacionTests {
         // La petición no altera el estado de validación guardado.
         assertEquals(EstadoValidacion.PENDIENTE, estadoGuardado(HAB_PENDIENTE));
         assertEquals(EstadoValidacion.RECHAZADA, estadoGuardado(HAB_RECHAZADA));
+    }
+
+    // ---- TASK-034: propuesta desde la búsqueda, modal compartido y cupos del proyecto ----
+
+    private static final String PROPONER = "/rm/asignaciones/proponer";
+    private static final String MENSAJE_EXITO = "Propuesta enviada al Project Manager correctamente.";
+    private static final String MENSAJE_CUPO_OBLIGATORIO =
+            "El proyecto ya tiene sus cupos completos; justifica por qué propones otro colaborador.";
+    private static final List<String> ACCIONES_PROPUESTA =
+            List.of("PROPUESTA_ASIGNACION", "JUSTIFICACION_CUPO_ASIGNACION");
+
+    @Test
+    void propuestaExitosaDesdeBuscarVuelveALaMismaBusquedaConFiltrosYPagina() throws Exception {
+        autenticarRm();
+        try {
+            // Los valores se normalizan y se codifican por completo ("+", "&", espacios y tildes).
+            mockMvc.perform(propuesta("buscar", "8")
+                            .param("busqueda", "  C++ & Díaz  ")
+                            .param("disponibilidad", "16")
+                            .param("carga", "available")
+                            .param("pagina", "2"))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + proyecto.getId()
+                            + "&busqueda=C%2B%2B%20%26%20D%C3%ADaz&disponibilidad=16&carga=available&pagina=2"))
+                    .andExpect(flash().attribute("mensajeExito", MENSAJE_EXITO));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertEquals(1, asignacionRepository.count());
+    }
+
+    @Test
+    void propuestaConErrorDesdeBuscarConservaFiltrosYPagina() throws Exception {
+        long auditoriasAntes = contarAuditoriasDePropuesta();
+        autenticarRm();
+        try {
+            mockMvc.perform(propuesta("buscar", "0")
+                            .param("busqueda", "Carla Colaboradora")
+                            .param("disponibilidad", "8")
+                            .param("carga", "full")
+                            .param("pagina", "3"))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + proyecto.getId()
+                            + "&busqueda=Carla%20Colaboradora&disponibilidad=8&carga=full&pagina=3"))
+                    .andExpect(flash().attribute("mensajeError", "Las horas semanales deben ser mayores que cero."));
+            // Valores desconocidos o inválidos no se copian y no se acepta una URL de retorno libre.
+            mockMvc.perform(propuesta("buscar", "0")
+                            .param("disponibilidad", "999")
+                            .param("carga", "<script>")
+                            .param("pagina", "-4")
+                            .param("volverA", "https://malicioso.example"))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + proyecto.getId()));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertEquals(0, asignacionRepository.count());
+        assertEquals(auditoriasAntes, contarAuditoriasDePropuesta());
+    }
+
+    @Test
+    void trasProponerDesdeBuscarElCandidatoApareceComoYaEnElProyecto() throws Exception {
+        MvcResult resultado;
+        autenticarRm();
+        try {
+            resultado = mockMvc.perform(propuesta("buscar", "8")
+                            .param("busqueda", "Carla Colaboradora")
+                            .param("disponibilidad", "16")
+                            .param("pagina", "1"))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + proyecto.getId()
+                            + "&busqueda=Carla%20Colaboradora&disponibilidad=16"))
+                    .andReturn();
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+
+        String html = mockMvc.perform(get(java.net.URI.create(resultado.getResponse().getRedirectedUrl()))
+                        .flashAttrs(resultado.getFlashMap()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-buscar-colaboradores-proyecto"))
+                .andExpect(model().attribute("busqueda", "Carla Colaboradora"))
+                .andExpect(model().attribute("disponibilidad", "16"))
+                .andExpect(model().attribute("colaboradoresConAsignacion",
+                        org.hamcrest.Matchers.hasItem(colaborador.getId())))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains(MENSAJE_EXITO));
+        assertTrue(html.contains("Ya en el proyecto"));
+        assertTrue(html.contains("data-bloqueado=\"true\" data-colaborador-id=\"" + colaborador.getId() + "\""));
+    }
+
+    @Test
+    void porDebajoDelCupoNoExigeJustificacionDeCupo() {
+        llenarCupos(1, 1); // 2 de 3
+        long antes = contarAuditoriasDePropuesta();
+
+        Asignacion creada = asignacionService.proponerDesdeRm(proyecto.getId(), colaborador.getId(),
+                new BigDecimal("8"), "Dentro del cupo.", null, null, rm.getId());
+
+        assertEquals(EstadoAsignacion.PENDIENTE, creada.getEstado());
+        // Solo el registro de la propuesta, sin el de justificación de cupo.
+        assertEquals(antes + 1, contarAuditoriasDePropuesta());
+        assertFalse(auditoriaDe("PROPUESTA_ASIGNACION", creada.getId()).getDetalle().contains("Supera los cupos"));
+    }
+
+    @Test
+    void conCuposCompletosSinJustificacionValidaRechazaSinCrearNiAuditar() throws Exception {
+        llenarCupos(2, 1); // 3 de 3
+        long asignacionesAntes = asignacionRepository.count();
+        long auditoriasAntes = contarAuditoriasDePropuesta();
+        String destino = BUSCAR + "?proyectoId=" + proyecto.getId();
+        autenticarRm();
+        try {
+            mockMvc.perform(propuesta("buscar", "8"))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", MENSAJE_CUPO_OBLIGATORIO));
+            for (String invalida : List.of("", "   ")) {
+                mockMvc.perform(propuesta("buscar", "8").param("justificacionCupo", invalida))
+                        .andExpect(redirectedUrl(destino))
+                        .andExpect(flash().attribute("mensajeError", MENSAJE_CUPO_OBLIGATORIO));
+            }
+            mockMvc.perform(propuesta("buscar", "8").param("justificacionCupo", "x".repeat(501)))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError",
+                            "La justificación de cupo no puede superar 500 caracteres."));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertEquals(asignacionesAntes, asignacionRepository.count());
+        assertEquals(auditoriasAntes, contarAuditoriasDePropuesta());
+        assertEquals(3, asignacionService.contarCuposOcupados(proyecto));
+    }
+
+    @Test
+    void conCuposCompletosYJustificacionValidaCreaLaPropuestaYAuditaElTexto() throws Exception {
+        llenarCupos(2, 1); // 3 de 3
+        String texto = "El cliente amplió el alcance: " + "a".repeat(470);
+        assertEquals(RmAsignacionService.MAX_JUSTIFICACION_CUPO, texto.length());
+        autenticarRm();
+        try {
+            mockMvc.perform(propuesta("buscar", "8").param("justificacionCupo", "  " + texto + "  "))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + proyecto.getId()))
+                    .andExpect(flash().attribute("mensajeExito", MENSAJE_EXITO));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+
+        Asignacion creada = asignacionRepository.findAll().stream()
+                .filter(item -> item.getColaborador().getId().equals(colaborador.getId()))
+                .findFirst().orElseThrow();
+        assertEquals(EstadoAsignacion.PENDIENTE, creada.getEstado());
+        LogAuditoria cupo = auditoriaDe("JUSTIFICACION_CUPO_ASIGNACION", creada.getId());
+        assertEquals(texto, cupo.getDetalle());
+        assertEquals("Cupos ocupados: 3 de 3", cupo.getValorAnterior());
+        assertTrue(auditoriaDe("PROPUESTA_ASIGNACION", creada.getId()).getDetalle()
+                .endsWith("Supera los cupos del proyecto."));
+        // La justificación de cupo no se mezcla con la justificación general de la propuesta.
+        assertEquals("Encaja con el proyecto.", creada.getMensajeSolicitud());
+        assertEquals(4, asignacionService.contarCuposOcupados(proyecto));
+    }
+
+    @Test
+    void elConteoDeCuposIncluyeActivasYPendientesPeroNoEstadosCerrados() {
+        List<Usuario> otros = otrosColaboradores(5);
+        LocalDateTime ahora = LocalDateTime.now();
+        guardarAsignacion(proyecto, otros.get(0), OrigenAsignacion.PROPUESTA_PM, EstadoAsignacion.ACTIVA, true, true, ahora);
+        guardarAsignacion(proyecto, otros.get(1), OrigenAsignacion.PROPUESTA_PM, EstadoAsignacion.PENDIENTE, false, false, ahora);
+        guardarAsignacion(proyecto, otros.get(2), OrigenAsignacion.PROPUESTA_PM, EstadoAsignacion.FINALIZADA, true, true, ahora);
+        guardarAsignacion(proyecto, otros.get(3), OrigenAsignacion.PROPUESTA_PM, EstadoAsignacion.RECHAZADA, false, false, ahora);
+        guardarAsignacion(proyecto, otros.get(4), OrigenAsignacion.PROPUESTA_PM, EstadoAsignacion.FINALIZADA, true, true, ahora);
+        assertEquals(2, asignacionService.contarCuposOcupados(proyecto));
+
+        // 5 registros, pero solo 2 ocupan cupo: con 3 requeridos no se pide justificación de cupo.
+        Asignacion creada = asignacionService.proponerDesdeRm(proyecto.getId(), colaborador.getId(),
+                new BigDecimal("8"), null, null, null, rm.getId());
+        assertNotNull(creada.getId());
+        assertEquals(Map.of(proyecto.getId(), 3L),
+                asignacionService.cuposOcupadosPorProyecto(List.of(proyecto)));
+    }
+
+    @Test
+    void peticionManipuladaNoEvitaLaValidacionDeCupos() throws Exception {
+        llenarCupos(2, 1); // 3 de 3
+        Proyecto cancelado = new Proyecto();
+        cancelado.setNombre("Proyecto cancelado T034 " + System.nanoTime());
+        cancelado.setDescripcion("Proyecto cerrado para la propuesta manipulada.");
+        cancelado.setEstado(EstadoProyecto.CANCELADO);
+        cancelado.setPrioridad(Prioridad.MEDIA);
+        cancelado.setJustificacionPrioridad("Validación de TASK-034.");
+        cancelado.setColaboradoresRequeridos(10);
+        cancelado.setPm(pm);
+        cancelado.setPresupuesto(new BigDecimal("100000.00"));
+        cancelado.setFechaInicio(java.time.LocalDate.now());
+        cancelado.setFechaFinEstimada(java.time.LocalDate.now().plusMonths(3));
+        cancelado = proyectoRepository.save(cancelado);
+        long asignacionesAntes = asignacionRepository.count();
+        long auditoriasAntes = contarAuditoriasDePropuesta();
+        String destino = BUSCAR + "?proyectoId=" + proyecto.getId();
+        autenticarRm();
+        try {
+            // Conteos falsos del navegador: el servidor cuenta por su cuenta.
+            mockMvc.perform(propuesta("buscar", "8")
+                            .param("cuposOcupados", "0")
+                            .param("proyectoOcupados", "0")
+                            .param("colaboradoresRequeridos", "99")
+                            .param("proyectoRequeridos", "99")
+                            .param("cupoCompleto", "false"))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", MENSAJE_CUPO_OBLIGATORIO));
+            // La justificación de capacidad no reemplaza a la de cupo.
+            mockMvc.perform(propuesta("buscar", "8").param("motivoCapacidad", "Capacidad justificada."))
+                    .andExpect(redirectedUrl(destino))
+                    .andExpect(flash().attribute("mensajeError", MENSAJE_CUPO_OBLIGATORIO));
+            // proyectoId oculto cambiado a un proyecto cerrado: se revalida el estado.
+            mockMvc.perform(post(PROPONER)
+                            .param("proyectoId", cancelado.getId().toString())
+                            .param("colaboradorId", colaborador.getId().toString())
+                            .param("horasSemanales", "8")
+                            .param("justificacionCupo", "Texto válido.")
+                            .param("origen", "buscar"))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + cancelado.getId()))
+                    .andExpect(flash().attribute("mensajeError",
+                            "Solo se pueden proponer asignaciones para proyectos activos o en espera."));
+            // Un origen desconocido no produce una redirección externa.
+            mockMvc.perform(propuesta("https://malicioso.example", "8"))
+                    .andExpect(redirectedUrl("/rm/proyectos/proponer-asignacion?proyectoId=" + proyecto.getId()
+                            + "&colaboradorId=" + colaborador.getId()))
+                    .andExpect(flash().attribute("mensajeError", MENSAJE_CUPO_OBLIGATORIO));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertEquals(asignacionesAntes, asignacionRepository.count());
+        assertEquals(auditoriasAntes, contarAuditoriasDePropuesta());
+    }
+
+    @Test
+    void botonesDeProponerDeAsignacionesUsanElModalYNoLaPaginaCompleta() throws Exception {
+        // Bandeja: sin colaborador conocido, el modal de proyectos abre la búsqueda de candidatos.
+        String bandeja = mockMvc.perform(get("/rm/asignaciones"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(bandeja.contains("/rm/proyectos/proponer-asignacion"));
+        assertTrue(bandeja.contains("data-bs-toggle=\"modal\" data-bs-target=\"#proyectosModal\">+ Proponer asignación"));
+        assertTrue(bandeja.contains("id=\"proyectosModal\""));
+        assertTrue(bandeja.contains("data-buscar-url=\"/rm/proyectos/buscar-colaboradores?proyectoId="
+                + proyecto.getId() + "\""));
+        assertTrue(bandeja.contains("/js/rm-js/rm-propuesta-asignacion.js"));
+        // Con el filtro de proyecto, el modal trae solo ese proyecto.
+        mockMvc.perform(get("/rm/asignaciones").param("proyectoId", proyecto.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("proyectosAsignables", org.hamcrest.Matchers.hasSize(1)));
+
+        // Asignaciones del colaborador: colaborador precargado y el mismo modal de propuesta.
+        String delColaborador = mockMvc.perform(get("/rm/colaboradores/asignaciones")
+                        .param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(delColaborador.contains("/rm/proyectos/proponer-asignacion"));
+        assertTrue(delColaborador.contains("data-bs-toggle=\"modal\" data-bs-target=\"#proyectosModal\">+ Proponer asignación"));
+        assertTrue(delColaborador.contains("id=\"proyectosModal\""));
+        assertTrue(delColaborador.contains("id=\"propuestaModal\""));
+        assertTrue(delColaborador.contains("data-origen=\"colaborador\""));
+        assertTrue(delColaborador.contains("data-colaborador-id=\"" + colaborador.getId() + "\""));
+        assertTrue(delColaborador.contains(proyecto.getNombre()));
+        assertTrue(delColaborador.contains("data-proyecto-requeridos=\"3\" data-proyecto-ocupados=\"0\""));
+        assertTrue(delColaborador.contains("name=\"justificacionCupo\""));
+        assertFalse(delColaborador.contains("data-buscar-url"));
+
+        // Búsqueda: el contexto lleva cupos y filtros para volver a la misma búsqueda.
+        String busqueda = mockMvc.perform(get(BUSCAR)
+                        .param("proyectoId", proyecto.getId().toString())
+                        .param("busqueda", "Carla Colaboradora")
+                        .param("disponibilidad", "8"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(busqueda.contains("data-proyecto-requeridos=\"3\" data-proyecto-ocupados=\"0\""
+                + " data-filtro-busqueda=\"Carla Colaboradora\" data-filtro-disponibilidad=\"8\""
+                + " data-filtro-pagina=\"1\""));
+        assertTrue(busqueda.contains("name=\"busqueda\" data-campo=\"filtroBusqueda\""));
+        assertTrue(busqueda.contains("id=\"propuestaJustificacionCupo\" name=\"justificacionCupo\""));
+    }
+
+    @Test
+    void flujosDesdePerfilYAsignacionesDelColaboradorSiguenFuncionando() throws Exception {
+        String asignacionesColaborador = "/rm/colaboradores/asignaciones?id=" + colaborador.getId();
+        autenticarRm();
+        try {
+            // Asignaciones del colaborador: error y éxito vuelven a la misma pantalla.
+            mockMvc.perform(propuesta("colaborador", "0"))
+                    .andExpect(redirectedUrl(asignacionesColaborador))
+                    .andExpect(flash().attribute("mensajeError", "Las horas semanales deben ser mayores que cero."));
+            MvcResult exito = mockMvc.perform(propuesta("colaborador", "8"))
+                    .andExpect(redirectedUrl(asignacionesColaborador))
+                    .andExpect(flash().attribute("mensajeExito", MENSAJE_EXITO))
+                    .andReturn();
+            String html = renderizarTrasRedireccion(asignacionesColaborador, exito);
+            assertTrue(html.contains(MENSAJE_EXITO));
+            assertTrue(html.contains(proyecto.getNombre()));
+
+            // Perfil: el error vuelve al perfil y el éxito, como antes, a la bandeja.
+            asignacionRepository.deleteAll();
+            mockMvc.perform(propuesta("perfil", "0"))
+                    .andExpect(redirectedUrl("/rm/colaboradores/perfil?id=" + colaborador.getId()));
+            mockMvc.perform(propuesta("perfil", "8"))
+                    .andExpect(redirectedUrl("/rm/asignaciones"))
+                    .andExpect(flash().attribute("mensajeExito", MENSAJE_EXITO));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertEquals(1, asignacionRepository.count());
+
+        mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("proyectosAsignables", "proyectosConAsignacion", "cuposOcupados"))
+                .andExpect(content().string(containsString("id=\"proyectosModal\"")))
+                .andExpect(content().string(containsString("data-origen=\"perfil\"")))
+                .andExpect(content().string(containsString("Ya asignado o propuesto")));
+    }
+
+    private MockHttpServletRequestBuilder propuesta(String origen, String horas) {
+        return post(PROPONER)
+                .param("proyectoId", proyecto.getId().toString())
+                .param("colaboradorId", colaborador.getId().toString())
+                .param("horasSemanales", horas)
+                .param("justificacion", "Encaja con el proyecto.")
+                .param("origen", origen);
+    }
+
+    // Ocupa cupos del proyecto con otros colaboradores: primero las activas y luego las pendientes.
+    private void llenarCupos(int activas, int pendientes) {
+        List<Usuario> otros = otrosColaboradores(activas + pendientes);
+        for (int i = 0; i < otros.size(); i++) {
+            boolean activa = i < activas;
+            guardarAsignacion(proyecto, otros.get(i), OrigenAsignacion.PROPUESTA_PM,
+                    activa ? EstadoAsignacion.ACTIVA : EstadoAsignacion.PENDIENTE,
+                    true, activa, LocalDateTime.now());
+        }
+    }
+
+    // Inactivos para no aparecer en los candidatos de otras pruebas; solo ocupan cupos.
+    private List<Usuario> otrosColaboradores(int cantidad) {
+        Rol rolColaborador = obtenerRol("COLABORADOR");
+        List<Usuario> otros = new ArrayList<>();
+        for (int i = 1; i <= cantidad; i++) {
+            Usuario usuario = obtenerUsuario("cupo034." + i + "@skillbridge.test", "Cupo034", "C" + i, rolColaborador);
+            usuario.setActivo(false);
+            otros.add(usuarioRepository.save(usuario));
+        }
+        return otros;
+    }
+
+    private long contarAuditoriasDePropuesta() {
+        return logAuditoriaRepository.findAll().stream()
+                .filter(log -> ACCIONES_PROPUESTA.contains(log.getAccion()))
+                .count();
+    }
+
+    private LogAuditoria auditoriaDe(String accion, Long asignacionId) {
+        return logAuditoriaRepository.findAll().stream()
+                .filter(log -> accion.equals(log.getAccion()) && asignacionId.equals(log.getEntidadId()))
+                .findFirst().orElseThrow();
     }
 
     // ---- TASK-029: filtros GET y paginación de la búsqueda de candidatos en el servidor ----

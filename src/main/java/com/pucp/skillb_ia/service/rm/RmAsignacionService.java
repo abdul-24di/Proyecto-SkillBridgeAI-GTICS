@@ -36,6 +36,10 @@ public class RmAsignacionService {
     private static final int MAX_ASIGNACIONES_POR_DEFECTO = 3;
     private static final BigDecimal MAX_HORAS_SEMANALES = new BigDecimal("168");
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
+    // Cupos del proyecto (TASK-034): ocupan cupo las asignaciones activas y las pendientes.
+    public static final int MAX_JUSTIFICACION_CUPO = 500;
+    private static final Set<EstadoAsignacion> ESTADOS_CON_CUPO =
+            EnumSet.of(EstadoAsignacion.ACTIVA, EstadoAsignacion.PENDIENTE);
 
     // Bandeja de asignaciones (TASK-027): filtros GET y paginación en el servidor.
     public static final int TAMANIO_PAGINA = 10;
@@ -214,6 +218,18 @@ public class RmAsignacionService {
                 .toList();
     }
 
+    // Cupos ocupados del proyecto: asignaciones ACTIVA + PENDIENTE (no cuentan las cerradas).
+    @Transactional(readOnly = true)
+    public long contarCuposOcupados(Proyecto proyecto) {
+        return asignacionRepository.countByProyectoAndEstadoIn(proyecto, ESTADOS_CON_CUPO);
+    }
+
+    // Cupos ocupados por id de proyecto, para los modales que listan varios proyectos.
+    @Transactional(readOnly = true)
+    public Map<Long, Long> cuposOcupadosPorProyecto(List<Proyecto> proyectos) {
+        return proyectos.stream().collect(Collectors.toMap(Proyecto::getId, this::contarCuposOcupados));
+    }
+
     @Transactional
     public Asignacion proponerDesdeRm(
             Long proyectoId,
@@ -221,6 +237,7 @@ public class RmAsignacionService {
             BigDecimal horasSemanales,
             String justificacion,
             String motivoCapacidad,
+            String justificacionCupo,
             Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = obtenerProyectoAsignable(proyectoId);
@@ -237,6 +254,12 @@ public class RmAsignacionService {
         if (yaTieneAsignacion) {
             throw new IllegalStateException("El colaborador ya tiene una asignación pendiente o activa en este proyecto.");
         }
+
+        // TASK-034: con los cupos completos se puede proponer, pero solo con una justificación de cupo.
+        // El conteo se hace aquí; no se usa ningún valor enviado por el navegador.
+        long cuposOcupados = contarCuposOcupados(proyecto);
+        boolean cuposCompletos = cuposOcupados >= proyecto.getColaboradoresRequeridos();
+        String justificacionCupoValida = cuposCompletos ? validarJustificacionCupo(justificacionCupo) : null;
 
         int activas = (int) asignacionRepository.countByColaboradorAndEstado(
                 colaborador, EstadoAsignacion.ACTIVA);
@@ -258,7 +281,16 @@ public class RmAsignacionService {
         auditoriaService.registrar(
                 rm, "PROPUESTA_ASIGNACION", "ASIGNACION", guardada.getId(),
                 "El RM propuso a " + nombreCompleto(colaborador)
-                        + " para el proyecto " + proyecto.getNombre() + ".");
+                        + " para el proyecto " + proyecto.getNombre() + "."
+                        + (cuposCompletos ? " Supera los cupos del proyecto." : ""));
+        if (cuposCompletos) {
+            // detalle admite 500 caracteres: el texto completo va en su propio registro.
+            auditoriaService.registrar(
+                    rm, "JUSTIFICACION_CUPO_ASIGNACION", "ASIGNACION", guardada.getId(),
+                    justificacionCupoValida,
+                    "Cupos ocupados: " + cuposOcupados + " de " + proyecto.getColaboradoresRequeridos(),
+                    null, null);
+        }
 
         notificacionService.crear(proyecto.getPm(), "ASIGNACION_PENDIENTE_PM", CategoriaNotificacion.ASIGNACION,
                 "Asignación pendiente de tu aprobación",
@@ -543,6 +575,19 @@ public class RmAsignacionService {
             throw new IllegalArgumentException("La justificación total no puede superar 500 caracteres.");
         }
         return combinado;
+    }
+
+    private String validarJustificacionCupo(String valor) {
+        if (valor == null || valor.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El proyecto ya tiene sus cupos completos; justifica por qué propones otro colaborador.");
+        }
+        String limpio = valor.trim();
+        if (limpio.length() > MAX_JUSTIFICACION_CUPO) {
+            throw new IllegalArgumentException(
+                    "La justificación de cupo no puede superar " + MAX_JUSTIFICACION_CUPO + " caracteres.");
+        }
+        return limpio;
     }
 
     private String textoObligatorio(String valor, String mensaje, int maximo) {

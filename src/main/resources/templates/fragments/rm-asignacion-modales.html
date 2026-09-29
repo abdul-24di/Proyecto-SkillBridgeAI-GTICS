@@ -6,12 +6,15 @@
   Modales del flujo "Asignar colaboradores" del RM.
   - modalPerfil: se llena por AJAX con el fragmento perfilColaborador.
   - modalPropuesta: proyecto y colaborador fijos; el RM solo ingresa horas y justificación.
+  - modalProyectos(modoBusqueda): elegir proyecto. Con modoBusqueda (bandeja, sin colaborador)
+    abre la búsqueda de candidatos del proyecto; sin él abre modalPropuesta.
   Los datos del proyecto/colaborador salen de los data-* del #propuestaContexto de la
   página y del botón que abre el modal (ver js/rm-js/rm-propuesta-asignacion.js).
+  Orígenes cerrados (data-origen): buscar, perfil y colaborador (TASK-034).
 -->
 
 <!-- ======================= MODAL: VER PERFIL ======================= -->
-<div th:fragment="modalPerfil" class="modal modal-blur fade" id="perfilModal" tabindex="-1" aria-hidden="true">
+<div th:fragment="modalPerfil" class="modal modal-blur fade rm-modal" id="perfilModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -121,7 +124,7 @@
 </div>
 
 <!-- ===================== MODAL: PROPONER ASIGNACIÓN ===================== -->
-<div th:fragment="modalPropuesta" class="modal modal-blur fade" id="propuestaModal" tabindex="-1" aria-hidden="true">
+<div th:fragment="modalPropuesta" class="modal modal-blur fade rm-modal" id="propuestaModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
         <div class="modal-header">
@@ -134,6 +137,11 @@
           <input type="hidden" name="proyectoId" data-campo="proyectoId">
           <input type="hidden" name="colaboradorId" data-campo="colaboradorId">
           <input type="hidden" name="origen" data-campo="origen">
+          <!-- Filtros y página de la búsqueda (origen buscar): el servidor los normaliza al volver -->
+          <input type="hidden" name="busqueda" data-campo="filtroBusqueda">
+          <input type="hidden" name="disponibilidad" data-campo="filtroDisponibilidad">
+          <input type="hidden" name="carga" data-campo="filtroCarga">
+          <input type="hidden" name="pagina" data-campo="filtroPagina">
 
           <div class="row g-4">
             <div class="col-lg-7">
@@ -144,6 +152,7 @@
                   <div><div class="info-label">Project Manager</div><div class="info-value" data-texto="proyectoPm">—</div></div>
                   <div><div class="info-label">Periodo</div><div class="info-value" data-texto="proyectoPeriodo">—</div></div>
                   <div><div class="info-label">Presupuesto disponible</div><div class="info-value" data-texto="proyectoDisponibleTexto">—</div></div>
+                  <div><div class="info-label">Cupos ocupados</div><div class="info-value" data-texto="proyectoCuposTexto">—</div></div>
                 </div>
               </div>
 
@@ -170,6 +179,15 @@
                 <label for="propuestaJustificacion" class="form-label">Justificación de la propuesta</label>
                 <textarea id="propuestaJustificacion" name="justificacion" class="form-control" rows="4" maxlength="350"
                           placeholder="Explica por qué el colaborador es adecuado para el proyecto."></textarea>
+              </div>
+              <!-- Cupos completos (activas + pendientes >= requeridos): solo ayuda, manda Java -->
+              <div id="propuestaCupoWrap" class="d-none mb-3">
+                <div class="alert alert-warning py-2 small mb-2" id="propuestaCupoAviso">
+                  El proyecto ya completó sus cupos de colaboradores.
+                </div>
+                <label for="propuestaJustificacionCupo" class="form-label required">Justificación de cupo adicional</label>
+                <textarea id="propuestaJustificacionCupo" name="justificacionCupo" class="form-control" rows="2" maxlength="500"
+                          placeholder="Indica por qué el proyecto necesita más colaboradores de los requeridos."></textarea>
               </div>
               <div id="propuestaCapacidadWrap" class="d-none">
                 <div class="alert alert-warning py-2 small mb-2" id="propuestaCapacidadAviso">
@@ -200,6 +218,76 @@
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="submit" form="propuestaForm" class="btn btn-primary" id="propuestaEnviar">Confirmar asignación</button>
         </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: SELECCIONAR PROYECTO (perfil, asignaciones del colaborador, bandeja) ============ -->
+<div th:fragment="modalProyectos(modoBusqueda)" class="modal modal-blur fade rm-modal" id="proyectosModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Selecciona un proyecto</h5>
+          <div class="small text-secondary" th:if="${modoBusqueda}">
+            Proyectos activos o en espera que pueden recibir colaboradores. Elige uno para buscar candidatos y
+            proponerlos desde su tarjeta.
+          </div>
+          <div class="small text-secondary" th:unless="${modoBusqueda}">
+            Proyectos activos o en espera que pueden recibir colaboradores. Elige uno para preparar la propuesta de
+            <strong th:text="${colaborador.resumen.nombreCompleto}">colaborador</strong>.
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div th:if="${#lists.isEmpty(proyectosAsignables)}" class="text-center text-secondary py-5">
+          No hay proyectos activos o en espera a los que se pueda asignar colaboradores.
+        </div>
+        <div th:unless="${#lists.isEmpty(proyectosAsignables)}">
+          <input id="proyectoBusqueda" type="search" class="form-control mb-3" placeholder="Buscar por proyecto o PM">
+          <button type="button" class="proyecto-opcion" data-seleccionar-proyecto
+                  th:each="p : ${proyectosAsignables}"
+                  th:with="asignado=${proyectosConAsignacion != null and proyectosConAsignacion.contains(p.proyecto.id)}"
+                  th:disabled="${asignado}"
+                  th:attr="data-busqueda=${#strings.toLowerCase(p.proyecto.nombre + ' ' + p.pmNombre)},data-buscar-url=(${modoBusqueda} ? @{/rm/proyectos/buscar-colaboradores(proyectoId=${p.proyecto.id})} : null),data-proyecto-id=${p.proyecto.id},data-proyecto-nombre=${p.proyecto.nombre},data-proyecto-pm=${p.pmNombre},data-proyecto-inicio=${p.proyecto.fechaInicio},data-proyecto-fin=${p.proyecto.fechaFinEstimada},data-proyecto-presupuesto=${p.proyecto.presupuesto},data-proyecto-disponible=${p.resumenPresupuesto.disponible},data-proyecto-requeridos=${p.proyecto.colaboradoresRequeridos},data-proyecto-ocupados=${cuposOcupados.get(p.proyecto.id)}">
+            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+              <div>
+                <div class="fw-bold" th:text="${p.proyecto.nombre}">Proyecto</div>
+                <div class="small text-secondary" th:text="|PM: ${p.pmNombre}|">PM</div>
+              </div>
+              <div class="d-flex gap-1 flex-wrap">
+                <span class="badge" th:classappend="${p.estadoClase}" th:text="${p.estadoTexto}">Activo</span>
+                <span class="badge" th:classappend="${p.prioridadClase}" th:text="|Prioridad ${p.prioridadTexto}|">Prioridad</span>
+                <span th:if="${asignado}" class="badge bg-yellow-lt">Ya asignado o propuesto</span>
+              </div>
+            </div>
+            <div class="proyecto-opcion-datos small">
+
+              <div><div class="text-secondary">Equipo</div>
+                <div class="fw-semibold" th:text="${p.integrantesActivos} + '/' + ${p.proyecto.colaboradoresRequeridos} + ' - ' + ${p.vacantes} + ' vacantes'">0/0</div></div>
+
+              <div><div class="text-secondary">Horas requeridas</div>
+                <div class="fw-semibold" th:text="${p.proyecto.horasSemanalesRequeridas != null ? p.proyecto.horasSemanalesRequeridas + ' h/sem' : 'Sin definir'}">0 h</div></div>
+              <div><div class="text-secondary">Periodo</div>
+                <div class="fw-semibold" th:text="${p.proyecto.fechaInicio != null and p.proyecto.fechaFinEstimada != null ? #temporals.format(p.proyecto.fechaInicio, 'dd/MM/yyyy') + ' — ' + #temporals.format(p.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : 'Sin fechas'}">Periodo</div></div>
+              <div><div class="text-secondary">Presupuesto disponible</div>
+                <div class="fw-semibold" th:text="${p.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(p.resumenPresupuesto.disponible, 1, 'COMMA', 2, 'POINT') : 'Sin presupuesto'}">S/ 0</div></div>
+            </div>
+
+
+
+            <div class="mt-2" th:if="${!#lists.isEmpty(p.requisitos)}">
+              <span class="badge bg-blue-lt me-1" th:each="r : ${p.requisitos}" th:text="${r.habilidad} + ' - ' + ${r.nivel}">Java</span>
+            </div>
+
+          </button>
+          <div id="proyectosSinResultados" class="text-center text-secondary py-4 d-none">Ningún proyecto coincide con la búsqueda.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
     </div>
   </div>
 </div>

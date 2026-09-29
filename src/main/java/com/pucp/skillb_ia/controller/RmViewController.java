@@ -50,6 +50,7 @@ import java.time.format.DateTimeParseException;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 @Controller
 @RequestMapping("/rm")
@@ -179,19 +180,28 @@ public class RmViewController {
     @GetMapping({"/proyectos", "/rm-proyectos.html"})
     public String projects(
             @RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String prioridad,
+            @RequestParam(required = false) String vacantes,
+            @RequestParam(required = false) String pagina,
             Model model) {
-        List<RmProyectoView> proyectos = rmProyectoConsultaService.listar();
-        model.addAttribute("proyectos", proyectos);
-        model.addAttribute("totalProyectos", proyectos.size());
-        model.addAttribute("totalConVacantes", proyectos.stream()
-                .filter(RmProyectoView::isConVacantesParaDotacion)
-                .count());
-        model.addAttribute("totalPendientesRm", proyectos.stream()
-                .mapToInt(RmProyectoView::getPendientesRm)
-                .sum());
-        model.addAttribute("totalEnRevision", proyectos.stream()
-                .filter(proyecto -> proyecto.getProyecto().getEstado().name().equals("EN_REVISION"))
-                .count());
+        var filtros = rmProyectoConsultaService.normalizarFiltros(busqueda, estado, prioridad, vacantes);
+        var paginaProyectos = rmProyectoConsultaService.listarPagina(filtros, pagina);
+        var contadores = paginaProyectos.contadores();
+        model.addAttribute("proyectos", paginaProyectos.filas());
+        model.addAttribute("paginaActual", paginaProyectos.paginaActual());
+        model.addAttribute("totalPaginas", paginaProyectos.totalPaginas());
+        model.addAttribute("totalRegistros", paginaProyectos.totalRegistros());
+        model.addAttribute("tamanioPagina", RmProyectoConsultaService.TAMANIO_PAGINA);
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("estado", filtros.estado());
+        model.addAttribute("prioridad", filtros.prioridad());
+        model.addAttribute("vacantes", filtros.vacantes());
+        model.addAttribute("totalProyectos", contadores.totalProyectos());
+        model.addAttribute("totalConVacantes", contadores.conVacantes());
+        model.addAttribute("totalPendientesRm", contadores.pendientesRm());
+        model.addAttribute("totalEnRevision", contadores.enRevision());
         model.addAttribute("proyectoNoEncontrado", Boolean.TRUE.equals(noEncontrado));
         return "rm/rm-proyectos";
     }
@@ -207,6 +217,8 @@ public class RmViewController {
             model.addAttribute("resumen", proyecto.getResumenPresupuesto());
             model.addAttribute("foroId", rmForoConsultaService
                     .buscarIdPorProyecto(proyecto.getProyecto()).orElse(null));
+            model.addAttribute("proyectoAsignable",
+                    rmAsignacionService.esProyectoAsignable(proyecto.getProyecto()));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/proyectos?noEncontrado=true";
         }
@@ -394,13 +406,22 @@ public class RmViewController {
 
     @GetMapping({"/proyectos/buscar-colaboradores", "/rm-buscar-colaboradores-proyecto.html"})
     public String searchProjectCollaborators(
-            @RequestParam(name = "proyectoId", required = false) Long proyectoId,
-            Model model) {
-        if (proyectoId == null) return "redirect:/rm/proyectos";
+            @RequestParam(name = "proyectoId", required = false) String proyectoIdTexto,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+        if (proyectoIdTexto == null || proyectoIdTexto.isBlank()) return "redirect:/rm/proyectos";
+        Long proyectoId;
+        try {
+            proyectoId = Long.valueOf(proyectoIdTexto.trim());
+        } catch (NumberFormatException ex) {
+            return "redirect:/rm/proyectos?noEncontrado=true";
+        }
         try {
             RmProyectoView proyecto = rmProyectoConsultaService.obtener(proyectoId);
-            if (proyecto.getProyecto().getEstado() != EstadoProyecto.ACTIVO
-                    && proyecto.getProyecto().getEstado() != EstadoProyecto.EN_ESPERA) {
+            if (!rmAsignacionService.esProyectoAsignable(proyecto.getProyecto())) {
+                redirectAttributes.addFlashAttribute("mensajeError",
+                        "Solo se pueden buscar colaboradores para proyectos activos o en espera. Este proyecto está "
+                                + proyecto.getEstadoTexto().toLowerCase(Locale.ROOT) + ".");
                 return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
             }
             model.addAttribute("proyecto", proyecto);

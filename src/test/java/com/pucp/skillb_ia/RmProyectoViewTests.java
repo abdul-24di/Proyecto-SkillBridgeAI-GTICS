@@ -159,6 +159,10 @@ class RmProyectoViewTests {
         org.junit.jupiter.api.Assertions.assertEquals(1, html.split(java.util.regex.Pattern.quote(enlace), -1).length - 1);
         org.junit.jupiter.api.Assertions.assertTrue(html.contains(">Ver foro</a>"));
         org.junit.jupiter.api.Assertions.assertTrue(html.contains("Proyecto de prueba RM"));
+        // TASK-023: "Ver foro" no depende de las acciones de asignación.
+        boolean asignable = estado == EstadoProyecto.ACTIVO || estado == EstadoProyecto.EN_ESPERA;
+        org.junit.jupiter.api.Assertions.assertEquals(asignable, html.contains(">Buscar colaborador</a>"), estado.name());
+        org.junit.jupiter.api.Assertions.assertEquals(asignable, html.contains(">Ver asignaciones</a>"), estado.name());
     }
 
     @Test
@@ -1206,6 +1210,170 @@ class RmProyectoViewTests {
         return valor.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
     }
 
+    // TASK-023: acciones del detalle según el estado y búsqueda directa de colaboradores.
+    private static final String MENSAJE_NO_ASIGNABLE =
+            "Solo se pueden buscar colaboradores para proyectos activos o en espera.";
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = EstadoProyecto.class, names = {"ACTIVO", "EN_ESPERA"})
+    void detalleMuestraBuscarYVerAsignacionesEnEstadosAsignables(EstadoProyecto estado) throws Exception {
+        fijarEstado(estado);
+        String html = mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyectoId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("proyectoAsignable", true))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(">Buscar colaborador</a>"), estado.name());
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(">Ver asignaciones</a>"), estado.name());
+        org.junit.jupiter.api.Assertions.assertEquals(1, contar(html,
+                "href=\"/rm/proyectos/buscar-colaboradores?proyectoId=" + proyectoId + "\""));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = EstadoProyecto.class,
+            names = {"EN_REVISION", "RECHAZADO", "CANCELADO", "FINALIZADO"})
+    void detalleNoMuestraBuscarNiVerAsignacionesEnEstadosNoAsignables(EstadoProyecto estado) throws Exception {
+        fijarEstado(estado);
+        String html = mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyectoId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("proyectoAsignable", false))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("Buscar colaborador"), estado.name());
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("Ver asignaciones"), estado.name());
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("projectSearchLink"), estado.name());
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("projectAssignmentsLink"), estado.name());
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("/rm/proyectos/buscar-colaboradores"), estado.name());
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("/rm/asignaciones?proyectoId="), estado.name());
+    }
+
+    @Test
+    void verAsignacionesEnviaElProyectoIdDelDetalleYFiltraLaBandeja() throws Exception {
+        fijarEstado(EstadoProyecto.ACTIVO);
+        Proyecto otro = new Proyecto();
+        otro.setNombre("Otro proyecto RM");
+        otro.setPrioridad(Prioridad.BAJA);
+        otro.setJustificacionPrioridad("Segundo proyecto para comparar enlaces.");
+        otro.setEstado(EstadoProyecto.ACTIVO);
+        otro.setPm(usuarioRepository.findById(pmId).orElseThrow());
+        Long otroId = proyectoRepository.save(otro).getId();
+
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+        String enlace = "href=\"/rm/asignaciones?proyectoId=" + proyectoId + "\"";
+        org.junit.jupiter.api.Assertions.assertEquals(1, contar(html, enlace));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("/rm/asignaciones?proyectoId=" + otroId + "\""));
+        int inicio = html.indexOf("id=\"projectAssignmentsLink\"");
+        org.junit.jupiter.api.Assertions.assertTrue(inicio >= 0);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                html.substring(inicio, html.indexOf('>', inicio)).contains(enlace));
+
+        // El enlace usa el filtro por proyecto de TASK-027.
+        mockMvc.perform(get("/rm/asignaciones").param("proyectoId", proyectoId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-asignaciones"))
+                .andExpect(model().attribute("proyectoId", proyectoId))
+                .andExpect(model().attribute("proyectoNombre", "Proyecto de prueba RM"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = EstadoProyecto.class, names = {"ACTIVO", "EN_ESPERA"})
+    void busquedaDirectaFuncionaEnEstadosAsignables(EstadoProyecto estado) throws Exception {
+        autenticarRm();
+        fijarEstado(estado);
+        mockMvc.perform(get("/rm/proyectos/buscar-colaboradores").param("proyectoId", proyectoId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-buscar-colaboradores-proyecto"))
+                .andExpect(model().attributeExists("proyecto", "candidatos"))
+                .andExpect(flash().attributeCount(0));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = EstadoProyecto.class,
+            names = {"EN_REVISION", "RECHAZADO", "CANCELADO", "FINALIZADO"})
+    void busquedaDirectaEnEstadoNoAsignableRedirigeAlDetalleConMensaje(EstadoProyecto estado) throws Exception {
+        autenticarRm();
+        fijarEstado(estado);
+        MvcResult resultado = mockMvc.perform(get("/rm/proyectos/buscar-colaboradores")
+                        .param("proyectoId", proyectoId.toString()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/rm/proyectos/detalle?id=" + proyectoId))
+                .andExpect(model().attributeDoesNotExist("candidatos"))
+                .andReturn();
+        String mensaje = (String) resultado.getFlashMap().get("mensajeError");
+        org.junit.jupiter.api.Assertions.assertNotNull(mensaje, estado.name());
+        org.junit.jupiter.api.Assertions.assertTrue(mensaje.startsWith(MENSAJE_NO_ASIGNABLE), mensaje);
+        verificarSinNull(mensaje);
+
+        // El detalle al que vuelve muestra el mensaje.
+        String html = mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyectoId.toString())
+                        .flashAttrs(resultado.getFlashMap()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(MENSAJE_NO_ASIGNABLE));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"abc", "12x", "-", "999999999", "1.5"})
+    void busquedaDirectaConProyectoInvalidoOInexistenteVuelveAlListado(String valor) throws Exception {
+        autenticarRm();
+        mockMvc.perform(get("/rm/proyectos/buscar-colaboradores").param("proyectoId", valor))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/rm/proyectos?noEncontrado=true"));
+    }
+
+    @Test
+    void busquedaDirectaSinProyectoVuelveAlListado() throws Exception {
+        autenticarRm();
+        mockMvc.perform(get("/rm/proyectos/buscar-colaboradores"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/rm/proyectos"));
+        mockMvc.perform(get("/rm/proyectos/buscar-colaboradores").param("proyectoId", "  "))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/rm/proyectos"));
+    }
+
+    @Test
+    void ocultarAccionesYBloquearBusquedaNoModificaAsignaciones() throws Exception {
+        autenticarRm();
+        fijarEstado(EstadoProyecto.ACTIVO);
+        guardarAsignacion(EstadoAsignacion.PENDIENTE, false);
+        guardarAsignacion(EstadoAsignacion.ACTIVA, true);
+        List<String> antes = estadoDeAsignaciones();
+        long auditoriasAntes = logAuditoriaRepository.count();
+        long notificacionesAntes = notificacionRepository.count();
+
+        for (EstadoProyecto estado : EstadoProyecto.values()) {
+            fijarEstado(estado);
+            renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+            mockMvc.perform(get("/rm/proyectos/buscar-colaboradores").param("proyectoId", proyectoId.toString()));
+            org.junit.jupiter.api.Assertions.assertEquals(estado,
+                    proyectoRepository.findById(proyectoId).orElseThrow().getEstado());
+        }
+        mockMvc.perform(get("/rm/proyectos/buscar-colaboradores").param("proyectoId", "abc"));
+
+        org.junit.jupiter.api.Assertions.assertEquals(antes, estadoDeAsignaciones());
+        org.junit.jupiter.api.Assertions.assertEquals(auditoriasAntes, logAuditoriaRepository.count());
+        org.junit.jupiter.api.Assertions.assertEquals(notificacionesAntes, notificacionRepository.count());
+    }
+
+    private void fijarEstado(EstadoProyecto estado) {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setEstado(estado);
+        proyectoRepository.save(proyecto);
+    }
+
+    private List<String> estadoDeAsignaciones() {
+        return asignacionRepository.findAll().stream()
+                .sorted(java.util.Comparator.comparing(Asignacion::getId))
+                .map(a -> a.getId() + ":" + a.getEstado() + ":" + a.isAprobadoPorPm() + ":"
+                        + a.isAprobadoPorRm() + ":" + a.getHorasSemanales())
+                .toList();
+    }
+
+    private static int contar(String html, String texto) {
+        return html.split(java.util.regex.Pattern.quote(texto), -1).length - 1;
+    }
+
     private void activarProyecto() {
         Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
         proyecto.setEstado(EstadoProyecto.ACTIVO);
@@ -1215,5 +1383,268 @@ class RmProyectoViewTests {
     private void autenticarRm() {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(rmDetails, null, rmDetails.getAuthorities()));
+    }
+
+    // TASK-028: filtros GET y paginación del listado /rm/proyectos en el servidor.
+    // Lote de 10 proyectos con un token único; "Análisis {token} NN", NN = 01..10 (10 es el más reciente).
+    // {estado, prioridad, colaboradores requeridos (= vacantes, sin equipo activo)}
+    private static final String[][] LOTE = {
+            {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"},
+            {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"},
+            {"EN_ESPERA", "BAJA", "0"}, {"EN_REVISION", "MEDIA", "0"}, {"FINALIZADO", "MEDIA", "3"}};
+
+    @Autowired private com.pucp.skillb_ia.service.rm.RmProyectoConsultaService rmProyectoConsultaService;
+    private final List<Long> loteIds = new java.util.ArrayList<>();
+    private Long lotePmId;
+
+    @AfterEach
+    void borrarLote() {
+        loteIds.forEach(proyectoRepository::deleteById);
+        loteIds.clear();
+        if (lotePmId != null) usuarioRepository.deleteById(lotePmId);
+        lotePmId = null;
+    }
+
+    /** Crea el lote con fechas de creación antiguas (no desplaza a los demás proyectos) y devuelve el token. */
+    private String crearLote() {
+        String token = "lote" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        Usuario pm = new Usuario();
+        pm.setCorreo(token + "@skillbridge.test");
+        pm.setNombre("Gestora");
+        pm.setApellido(token + "pm");
+        pm.setRol(rolRepository.findByNombre("PROJECT_MANAGER").orElseThrow());
+        pm = usuarioRepository.save(pm);
+        lotePmId = pm.getId();
+        for (int i = 0; i < LOTE.length; i++) {
+            Proyecto proyecto = new Proyecto();
+            proyecto.setNombre(String.format("Análisis %s %02d", token, i + 1));
+            proyecto.setEstado(EstadoProyecto.valueOf(LOTE[i][0]));
+            proyecto.setPrioridad(Prioridad.valueOf(LOTE[i][1]));
+            proyecto.setJustificacionPrioridad("Lote de TASK-028.");
+            proyecto.setColaboradoresRequeridos(Integer.parseInt(LOTE[i][2]));
+            proyecto.setFechaCreacion(java.time.LocalDateTime.of(2001, 1, 1, 0, 0).plusDays(i));
+            proyecto.setPm(pm);
+            loteIds.add(proyectoRepository.save(proyecto).getId());
+        }
+        return token;
+    }
+
+    private MvcResult listarProyectos(String consulta) throws Exception {
+        return mockMvc.perform(get(java.net.URI.create("/rm/proyectos?" + consulta)))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-proyectos"))
+                .andReturn();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<com.pucp.skillb_ia.dto.RmProyectoView> filas(MvcResult resultado) {
+        return (List<com.pucp.skillb_ia.dto.RmProyectoView>) resultado.getModelAndView().getModel().get("proyectos");
+    }
+
+    private static Object atributo(MvcResult resultado, String nombre) {
+        return resultado.getModelAndView().getModel().get(nombre);
+    }
+
+    /** Sufijos NN de las filas del lote, en el orden renderizado. */
+    private static List<String> numeros(MvcResult resultado) {
+        return filas(resultado).stream()
+                .map(item -> item.getProyecto().getNombre())
+                .map(nombre -> nombre.substring(nombre.length() - 2))
+                .toList();
+    }
+
+    private static String html(MvcResult resultado) throws Exception {
+        return resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    @Test
+    void listadoPaginaDeSeisEnSeisConservandoElOrdenPorFechaDeCreacion() throws Exception {
+        String token = crearLote();
+
+        MvcResult pagina1 = listarProyectos("busqueda=" + token);
+        org.junit.jupiter.api.Assertions.assertEquals(List.of("10", "09", "08", "07", "06", "05"), numeros(pagina1));
+        org.junit.jupiter.api.Assertions.assertEquals(1, atributo(pagina1, "paginaActual"));
+        org.junit.jupiter.api.Assertions.assertEquals(2, atributo(pagina1, "totalPaginas"));
+        org.junit.jupiter.api.Assertions.assertEquals(10L, atributo(pagina1, "totalRegistros"));
+        org.junit.jupiter.api.Assertions.assertEquals(6, contar(html(pagina1), "project-item"));
+        org.junit.jupiter.api.Assertions.assertTrue(html(pagina1).contains("Mostrando 1-6 de 10 proyectos"));
+        // Los filtros sin valor viajan vacíos y el servidor los normaliza a "Todos".
+        org.junit.jupiter.api.Assertions.assertTrue(html(pagina1).contains("href=\"/rm/proyectos?busqueda=" + token
+                + "&amp;estado=&amp;prioridad=&amp;vacantes=&amp;pagina=2\""));
+
+        MvcResult pagina2 = listarProyectos("busqueda=" + token + "&pagina=2");
+        org.junit.jupiter.api.Assertions.assertEquals(List.of("04", "03", "02", "01"), numeros(pagina2));
+        org.junit.jupiter.api.Assertions.assertEquals(2, atributo(pagina2, "paginaActual"));
+        org.junit.jupiter.api.Assertions.assertEquals(4, contar(html(pagina2), "project-item"));
+        org.junit.jupiter.api.Assertions.assertTrue(html(pagina2).contains("Mostrando 7-10 de 10 proyectos"));
+
+        // Sin filtros, el orden es el mismo de listar() (fecha de creación descendente) y la página tiene 6.
+        MvcResult sinFiltros = listarProyectos("");
+        List<Long> esperados = rmProyectoConsultaService.listar().stream()
+                .limit(6).map(item -> item.getProyecto().getId()).toList();
+        org.junit.jupiter.api.Assertions.assertEquals(esperados,
+                filas(sinFiltros).stream().map(item -> item.getProyecto().getId()).toList());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "estado,    ACTIVO",
+            "estado,    FINALIZADO",
+            "estado,    EN_REVISION",
+            "prioridad, ALTA",
+            "prioridad, BAJA",
+            "vacantes,  with",
+            "vacantes,  full"})
+    void cadaFiltroGetPorSeparadoAplicaElCriterioDelListado(String parametro, String valor) throws Exception {
+        crearLote();
+        java.util.function.Predicate<com.pucp.skillb_ia.dto.RmProyectoView> criterio = switch (parametro) {
+            case "estado" -> item -> item.getProyecto().getEstado().name().equals(valor);
+            case "prioridad" -> item -> item.getProyecto().getPrioridad().name().equals(valor);
+            default -> item -> "with".equals(valor) ? item.getVacantes() > 0 : item.getVacantes() == 0;
+        };
+        List<Long> esperados = rmProyectoConsultaService.listar().stream()
+                .filter(criterio).map(item -> item.getProyecto().getId()).toList();
+
+        MvcResult resultado = listarProyectos(parametro + "=" + valor);
+
+        org.junit.jupiter.api.Assertions.assertEquals(valor, atributo(resultado, parametro));
+        org.junit.jupiter.api.Assertions.assertEquals((long) esperados.size(), atributo(resultado, "totalRegistros"));
+        org.junit.jupiter.api.Assertions.assertEquals(esperados.stream().limit(6).toList(),
+                filas(resultado).stream().map(item -> item.getProyecto().getId()).toList());
+        org.junit.jupiter.api.Assertions.assertTrue(html(resultado)
+                .contains("value=\"" + valor + "\" selected=\"selected\""), valor);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(delimiter = '|', value = {
+            // "with" cuenta vacantes > 0 en cualquier estado (FINALIZADO incluido), como el JS anterior.
+            "estado=ACTIVO&prioridad=ALTA&vacantes=with | 07,06,05,04,03,02",
+            "estado=FINALIZADO&vacantes=with            | 10",
+            "vacantes=full                              | 09,08",
+            "prioridad=MEDIA&estado=EN_REVISION         | 09",
+            "estado=ACTIVO&prioridad=BAJA               | ''"})
+    void combinacionDeFiltrosGet(String consulta, String esperados) throws Exception {
+        String token = crearLote();
+        MvcResult resultado = listarProyectos("busqueda=" + token + "&" + consulta);
+        List<String> lista = esperados.isEmpty() ? List.of() : List.of(esperados.split(","));
+        org.junit.jupiter.api.Assertions.assertEquals(lista, numeros(resultado));
+        org.junit.jupiter.api.Assertions.assertEquals(lista.isEmpty(),
+                html(resultado).contains("No se encontraron proyectos con los filtros seleccionados."));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "{t}", "{T}", "ANÁLISIS {T}", "análisis {t}", "  Análisis {t}  ", "GESTORA {T}PM", "gestora {t}pm"})
+    void busquedaIgnoraMayusculasSobreNombreYProjectManager(String patron) throws Exception {
+        String token = crearLote();
+        String busqueda = patron.replace("{t}", token).replace("{T}", token.toUpperCase(java.util.Locale.ROOT));
+        MvcResult resultado = listarProyectos("busqueda=" + java.net.URLEncoder.encode(busqueda, StandardCharsets.UTF_8).replace("+", "%20"));
+        org.junit.jupiter.api.Assertions.assertEquals(10L, atributo(resultado, "totalRegistros"), busqueda);
+        org.junit.jupiter.api.Assertions.assertEquals(busqueda.trim(), atributo(resultado, "busqueda"));
+    }
+
+    @Test
+    void busquedaConservaLasTildesComoAntes() throws Exception {
+        // El JS anterior solo pasaba a minúsculas (toLocaleLowerCase("es")); "analisis" no encuentra "Análisis".
+        String token = crearLote();
+        MvcResult resultado = listarProyectos("busqueda=analisis%20" + token);
+        org.junit.jupiter.api.Assertions.assertEquals(0L, atributo(resultado, "totalRegistros"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                html(resultado).contains("No se encontraron proyectos con los filtros seleccionados."));
+    }
+
+    @Test
+    void enlacesDePaginacionConservanTodosLosFiltros() throws Exception {
+        String token = crearLote();
+        String html = html(listarProyectos("busqueda=" + token + "&estado=ACTIVO&prioridad=ALTA&vacantes=with"));
+
+        List<String> enlaces = java.util.regex.Pattern.compile("href=\"(/rm/proyectos\\?[^\"]*pagina=[^\"]*)\"")
+                .matcher(html).results().map(m -> m.group(1).replace("&amp;", "&")).toList();
+        org.junit.jupiter.api.Assertions.assertEquals(4, enlaces.size(), enlaces.toString()); // Anterior, 1, 2, Siguiente
+        for (String enlace : enlaces) {
+            org.junit.jupiter.api.Assertions.assertTrue(enlace.contains("busqueda=" + token), enlace);
+            org.junit.jupiter.api.Assertions.assertTrue(enlace.contains("estado=ACTIVO"), enlace);
+            org.junit.jupiter.api.Assertions.assertTrue(enlace.contains("prioridad=ALTA"), enlace);
+            org.junit.jupiter.api.Assertions.assertTrue(enlace.contains("vacantes=with"), enlace);
+        }
+        String siguiente = enlaces.get(enlaces.size() - 1);
+        org.junit.jupiter.api.Assertions.assertTrue(siguiente.endsWith("pagina=2"), siguiente);
+
+        MvcResult pagina2 = listarProyectos(siguiente.substring(siguiente.indexOf('?') + 1));
+        org.junit.jupiter.api.Assertions.assertEquals(List.of("01"), numeros(pagina2));
+        org.junit.jupiter.api.Assertions.assertEquals("ACTIVO", atributo(pagina2, "estado"));
+        org.junit.jupiter.api.Assertions.assertEquals("with", atributo(pagina2, "vacantes"));
+    }
+
+    @Test
+    void contadoresSeCalculanSobreTodosLosProyectosYNoSobreLaPagina() throws Exception {
+        String token = crearLote();
+        List<com.pucp.skillb_ia.dto.RmProyectoView> todos = rmProyectoConsultaService.listar();
+        long total = proyectoRepository.count();
+        long enRevision = proyectoRepository.findAll().stream()
+                .filter(p -> p.getEstado() == EstadoProyecto.EN_REVISION).count();
+        long conVacantes = todos.stream().filter(com.pucp.skillb_ia.dto.RmProyectoView::isConVacantesParaDotacion).count();
+        long pendientesRm = todos.stream().mapToLong(com.pucp.skillb_ia.dto.RmProyectoView::getPendientesRm).sum();
+
+        for (String consulta : List.of("", "busqueda=" + token + "&pagina=2", "busqueda=" + token + "&vacantes=full")) {
+            MvcResult resultado = listarProyectos(consulta);
+            org.junit.jupiter.api.Assertions.assertEquals(total, atributo(resultado, "totalProyectos"), consulta);
+            org.junit.jupiter.api.Assertions.assertEquals(enRevision, atributo(resultado, "totalEnRevision"), consulta);
+            org.junit.jupiter.api.Assertions.assertEquals(conVacantes, atributo(resultado, "totalConVacantes"), consulta);
+            org.junit.jupiter.api.Assertions.assertEquals(pendientesRm, atributo(resultado, "totalPendientesRm"), consulta);
+            org.junit.jupiter.api.Assertions.assertTrue(filas(resultado).size() <= 6);
+            org.junit.jupiter.api.Assertions.assertTrue(html(resultado).contains("id=\"metricTotal\">" + total + "</div>"));
+        }
+        org.junit.jupiter.api.Assertions.assertTrue(total > 10);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource(delimiter = '|', value = {
+            "pagina=abc       | 1", "pagina=0         | 1", "pagina=-3        | 1", "pagina=          | 1",
+            "pagina=1.5       | 1", "pagina=999       | 2",
+            "estado=XYZ       | 1", "estado=          | 1", "estado=all       | 1",
+            "prioridad=URGENTE| 1", "prioridad=       | 1", "prioridad=all    | 1",
+            "vacantes=otro    | 1", "vacantes=        | 1", "vacantes=all     | 1"})
+    void parametrosVaciosOInvalidosVuelvenAValoresSeguros(String consulta, int paginaEsperada) throws Exception {
+        String token = crearLote();
+        MvcResult resultado = listarProyectos("busqueda=" + token + "&" + consulta);
+        org.junit.jupiter.api.Assertions.assertEquals(paginaEsperada, atributo(resultado, "paginaActual"));
+        org.junit.jupiter.api.Assertions.assertEquals(10L, atributo(resultado, "totalRegistros"));
+        org.junit.jupiter.api.Assertions.assertNull(atributo(resultado, "estado"));
+        org.junit.jupiter.api.Assertions.assertNull(atributo(resultado, "prioridad"));
+        org.junit.jupiter.api.Assertions.assertNull(atributo(resultado, "vacantes"));
+    }
+
+    @Test
+    void busquedaEnBlancoMuestraTodosLosProyectos() throws Exception {
+        MvcResult resultado = listarProyectos("busqueda=%20%20%20");
+        org.junit.jupiter.api.Assertions.assertNull(atributo(resultado, "busqueda"));
+        org.junit.jupiter.api.Assertions.assertEquals(atributo(resultado, "totalProyectos"),
+                atributo(resultado, "totalRegistros"));
+    }
+
+    @Test
+    void listadoFuncionaSinJavaScript() throws Exception {
+        String token = crearLote();
+        String html = html(listarProyectos("busqueda=" + token + "&estado=ACTIVO"));
+
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(
+                "<form id=\"filtersForm\" method=\"get\" class=\"card-body border-bottom\" action=\"/rm/proyectos\">")
+                || html.contains("<form id=\"filtersForm\" method=\"get\" action=\"/rm/proyectos\""), "formulario GET");
+        for (String campo : List.of("busqueda", "estado", "prioridad", "vacantes")) {
+            org.junit.jupiter.api.Assertions.assertTrue(html.contains("name=\"" + campo + "\""), campo);
+        }
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("value=\"" + token + "\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("value=\"ACTIVO\" selected=\"selected\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("type=\"submit\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("id=\"clearFilters\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("href=\"/rm/proyectos\">"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("rm-proyectos.js"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("data-search="));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("href=\"#\" class=\"page-link\""));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("noProjectResults"));
+        // Solo se renderizan los 6 proyectos de la página, visibles sin que JS los muestre u oculte.
+        org.junit.jupiter.api.Assertions.assertEquals(6, contar(html, "class=\"col-lg-6 project-item\""));
+        org.junit.jupiter.api.Assertions.assertEquals(0, contar(html, "project-item d-none"));
     }
 }

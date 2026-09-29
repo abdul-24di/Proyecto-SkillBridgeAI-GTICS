@@ -473,11 +473,17 @@ public class RmAsignacionService {
     private Proyecto obtenerProyectoAsignable(Long proyectoId) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el proyecto seleccionado."));
-        if (proyecto.getEstado() != EstadoProyecto.ACTIVO
-                && proyecto.getEstado() != EstadoProyecto.EN_ESPERA) {
+        if (!esProyectoAsignable(proyecto)) {
             throw new IllegalStateException("Solo se pueden proponer asignaciones para proyectos activos o en espera.");
         }
         return proyecto;
+    }
+
+    // Criterio único para buscar colaboradores y proponer asignaciones: proyecto ACTIVO o EN_ESPERA.
+    public boolean esProyectoAsignable(Proyecto proyecto) {
+        return proyecto != null
+                && (proyecto.getEstado() == EstadoProyecto.ACTIVO
+                || proyecto.getEstado() == EstadoProyecto.EN_ESPERA);
     }
 
     private Usuario obtenerColaborador(Long colaboradorId) {

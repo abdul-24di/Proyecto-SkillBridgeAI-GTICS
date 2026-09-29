@@ -45,9 +45,10 @@
           </div>
           <div class="col-lg-auto">
             <div class="d-flex gap-2 flex-wrap header-actions">
-              <a class="btn btn-outline-primary"
+              <!-- TASK-023: solo en ACTIVO y EN_ESPERA (RmAsignacionService.esProyectoAsignable). -->
+              <a class="btn btn-outline-primary" id="projectSearchLink" th:if="${proyectoAsignable}"
                  th:href="@{/rm/proyectos/buscar-colaboradores(proyectoId=${proyecto.proyecto.id})}">Buscar colaborador</a>
-              <a class="btn btn-outline-secondary"
+              <a class="btn btn-outline-secondary" id="projectAssignmentsLink" th:if="${proyectoAsignable}"
                  th:href="@{/rm/asignaciones(proyectoId=${proyecto.proyecto.id})}">Ver asignaciones</a>
               <a class="btn btn-outline-secondary" id="projectForumLink" th:if="${foroId != null}"
                  th:href="@{/rm/foros/detalle(id=${foroId})}">Ver foro</a>

@@ -1,6 +1,7 @@
 package com.pucp.skillb_ia;
 
 import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.LogAuditoria;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
@@ -125,7 +126,7 @@ class RmProyectoViewTests {
     @Test
     void asignaPresupuestoYAprobarActivaElProyecto() {
         revisionService.asignarPresupuesto(proyectoId, new BigDecimal("45000"), rmId);
-        revisionService.aprobar(proyectoId, "Alcance validado", rmId);
+        revisionService.aprobar(proyectoId, rmId);
 
         Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
         org.junit.jupiter.api.Assertions.assertEquals(EstadoProyecto.ACTIVO, proyecto.getEstado());
@@ -146,7 +147,7 @@ class RmProyectoViewTests {
     @Test
     void noPermiteAprobarSinPresupuesto() {
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
-                () -> revisionService.aprobar(proyectoId, null, rmId));
+                () -> revisionService.aprobar(proyectoId, rmId));
     }
 
     @Test
@@ -391,6 +392,194 @@ class RmProyectoViewTests {
         verificarSinFormatoAnterior(html, "S/ 11718.75");
         // Los data-* los consume el JS: siguen con el decimal sin formato.
         verificarMontos(html, "data-proyecto-presupuesto=\"1234567.89\"");
+    }
+
+    // TASK-018: aprobar solo con presupuesto, "Usar presupuesto solicitado" y confirmación de cambios.
+    private static final String MENSAJE_SIN_PRESUPUESTO = "Asigna un presupuesto válido antes de aprobar el proyecto.";
+    private static final String USAR_SOLICITADO = "Usar presupuesto solicitado";
+
+    @Test
+    void revisionSinPresupuestoValidoMuestraAprobarDeshabilitado() throws Exception {
+        autenticarRm();
+        for (String presupuesto : new String[] {null, "0.00"}) {
+            Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+            proyecto.setPresupuesto(presupuesto == null ? null : new BigDecimal(presupuesto));
+            proyectoRepository.save(proyecto);
+            String html = renderizar("/rm/proyectos/revision?id=" + proyectoId);
+            verificarMontos(html, "disabled aria-describedby=\"approveProjectBloqueo\"",
+                    "Asigna un presupuesto mayor que cero para poder aprobar el proyecto.");
+            verificarSinFormatoAnterior(html, "data-bs-target=\"#approveProjectModal\"", "id=\"approveProjectModal\"");
+        }
+    }
+
+    @Test
+    void revisionConPresupuestoHabilitaAprobarSinObservacion() throws Exception {
+        autenticarRm();
+        fijarPresupuesto(EstadoProyecto.EN_REVISION, "5000.00");
+        String html = renderizar("/rm/proyectos/revision?id=" + proyectoId);
+        verificarMontos(html, "data-bs-target=\"#approveProjectModal\"", "id=\"approveProjectModal\"",
+                "Confirmar aprobación");
+        verificarSinFormatoAnterior(html, "approveProjectBloqueo", "name=\"observacion\"",
+                "Observación de aprobación", "reviewComment");
+    }
+
+    @Test
+    void aprobarPorPostSinPresupuestoSeRechazaYSigueEnRevision() throws Exception {
+        autenticarRm();
+        long auditorias = logAuditoriaRepository.count();
+        mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/aprobar"))
+                .andExpect(redirectedUrl("/rm/proyectos/revision?id=" + proyectoId))
+                .andExpect(flash().attribute("mensajeError", MENSAJE_SIN_PRESUPUESTO));
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertEquals(EstadoProyecto.EN_REVISION, proyecto.getEstado());
+        org.junit.jupiter.api.Assertions.assertNull(proyecto.getRmRevisor());
+        org.junit.jupiter.api.Assertions.assertEquals(auditorias, logAuditoriaRepository.count());
+    }
+
+    @Test
+    void aprobarPorPostConPresupuestoActivaYAuditaSinObservacion() throws Exception {
+        autenticarRm();
+        fijarPresupuesto(EstadoProyecto.EN_REVISION, "5000.00");
+        mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/aprobar"))
+                .andExpect(redirectedUrl("/rm/proyectos/detalle?id=" + proyectoId))
+                .andExpect(flash().attribute("mensajeExito", "Proyecto aprobado y activado correctamente."));
+        org.junit.jupiter.api.Assertions.assertEquals(EstadoProyecto.ACTIVO,
+                proyectoRepository.findById(proyectoId).orElseThrow().getEstado());
+        LogAuditoria auditoria = ultimaAuditoria("APROBAR_PROYECTO");
+        org.junit.jupiter.api.Assertions.assertEquals("Proyecto aprobado", auditoria.getDetalle());
+        org.junit.jupiter.api.Assertions.assertEquals("EN_REVISION", auditoria.getValorAnterior());
+        org.junit.jupiter.api.Assertions.assertEquals("ACTIVO", auditoria.getValorNuevo());
+    }
+
+    @Test
+    void usarPresupuestoSolicitadoSeMuestraConElMontoCrudo() throws Exception {
+        autenticarRm();
+        fijarSolicitado("45000.50");
+        String html = renderizar("/rm/proyectos/revision?id=" + proyectoId);
+        String formulario = formularioSolicitado(html);
+        verificarMontos(formulario, "<input type=\"hidden\" name=\"presupuesto\" value=\"45000.50\">",
+                "data-rm-budget-form", USAR_SOLICITADO);
+        verificarSinAnterior(formulario);
+        verificarSinFormatoAnterior(formulario, "S/", "45,000.50");
+        // El monto mostrado conserva el formato de TASK-017.
+        verificarMontos(html, "S/ 45,000.50");
+    }
+
+    @Test
+    void usarPresupuestoSolicitadoNoApareceSiEsNuloInvalidoOIgualAlAsignado() throws Exception {
+        autenticarRm();
+        fijarSolicitado(null);
+        verificarSinFormatoAnterior(renderizar("/rm/proyectos/revision?id=" + proyectoId), USAR_SOLICITADO);
+        for (String invalido : new String[] {"0.00", "-10.00"}) {
+            fijarSolicitado(invalido);
+            verificarSinFormatoAnterior(renderizar("/rm/proyectos/revision?id=" + proyectoId), USAR_SOLICITADO);
+        }
+        fijarPresupuesto(EstadoProyecto.EN_REVISION, "45000.00");
+        fijarSolicitado("45000");
+        verificarSinFormatoAnterior(renderizar("/rm/proyectos/revision?id=" + proyectoId), USAR_SOLICITADO);
+    }
+
+    @Test
+    void usarPresupuestoSolicitadoGuardaExactoYAudita() throws Exception {
+        autenticarRm();
+        fijarSolicitado("45000.50");
+        String monto = valorOculto(formularioSolicitado(renderizar("/rm/proyectos/revision?id=" + proyectoId)));
+        mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/presupuesto").param("presupuesto", monto))
+                .andExpect(redirectedUrl("/rm/proyectos/revision?id=" + proyectoId))
+                .andExpect(flash().attribute("mensajeExito", "Presupuesto guardado correctamente."));
+        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("45000.50"), presupuestoActual());
+        LogAuditoria asignada = ultimaAuditoria("ASIGNAR_PRESUPUESTO_PROYECTO");
+        org.junit.jupiter.api.Assertions.assertNull(asignada.getValorAnterior());
+        org.junit.jupiter.api.Assertions.assertEquals("45000.50", asignada.getValorNuevo());
+
+        // Con un presupuesto distinto ya asignado, la acción es un cambio: pasa por la confirmación.
+        fijarPresupuesto(EstadoProyecto.EN_REVISION, "30000.00");
+        String formulario = formularioSolicitado(renderizar("/rm/proyectos/revision?id=" + proyectoId));
+        verificarMontos(formulario, "data-rm-budget-form", "data-presupuesto-anterior=\"30000.00\"");
+        mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/presupuesto").param("presupuesto", valorOculto(formulario)))
+                .andExpect(flash().attribute("mensajeExito", "Presupuesto guardado correctamente."));
+        org.junit.jupiter.api.Assertions.assertEquals(new BigDecimal("45000.50"), presupuestoActual());
+        LogAuditoria actualizada = ultimaAuditoria("ACTUALIZAR_PRESUPUESTO_PROYECTO");
+        org.junit.jupiter.api.Assertions.assertEquals("30000.00", actualizada.getValorAnterior());
+        org.junit.jupiter.api.Assertions.assertEquals("45000.50", actualizada.getValorNuevo());
+    }
+
+    @Test
+    void presupuestoManipuladoSigueValidadoEnElServidor() throws Exception {
+        fijarSolicitado("45000.50");
+        String destino = "/rm/proyectos/revision?id=" + proyectoId;
+        verificarPresupuestoRechazado("0", destino, "El presupuesto debe ser mayor que cero.");
+        verificarPresupuestoRechazado("10000000000.00", destino, "El presupuesto supera el monto máximo permitido.");
+        verificarPresupuestoRechazado("S/ 45,000.50", destino, "El presupuesto debe ser un monto numérico válido.");
+        verificarPresupuestoRechazado("45000.505", destino, MENSAJE_DECIMALES);
+    }
+
+    @Test
+    void cambiarPresupuestoExistenteUsaModalDeConfirmacionEnRevisionYDetalle() throws Exception {
+        autenticarRm();
+        fijarPresupuesto(EstadoProyecto.EN_REVISION, "30000.00");
+        verificarConfirmacion(renderizar("/rm/proyectos/revision?id=" + proyectoId), "budgetInput", "30000.00");
+        fijarPresupuesto(EstadoProyecto.ACTIVO, "30000.00");
+        verificarConfirmacion(renderizar("/rm/proyectos/detalle?id=" + proyectoId), "projectBudget", "30000.00");
+    }
+
+    @Test
+    void primeraAsignacionNoSeTrataComoCambio() throws Exception {
+        autenticarRm();
+        verificarConfirmacion(renderizar("/rm/proyectos/revision?id=" + proyectoId), "budgetInput", "");
+        activarProyecto();
+        String detalle = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+        verificarConfirmacion(detalle, "projectBudget", "");
+        verificarMontos(detalle, "Asignar presupuesto");
+    }
+
+    // El formulario lleva el valor anterior crudo; el modal muestra ambos valores y cancelar no envía nada.
+    private void verificarConfirmacion(String html, String idCampo, String anterior) {
+        int apertura = html.lastIndexOf("<form", html.indexOf("id=\"" + idCampo + "\""));
+        String formulario = html.substring(apertura, html.indexOf('>', apertura) + 1);
+        verificarMontos(formulario, "data-rm-budget-form");
+        if (anterior.isEmpty()) verificarSinAnterior(formulario);
+        else verificarMontos(formulario, "data-presupuesto-anterior=\"" + anterior + "\"");
+        verificarSinFormatoAnterior(formulario, "S/", ",");
+        int inicio = html.indexOf("id=\"budgetChangeModal\"");
+        org.junit.jupiter.api.Assertions.assertTrue(inicio >= 0, "budgetChangeModal");
+        String modal = html.substring(inicio, html.indexOf("<script", inicio));
+        verificarMontos(modal, "Presupuesto anterior", "data-budget-anterior", "Presupuesto nuevo", "data-budget-nuevo",
+                "<button type=\"button\" class=\"btn btn-primary\" data-budget-confirmar>Confirmar cambio</button>",
+                "<button type=\"button\" class=\"btn btn-outline-secondary\" data-bs-dismiss=\"modal\">Cancelar</button>");
+        verificarSinFormatoAnterior(modal, "<form", "type=\"submit\"");
+        verificarMontos(html, "/js/rm-js/rm-presupuesto-confirmacion.js");
+    }
+
+    // Sin presupuesto asignado Thymeleaf omite el atributo: el JS lo trata como primera asignación.
+    private void verificarSinAnterior(String formulario) {
+        org.junit.jupiter.api.Assertions.assertFalse(
+                formulario.matches("(?s).*data-presupuesto-anterior=\"\\d.*"), formulario);
+    }
+
+    private void fijarSolicitado(String solicitado) {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setPresupuestoSolicitado(solicitado == null ? null : new BigDecimal(solicitado));
+        proyectoRepository.save(proyecto);
+    }
+
+    private String formularioSolicitado(String html) {
+        int inicio = html.indexOf("id=\"useRequestedBudgetForm\"");
+        org.junit.jupiter.api.Assertions.assertTrue(inicio >= 0, "useRequestedBudgetForm");
+        return html.substring(html.lastIndexOf("<form", inicio), html.indexOf("</form>", inicio));
+    }
+
+    private String valorOculto(String formulario) {
+        String marca = "name=\"presupuesto\" value=\"";
+        int inicio = formulario.indexOf(marca) + marca.length();
+        return formulario.substring(inicio, formulario.indexOf('"', inicio));
+    }
+
+    private LogAuditoria ultimaAuditoria(String accion) {
+        return logAuditoriaRepository.findAll().stream()
+                .filter(log -> accion.equals(log.getAccion()) && proyectoId.equals(log.getEntidadId()))
+                .max(java.util.Comparator.comparing(LogAuditoria::getId))
+                .orElseThrow();
     }
 
     private Proyecto prepararProyectoConCosto(String presupuesto) {

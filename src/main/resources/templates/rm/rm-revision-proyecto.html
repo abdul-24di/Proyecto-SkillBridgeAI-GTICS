@@ -134,13 +134,26 @@
               </div>
             </div>
             <div class="budget-note mt-3">Debe ser mayor que cero y es obligatorio antes de aprobar.</div>
-            <form class="mt-3" method="post" th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}">
+            <!-- TASK-018: cambiar un presupuesto ya asignado se confirma en #budgetChangeModal. -->
+            <form class="mt-3" method="post" th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}"
+                  data-rm-budget-form
+                  th:attr="data-presupuesto-anterior=${proyecto.proyecto.presupuesto != null ? proyecto.proyecto.presupuesto.toPlainString() : ''}">
               <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
               <label for="budgetInput" class="form-label">Presupuesto asignado (S/)</label>
               <input id="budgetInput" name="presupuesto" type="text" inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required
                      aria-describedby="budgetInputAyuda" class="form-control" th:value="${proyecto.proyecto.presupuesto}">
               <div id="budgetInputAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
               <button type="submit" class="btn btn-outline-primary w-100 mt-3">Guardar presupuesto</button>
+            </form>
+            <form id="useRequestedBudgetForm" class="mt-2" method="post"
+                  th:if="${proyecto.proyecto.presupuestoSolicitado != null and proyecto.proyecto.presupuestoSolicitado.signum() > 0
+                           and (proyecto.proyecto.presupuesto == null or proyecto.proyecto.presupuestoSolicitado.compareTo(proyecto.proyecto.presupuesto) != 0)}"
+                  th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}"
+                  data-rm-budget-form
+                  th:attr="data-presupuesto-anterior=${proyecto.proyecto.presupuesto != null ? proyecto.proyecto.presupuesto.toPlainString() : ''}">
+              <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+              <input type="hidden" name="presupuesto" th:value="${proyecto.proyecto.presupuestoSolicitado.toPlainString()}">
+              <button type="submit" class="btn btn-outline-secondary w-100">Usar presupuesto solicitado</button>
             </form>
           </div>
         </div>
@@ -170,15 +183,23 @@
         <div class="card section-card h-100">
           <div class="card-header section-header"><div><h3 class="card-title mb-1">Decisión del RM</h3>
             <div class="section-description">Aprobar activa el proyecto; rechazar exige un motivo.</div></div></div>
-          <div class="card-body">
+          <div class="card-body"
+               th:with="presupuestoValido=${proyecto.proyecto.presupuesto != null and proyecto.proyecto.presupuesto.signum() > 0}">
             <div class="decision-note">
               Revisa la información antes de continuar. La decisión quedará registrada y será visible para el Project Manager.
             </div>
             <div class="d-grid gap-2 mt-3">
-              <button type="button" class="btn btn-success"
+              <button type="button" class="btn btn-success" th:if="${presupuestoValido}"
                       data-bs-toggle="modal" data-bs-target="#approveProjectModal">
                 Aprobar proyecto
               </button>
+              <button type="button" class="btn btn-success" th:unless="${presupuestoValido}"
+                      disabled aria-describedby="approveProjectBloqueo">
+                Aprobar proyecto
+              </button>
+              <div id="approveProjectBloqueo" class="form-hint" th:unless="${presupuestoValido}">
+                Asigna un presupuesto mayor que cero para poder aprobar el proyecto.
+              </div>
               <button type="button" class="btn btn-outline-danger"
                       data-bs-toggle="modal" data-bs-target="#rejectProjectModal">
                 Rechazar proyecto
@@ -194,6 +215,7 @@
 </div>
 
 <div class="modal modal-blur fade rm-modal" id="approveProjectModal" tabindex="-1"
+     th:if="${proyecto.proyecto.presupuesto != null and proyecto.proyecto.presupuesto.signum() > 0}"
      aria-labelledby="approveProjectModalTitle" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -222,11 +244,6 @@
             <span class="rm-state-transition-arrow" aria-hidden="true">&rarr;</span>
             <span class="badge bg-green-lt">Activo</span>
           </div>
-          <label for="reviewComment" class="form-label">
-            Observación de aprobación <span class="text-secondary fw-normal">(opcional)</span>
-          </label>
-          <textarea id="reviewComment" name="observacion" class="form-control" rows="3" maxlength="450"
-                    placeholder="Registra una observación para la auditoría."></textarea>
           <div class="form-hint">Al confirmar, el proyecto quedará activo.</div>
         </div>
         <div class="modal-footer">
@@ -278,6 +295,36 @@
   </div>
 </div>
 
+<div class="modal modal-blur fade" id="budgetChangeModal" tabindex="-1"
+     aria-labelledby="budgetChangeModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="budgetChangeModalTitle">Confirmar cambio de presupuesto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="rm-modal-context">
+          <div>
+            <div class="info-label">Presupuesto anterior</div>
+            <div class="info-value" data-budget-anterior>S/ 0.00</div>
+          </div>
+          <div>
+            <div class="info-label">Presupuesto nuevo</div>
+            <div class="info-value" data-budget-nuevo>S/ 0.00</div>
+          </div>
+        </div>
+        <div class="form-hint">El sistema volverá a validar el monto antes de guardarlo.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" data-budget-confirmar>Confirmar cambio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/rm-js/rm-presupuesto-confirmacion.js" th:src="@{/js/rm-js/rm-presupuesto-confirmacion.js}"></script>
 </body>
 </html>

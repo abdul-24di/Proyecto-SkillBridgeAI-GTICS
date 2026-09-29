@@ -110,8 +110,11 @@
         </div>
       </div>
       <div class="card-body">
+        <!-- TASK-018: cambiar un presupuesto ya asignado se confirma en #budgetChangeModal. -->
         <form method="post" class="row g-3 align-items-end"
-              th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}">
+              th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}"
+              data-rm-budget-form
+              th:attr="data-presupuesto-anterior=${proyecto.proyecto.presupuesto != null ? proyecto.proyecto.presupuesto.toPlainString() : ''}">
           <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
           <div class="col-md-8">
             <label for="projectBudget" class="form-label">Presupuesto asignado (S/)</label>
@@ -204,7 +207,38 @@
     </div>
   </main>
 </div>
+
+<div class="modal modal-blur fade" id="budgetChangeModal" tabindex="-1"
+     aria-labelledby="budgetChangeModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="budgetChangeModalTitle">Confirmar cambio de presupuesto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="project-info-grid mb-3">
+          <div>
+            <div class="info-label">Presupuesto anterior</div>
+            <div class="info-value" data-budget-anterior>S/ 0.00</div>
+          </div>
+          <div>
+            <div class="info-label">Presupuesto nuevo</div>
+            <div class="info-value" data-budget-nuevo>S/ 0.00</div>
+          </div>
+        </div>
+        <div class="form-hint">El sistema volverá a validar el monto antes de guardarlo.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" data-budget-confirmar>Confirmar cambio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
+<script src="../../static/js/rm-js/rm-presupuesto-confirmacion.js" th:src="@{/js/rm-js/rm-presupuesto-confirmacion.js}"></script>
 </body>
 </html>

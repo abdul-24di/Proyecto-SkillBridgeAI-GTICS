@@ -16,6 +16,11 @@ import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.rm.RmReporteService;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +31,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -136,6 +142,38 @@ class RmReporteTests {
         assertTrue(excelBytes.length > 1000);
         assertEquals('P', excelBytes[0]);
         assertEquals('K', excelBytes[1]);
+
+        try (XSSFWorkbook libro = new XSSFWorkbook(new ByteArrayInputStream(excelBytes))) {
+            assertEquals(2, libro.getNumberOfSheets());
+            Sheet proyectos = libro.getSheet("Proyectos");
+            Sheet colaboradores = libro.getSheet("Colaboradores");
+            assertNotNull(proyectos);
+            assertNotNull(colaboradores);
+
+            Row cabecera = proyectos.getRow(4);
+            assertEquals("Proyecto", cabecera.getCell(0).getStringCellValue());
+            assertEquals("Presupuesto asignado", cabecera.getCell(3).getStringCellValue());
+            assertEquals("Horas trabajadas", cabecera.getCell(4).getStringCellValue());
+
+            Row fila = proyectos.getRow(5);
+            assertEquals("Reporte mensual test", fila.getCell(0).getStringCellValue());
+            Cell presupuesto = fila.getCell(3);
+            assertEquals(CellType.NUMERIC, presupuesto.getCellType());
+            assertEquals(12500.00, presupuesto.getNumericCellValue(), 0.001);
+            assertEquals("\"S/\" #,##0.00", presupuesto.getCellStyle().getDataFormatString());
+            Cell horas = fila.getCell(4);
+            assertEquals(CellType.NUMERIC, horas.getCellType());
+            assertEquals(60.00, horas.getNumericCellValue(), 0.001);
+            assertEquals("0.00 \"h\"", horas.getCellStyle().getDataFormatString());
+
+            assertEquals("Colaborador", colaboradores.getRow(0).getCell(0).getStringCellValue());
+            assertTrue(colaboradores.getLastRowNum() >= 1);
+            assertEquals("Reporte mensual test", colaboradores.getRow(1).getCell(2).getStringCellValue());
+
+            for (String formato : libro.getStylesSource().getNumberFormats().values()) {
+                assertFalse(formato.startsWith("S/"), "Formato inválido para Excel: " + formato);
+            }
+        }
 
         MvcResult pdf = mockMvc.perform(get("/rm/reportes/recursos/pdf")
                         .param("periodo", periodo.toString())

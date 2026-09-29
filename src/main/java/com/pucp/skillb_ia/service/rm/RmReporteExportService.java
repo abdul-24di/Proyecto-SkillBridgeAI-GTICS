@@ -20,7 +20,7 @@ public class RmReporteExportService {
         try (Workbook libro = new XSSFWorkbook();
              ByteArrayOutputStream salida = new ByteArrayOutputStream()) {
             CellStyle encabezado = estiloEncabezado(libro);
-            CellStyle dinero = estiloNumero(libro, "S/ #,##0.00");
+            CellStyle dinero = estiloNumero(libro, "\"S/\" #,##0.00");
             CellStyle horas = estiloNumero(libro, "0.00 \"h\"");
 
             Sheet proyectos = libro.createSheet("Proyectos");

@@ -1,9 +1,11 @@
 package com.pucp.skillb_ia.service.rm;
 
+import com.pucp.skillb_ia.model.Actividad;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
@@ -13,28 +15,35 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 public class RmProyectoRevisionService {
     private static final String ROL_RM = "RESOURCE_MANAGER";
     private static final BigDecimal PRESUPUESTO_MAXIMO = new BigDecimal("9999999999.99");
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final ProyectoRepository proyectoRepository;
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final RmPresupuestoService presupuestoService;
     private final NotificacionService notificacionService;
+    private final ActividadRepository actividadRepository;
 
     public RmProyectoRevisionService(ProyectoRepository proyectoRepository,
                                      UsuarioRepository usuarioRepository,
                                      AuditoriaService auditoriaService,
                                      RmPresupuestoService presupuestoService,
-                                     NotificacionService notificacionService) {
+                                     NotificacionService notificacionService,
+                                     ActividadRepository actividadRepository) {
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.presupuestoService = presupuestoService;
         this.notificacionService = notificacionService;
+        this.actividadRepository = actividadRepository;
     }
 
     @Transactional
@@ -112,6 +121,70 @@ public class RmProyectoRevisionService {
         auditoriaService.registrar(rm, "RECHAZAR_PROYECTO", "PROYECTO", proyectoId,
                 detalleAuditoria.substring(0, Math.min(detalleAuditoria.length(), 500)),
                 "EN_REVISION", "RECHAZADO", null);
+    }
+
+    // TASK-021: solo el RM cambia las fechas. Todas las validaciones van antes de modificar
+    // el proyecto: un cambio inválido no guarda, no audita ni notifica.
+    @Transactional
+    public void cambiarFechas(Long proyectoId, LocalDate fechaInicio, LocalDate fechaFin, Long rmId) {
+        Usuario rm = obtenerRm(rmId);
+        Proyecto proyecto = proyectoRepository.findById(proyectoId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el proyecto solicitado."));
+        if (proyecto.getEstado() != EstadoProyecto.EN_REVISION
+                && proyecto.getEstado() != EstadoProyecto.ACTIVO
+                && proyecto.getEstado() != EstadoProyecto.EN_ESPERA) {
+            throw new IllegalStateException("Las fechas no pueden modificarse en el estado actual del proyecto.");
+        }
+        if (fechaInicio == null || fechaFin == null) {
+            throw new IllegalArgumentException("Debes indicar la fecha de inicio y la fecha de fin del proyecto.");
+        }
+        // Un proyecto ya iniciado puede conservar su inicio pasado (p. ej., solo extender el fin).
+        if (fechaInicio.isBefore(LocalDate.now()) && !fechaInicio.equals(proyecto.getFechaInicio())) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser anterior a la fecha actual.");
+        }
+        if (!fechaFin.isAfter(fechaInicio)) {
+            throw new IllegalArgumentException("La fecha de fin debe ser posterior a la fecha de inicio.");
+        }
+
+        List<Actividad> fueraDeRango = actividadRepository.findByProyectoOrderByFechaLimiteAsc(proyecto).stream()
+                .filter(a -> a.getFechaLimite() != null
+                        && (a.getFechaLimite().isBefore(fechaInicio) || a.getFechaLimite().isAfter(fechaFin)))
+                .toList();
+        if (!fueraDeRango.isEmpty()) {
+            Actividad primera = fueraDeRango.get(0);
+            throw new IllegalArgumentException("No se cambiaron las fechas: " + fueraDeRango.size()
+                    + " actividad(es) vencen fuera del nuevo rango, por ejemplo \"" + primera.getTitulo()
+                    + "\" con fecha límite " + primera.getFechaLimite().format(FORMATO_FECHA) + ".");
+        }
+
+        RmPresupuestoService.ResumenPresupuesto resumen =
+                presupuestoService.calcularResumenConFechas(proyecto, fechaInicio, fechaFin);
+        BigDecimal comprometidoYReservado = resumen.comprometido().add(resumen.reservado());
+        if (comprometidoYReservado.compareTo(resumen.total()) > 0) {
+            throw new IllegalArgumentException("No se cambiaron las fechas: con el nuevo rango, el costo comprometido y reservado (S/ "
+                    + comprometidoYReservado.setScale(2, RoundingMode.HALF_UP).toPlainString()
+                    + ") supera el presupuesto del proyecto (S/ "
+                    + resumen.total().setScale(2, RoundingMode.HALF_UP).toPlainString() + ").");
+        }
+
+        String anterior = describirFechas(proyecto.getFechaInicio(), proyecto.getFechaFinEstimada());
+        String nuevo = describirFechas(fechaInicio, fechaFin);
+        proyecto.setFechaInicio(fechaInicio);
+        proyecto.setFechaFinEstimada(fechaFin);
+        proyectoRepository.save(proyecto);
+
+        auditoriaService.registrar(rm, "ACTUALIZAR_FECHAS_PROYECTO", "PROYECTO", proyectoId,
+                "Se actualizaron las fechas del proyecto " + proyecto.getNombre(), anterior, nuevo, null);
+        notificacionService.crear(proyecto.getPm(), "PROYECTO_FECHAS_ACTUALIZADAS", CategoriaNotificacion.PROYECTO,
+                "Fechas del proyecto actualizadas",
+                "El Resource Manager cambió las fechas de tu proyecto \"" + proyecto.getNombre() + "\": del "
+                        + fechaInicio.format(FORMATO_FECHA) + " al " + fechaFin.format(FORMATO_FECHA) + ".",
+                "PROYECTO", proyecto.getId());
+    }
+
+    private static String describirFechas(LocalDate inicio, LocalDate fin) {
+        return "Inicio: " + (inicio != null ? inicio.format(FORMATO_FECHA) : "sin definir")
+                + " | Fin: " + (fin != null ? fin.format(FORMATO_FECHA) : "sin definir");
     }
 
     private Proyecto obtenerEnRevision(Long proyectoId) {

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  TASK-021: formulario único para que el RM cambie las fechas del proyecto.
+  Se incluye en el detalle (EN_REVISION, ACTIVO, EN_ESPERA) y en la revisión (EN_REVISION).
+  "origen" (detalle | revision) indica a qué vista vuelve el POST. El servidor valida estado,
+  inicio no anterior a hoy, fin posterior al inicio, actividades y presupuesto
+  (RmProyectoRevisionService.cambiarFechas); los min y js/rm-js/rm-proyecto-fechas.js solo ayudan.
+-->
+<form th:fragment="formulario(proyecto, origen)" id="projectDatesForm" method="post" class="row g-3 align-items-end mt-2"
+      th:if="${proyecto.estado.name() == 'EN_REVISION' or proyecto.estado.name() == 'ACTIVO' or proyecto.estado.name() == 'EN_ESPERA'}"
+      th:action="@{/rm/proyectos/{id}/fechas(id=${proyecto.id})}"
+      th:with="inicioActual=${proyecto.fechaInicio},
+               minInicio=${inicioActual != null and inicioActual.isBefore(#temporals.createToday()) ? inicioActual : #temporals.createToday()}">
+  <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+  <input type="hidden" name="origen" th:value="${origen}">
+  <div class="col-12">
+    <div class="info-label">Cambiar fechas del proyecto</div>
+    <div class="form-hint">El nuevo periodo debe iniciar a partir de hoy, incluir todas las actividades y ajustarse al presupuesto asignado.</div>
+  </div>
+  <div class="col-md-4">
+    <label for="projectStartDate" class="form-label">Fecha de inicio</label>
+    <input id="projectStartDate" name="fechaInicio" type="date" class="form-control" required
+           th:value="${proyecto.fechaInicio}" th:min="${minInicio}">
+  </div>
+  <div class="col-md-4">
+    <label for="projectEndDate" class="form-label">Fin estimado</label>
+    <input id="projectEndDate" name="fechaFin" type="date" class="form-control" required
+           th:value="${proyecto.fechaFinEstimada}"
+           th:min="${(inicioActual != null ? inicioActual : minInicio).plusDays(1)}">
+  </div>
+  <div class="col-md-4 d-grid">
+    <button type="submit" class="btn btn-outline-primary">Guardar fechas</button>
+  </div>
+</form>
+
+</body>
+</html>

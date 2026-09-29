@@ -152,6 +152,8 @@
           <div><div class="info-label">Estado</div><div class="info-value" th:text="${proyecto.estadoTexto}">Estado</div></div>
           <div><div class="info-label">Prioridad</div><div class="info-value" th:text="${proyecto.prioridadTexto}">Prioridad</div></div>
         </div>
+        <!-- TASK-021: formulario compartido con la revisión (fragments/rm-proyecto-fechas). -->
+        <form th:replace="~{fragments/rm-proyecto-fechas :: formulario(${proyecto.proyecto}, 'detalle')}"></form>
         <div class="priority-message mt-4">
           <strong>Justificación de prioridad:</strong>
           <span th:text="${proyecto.proyecto.justificacionPrioridad}">Sin justificación.</span>
@@ -240,5 +242,6 @@
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
 <script src="../../static/js/rm-js/rm-presupuesto-confirmacion.js" th:src="@{/js/rm-js/rm-presupuesto-confirmacion.js}"></script>
+<script src="../../static/js/rm-js/rm-proyecto-fechas.js" th:src="@{/js/rm-js/rm-proyecto-fechas.js}"></script>
 </body>
 </html>

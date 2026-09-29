@@ -44,7 +44,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
@@ -248,6 +250,40 @@ public class RmViewController {
             String redireccionAsignacion = redireccionAsignacionDelProyecto(proyectoId, asignacionId);
             if (redireccionAsignacion != null) return redireccionAsignacion;
             return redireccionPresupuestoProyecto(proyectoId, null);
+        }
+    }
+
+    // TASK-021: el formulario está en el detalle y en la revisión; éxito y errores vuelven a la vista de origen
+    // (si el proyecto ya no está en revisión, GET /proyectos/revision redirige al detalle).
+    @PostMapping("/proyectos/{id}/fechas")
+    public String changeProjectDates(
+            @PathVariable("id") Long proyectoId,
+            @RequestParam(name = "fechaInicio", required = false) String fechaInicioTexto,
+            @RequestParam(name = "fechaFin", required = false) String fechaFinTexto,
+            @RequestParam(name = "origen", required = false) String origen,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        String destino = "revision".equals(origen)
+                ? "redirect:/rm/proyectos/revision?id=" + proyectoId
+                : "redirect:/rm/proyectos/detalle?id=" + proyectoId;
+        if (principal == null) return "redirect:/login";
+        try {
+            rmProyectoRevisionService.cambiarFechas(proyectoId,
+                    convertirFecha(fechaInicioTexto), convertirFecha(fechaFinTexto), principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Fechas del proyecto actualizadas correctamente.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return destino;
+    }
+
+    // Vacío => null (el servicio exige ambas fechas); mal formado => error de negocio.
+    private static LocalDate convertirFecha(String valor) {
+        if (valor == null || valor.isBlank()) return null;
+        try {
+            return LocalDate.parse(valor.trim());
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Las fechas deben tener el formato AAAA-MM-DD.");
         }
     }
 

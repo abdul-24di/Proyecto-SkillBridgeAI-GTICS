@@ -3,6 +3,7 @@ package com.pucp.skillb_ia;
 import com.pucp.skillb_ia.model.Actividad;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.CategoriaHabilidad;
+import com.pucp.skillb_ia.model.Foro;
 import com.pucp.skillb_ia.model.Habilidad;
 import com.pucp.skillb_ia.model.LogAuditoria;
 import com.pucp.skillb_ia.model.Notificacion;
@@ -15,9 +16,11 @@ import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.Prioridad;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.model.enums.TipoForo;
 import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.CategoriaHabilidadRepository;
+import com.pucp.skillb_ia.repository.ForoRepository;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.LogAuditoriaRepository;
 import com.pucp.skillb_ia.repository.NotificacionRepository;
@@ -67,6 +70,7 @@ class RmProyectoViewTests {
     @Autowired private CategoriaHabilidadRepository categoriaHabilidadRepository;
     @Autowired private HabilidadRepository habilidadRepository;
     @Autowired private ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository;
+    @Autowired private ForoRepository foroRepository;
 
     private MockMvc mockMvc;
     private Long proyectoId;
@@ -130,6 +134,43 @@ class RmProyectoViewTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("rm/rm-detalle-proyecto"))
                 .andExpect(model().attributeExists("proyecto"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(EstadoProyecto.class)
+    void detalleMuestraVerForoDelProyectoEnCualquierEstado(EstadoProyecto estado) throws Exception {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setEstado(estado);
+        proyectoRepository.save(proyecto);
+        Foro foro = new Foro();
+        foro.setProyecto(proyecto);
+        foro.setTipo(TipoForo.PROYECTO);
+        foro.setEsPublico(false);
+        foro.setNombre("Foro del proyecto de prueba RM");
+        Long foroId = foroRepository.save(foro).getId();
+
+        String html = mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyectoId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-detalle-proyecto"))
+                .andExpect(model().attribute("foroId", foroId))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        String enlace = "href=\"/rm/foros/detalle?id=" + foroId + "\"";
+        org.junit.jupiter.api.Assertions.assertEquals(1, html.split(java.util.regex.Pattern.quote(enlace), -1).length - 1);
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(">Ver foro</a>"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Proyecto de prueba RM"));
+    }
+
+    @Test
+    void detalleSinForoNoMuestraVerForo() throws Exception {
+        String html = mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyectoId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("foroId", org.hamcrest.Matchers.nullValue()))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("Ver foro"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("projectForumLink"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("/rm/foros/detalle"));
     }
 
     @Test

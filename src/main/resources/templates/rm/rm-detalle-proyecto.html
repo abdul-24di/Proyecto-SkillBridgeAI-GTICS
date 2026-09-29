@@ -49,6 +49,8 @@
                  th:href="@{/rm/proyectos/buscar-colaboradores(proyectoId=${proyecto.proyecto.id})}">Buscar colaborador</a>
               <a class="btn btn-outline-secondary"
                  th:href="@{/rm/asignaciones(proyectoId=${proyecto.proyecto.id})}">Ver asignaciones</a>
+              <a class="btn btn-outline-secondary" id="projectForumLink" th:if="${foroId != null}"
+                 th:href="@{/rm/foros/detalle(id=${foroId})}">Ver foro</a>
             </div>
           </div>
         </div>

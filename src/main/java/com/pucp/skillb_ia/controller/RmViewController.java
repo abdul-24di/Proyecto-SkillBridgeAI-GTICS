@@ -205,6 +205,8 @@ public class RmViewController {
             RmProyectoView proyecto = rmProyectoConsultaService.obtener(proyectoId);
             model.addAttribute("proyecto", proyecto);
             model.addAttribute("resumen", proyecto.getResumenPresupuesto());
+            model.addAttribute("foroId", rmForoConsultaService
+                    .buscarIdPorProyecto(proyecto.getProyecto()).orElse(null));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/proyectos?noEncontrado=true";
         }

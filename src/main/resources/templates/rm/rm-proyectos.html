@@ -313,12 +313,12 @@
       </div>
 
 
-      <!-- FILTROS -->
-      <div class="card-body border-bottom">
+      <!-- FILTROS (TASK-028): GET en el servidor, sin JS -->
+      <form id="filtersForm" method="get" th:action="@{/rm/proyectos}" class="card-body border-bottom">
 
         <div class="row g-3 align-items-end">
 
-          <div class="col-lg-4 col-md-6">
+          <div class="col-lg-3 col-md-6">
 
             <label for="searchInput"
                    class="form-label">
@@ -326,8 +326,11 @@
             </label>
 
             <input id="searchInput"
+                   name="busqueda"
                    class="form-control"
                    type="text"
+                   maxlength="100"
+                   th:value="${busqueda}"
                    placeholder="Nombre del proyecto o Project Manager">
 
           </div>
@@ -341,33 +344,34 @@
             </label>
 
             <select id="statusFilter"
+                    name="estado"
                     class="form-select">
 
               <option value="all">
                 Todos los estados
               </option>
 
-              <option value="EN_REVISION">
+              <option value="EN_REVISION" th:selected="${estado == 'EN_REVISION'}">
                 En revisión
               </option>
 
-              <option value="ACTIVO">
+              <option value="ACTIVO" th:selected="${estado == 'ACTIVO'}">
                 Activo
               </option>
 
-              <option value="RECHAZADO">
+              <option value="RECHAZADO" th:selected="${estado == 'RECHAZADO'}">
                 Rechazado
               </option>
 
-              <option value="EN_ESPERA">
+              <option value="EN_ESPERA" th:selected="${estado == 'EN_ESPERA'}">
                 En espera
               </option>
 
-              <option value="CANCELADO">
+              <option value="CANCELADO" th:selected="${estado == 'CANCELADO'}">
                 Cancelado
               </option>
 
-              <option value="FINALIZADO">
+              <option value="FINALIZADO" th:selected="${estado == 'FINALIZADO'}">
                 Finalizado
               </option>
 
@@ -384,12 +388,13 @@
             </label>
 
             <select id="priorityFilter"
+                    name="prioridad"
                     class="form-select">
 
               <option value="all">Todas</option>
-              <option value="ALTA">Alta</option>
-              <option value="MEDIA">Media</option>
-              <option value="BAJA">Baja</option>
+              <option value="ALTA" th:selected="${prioridad == 'ALTA'}">Alta</option>
+              <option value="MEDIA" th:selected="${prioridad == 'MEDIA'}">Media</option>
+              <option value="BAJA" th:selected="${prioridad == 'BAJA'}">Baja</option>
 
             </select>
 
@@ -404,17 +409,18 @@
             </label>
 
             <select id="vacancyFilter"
+                    name="vacantes"
                     class="form-select">
 
               <option value="all">
                 Todas
               </option>
 
-              <option value="with">
+              <option value="with" th:selected="${vacantes == 'with'}">
                 Con vacantes
               </option>
 
-              <option value="full">
+              <option value="full" th:selected="${vacantes == 'full'}">
                 Equipo completo
               </option>
 
@@ -423,19 +429,24 @@
           </div>
 
 
-          <div class="col-lg-2 col-md-6 d-grid">
+          <div class="col-lg-3 col-md-12 d-flex gap-2">
 
-            <button id="clearFilters"
-                    type="button"
-                    class="btn btn-outline-secondary">
-              Limpiar filtros
+            <button type="submit"
+                    class="btn btn-primary flex-fill">
+              Filtrar
             </button>
+
+            <a id="clearFilters"
+               class="btn btn-outline-secondary flex-fill"
+               th:href="@{/rm/proyectos}">
+              Limpiar filtros
+            </a>
 
           </div>
 
         </div>
 
-      </div>
+      </form>
 
 
       <!-- GRID -->
@@ -445,11 +456,7 @@
              class="row row-cards">
 
           <div class="col-lg-6 project-item"
-               th:each="item : ${proyectos}"
-               th:attr="data-search=${item.textoBusqueda},
-                        data-status=${item.proyecto.estado},
-                        data-priority=${item.proyecto.prioridad},
-                        data-vacancies=${item.vacantes}">
+               th:each="item : ${proyectos}">
             <div class="card project-card">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start gap-3">
@@ -534,11 +541,11 @@
             </div>
           </div>
 
-          <div class="col-12" th:if="${#lists.isEmpty(proyectos)}">
+          <div class="col-12" th:if="${totalProyectos == 0}">
             <div class="card"><div class="empty-state">No hay proyectos registrados.</div></div>
           </div>
 
-          <div id="noProjectResults" class="col-12 d-none">
+          <div id="noProjectResults" class="col-12" th:if="${totalProyectos > 0 and #lists.isEmpty(proyectos)}">
             <div class="card"><div class="empty-state">No se encontraron proyectos con los filtros seleccionados.</div></div>
           </div>
         </div>
@@ -550,11 +557,18 @@
       <div class="pagination-wrap">
 
         <div id="paginationInfo"
-             class="text-secondary small">
+             class="text-secondary small"
+             th:with="desdeFila=${totalRegistros == 0 ? 0 : ((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(proyectos)}"
+             th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} proyectos|">
+          Mostrando 0-0 de 0 proyectos
         </div>
 
         <ul id="pagination"
-            class="pagination pagination-sm m-0">
+            class="pagination pagination-sm m-0"
+            th:if="${totalPaginas > 1}">
+          <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/proyectos(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, vacantes=${vacantes}, pagina=${paginaActual - 1})}">Anterior</a></li>
+          <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/proyectos(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, vacantes=${vacantes}, pagina=${n})}" th:text="${n}">1</a></li>
+          <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/proyectos(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, vacantes=${vacantes}, pagina=${paginaActual + 1})}">Siguiente</a></li>
         </ul>
 
       </div>
@@ -571,12 +585,9 @@
         th:src="@{/tabler/js/tabler.min.js}">
 </script>
 
-<!-- Lógica temporal de filtros/paginación -->
+<!-- Navegación RM (los filtros y la paginación los resuelve el servidor) -->
 <script src="../../static/js/rm-js/rm-navigation.js"
         th:src="@{/js/rm-js/rm-navigation.js}">
-</script>
-<script src="../../static/js/rm-js/rm-proyectos.js"
-        th:src="@{/js/rm-js/rm-proyectos.js}">
 </script>
 
 </body>

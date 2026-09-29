@@ -22,15 +22,15 @@
   </div>
   <div class="card section-card">
     <div class="card-header section-header"><div><h3 class="card-title mb-1">Todas las solicitudes</h3><div class="section-description">Una solicitud pide cupos; una asignación posterior selecciona a una persona concreta.</div></div></div>
-    <div class="card-body border-bottom"><div class="row g-3 align-items-end">
-      <div class="col-lg-4"><label for="searchInput" class="form-label">Buscar</label><input id="searchInput" class="form-control" placeholder="Proyecto, PM o habilidad"></div>
-      <div class="col-lg-3"><label for="statusFilter" class="form-label">Estado</label><select id="statusFilter" class="form-select"><option value="all">Todos</option><option>Pendiente</option><option>En atención</option><option>Atendida</option><option>Cancelada</option></select></div>
-      <div class="col-lg-3"><label for="priorityFilter" class="form-label">Prioridad</label><select id="priorityFilter" class="form-select"><option value="all">Todas</option><option>Alta</option><option>Media</option><option>Baja</option></select></div>
-      <div class="col-lg-2 d-grid"><button id="clearFilters" type="button" class="btn btn-outline-secondary">Limpiar</button></div>
-    </div></div>
+    <form id="filtersForm" method="get" th:action="@{/rm/asignaciones/solicitudes-colaboradores}" class="card-body border-bottom"><div class="row g-3 align-items-end">
+      <div class="col-lg-4"><label for="searchInput" class="form-label">Buscar</label><input id="searchInput" name="busqueda" type="text" maxlength="100" class="form-control" th:value="${busqueda}" placeholder="Proyecto, PM o habilidad"></div>
+      <div class="col-lg-2"><label for="statusFilter" class="form-label">Estado</label><select id="statusFilter" name="estado" class="form-select"><option value="all">Todos</option><option value="PENDIENTE" th:selected="${estado == 'PENDIENTE'}">Pendiente</option><option value="EN_ATENCION" th:selected="${estado == 'EN_ATENCION'}">En atención</option><option value="ATENDIDA" th:selected="${estado == 'ATENDIDA'}">Atendida</option><option value="CANCELADA" th:selected="${estado == 'CANCELADA'}">Cancelada</option></select></div>
+      <div class="col-lg-2"><label for="priorityFilter" class="form-label">Prioridad</label><select id="priorityFilter" name="prioridad" class="form-select"><option value="all">Todas</option><option value="ALTA" th:selected="${prioridad == 'ALTA'}">Alta</option><option value="MEDIA" th:selected="${prioridad == 'MEDIA'}">Media</option><option value="BAJA" th:selected="${prioridad == 'BAJA'}">Baja</option></select></div>
+      <div class="col-lg-4 d-flex gap-2"><button type="submit" class="btn btn-primary flex-fill">Filtrar</button><a id="clearFilters" class="btn btn-outline-secondary flex-fill" th:href="@{/rm/asignaciones/solicitudes-colaboradores}">Limpiar</a></div>
+    </div></form>
     <div class="table-responsive"><table class="table table-vcenter card-table mb-0"><thead><tr><th>Proyecto</th><th>Prioridad</th><th>Project Manager</th><th>Solicitados</th><th>Habilidades requeridas</th><th>Estado</th><th>Fecha</th><th class="text-end">Acción</th></tr></thead>
       <tbody id="requestsBody">
-      <tr th:each="item : ${solicitudes}" class="request-row" th:attr="data-search=${item.textoBusqueda},data-status=${item.estadoTexto},data-priority=${item.proyecto.prioridadTexto}">
+      <tr th:each="item : ${solicitudes}" class="request-row">
         <td class="fw-semibold" th:text="${item.solicitud.proyecto.nombre}">Proyecto</td>
         <td><span class="badge" th:classappend="${item.proyecto.prioridadClase}" th:text="${item.proyecto.prioridadTexto}">Prioridad</span></td>
         <td th:text="${item.pmNombre}">PM</td>
@@ -43,9 +43,15 @@
       <tr id="emptyRequests" th:classappend="${#lists.isEmpty(solicitudes)} ? '' : 'd-none'"><td colspan="8" class="text-center text-secondary py-5">No se encontraron solicitudes.</td></tr>
       </tbody>
     </table></div>
-    <div class="pagination-wrap"><div id="paginationInfo" class="text-secondary small"></div><ul id="pagination" class="pagination pagination-sm m-0"></ul></div>
+    <div class="pagination-wrap">
+      <div id="paginationInfo" class="text-secondary small" th:with="desdeFila=${totalRegistros == 0 ? 0 : ((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(solicitudes)}" th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} solicitudes|">Mostrando 0-0 de 0 solicitudes</div>
+      <ul id="pagination" class="pagination pagination-sm m-0" th:if="${totalPaginas > 1}">
+        <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/asignaciones/solicitudes-colaboradores(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, pagina=${paginaActual - 1})}">Anterior</a></li>
+        <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/asignaciones/solicitudes-colaboradores(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, pagina=${n})}" th:text="${n}">1</a></li>
+        <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/asignaciones/solicitudes-colaboradores(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, pagina=${paginaActual + 1})}">Siguiente</a></li>
+      </ul>
+    </div>
   </div>
 </main></div>
 <script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
-<script th:src="@{/js/rm-js/rm-solicitudes-colaboradores.js}" src="../../static/js/rm-js/rm-solicitudes-colaboradores.js"></script>
 </body></html>

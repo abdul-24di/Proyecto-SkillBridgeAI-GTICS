@@ -1138,15 +1138,26 @@ public class RmViewController {
     @GetMapping({"/asignaciones/solicitudes-colaboradores", "/rm-solicitudes-colaboradores.html"})
     public String collaboratorRequests(
             @RequestParam(name = "noEncontrada", required = false) Boolean noEncontrada,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String prioridad,
+            @RequestParam(required = false) String pagina,
             Model model) {
-        List<RmSolicitudPersonalView> solicitudes = rmSolicitudPersonalService.listar();
-        model.addAttribute("solicitudes", solicitudes);
-        model.addAttribute("pendientes", solicitudes.stream().filter(RmSolicitudPersonalView::isPendiente).count());
-        model.addAttribute("enAtencion", solicitudes.stream().filter(RmSolicitudPersonalView::isEnAtencion).count());
-        model.addAttribute("atendidas", solicitudes.stream()
-                .filter(item -> item.getSolicitud().getEstado().name().equals("ATENDIDA")).count());
-        model.addAttribute("totalSolicitados", solicitudes.stream()
-                .mapToInt(item -> item.getSolicitud().getCantidadColaboradores()).sum());
+        var filtros = rmSolicitudPersonalService.normalizarFiltros(busqueda, estado, prioridad);
+        var paginaSolicitudes = rmSolicitudPersonalService.listarPagina(filtros, pagina);
+        var contadores = paginaSolicitudes.contadores();
+        model.addAttribute("solicitudes", paginaSolicitudes.filas());
+        model.addAttribute("paginaActual", paginaSolicitudes.paginaActual());
+        model.addAttribute("totalPaginas", paginaSolicitudes.totalPaginas());
+        model.addAttribute("totalRegistros", paginaSolicitudes.totalRegistros());
+        model.addAttribute("tamanioPagina", RmSolicitudPersonalService.TAMANIO_PAGINA);
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("estado", filtros.estado());
+        model.addAttribute("prioridad", filtros.prioridad());
+        model.addAttribute("pendientes", contadores.pendientes());
+        model.addAttribute("enAtencion", contadores.enAtencion());
+        model.addAttribute("atendidas", contadores.atendidas());
+        model.addAttribute("totalSolicitados", contadores.totalSolicitados());
         model.addAttribute("solicitudNoEncontrada", Boolean.TRUE.equals(noEncontrada));
         return "rm/rm-solicitudes-colaboradores";
     }

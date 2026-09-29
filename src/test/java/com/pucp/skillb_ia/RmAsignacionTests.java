@@ -5,7 +5,17 @@ import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.Cargo;
+import com.pucp.skillb_ia.model.CategoriaHabilidad;
+import com.pucp.skillb_ia.model.ColaboradorHabilidad;
+import com.pucp.skillb_ia.model.Habilidad;
+import com.pucp.skillb_ia.dto.RmColaboradorResumen;
+import com.pucp.skillb_ia.model.enums.EstadoValidacion;
+import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.repository.CargoRepository;
+import com.pucp.skillb_ia.repository.CategoriaHabilidadRepository;
+import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
+import com.pucp.skillb_ia.repository.HabilidadRepository;
+import com.pucp.skillb_ia.service.rm.RmColaboradorConsultaService;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
@@ -58,6 +68,16 @@ class RmAsignacionTests {
     @Autowired private RmAsignacionService asignacionService;
     @Autowired private PmAsignacionService pmAsignacionService;
     @Autowired private RmProyectoRevisionService proyectoRevisionService;
+    @Autowired private CategoriaHabilidadRepository categoriaRepository;
+    @Autowired private HabilidadRepository habilidadRepository;
+    @Autowired private ColaboradorHabilidadRepository colaboradorHabilidadRepository;
+    @Autowired private RmColaboradorConsultaService consultaService;
+
+    // Habilidades de Carla por estado; nombres únicos para que la coincidencia sea exacta.
+    private static final String HAB_VALIDADA = "Java Asig T015";
+    private static final String HAB_PENDIENTE = "Go Asig T015";
+    private static final String HAB_RECHAZADA = "Rust Asig T015";
+    private static final String HAB_INACTIVA = "Cobol Asig T015";
 
     private MockMvc mockMvc;
     private Usuario rm;
@@ -83,6 +103,10 @@ class RmAsignacionTests {
         colaborador.setHorasContratadasSemana(new BigDecimal("40.00"));
         colaborador.setSueldoBase(new BigDecimal("4800.00"));
         usuarioRepository.save(colaborador);
+        asignarHabilidad(HAB_VALIDADA, EstadoValidacion.VALIDADA, true);
+        asignarHabilidad(HAB_PENDIENTE, EstadoValidacion.PENDIENTE, true);
+        asignarHabilidad(HAB_RECHAZADA, EstadoValidacion.RECHAZADA, true);
+        asignarHabilidad(HAB_INACTIVA, EstadoValidacion.VALIDADA, false);
 
         proyecto = new Proyecto();
         proyecto.setNombre("Proyecto asignaciones " + System.nanoTime());
@@ -540,6 +564,147 @@ class RmAsignacionTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("rm/rm-asignaciones-colaborador"))
                 .andExpect(model().attributeExists("colaborador", "asignaciones"));
+    }
+
+    @Test
+    void candidatosYPropuestaUsanSoloHabilidadesValidadas() throws Exception {
+        // Regla en el servicio: el resumen del candidato solo lleva habilidades validadas.
+        RmColaboradorResumen candidato = consultaService.listarCandidatosParaProyecto(proyecto).stream()
+                .map(RmColaboradorConsultaService.CandidatoConCosto::resumen)
+                .filter(resumen -> resumen.getId().equals(colaborador.getId()))
+                .findFirst().orElseThrow();
+        assertEquals(java.util.List.of(HAB_VALIDADA), candidato.getHabilidades());
+        assertFalse(candidato.getTextoBusqueda().contains(HAB_PENDIENTE));
+        assertFalse(candidato.getTextoBusqueda().contains(HAB_RECHAZADA));
+
+        // Búsqueda por habilidad (misma comparación que el filtro sobre data-search).
+        assertTrue(coincidenConBusqueda(HAB_VALIDADA).contains(colaborador.getId()));
+        assertFalse(coincidenConBusqueda(HAB_PENDIENTE).contains(colaborador.getId()));
+        assertFalse(coincidenConBusqueda(HAB_RECHAZADA).contains(colaborador.getId()));
+        assertFalse(coincidenConBusqueda(HAB_INACTIVA).contains(colaborador.getId()));
+
+        String tarjetas = mockMvc.perform(get("/rm/proyectos/buscar-colaboradores")
+                        .param("proyectoId", proyecto.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(tarjetas.contains(HAB_VALIDADA));
+        assertSinHabilidadesNoValidadas(tarjetas);
+
+        // Pantalla y modal de propuesta: la lista de colaboradores usa el mismo resumen validado.
+        String propuesta = mockMvc.perform(get("/rm/proyectos/proponer-asignacion")
+                        .param("proyectoId", proyecto.getId().toString())
+                        .param("colaboradorId", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertSinHabilidadesNoValidadas(propuesta);
+    }
+
+    @Test
+    void perfilModalDeLaPropuestaMuestraSoloHabilidadesValidadas() throws Exception {
+        String modal = mockMvc.perform(get("/rm/colaboradores/perfil-modal")
+                        .param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertTrue(modal.contains(HAB_VALIDADA));
+        assertTrue(modal.contains(
+                "class=\"badge align-self-start bg-green-lt\" data-estado-habilidad=\"VALIDADA\">Validada<"));
+        assertSinHabilidadesNoValidadas(modal);
+        assertFalse(modal.contains("data-estado-habilidad=\"PENDIENTE\""));
+        assertFalse(modal.contains("data-estado-habilidad=\"RECHAZADA\""));
+
+        // Regla en Java: el detalle conserva todas, pero el modal usa solo la lista validada.
+        var detalle = consultaService.obtenerDetalle(colaborador.getId());
+        assertEquals(3, detalle.getHabilidades().size());
+        assertEquals(java.util.List.of(HAB_VALIDADA), detalle.getHabilidadesValidadas().stream()
+                .map(com.pucp.skillb_ia.dto.RmColaboradorDetalle.HabilidadDetalle::getNombre).toList());
+    }
+
+    @Test
+    void propuestaManipuladaNoIncorporaHabilidadesNoValidadas() throws Exception {
+        autenticarRm();
+        try {
+            // Parámetros ajenos al formulario que intentan colar habilidades no validadas.
+            mockMvc.perform(post("/rm/asignaciones/proponer")
+                            .param("proyectoId", proyecto.getId().toString())
+                            .param("colaboradorId", colaborador.getId().toString())
+                            .param("horasSemanales", "8")
+                            .param("justificacion", "Propuesta manipulada.")
+                            .param("habilidades", HAB_PENDIENTE, HAB_RECHAZADA)
+                            .param("habilidad", HAB_PENDIENTE)
+                            .param("estadoValidacion", "VALIDADA"))
+                    .andExpect(redirectedUrl("/rm/asignaciones"));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+
+        Asignacion propuesta = asignacionRepository.findAll().stream()
+                .filter(item -> item.getColaborador().getId().equals(colaborador.getId()))
+                .findFirst().orElseThrow();
+        // Los criterios de la asignación se calculan en el servidor, solo con habilidades validadas.
+        assertEquals(java.util.List.of(HAB_VALIDADA), asignacionService.obtener(propuesta.getId()).getHabilidades());
+
+        // La revisión del RM (criterios de asignación) tampoco muestra habilidades no validadas.
+        asignacionRepository.delete(propuesta);
+        Asignacion pendienteRm = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "8");
+        String revision = mockMvc.perform(get("/rm/asignaciones/revision")
+                        .param("id", pendienteRm.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(revision.contains(HAB_VALIDADA));
+        assertSinHabilidadesNoValidadas(revision);
+
+        // La petición no altera el estado de validación guardado.
+        assertEquals(EstadoValidacion.PENDIENTE, estadoGuardado(HAB_PENDIENTE));
+        assertEquals(EstadoValidacion.RECHAZADA, estadoGuardado(HAB_RECHAZADA));
+    }
+
+    private java.util.List<Long> coincidenConBusqueda(String termino) {
+        String buscado = termino.toLowerCase();
+        return consultaService.listarCandidatosParaProyecto(proyecto).stream()
+                .map(RmColaboradorConsultaService.CandidatoConCosto::resumen)
+                .filter(resumen -> resumen.getTextoBusqueda().toLowerCase().contains(buscado))
+                .map(RmColaboradorResumen::getId)
+                .toList();
+    }
+
+    private void assertSinHabilidadesNoValidadas(String html) {
+        assertFalse(html.contains(HAB_PENDIENTE));
+        assertFalse(html.contains(HAB_RECHAZADA));
+        assertFalse(html.contains(HAB_INACTIVA));
+    }
+
+    private EstadoValidacion estadoGuardado(String nombreHabilidad) {
+        Habilidad habilidad = habilidadRepository.findByNombreIgnoreCase(nombreHabilidad).orElseThrow();
+        return colaboradorHabilidadRepository.findByColaboradorAndHabilidad(colaborador, habilidad)
+                .orElseThrow().getEstadoValidacion();
+    }
+
+    private void asignarHabilidad(String nombre, EstadoValidacion estado, boolean activo) {
+        CategoriaHabilidad categoria = categoriaRepository.findByNombreIgnoreCase("Asignaciones T015")
+                .orElseGet(() -> {
+                    CategoriaHabilidad nueva = new CategoriaHabilidad();
+                    nueva.setNombre("Asignaciones T015");
+                    return categoriaRepository.save(nueva);
+                });
+        Habilidad habilidad = habilidadRepository.findByNombreIgnoreCase(nombre).orElseGet(() -> {
+            Habilidad nueva = new Habilidad();
+            nueva.setNombre(nombre);
+            nueva.setCategoria(categoria);
+            return habilidadRepository.save(nueva);
+        });
+        ColaboradorHabilidad perfil = colaboradorHabilidadRepository
+                .findByColaboradorAndHabilidad(colaborador, habilidad)
+                .orElseGet(() -> {
+                    ColaboradorHabilidad nueva = new ColaboradorHabilidad();
+                    nueva.setColaborador(colaborador);
+                    nueva.setHabilidad(habilidad);
+                    return nueva;
+                });
+        perfil.setNivelDominio(NivelDominio.AVANZADO);
+        perfil.setEstadoValidacion(estado);
+        perfil.setActivo(activo);
+        colaboradorHabilidadRepository.save(perfil);
     }
 
     private void autenticarRm() {

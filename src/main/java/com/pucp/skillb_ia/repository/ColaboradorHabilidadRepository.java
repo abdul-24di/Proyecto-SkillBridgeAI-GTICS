@@ -4,6 +4,7 @@ import com.pucp.skillb_ia.model.ColaboradorHabilidad;
 import com.pucp.skillb_ia.model.ColaboradorHabilidadId;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.Habilidad;
+import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -14,6 +15,10 @@ public interface ColaboradorHabilidadRepository extends JpaRepository<Colaborado
 
     //Buscamos las habilidades del colaborador que no han sido borradas.
     List<ColaboradorHabilidad> findByColaboradorAndActivoTrue(Usuario colaborador);
+
+    // Habilidades activas en un estado de validación (búsqueda y asignación usan solo VALIDADA).
+    List<ColaboradorHabilidad> findByColaboradorAndActivoTrueAndEstadoValidacion(
+            Usuario colaborador, EstadoValidacion estadoValidacion);
 
     Optional<ColaboradorHabilidad> findByColaboradorAndHabilidad(
             Usuario colaborador, Habilidad habilidad);

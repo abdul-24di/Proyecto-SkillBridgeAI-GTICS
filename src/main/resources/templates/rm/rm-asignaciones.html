@@ -31,32 +31,39 @@
 
     <div class="card assignments-card">
       <div class="card-header section-header"><div><h3 class="card-title mb-1">Gestión de asignaciones</h3><div class="section-description">El estado se calcula con las aprobaciones registradas en la base de datos.</div></div></div>
-      <div class="assignment-tabs" role="tablist" aria-label="Tipos de asignaciones">
-        <button type="button" class="active" data-tab="pending">Pendientes <span class="tab-count" th:text="${pendientesRm + pendientesPm}">0</span></button>
-        <button type="button" data-tab="active">Activas <span class="tab-count" th:text="${activas}">0</span></button>
-        <button type="button" data-tab="history">Historial <span class="tab-count" th:text="${historial}">0</span></button>
-      </div>
+      <nav class="assignment-tabs" aria-label="Tipos de asignaciones">
+        <a data-tab="pending" th:href="@{/rm/asignaciones(grupo='pending', busqueda=${busqueda}, origen=${origen}, proyectoId=${proyectoId})}" th:classappend="${grupo == 'pending'} ? 'active'" th:attr="aria-current=${grupo == 'pending'} ? 'page'">Pendientes <span class="tab-count" th:text="${pendientesRm + pendientesPm}">0</span></a>
+        <a data-tab="active" th:href="@{/rm/asignaciones(grupo='active', busqueda=${busqueda}, origen=${origen}, proyectoId=${proyectoId})}" th:classappend="${grupo == 'active'} ? 'active'" th:attr="aria-current=${grupo == 'active'} ? 'page'">Activas <span class="tab-count" th:text="${activas}">0</span></a>
+        <a data-tab="history" th:href="@{/rm/asignaciones(grupo='history', busqueda=${busqueda}, origen=${origen}, proyectoId=${proyectoId})}" th:classappend="${grupo == 'history'} ? 'active'" th:attr="aria-current=${grupo == 'history'} ? 'page'">Historial <span class="tab-count" th:text="${historial}">0</span></a>
+      </nav>
 
-      <div class="filters-wrap">
+      <form id="filtersForm" method="get" th:action="@{/rm/asignaciones}" class="filters-wrap">
+        <input type="hidden" name="grupo" th:value="${grupo}">
+        <input th:if="${proyectoId != null}" type="hidden" name="proyectoId" th:value="${proyectoId}">
+        <div th:if="${proyectoNombre != null}" id="projectFilterNotice" class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3" role="status">
+          <span>Mostrando solo las asignaciones del proyecto <strong th:text="${proyectoNombre}">Proyecto</strong>.</span>
+          <a id="clearProjectFilter" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones(grupo=${grupo}, busqueda=${busqueda}, origen=${origen}, estado=${estado})}">Ver todos los proyectos</a>
+        </div>
         <div class="row g-3 align-items-end">
-          <div class="col-xl-4 col-md-6"><label for="searchInput" class="form-label">Buscar</label><input id="searchInput" class="form-control" placeholder="Colaborador o proyecto"></div>
-          <div class="col-xl-3 col-md-6"><label for="originFilter" class="form-label">Origen</label><select id="originFilter" class="form-select"><option value="all">Todos</option><option value="PM">Project Manager</option><option value="RM">Resource Manager</option><option value="Colaborador">Colaborador</option></select></div>
-          <div class="col-xl-3 col-md-6"><label for="statusFilter" class="form-label">Estado</label><select id="statusFilter" class="form-select"><option value="all">Todos</option></select></div>
-          <div class="col-xl-2 col-md-6 d-grid"><button id="clearFilters" type="button" class="btn btn-outline-secondary">Limpiar filtros</button></div>
+          <div class="col-xl-4 col-md-6"><label for="searchInput" class="form-label">Buscar</label><input id="searchInput" name="busqueda" class="form-control" maxlength="100" th:value="${busqueda}" placeholder="Colaborador o proyecto"></div>
+          <div class="col-xl-2 col-md-6"><label for="originFilter" class="form-label">Origen</label><select id="originFilter" name="origen" class="form-select"><option value="all">Todos</option><option value="PM" th:selected="${origen == 'PM'}">Project Manager</option><option value="RM" th:selected="${origen == 'RM'}">Resource Manager</option><option value="Colaborador" th:selected="${origen == 'Colaborador'}">Colaborador</option></select></div>
+          <div class="col-xl-2 col-md-6"><label for="statusFilter" class="form-label">Estado</label><select id="statusFilter" name="estado" class="form-select"><option value="all">Todos</option><option th:each="opcion : ${estadosDisponibles}" th:value="${opcion}" th:text="${opcion}" th:selected="${opcion == estado}">Estado</option></select></div>
+          <div class="col-xl-2 col-md-3 d-grid"><button type="submit" class="btn btn-primary">Filtrar</button></div>
+          <div class="col-xl-2 col-md-3 d-grid"><a id="clearFilters" class="btn btn-outline-secondary" th:href="@{/rm/asignaciones(grupo=${grupo})}">Limpiar filtros</a></div>
         </div>
         <div class="filters-note mt-3"><span class="filters-note-icon">i</span><div class="small text-secondary">PM propone → aprueba RM. RM propone → aprueba PM. La solicitud del colaborador requiere ambas aprobaciones.</div></div>
-      </div>
+      </form>
 
       <div class="table-responsive"><table class="table table-vcenter card-table mb-0">
         <thead><tr><th>Colaborador</th><th>Proyecto</th><th>Origen</th><th>Horas/sem</th><th>Aprobaciones</th><th>Estado</th><th>Fecha</th><th class="text-end">Acción</th></tr></thead>
         <tbody id="assignmentBody">
-        <tr th:each="item : ${asignaciones}" class="assignment-row" th:attr="data-group=${item.grupo},data-origin=${item.origenCodigo},data-status=${item.solicitudColaborador and item.asignacion.estado.name() == 'PENDIENTE' and !item.asignacion.aprobadoPorPm and !item.asignacion.aprobadoPorRm ? 'Pendiente RM y PM' : item.estadoTexto},data-search=|${item.colaboradorNombre} ${item.asignacion.proyecto.nombre}|">
+        <tr th:each="item : ${asignaciones}" class="assignment-row">
           <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm-custom bg-blue-lt text-blue" th:text="${item.colaboradorIniciales}">CO</span><span class="fw-semibold" th:text="${item.colaboradorNombre}">Colaborador</span></div></td>
           <td class="fw-semibold" th:text="${item.asignacion.proyecto.nombre}">Proyecto</td>
           <td><span class="badge" th:classappend="${item.origenClase}" th:text="${item.origenTexto}">Origen</span></td>
           <td th:text="|${item.asignacion.horasSemanales} h|">0 h</td>
           <td><div class="approval-mini"><span class="badge" th:classappend="${item.asignacion.aprobadoPorPm} ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary'">PM</span> <span class="badge" th:classappend="${item.asignacion.aprobadoPorRm} ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary'">RM</span></div></td>
-          <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.solicitudColaborador and item.asignacion.estado.name() == 'PENDIENTE' and !item.asignacion.aprobadoPorPm and !item.asignacion.aprobadoPorRm ? 'Pendiente RM y PM' : item.estadoTexto}">Estado</span></td>
+          <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoBandeja}">Estado</span></td>
           <td th:text="${#temporals.format(item.asignacion.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
           <td class="text-end">
             <a th:if="${item.requiereDecisionRm}" class="btn btn-primary btn-sm" th:href="${item.solicitudColaborador} ? @{/rm/asignaciones/revision-postulacion(id=${item.asignacion.id})} : @{/rm/asignaciones/revision(id=${item.asignacion.id})}">Revisar</a>
@@ -64,15 +71,23 @@
             <a th:if="${item.grupo == 'active' or item.grupo == 'history'}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/activa(id=${item.asignacion.id})}">Ver</a>
           </td>
         </tr>
-        <tr id="emptyAssignments" class="d-none"><td colspan="8" class="text-center text-secondary py-5">No se encontraron asignaciones con los filtros seleccionados.</td></tr>
+        <tr id="emptyAssignments" th:if="${#lists.isEmpty(asignaciones)}"><td colspan="8" class="text-center text-secondary py-5">No se encontraron asignaciones con los filtros seleccionados.</td></tr>
         </tbody>
       </table></div>
-      <div class="pagination-wrap"><div id="paginationInfo" class="text-secondary small"></div><ul id="pagination" class="pagination pagination-sm m-0"></ul></div>
+      <div class="pagination-wrap">
+        <div id="paginationInfo" class="text-secondary small"
+             th:with="desdeFila=${totalRegistros == 0 ? 0 : ((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(asignaciones)}"
+             th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} ${totalRegistros == 1 ? 'registro' : 'registros'}|">Mostrando 0-0 de 0 registros</div>
+        <ul id="pagination" class="pagination pagination-sm m-0" th:if="${totalPaginas > 1}">
+          <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/asignaciones(grupo=${grupo}, busqueda=${busqueda}, origen=${origen}, estado=${estado}, proyectoId=${proyectoId}, pagina=${paginaActual - 1})}">Anterior</a></li>
+          <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/asignaciones(grupo=${grupo}, busqueda=${busqueda}, origen=${origen}, estado=${estado}, proyectoId=${proyectoId}, pagina=${n})}" th:text="${n}">1</a></li>
+          <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/asignaciones(grupo=${grupo}, busqueda=${busqueda}, origen=${origen}, estado=${estado}, proyectoId=${proyectoId}, pagina=${paginaActual + 1})}">Siguiente</a></li>
+        </ul>
+      </div>
     </div>
   </main>
 </div>
 <script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
 <script th:src="@{/js/rm-js/rm-navigation.js}" src="../../static/js/rm-js/rm-navigation.js"></script>
-<script th:src="@{/js/rm-js/rm-asignaciones.js}" src="../../static/js/rm-js/rm-asignaciones.js"></script>
 </body>
 </html>

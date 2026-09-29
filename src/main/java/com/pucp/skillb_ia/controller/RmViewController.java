@@ -861,21 +861,34 @@ public class RmViewController {
     }
 
     @GetMapping({"/asignaciones", "/rm-asignaciones.html"})
-    public String assignments(Model model) {
-        List<RmAsignacionView> asignaciones = rmAsignacionService.listar();
-        model.addAttribute("asignaciones", asignaciones);
-        model.addAttribute("pendientesRm", asignaciones.stream()
-                .filter(RmAsignacionView::isRequiereDecisionRm).count());
-        model.addAttribute("pendientesPm", asignaciones.stream()
-                .filter(RmAsignacionView::isPendientePm).count());
-        model.addAttribute("solicitudesColaborador", asignaciones.stream()
-                .filter(RmAsignacionView::isSolicitudColaborador)
-                .filter(item -> item.getAsignacion().getEstado().name().equals("PENDIENTE"))
-                .count());
-        model.addAttribute("activas", asignaciones.stream()
-                .filter(RmAsignacionView::isActiva).count());
-        model.addAttribute("historial", asignaciones.stream()
-                .filter(item -> "history".equals(item.getGrupo())).count());
+    public String assignments(
+            @RequestParam(required = false) String grupo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String origen,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String proyectoId,
+            @RequestParam(required = false) String pagina,
+            Model model) {
+        var filtros = rmAsignacionService.normalizarFiltros(grupo, busqueda, origen, estado, proyectoId);
+        var paginaAsignaciones = rmAsignacionService.listarPagina(filtros, pagina);
+        var contadores = paginaAsignaciones.contadores();
+        model.addAttribute("asignaciones", paginaAsignaciones.filas());
+        model.addAttribute("paginaActual", paginaAsignaciones.paginaActual());
+        model.addAttribute("totalPaginas", paginaAsignaciones.totalPaginas());
+        model.addAttribute("totalRegistros", paginaAsignaciones.totalRegistros());
+        model.addAttribute("tamanioPagina", RmAsignacionService.TAMANIO_PAGINA);
+        model.addAttribute("estadosDisponibles", rmAsignacionService.estadosDelGrupo(filtros.grupo()));
+        model.addAttribute("grupo", filtros.grupo());
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("origen", filtros.origen());
+        model.addAttribute("estado", filtros.estado());
+        model.addAttribute("proyectoId", filtros.proyectoId());
+        model.addAttribute("proyectoNombre", filtros.proyectoNombre());
+        model.addAttribute("pendientesRm", contadores.pendientesRm());
+        model.addAttribute("pendientesPm", contadores.pendientesPm());
+        model.addAttribute("solicitudesColaborador", contadores.solicitudesColaborador());
+        model.addAttribute("activas", contadores.activas());
+        model.addAttribute("historial", contadores.historial());
         return "rm/rm-asignaciones";
     }
 

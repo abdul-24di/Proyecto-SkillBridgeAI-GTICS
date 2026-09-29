@@ -41,11 +41,29 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.pucp.skillb_ia.dto.RmAsignacionView;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+
 import java.math.BigDecimal;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
@@ -295,6 +313,189 @@ class RmAsignacionTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("rm/rm-revision-postulacion"))
                 .andExpect(model().attributeExists("asignacion"));
+    }
+
+    // TASK-027: filtros y paginación de la bandeja en el servidor.
+
+    @Test
+    void bandejaPaginaDeDiezEnOrdenDeFechaSolicitudYCuentaSobreElTotal() throws Exception {
+        // Se guardan desordenadas para que el orden no dependa del id.
+        int[] horasAtras = {5, 0, 11, 3, 8, 1, 10, 2, 7, 4, 9, 6};
+        LocalDateTime base = LocalDateTime.now().withNano(0);
+        Map<Integer, Long> idPorAntiguedad = new HashMap<>();
+        for (int horas : horasAtras) {
+            idPorAntiguedad.put(horas, guardarAsignacion(proyecto, colaborador, OrigenAsignacion.PROPUESTA_PM,
+                    EstadoAsignacion.PENDIENTE, false, false, base.minusHours(horas)).getId());
+        }
+        List<Long> esperado = IntStream.range(0, 12).mapToObj(idPorAntiguedad::get).toList();
+
+        MvcResult pagina1 = mockMvc.perform(get("/rm/asignaciones"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 1))
+                .andExpect(model().attribute("totalPaginas", 2))
+                .andExpect(model().attribute("totalRegistros", 12L))
+                .andExpect(model().attribute("pendientesRm", 12L))
+                .andReturn();
+        MvcResult pagina2 = mockMvc.perform(get("/rm/asignaciones").param("pagina", "2"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 2))
+                .andExpect(model().attribute("pendientesRm", 12L))
+                .andReturn();
+
+        assertEquals(esperado.subList(0, 10), idsDeLaPagina(pagina1));
+        assertEquals(esperado.subList(10, 12), idsDeLaPagina(pagina2));
+        String html1 = pagina1.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String html2 = pagina2.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(10, contar(html1, "class=\"assignment-row\""));
+        assertEquals(2, contar(html2, "class=\"assignment-row\""));
+        assertTrue(html1.contains("Mostrando 1-10 de 12 registros"));
+        assertTrue(html2.contains("Mostrando 11-12 de 12 registros"));
+        // Tarjeta y pestaña con el total (12), no con las filas de la página.
+        assertTrue(html2.contains("<div class=\"summary-number\">12</div>"));
+        assertTrue(html2.contains("<span class=\"tab-count\">12</span>"));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @CsvSource(delimiter = '|', value = {
+            "''                                          | A B C D H",
+            "grupo=active                                | E",
+            "grupo=history                               | F G",
+            "origen=PM                                   | A H",
+            "grupo=history&origen=PM                     | F G",
+            "origen=RM                                   | B",
+            "origen=Colaborador                          | C D",
+            "estado=Pendiente RM                         | A D H",
+            "estado=Pendiente PM                         | B",
+            "estado=Pendiente RM y PM                    | C",
+            "grupo=history&estado=Rechazada              | G",
+            "grupo=active&estado=Activa                  | E",
+            "busqueda=zoila                              | H",
+            "busqueda=BETA T027                          | H",
+            "proyectoId={otro}                           | H",
+            "proyectoId={principal}&grupo=history        | F G",
+            "origen=Colaborador&estado=Pendiente RM      | D",
+            "busqueda=carla&origen=PM&proyectoId={principal} | A"
+    })
+    void cadaFiltroGetDevuelveSoloLasAsignacionesQueCorresponden(String consulta, String esperadas)
+            throws Exception {
+        Map<String, Long> ids = crearBandejaDeEjemplo();
+        String consultaFinal = consulta
+                .replace("{principal}", proyecto.getId().toString())
+                .replace("{otro}", String.valueOf(ids.get("proyectoOtro")));
+        // La pestaña por defecto ("pending") solo muestra A, B, C, D y H cuando no se indica grupo.
+        MvcResult resultado = mockMvc.perform(conParametros(consultaFinal))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        List<Long> esperado = Arrays.stream(esperadas.trim().split(" ")).map(ids::get).sorted().toList();
+        assertEquals(esperado, idsDeLaPagina(resultado).stream().sorted().toList());
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @ValueSource(strings = {
+            "grupo=desconocido", "grupo=", "origen=Otro", "origen=all", "estado=Activa", "estado=all",
+            "estado=Pendiente",
+            "estado=", "busqueda=   ", "pagina=abc", "pagina=0", "pagina=-3", "pagina=999",
+            "proyectoId=abc", "proyectoId=999999999", "proyectoId="
+    })
+    void parametrosVaciosOInvalidosVuelvenAlComportamientoGeneral(String consulta) throws Exception {
+        Map<String, Long> ids = crearBandejaDeEjemplo();
+
+        MvcResult resultado = mockMvc.perform(conParametros(consulta))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-asignaciones"))
+                .andExpect(model().attribute("grupo", "pending"))
+                .andExpect(model().attribute("busqueda", nullValue()))
+                .andExpect(model().attribute("origen", nullValue()))
+                .andExpect(model().attribute("estado", nullValue()))
+                .andExpect(model().attribute("proyectoId", nullValue()))
+                .andExpect(model().attribute("paginaActual", 1))
+                .andReturn();
+
+        List<Long> pendientes = Stream.of("A", "B", "C", "D", "H").map(ids::get).sorted().toList();
+        assertEquals(pendientes, idsDeLaPagina(resultado).stream().sorted().toList());
+    }
+
+    @Test
+    void contadoresUsanElConjuntoCompletoYSoloSeAcotanPorProyecto() throws Exception {
+        Map<String, Long> ids = crearBandejaDeEjemplo();
+
+        // Búsqueda, origen, estado y pestaña no cambian los contadores.
+        String html = mockMvc.perform(get("/rm/asignaciones").param("grupo", "history")
+                        .param("estado", "Rechazada").param("origen", "PM").param("busqueda", "carla"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalRegistros", 1L))
+                .andExpect(model().attribute("pendientesRm", 4L))
+                .andExpect(model().attribute("pendientesPm", 1L))
+                .andExpect(model().attribute("solicitudesColaborador", 2L))
+                .andExpect(model().attribute("activas", 1L))
+                .andExpect(model().attribute("historial", 2L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(html.contains("id=\"projectFilterNotice\""));
+
+        // Con proyectoId los contadores corresponden solo a ese proyecto y se indica el filtro.
+        String htmlProyecto = mockMvc.perform(get("/rm/asignaciones")
+                        .param("proyectoId", ids.get("proyectoOtro").toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("pendientesRm", 1L))
+                .andExpect(model().attribute("pendientesPm", 0L))
+                .andExpect(model().attribute("solicitudesColaborador", 0L))
+                .andExpect(model().attribute("activas", 0L))
+                .andExpect(model().attribute("historial", 0L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(htmlProyecto.contains("id=\"projectFilterNotice\""));
+        assertTrue(htmlProyecto.contains("Proyecto Beta T027"));
+    }
+
+    @Test
+    void paginacionConservaLosFiltrosYLaVistaFuncionaSinJavaScript() throws Exception {
+        LocalDateTime base = LocalDateTime.now().withNano(0);
+        for (int i = 0; i < 12; i++) {
+            guardarAsignacion(proyecto, colaborador, OrigenAsignacion.SOLICITADA_COLABORADOR,
+                    EstadoAsignacion.PENDIENTE, false, false, base.minusHours(i));
+        }
+        // No coincide con el estado filtrado: no debe contarse en el total filtrado.
+        guardarAsignacion(proyecto, colaborador, OrigenAsignacion.SOLICITADA_COLABORADOR,
+                EstadoAsignacion.PENDIENTE, true, false, base);
+        String proyectoId = proyecto.getId().toString();
+
+        String html = mockMvc.perform(get("/rm/asignaciones")
+                        .param("grupo", "pending").param("busqueda", "Carla").param("origen", "Colaborador")
+                        .param("estado", "Pendiente RM y PM").param("proyectoId", proyectoId)
+                        .param("pagina", "2"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 2))
+                .andExpect(model().attribute("totalRegistros", 12L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        List<String> enlaces = enlaces(html, "/rm/asignaciones\\?[^\"]*pagina=\\d+");
+        assertTrue(enlaces.stream().anyMatch(enlace -> enlace.endsWith("pagina=1")));
+        assertTrue(enlaces.stream().anyMatch(enlace -> enlace.endsWith("pagina=2")));
+        for (String enlace : enlaces) {
+            assertTrue(enlace.contains("grupo=pending"), enlace);
+            assertTrue(enlace.contains("busqueda=Carla"), enlace);
+            assertTrue(enlace.contains("origen=Colaborador"), enlace);
+            assertTrue(enlace.contains("estado=Pendiente RM y PM"), enlace);
+            assertTrue(enlace.contains("proyectoId=" + proyectoId), enlace);
+        }
+        // Las pestañas conservan búsqueda, origen y proyecto, y reinician estado y página.
+        List<String> pestanas = enlaces(html, "/rm/asignaciones\\?grupo=history[^\"]*");
+        assertEquals(1, pestanas.size());
+        assertTrue(pestanas.get(0).contains("busqueda=Carla") && pestanas.get(0).contains("origen=Colaborador")
+                && pestanas.get(0).contains("proyectoId=" + proyectoId), pestanas.get(0));
+        assertFalse(pestanas.get(0).contains("estado=") || pestanas.get(0).contains("pagina="), pestanas.get(0));
+
+        // Sin JavaScript: formulario GET con los valores activos, filas ya recortadas en el servidor.
+        assertFalse(html.contains("rm-asignaciones.js"));
+        assertTrue(html.contains("id=\"filtersForm\" method=\"get\""));
+        assertTrue(html.contains("name=\"proyectoId\" value=\"" + proyectoId + "\""));
+        assertTrue(html.contains("value=\"Carla\""));
+        assertTrue(html.contains("<option value=\"Colaborador\" selected=\"selected\">"));
+        assertTrue(html.contains("<option value=\"Pendiente RM y PM\" selected=\"selected\">"));
+        // "Pendiente" a secas no es un estado alcanzable: no se ofrece como opción.
+        assertFalse(html.contains("<option value=\"Pendiente\""));
+        assertEquals(2, contar(html, "class=\"assignment-row\""));
+        assertEquals(2, contar(html, ">Pendiente RM y PM</span>"));
     }
 
     @Test
@@ -737,6 +938,91 @@ class RmAsignacionTests {
         asignacion.setAprobadoPorRm(aprobadoRm);
         asignacion.setMensajeSolicitud("Solicitud de prueba.");
         return asignacionRepository.save(asignacion);
+    }
+
+    private Asignacion guardarAsignacion(Proyecto destino, Usuario persona, OrigenAsignacion origen,
+                                         EstadoAsignacion estado, boolean aprobadoPm, boolean aprobadoRm,
+                                         LocalDateTime fechaSolicitud) {
+        Asignacion asignacion = new Asignacion();
+        asignacion.setProyecto(destino);
+        asignacion.setColaborador(persona);
+        asignacion.setHorasSemanales(new BigDecimal("8"));
+        asignacion.setOrigen(origen);
+        asignacion.setEstado(estado);
+        asignacion.setAprobadoPorPm(aprobadoPm);
+        asignacion.setAprobadoPorRm(aprobadoRm);
+        asignacion.setMensajeSolicitud("Solicitud de prueba.");
+        asignacion.setFechaSolicitud(fechaSolicitud);
+        return asignacionRepository.save(asignacion);
+    }
+
+    /**
+     * Bandeja de ejemplo (TASK-027). En el proyecto principal, con Carla:
+     * A Pendiente RM (PM), B Pendiente PM (RM), C Pendiente RM y PM (Colaborador sin aprobaciones),
+     * D Pendiente RM (Colaborador con PM), E Activa, F Finalizada, G Rechazada.
+     * En otro proyecto ("Proyecto Beta T027"), con Zoila: H Pendiente RM (PM).
+     */
+    private Map<String, Long> crearBandejaDeEjemplo() {
+        Usuario zoila = obtenerUsuario("zoila.t027@skillbridge.test", "Zoila", "Buscada",
+                obtenerRol("COLABORADOR"));
+        Proyecto otro = new Proyecto();
+        otro.setNombre("Proyecto Beta T027 " + System.nanoTime());
+        otro.setDescripcion("Segundo proyecto para los filtros de la bandeja.");
+        otro.setEstado(EstadoProyecto.ACTIVO);
+        otro.setPrioridad(Prioridad.MEDIA);
+        otro.setJustificacionPrioridad("Filtros de asignaciones.");
+        otro.setColaboradoresRequeridos(2);
+        otro.setPm(pm);
+        otro = proyectoRepository.save(otro);
+
+        LocalDateTime base = LocalDateTime.now().withNano(0);
+        Map<String, Long> ids = new HashMap<>();
+        ids.put("A", guardarAsignacion(proyecto, colaborador, OrigenAsignacion.PROPUESTA_PM,
+                EstadoAsignacion.PENDIENTE, false, false, base.minusHours(1)).getId());
+        ids.put("B", guardarAsignacion(proyecto, colaborador, OrigenAsignacion.PROPUESTA_RM,
+                EstadoAsignacion.PENDIENTE, false, true, base.minusHours(2)).getId());
+        ids.put("C", guardarAsignacion(proyecto, colaborador, OrigenAsignacion.SOLICITADA_COLABORADOR,
+                EstadoAsignacion.PENDIENTE, false, false, base.minusHours(3)).getId());
+        ids.put("D", guardarAsignacion(proyecto, colaborador, OrigenAsignacion.SOLICITADA_COLABORADOR,
+                EstadoAsignacion.PENDIENTE, true, false, base.minusHours(4)).getId());
+        ids.put("E", guardarAsignacion(proyecto, colaborador, OrigenAsignacion.PROPUESTA_PM,
+                EstadoAsignacion.ACTIVA, true, true, base.minusHours(5)).getId());
+        ids.put("F", guardarAsignacion(proyecto, colaborador, OrigenAsignacion.PROPUESTA_PM,
+                EstadoAsignacion.FINALIZADA, true, true, base.minusHours(6)).getId());
+        ids.put("G", guardarAsignacion(proyecto, colaborador, OrigenAsignacion.PROPUESTA_PM,
+                EstadoAsignacion.RECHAZADA, false, false, base.minusHours(7)).getId());
+        ids.put("H", guardarAsignacion(otro, zoila, OrigenAsignacion.PROPUESTA_PM,
+                EstadoAsignacion.PENDIENTE, false, false, base.minusHours(8)).getId());
+        ids.put("proyectoOtro", otro.getId());
+        return ids;
+    }
+
+    // Convierte "a=1&b=2" en parámetros GET (sin codificar) de /rm/asignaciones.
+    private MockHttpServletRequestBuilder conParametros(String consulta) {
+        MockHttpServletRequestBuilder solicitud = get("/rm/asignaciones");
+        if (consulta == null || consulta.isEmpty()) return solicitud;
+        for (String par : consulta.split("&")) {
+            int igual = par.indexOf('=');
+            solicitud.param(par.substring(0, igual), par.substring(igual + 1));
+        }
+        return solicitud;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Long> idsDeLaPagina(MvcResult resultado) {
+        return ((List<RmAsignacionView>) resultado.getModelAndView().getModel().get("asignaciones")).stream()
+                .map(item -> item.getAsignacion().getId())
+                .toList();
+    }
+
+    // Enlaces href que cumplen el patrón, ya sin escapar (&amp;) y decodificados.
+    private List<String> enlaces(String html, String patron) {
+        Matcher matcher = Pattern.compile("href=\"(" + patron + ")\"").matcher(html);
+        List<String> encontrados = new ArrayList<>();
+        while (matcher.find()) {
+            encontrados.add(URLDecoder.decode(matcher.group(1).replace("&amp;", "&"), StandardCharsets.UTF_8));
+        }
+        return encontrados;
     }
 
     private Rol obtenerRol(String nombre) {

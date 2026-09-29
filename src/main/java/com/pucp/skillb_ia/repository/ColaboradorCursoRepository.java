@@ -4,6 +4,7 @@ import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
+import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +16,7 @@ import java.util.Optional;
 public interface ColaboradorCursoRepository extends JpaRepository<ColaboradorCurso, Long> {
     List<ColaboradorCurso> findByColaborador(Usuario colaborador);
     List<ColaboradorCurso> findByEstado(EstadoColaboradorCurso estado);
+    long countByOrigenAndEstado(OrigenCurso origen, EstadoColaboradorCurso estado);
 
     @Query("""
             select cc from ColaboradorCurso cc

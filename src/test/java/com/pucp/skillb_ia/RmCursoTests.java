@@ -112,7 +112,7 @@ class RmCursoTests {
         ColaboradorCurso paraRechazar = inscripcion(colaboradorDos, aws,
                 OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
 
-        cursoService.aprobar(paraAprobar.getId(), rm.getId());
+        cursoService.aprobar(paraAprobar.getId(), "Aporta al proyecto actual.", rm.getId());
         cursoService.rechazar(paraRechazar.getId(), "Primero debe completar el curso básico.", rm.getId());
 
         ColaboradorCurso aprobada = colaboradorCursoRepository.findById(paraAprobar.getId()).orElseThrow();
@@ -123,7 +123,50 @@ class RmCursoTests {
         assertEquals(1, notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno).size());
         assertEquals(1, notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorDos).size());
         assertThrows(IllegalStateException.class,
-                () -> cursoService.aprobar(paraAprobar.getId(), rm.getId()));
+                () -> cursoService.aprobar(paraAprobar.getId(), "Segundo intento.", rm.getId()));
+    }
+
+    @Test
+    void aprobarYRechazarExigenMotivoEnElServidorYLoRegistran() {
+        ColaboradorCurso solicitud = inscripcion(colaboradorUno, spring,
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> cursoService.aprobar(solicitud.getId(), null, rm.getId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> cursoService.aprobar(solicitud.getId(), "   ", rm.getId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> cursoService.aprobar(solicitud.getId(), "x".repeat(501), rm.getId()));
+        assertThrows(IllegalArgumentException.class,
+                () -> cursoService.rechazar(solicitud.getId(), "  ", rm.getId()));
+        assertEquals(EstadoColaboradorCurso.SOLICITADO,
+                colaboradorCursoRepository.findById(solicitud.getId()).orElseThrow().getEstado());
+        assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno).isEmpty());
+
+        cursoService.aprobar(solicitud.getId(), "  Necesario para el proyecto Cloud.  ", rm.getId());
+        ColaboradorCurso aprobada = colaboradorCursoRepository.findById(solicitud.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.EN_CURSO, aprobada.getEstado());
+        assertEquals("Necesario para el proyecto Cloud.", aprobada.getMotivoRespuesta());
+    }
+
+    @Test
+    void bandejaMuestraSoloAprobarYRechazarConModalesDeMotivo() throws Exception {
+        ColaboradorCurso solicitud = inscripcion(colaboradorUno, spring,
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+
+        String html = mockMvc.perform(get("/rm/cursos/solicitudes"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("data-bs-target=\"#approveCourseModal\""));
+        assertTrue(html.contains("data-bs-target=\"#rejectCourseModal\""));
+        assertTrue(html.contains("data-action=\"/rm/cursos/solicitudes/" + solicitud.getId() + "/aprobar\""));
+        assertTrue(html.contains("data-action=\"/rm/cursos/solicitudes/" + solicitud.getId() + "/rechazar\""));
+        assertFalse(html.contains("placeholder=\"Motivo obligatorio\""), "El motivo ya no se escribe en la fila");
+        assertTrue(html.contains("id=\"courseApproveReason\" name=\"motivo\""));
+        assertTrue(html.contains("id=\"courseRejectReason\" name=\"motivo\""));
+        assertTrue(html.contains("class=\"btn btn-success js-confirmar\" disabled"));
+        assertTrue(html.contains("class=\"btn btn-danger js-confirmar\" disabled"));
     }
 
     @Test
@@ -131,7 +174,7 @@ class RmCursoTests {
         ColaboradorCurso solicitud = inscripcion(colaboradorUno, inactivo,
                 OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
         assertThrows(IllegalArgumentException.class,
-                () -> cursoService.aprobar(solicitud.getId(), rm.getId()));
+                () -> cursoService.aprobar(solicitud.getId(), "Capacitación técnica.", rm.getId()));
         assertThrows(IllegalArgumentException.class, () -> cursoService.asignarDirectamente(
                 colaboradorUno.getId(), inactivo.getId(), "Capacitación técnica.", rm.getId()));
 
@@ -140,7 +183,7 @@ class RmCursoTests {
         colaboradorDos.setActivo(false);
         usuarioRepository.save(colaboradorDos);
         assertThrows(IllegalArgumentException.class,
-                () -> cursoService.aprobar(otra.getId(), rm.getId()));
+                () -> cursoService.aprobar(otra.getId(), "Capacitación técnica.", rm.getId()));
         assertEquals(EstadoColaboradorCurso.SOLICITADO,
                 colaboradorCursoRepository.findById(otra.getId()).orElseThrow().getEstado());
         assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorDos).isEmpty());
@@ -180,7 +223,7 @@ class RmCursoTests {
                 .andExpect(status().isOk()).andExpect(view().name("rm/rm-solicitudes-cursos"))
                 .andExpect(model().attributeExists("bandeja"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Ana Torres")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Motivo obligatorio")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Motivo de la aprobación")));
 
         mockMvc.perform(get("/rm/cursos/asignar").param("curso", spring.getId().toString()))
                 .andExpect(status().isOk()).andExpect(view().name("rm/rm-asignar-curso"))

@@ -4,11 +4,13 @@ import com.pucp.skillb_ia.dto.CursoDisponibleView;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.CursoRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,13 +29,16 @@ public class ColaboradorCursoService {
     private final CursoRepository cursoRepository;
     private final ColaboradorCursoRepository colaboradorCursoRepository;
     private final AuditoriaService auditoriaService;
+    private final NotificacionService notificacionService;
 
     public ColaboradorCursoService(CursoRepository cursoRepository,
                                    ColaboradorCursoRepository colaboradorCursoRepository,
-                                   AuditoriaService auditoriaService) {
+                                   AuditoriaService auditoriaService,
+                                   NotificacionService notificacionService) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.auditoriaService = auditoriaService;
+        this.notificacionService = notificacionService;
     }
 
     // ============================================================
@@ -145,6 +150,12 @@ public class ColaboradorCursoService {
 
         auditoriaService.registrar(colaborador, "SOLICITAR_CURSO", "COLABORADOR_CURSO", guardada.getId(),
                 "Solicitó inscribirse al curso \"" + curso.getNombre() + "\".");
+
+        notificacionService.crearParaTodosLosRm("CURSO_SOLICITADO", CategoriaNotificacion.CURSO,
+                "Nueva solicitud de curso",
+                colaborador.getNombre() + " " + colaborador.getApellido()
+                        + " solicitó inscribirse al curso \"" + curso.getNombre() + "\".",
+                "COLABORADOR_CURSO", guardada.getId());
     }
 
     // ============================================================

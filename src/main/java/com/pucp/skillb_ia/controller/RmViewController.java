@@ -130,6 +130,7 @@ public class RmViewController {
                 .count();
         long certificadosPendientes = rmCertificadoService.listarPendientes().size();
         long educacionPendiente = rmEducacionService.contarPendientes();
+        long cursosPendientes = rmCursoService.contarSolicitudesPendientes();
 
         model.addAttribute("totalAprobacionesRm", asignaciones.stream()
                 .filter(RmAsignacionView::isRequiereDecisionRm).count());
@@ -149,6 +150,7 @@ public class RmViewController {
         model.addAttribute("totalSolicitudesAbiertas", solicitudesAbiertas);
         model.addAttribute("totalCertificadosPendientes", certificadosPendientes);
         model.addAttribute("totalEducacionPendiente", educacionPendiente);
+        model.addAttribute("totalCursosPendientes", cursosPendientes);
         model.addAttribute("proyectosAtencion", proyectosAtencion.stream().limit(5).toList());
         model.addAttribute("totalProyectosAtencion", proyectosAtencion.size());
         model.addAttribute("proyectoPrioritario",
@@ -791,11 +793,12 @@ public class RmViewController {
     @PostMapping("/cursos/solicitudes/{id}/aprobar")
     public String approveCourseRequest(
             @PathVariable("id") Long inscripcionId,
+            @RequestParam(name = "motivo", required = false) String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
-            rmCursoService.aprobar(inscripcionId, principal.getUsuario().getId());
+            rmCursoService.aprobar(inscripcionId, motivo, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Solicitud aprobada; el colaborador fue notificado.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -807,7 +810,7 @@ public class RmViewController {
     @PostMapping("/cursos/solicitudes/{id}/rechazar")
     public String rejectCourseRequest(
             @PathVariable("id") Long inscripcionId,
-            @RequestParam("motivo") String motivo,
+            @RequestParam(name = "motivo", required = false) String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";

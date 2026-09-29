@@ -56,9 +56,15 @@
 
         <td class="text-secondary small" th:text="${item.pendienteGestionRm} ? (${#strings.isEmpty(item.justificacion) ? 'Sin justificación' : item.justificacion}) : (${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta})">—</td>
         <td class="text-end">
-          <div th:if="${item.pendienteGestionRm}" class="d-flex flex-column gap-2 align-items-end" style="min-width: 230px">
-            <form method="post" th:action="@{/rm/cursos/solicitudes/{id}/aprobar(id=${item.id})}"><button class="btn btn-success btn-sm" type="submit">Aprobar solicitud</button></form>
-            <form class="d-flex gap-2" method="post" th:action="@{/rm/cursos/solicitudes/{id}/rechazar(id=${item.id})}"><input class="form-control form-control-sm" name="motivo" placeholder="Motivo obligatorio"><button class="btn btn-outline-danger btn-sm" type="submit">Rechazar</button></form>
+          <div th:if="${item.pendienteGestionRm}" class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-success btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#approveCourseModal"
+                    th:data-action="@{/rm/cursos/solicitudes/{id}/aprobar(id=${item.id})}"
+                    th:data-colaborador="${item.colaborador}" th:data-curso="${item.curso}">Aprobar</button>
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#rejectCourseModal"
+                    th:data-action="@{/rm/cursos/solicitudes/{id}/rechazar(id=${item.id})}"
+                    th:data-colaborador="${item.colaborador}" th:data-curso="${item.curso}">Rechazar</button>
           </div>
 
           <a th:if="${!item.pendienteGestionRm}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${item.colaboradorId})}">Ver perfil</a>
@@ -68,6 +74,52 @@
       </tbody>
     </table></div>
     <div class="pagination-wrap"><div id="paginationInfo" class="text-secondary small"></div><ul id="pagination" class="pagination pagination-sm m-0"></ul></div>
+  </div>
+
+  <div class="modal modal-blur fade rm-modal course-decision-modal" id="approveCourseModal" tabindex="-1" aria-labelledby="approveCourseModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="approveCourseModalTitle">Confirmar aprobación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form method="post" action="#">
+          <div class="modal-body">
+            <p class="mb-3">Vas a aprobar la solicitud de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El colaborador quedará inscrito y será notificado.</p>
+            <label for="courseApproveReason" class="form-label">Motivo de la aprobación</label>
+            <textarea id="courseApproveReason" name="motivo" maxlength="500" rows="4" class="form-control js-motivo" required placeholder="Explica por qué se aprueba la solicitud"></textarea>
+            <div class="form-hint">El motivo es obligatorio y puede tener hasta 500 caracteres.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success js-confirmar" disabled>Confirmar aprobación</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal modal-blur fade rm-modal course-decision-modal" id="rejectCourseModal" tabindex="-1" aria-labelledby="rejectCourseModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rejectCourseModalTitle">Confirmar rechazo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form method="post" action="#">
+          <div class="modal-body">
+            <p class="mb-3">Vas a rechazar la solicitud de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El colaborador verá el motivo.</p>
+            <label for="courseRejectReason" class="form-label">Motivo del rechazo</label>
+            <textarea id="courseRejectReason" name="motivo" maxlength="500" rows="4" class="form-control js-motivo" required placeholder="Explica al colaborador por qué se rechaza la solicitud"></textarea>
+            <div class="form-hint">El motivo es obligatorio y puede tener hasta 500 caracteres.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-danger js-confirmar" disabled>Confirmar rechazo</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </main></div>
 <script th:src="@{/tabler/js/tabler.min.js}"></script>

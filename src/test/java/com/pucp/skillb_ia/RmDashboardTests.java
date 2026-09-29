@@ -6,16 +6,23 @@ import com.pucp.skillb_ia.dto.RmCertificadoView;
 import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.ColaboradorCurso;
+import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.Educacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
+import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
+import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.model.enums.Prioridad;
+import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
+import com.pucp.skillb_ia.repository.CursoRepository;
 import com.pucp.skillb_ia.repository.EducacionRepository;
+import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.rm.*;
@@ -55,6 +62,9 @@ class RmDashboardTests {
     @Autowired private EducacionRepository educacionRepository;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private RolRepository rolRepository;
+    @Autowired private CursoRepository cursoRepository;
+    @Autowired private ColaboradorCursoRepository colaboradorCursoRepository;
+    @Autowired private NotificacionRepository notificacionRepository;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -72,7 +82,7 @@ class RmDashboardTests {
                         "totalProyectosVacantes", "totalProyectosRevision",
                         "accionesPendientes", "solicitudesRecientes", "proyectosAtencion",
                         "totalSolicitudesAbiertas", "totalCertificadosPendientes",
-                        "totalEducacionPendiente"));
+                        "totalEducacionPendiente", "totalCursosPendientes"));
     }
 
     @Test
@@ -111,6 +121,66 @@ class RmDashboardTests {
                 .andExpect(model().attribute("totalEducacionPendiente", 0L))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertFalse(sinPendientes.contains("formación(es) pendiente(s)"));
+    }
+
+    @Test
+    void dashboardCuentaSoloSolicitudesDeCursoPendientesYEnlazaALaBandeja() throws Exception {
+        notificacionRepository.deleteAll();
+        colaboradorCursoRepository.deleteAll();
+        Rol rolColaborador = rolRepository.findByNombre("COLABORADOR").orElseGet(() -> {
+            Rol nuevo = new Rol(); nuevo.setNombre("COLABORADOR"); return rolRepository.save(nuevo);
+        });
+        Usuario colaborador = usuarioRepository.findByCorreo("col.dashboard.curso@skillbridge.test")
+                .orElseGet(() -> {
+                    Usuario nuevo = new Usuario();
+                    nuevo.setCorreo("col.dashboard.curso@skillbridge.test");
+                    nuevo.setNombre("Diego");
+                    nuevo.setApellido("Curso");
+                    nuevo.setRol(rolColaborador);
+                    return usuarioRepository.save(nuevo);
+                });
+        Curso curso = new Curso();
+        curso.setNombre("Curso dashboard test");
+        curso.setHoras(new BigDecimal("10.00"));
+        curso.setCreadoPor(colaborador);
+        curso = cursoRepository.save(curso);
+        guardarInscripcion(colaborador, curso, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        guardarInscripcion(colaborador, curso, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        guardarInscripcion(colaborador, curso, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.EN_CURSO);
+        guardarInscripcion(colaborador, curso, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.RECHAZADO);
+        guardarInscripcion(colaborador, curso, OrigenCurso.ASIGNADO_POR_RM, EstadoColaboradorCurso.EN_CURSO);
+
+        String html = mockMvc.perform(get("/rm/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalCursosPendientes", 2L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        Matcher tarjeta = Pattern.compile("href=\"([^\"]*)\">\\s*<span class=\"badge bg-info-lt mb-2\">Solicitudes de cursos")
+                .matcher(html);
+        assertTrue(tarjeta.find(), "No se encontró la tarjeta de solicitudes de cursos");
+        assertEquals("/rm/cursos/solicitudes", tarjeta.group(1));
+        assertTrue(html.contains("2 solicitud(es) de curso pendiente(s)"));
+        assertTrue(Pattern.compile("href=\"/rm/cursos/solicitudes\"\\s+aria-label=\"Ver solicitudes de curso pendientes\"")
+                .matcher(html).find(), "No se encontró la tarjeta resumen de solicitudes de curso");
+        assertTrue(Pattern.compile("href=\"/rm/colaboradores/certificados\"\\s+aria-label=\"Ver certificados pendientes\"")
+                .matcher(html).find(), "No se encontró la tarjeta resumen de certificados");
+        assertTrue(html.contains("class=\"card-body attention-scroll\""));
+
+        colaboradorCursoRepository.deleteAll();
+        cursoRepository.delete(curso);
+        String sinPendientes = mockMvc.perform(get("/rm/dashboard"))
+                .andExpect(model().attribute("totalCursosPendientes", 0L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(sinPendientes.contains("solicitud(es) de curso pendiente(s)"));
+    }
+
+    private void guardarInscripcion(Usuario colaborador, Curso curso, OrigenCurso origen,
+                                    EstadoColaboradorCurso estado) {
+        ColaboradorCurso inscripcion = new ColaboradorCurso();
+        inscripcion.setColaborador(colaborador);
+        inscripcion.setCurso(curso);
+        inscripcion.setOrigen(origen);
+        inscripcion.setEstado(estado);
+        colaboradorCursoRepository.save(inscripcion);
     }
 
     private void guardarEducacion(Usuario colaborador, EstadoCertificado estado, boolean activo) {
@@ -159,6 +229,7 @@ class RmDashboardTests {
         when(certificadoService.listarPendientes()).thenReturn(List.of(
                 mock(RmCertificadoView.class), mock(RmCertificadoView.class)));
         when(educacionService.contarPendientes()).thenReturn(3L);
+        when(cursoService.contarSolicitudesPendientes()).thenReturn(4L);
 
         RmViewController controller = new RmViewController(
                 perfilService, colaboradorService, proyectoService, revisionService,
@@ -175,6 +246,7 @@ class RmDashboardTests {
         assertEquals(1L, model.getAttribute("totalSolicitudesAbiertas"));
         assertEquals(2L, model.getAttribute("totalCertificadosPendientes"));
         assertEquals(3L, model.getAttribute("totalEducacionPendiente"));
+        assertEquals(4L, model.getAttribute("totalCursosPendientes"));
         assertEquals(2, model.getAttribute("totalAccionesPendientes"));
         assertEquals(2, model.getAttribute("totalProyectosAtencion"));
         assertSame(enRevision, model.getAttribute("proyectoPrioritario"));

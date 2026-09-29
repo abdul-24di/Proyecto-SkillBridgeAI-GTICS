@@ -312,6 +312,96 @@
     </div>
 
 
+    <!-- VALIDACIONES PENDIENTES -->
+    <div class="row row-cards mb-4 summary-cards">
+
+      <div class="col-sm-6">
+        <div class="card summary-card h-100">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <circle cx="12" cy="9" r="6"/>
+                <path d="M9 14.2 8 21l4-2 4 2-1-6.8"/>
+              </svg>
+            </div>
+
+            <div class="summary-content">
+              <div class="summary-label">
+                Certificados pendientes
+              </div>
+
+              <div class="summary-number">
+                <span th:text="${totalCertificadosPendientes}">0</span>
+              </div>
+
+              <div class="small text-secondary mt-1 summary-description">
+                Esperan validación del Resource Manager.
+              </div>
+
+              <a class="stretched-link" th:href="@{/rm/colaboradores/certificados}"
+                 aria-label="Ver certificados pendientes"></a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-sm-6">
+        <div class="card summary-card h-100">
+          <div class="card-body d-flex align-items-center gap-3">
+
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   width="24"
+                   height="24"
+                   viewBox="0 0 24 24"
+                   fill="none"
+                   stroke="currentColor"
+                   stroke-width="2"
+                   stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/>
+                <path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/>
+                <path d="M3 6v13"/>
+                <path d="M12 6v13"/>
+                <path d="M21 6v13"/>
+              </svg>
+            </div>
+
+            <div class="summary-content">
+              <div class="summary-label">
+                Solicitudes de curso pendientes
+              </div>
+
+              <div class="summary-number">
+                <span th:text="${totalCursosPendientes}">0</span>
+              </div>
+
+              <div class="small text-secondary mt-1 summary-description">
+                Esperan aprobación o rechazo del Resource Manager.
+              </div>
+
+              <a class="stretched-link" th:href="@{/rm/cursos/solicitudes}"
+                 aria-label="Ver solicitudes de curso pendientes"></a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
     <!-- ACCIONES PENDIENTES -->
     <div class="card section-card mb-4">
 
@@ -587,7 +677,7 @@
           </div>
 
 
-          <div class="card-body">
+          <div class="card-body attention-scroll">
             <a th:if="${proyectoPrioritario != null}"
                class="attention-item attention-link border-danger"
                th:href="@{/rm/proyectos/detalle(id=${proyectoPrioritario.proyecto.id})}">
@@ -623,7 +713,15 @@
               <div class="text-secondary small">Esperan revisión del Resource Manager.</div>
             </a>
 
-            <div th:if="${proyectoPrioritario == null and totalSolicitudesAbiertas == 0 and totalCertificadosPendientes == 0 and totalEducacionPendiente == 0}"
+            <a th:if="${totalCursosPendientes > 0}"
+               class="attention-item attention-link border-info"
+               th:href="@{/rm/cursos/solicitudes}">
+              <span class="badge bg-info-lt mb-2">Solicitudes de cursos</span>
+              <div class="fw-semibold" th:text="|${totalCursosPendientes} solicitud(es) de curso pendiente(s)|">0 solicitudes</div>
+              <div class="text-secondary small">Esperan aprobación o rechazo del Resource Manager.</div>
+            </a>
+
+            <div th:if="${proyectoPrioritario == null and totalSolicitudesAbiertas == 0 and totalCertificadosPendientes == 0 and totalEducacionPendiente == 0 and totalCursosPendientes == 0}"
                  class="empty-attention text-center text-secondary">
               No hay alertas operativas pendientes.
             </div>
@@ -643,6 +741,9 @@
 
 <script src="../../static/tabler/js/tabler.min.js"
         th:src="@{/tabler/js/tabler.min.js}">
+</script>
+<script src="../../static/js/rm-js/rm-dashboard.js"
+        th:src="@{/js/rm-js/rm-dashboard.js}">
 </script>
 
 </body>

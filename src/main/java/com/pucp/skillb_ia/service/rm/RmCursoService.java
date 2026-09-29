@@ -78,6 +78,13 @@ public class RmCursoService {
                         .filter(item -> perteneceAlMes(item.getFechaSolicitud(), mesActual)).count());
     }
 
+    /** Solicitudes de colaboradores en estado SOLICITADO (para el dashboard del RM). */
+    @Transactional(readOnly = true)
+    public long contarSolicitudesPendientes() {
+        return colaboradorCursoRepository.countByOrigenAndEstado(
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+    }
+
     @Transactional(readOnly = true)
     public RmCursoView.Bandeja obtenerBandeja(String busqueda, String estadoValor,
                                                String origenValor) {
@@ -150,9 +157,10 @@ public class RmCursoService {
     }
 
     @Transactional
-    public ColaboradorCurso aprobar(Long inscripcionId, Long rmId) {
+    public ColaboradorCurso aprobar(Long inscripcionId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);
         ColaboradorCurso inscripcion = obtenerSolicitudPendiente(inscripcionId);
+        String motivoValidado = validarMotivo(motivo, "El motivo de la aprobación es obligatorio.");
         obtenerColaborador(inscripcion.getColaborador().getId());
         obtenerCursoActivo(inscripcion.getCurso().getId());
         if (colaboradorCursoRepository.existsByColaboradorAndCursoAndEstado(
@@ -162,7 +170,7 @@ public class RmCursoService {
         inscripcion.setEstado(EstadoColaboradorCurso.EN_CURSO);
         inscripcion.setAsignadoPor(rm);
         inscripcion.setFechaRespuesta(LocalDateTime.now());
-        inscripcion.setMotivoRespuesta(null);
+        inscripcion.setMotivoRespuesta(motivoValidado);
         inscripcion = colaboradorCursoRepository.save(inscripcion);
         notificar(inscripcion, "CURSO_APROBADO", "Solicitud de curso aprobada",
                 "Tu solicitud para “" + inscripcion.getCurso().getNombre() + "” fue aprobada.");

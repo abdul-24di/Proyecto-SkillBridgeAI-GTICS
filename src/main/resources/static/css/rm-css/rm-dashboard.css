@@ -203,6 +203,15 @@
   padding: 1.5rem .5rem;
 }
 
+/* Muestra 3 alertas (rm-dashboard.js ajusta la altura exacta); el resto se ve con el scroll propio de la tarjeta */
+.attention-scroll {
+  position: relative;
+  flex: 0 1 auto;
+  max-height: 24rem;
+  overflow-y: auto;
+  padding-right: .75rem;
+}
+
 /* =========================================================
    RESPONSIVE
    ========================================================= */

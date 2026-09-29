@@ -118,6 +118,10 @@ public class NotificacionService {
                 return "/colaborador/perfil";
             }
         }
+        if ("COLABORADOR_CURSO".equals(item.getEntidad())
+                && item.getUsuario().getRol().getNombre().equals("RESOURCE_MANAGER")) {
+            return "/rm/cursos/solicitudes";
+        }
         if ("FORO".equals(item.getEntidad()) && item.getEntidadId() != null) {
             Optional<Foro> foroOpt = foroRepository.findById(item.getEntidadId());
             if (foroOpt.isPresent()) {

@@ -61,7 +61,7 @@ public class RmProyectoRevisionService {
     }
 
     @Transactional
-    public void aprobar(Long proyectoId, String observacion, Long rmId) {
+    public void aprobar(Long proyectoId, Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = obtenerEnRevision(proyectoId);
         if (proyecto.getPresupuesto() == null || proyecto.getPresupuesto().signum() <= 0) {
@@ -79,7 +79,7 @@ public class RmProyectoRevisionService {
                 "PROYECTO", proyecto.getId());
 
         auditoriaService.registrar(rm, "APROBAR_PROYECTO", "PROYECTO", proyectoId,
-                detalleDecision("Proyecto aprobado", observacion), "EN_REVISION", "ACTIVO", null);
+                "Proyecto aprobado", "EN_REVISION", "ACTIVO", null);
 
     }
 
@@ -154,11 +154,5 @@ public class RmProyectoRevisionService {
             throw new IllegalArgumentException("El presupuesto supera el monto máximo permitido.");
         }
         return presupuesto.setScale(2, RoundingMode.HALF_UP);
-    }
-
-    private String detalleDecision(String base, String observacion) {
-        if (observacion == null || observacion.isBlank()) return base;
-        String texto = observacion.trim();
-        return base + ". Observación: " + texto.substring(0, Math.min(texto.length(), 450));
     }
 }

@@ -298,15 +298,13 @@ public class RmViewController {
     @PostMapping("/proyectos/{id}/aprobar")
     public String approveProject(
             @PathVariable("id") Long proyectoId,
-            @RequestParam(name = "observacion", required = false) String observacion,
             @RequestParam(name = "calificacion", required = false) Integer calificacion,
             @RequestParam(name = "feedback", required = false) String feedback,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
         try {
-            rmProyectoRevisionService.aprobar(
-                    proyectoId, observacion, principal.getUsuario().getId());
+            rmProyectoRevisionService.aprobar(proyectoId, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute("mensajeExito", "Proyecto aprobado y activado correctamente.");
             return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
         } catch (IllegalArgumentException ex) {

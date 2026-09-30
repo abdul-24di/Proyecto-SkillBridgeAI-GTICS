@@ -9,6 +9,7 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
 import com.pucp.skillb_ia.model.enums.Prioridad;
 import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
@@ -16,6 +17,7 @@ import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.ProyectoHabilidadRequeridaRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.CierreAsignacionesService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
@@ -35,19 +37,22 @@ public class PmProyectoService {
     private final ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository;
     private final HabilidadRepository habilidadRepository;
     private final AuditoriaService auditoriaService;
+    private final CierreAsignacionesService cierreAsignacionesService;
 
     public PmProyectoService(ProyectoRepository proyectoRepository,
                              AsignacionRepository asignacionRepository,
                              ActividadRepository actividadRepository,
                              ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository,
                              HabilidadRepository habilidadRepository,
-                             AuditoriaService auditoriaService) {
+                             AuditoriaService auditoriaService,
+                             CierreAsignacionesService cierreAsignacionesService) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.actividadRepository = actividadRepository;
         this.habilidadRequeridaRepository = habilidadRequeridaRepository;
         this.habilidadRepository = habilidadRepository;
         this.auditoriaService = auditoriaService;
+        this.cierreAsignacionesService = cierreAsignacionesService;
     }
 
     @Transactional(readOnly = true)
@@ -123,8 +128,11 @@ public class PmProyectoService {
         return saved;
     }
 
+    //Cancelamos el proyecto y, en la misma transacción, cerramos sus asignaciones abiertas:
+    //las PENDIENTE pasan a RECHAZADA y las ACTIVA a FINALIZADA (sin strike ni penalización).
+    //Si algo falla, se revierte todo y el proyecto no queda cancelado.
     @Transactional
-    public void cancelar(Long proyectoId, Usuario pm) {
+    public CierreAsignacionesService.Resultado cancelar(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
         verificarPropietario(proyecto, pm);
@@ -136,8 +144,16 @@ public class PmProyectoService {
         }
         proyecto.setEstado(EstadoProyecto.CANCELADO);
         proyectoRepository.save(proyecto);
+
+        //El PM que cancela no recibe notificación; solo ve el mensaje en pantalla.
+        CierreAsignacionesService.Resultado resultado = cierreAsignacionesService.cerrarAbiertas(
+                proyecto, pm, "cancelado", MotivoFinalizacion.PROYECTO_CANCELADO);
+
         auditoriaService.registrar(pm, "CANCELAR", "PROYECTO", proyectoId,
-                "PM canceló el proyecto '" + proyecto.getNombre() + "'.");
+                "PM canceló el proyecto '" + proyecto.getNombre() + "'. Asignaciones pendientes rechazadas: "
+                        + resultado.pendientesRechazadas() + ". Asignaciones activas finalizadas: "
+                        + resultado.activasFinalizadas() + ".");
+        return resultado;
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

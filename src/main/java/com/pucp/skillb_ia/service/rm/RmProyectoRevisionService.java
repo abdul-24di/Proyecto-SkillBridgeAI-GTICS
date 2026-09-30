@@ -4,11 +4,14 @@ import com.pucp.skillb_ia.model.Actividad;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
+import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
 import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.CierreAsignacionesService;
 import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,19 +34,22 @@ public class RmProyectoRevisionService {
     private final RmPresupuestoService presupuestoService;
     private final NotificacionService notificacionService;
     private final ActividadRepository actividadRepository;
+    private final CierreAsignacionesService cierreAsignacionesService;
 
     public RmProyectoRevisionService(ProyectoRepository proyectoRepository,
                                      UsuarioRepository usuarioRepository,
                                      AuditoriaService auditoriaService,
                                      RmPresupuestoService presupuestoService,
                                      NotificacionService notificacionService,
-                                     ActividadRepository actividadRepository) {
+                                     ActividadRepository actividadRepository,
+                                     CierreAsignacionesService cierreAsignacionesService) {
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.presupuestoService = presupuestoService;
         this.notificacionService = notificacionService;
         this.actividadRepository = actividadRepository;
+        this.cierreAsignacionesService = cierreAsignacionesService;
     }
 
     @Transactional
@@ -180,6 +186,92 @@ public class RmProyectoRevisionService {
                 "El Resource Manager cambió las fechas de tu proyecto \"" + proyecto.getNombre() + "\": del "
                         + fechaInicio.format(FORMATO_FECHA) + " al " + fechaFin.format(FORMATO_FECHA) + ".",
                 "PROYECTO", proyecto.getId());
+    }
+
+    // Cancelar y finalizar desde el RM: solo en ACTIVO o EN_ESPERA.
+    public static boolean esProyectoCerrable(Proyecto proyecto) {
+        return proyecto.getEstado() == EstadoProyecto.ACTIVO
+                || proyecto.getEstado() == EstadoProyecto.EN_ESPERA;
+    }
+
+    // Actividades que impiden finalizar (todas menos COMPLETADA).
+    @Transactional(readOnly = true)
+    public long contarActividadesAbiertas(Proyecto proyecto) {
+        return actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.PENDIENTE)
+                + actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.EN_PROGRESO)
+                + actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.EN_REVISION);
+    }
+
+    // El RM cancela un proyecto ACTIVO o EN_ESPERA. Exige motivo y el nombre exacto del proyecto.
+    // En la misma transacción cierra las asignaciones abiertas (como TASK-041) y notifica al PM.
+    @Transactional
+    public CierreAsignacionesService.Resultado cancelar(Long proyectoId, String motivo,
+                                                         String confirmacionNombre, Long rmId) {
+        return cerrar(proyectoId, motivo, confirmacionNombre, rmId, false);
+    }
+
+    // El RM finaliza un proyecto ACTIVO o EN_ESPERA sin actividades pendientes, en progreso ni en revisión.
+    @Transactional
+    public CierreAsignacionesService.Resultado finalizar(Long proyectoId, String motivo,
+                                                          String confirmacionNombre, Long rmId) {
+        return cerrar(proyectoId, motivo, confirmacionNombre, rmId, true);
+    }
+
+    // Todas las validaciones van antes de modificar: un intento inválido no cambia nada.
+    private CierreAsignacionesService.Resultado cerrar(Long proyectoId, String motivo, String confirmacionNombre,
+                                                       Long rmId, boolean finalizar) {
+        String accion = finalizar ? "finalizar" : "cancelar";
+        Usuario rm = obtenerRm(rmId);
+        Proyecto proyecto = proyectoRepository.findById(proyectoId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el proyecto solicitado."));
+        if (!esProyectoCerrable(proyecto)) {
+            throw new IllegalStateException("Solo se pueden " + accion + " proyectos activos o en espera.");
+        }
+        String motivoValidado = motivo == null ? "" : motivo.trim();
+        if (motivoValidado.isEmpty()) {
+            throw new IllegalArgumentException("Debes indicar el motivo para " + accion + " el proyecto.");
+        }
+        if (motivoValidado.length() > 500) {
+            throw new IllegalArgumentException("El motivo no puede superar los 500 caracteres.");
+        }
+        if (confirmacionNombre == null || !confirmacionNombre.trim().equals(proyecto.getNombre().trim())) {
+            throw new IllegalArgumentException(
+                    "Para confirmar, escribe el nombre exacto del proyecto. No se realizó ningún cambio.");
+        }
+        if (finalizar) {
+            long abiertas = contarActividadesAbiertas(proyecto);
+            if (abiertas > 0) {
+                throw new IllegalStateException("No se puede finalizar el proyecto: " + abiertas
+                        + " actividad(es) siguen pendientes, en progreso o en revisión.");
+            }
+        }
+
+        EstadoProyecto anterior = proyecto.getEstado();
+        EstadoProyecto nuevo = finalizar ? EstadoProyecto.FINALIZADO : EstadoProyecto.CANCELADO;
+        String cierre = finalizar ? "finalizado" : "cancelado";
+        proyecto.setEstado(nuevo);
+        proyectoRepository.save(proyecto);
+
+        // El enum no tiene PROYECTO_FINALIZADO (agregarlo exige cambiar el CHECK del esquema): se usa OTRO.
+        CierreAsignacionesService.Resultado resultado = cierreAsignacionesService.cerrarAbiertas(proyecto, rm, cierre,
+                finalizar ? MotivoFinalizacion.OTRO : MotivoFinalizacion.PROYECTO_CANCELADO);
+
+        notificacionService.crear(proyecto.getPm(), finalizar ? "PROYECTO_FINALIZADO" : "PROYECTO_CANCELADO",
+                CategoriaNotificacion.PROYECTO, finalizar ? "Proyecto finalizado" : "Proyecto cancelado",
+                limitar("El Resource Manager " + (finalizar ? "finalizó" : "canceló") + " tu proyecto \""
+                        + proyecto.getNombre() + "\". Motivo: " + motivoValidado, 400),
+                "PROYECTO", proyecto.getId());
+
+        auditoriaService.registrar(rm, finalizar ? "FINALIZAR_PROYECTO" : "CANCELAR_PROYECTO", "PROYECTO", proyectoId,
+                limitar("Proyecto " + cierre + " por el RM. Asignaciones pendientes rechazadas: "
+                        + resultado.pendientesRechazadas() + ". Asignaciones activas finalizadas: "
+                        + resultado.activasFinalizadas() + ". Motivo: " + motivoValidado, 500),
+                anterior.name(), nuevo.name(), null);
+        return resultado;
+    }
+
+    private static String limitar(String texto, int maximo) {
+        return texto.length() <= maximo ? texto : texto.substring(0, maximo - 3) + "...";
     }
 
     private static String describirFechas(LocalDate inicio, LocalDate fin) {

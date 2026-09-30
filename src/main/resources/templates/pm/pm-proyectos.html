@@ -47,6 +47,20 @@
       <a href="pm-crear-proyecto.html" class="btn btn-primary">+ Nuevo Proyecto</a>
     </div>
 
+    <div th:if="${success != null}" id="projectsSuccessAlert" class="alert alert-success alert-dismissible" role="alert">
+      <div class="d-flex">
+        <div><h4 class="alert-title">¡Éxito!</h4><div class="text-secondary" th:text="${success}"></div></div>
+      </div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+
+    <div th:if="${error != null}" id="projectsErrorAlert" class="alert alert-danger alert-dismissible" role="alert">
+      <div class="d-flex">
+        <div><h4 class="alert-title">Error</h4><div class="text-secondary" th:text="${error}"></div></div>
+      </div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+
     <div class="row row-cards mb-4">
       <div class="col-sm-6 col-xl-3">
         <div class="card metric-card">

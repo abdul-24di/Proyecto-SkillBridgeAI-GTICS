@@ -5,6 +5,7 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
+import com.pucp.skillb_ia.service.CierreAsignacionesService;
 import com.pucp.skillb_ia.service.pm.PmActividadService;
 import com.pucp.skillb_ia.service.pm.PmAsignacionService;
 import com.pucp.skillb_ia.service.pm.PmChatService;
@@ -155,8 +156,8 @@ public class PmViewController {
                                    @AuthenticationPrincipal UsuarioDetails principal,
                                    RedirectAttributes ra) {
         try {
-            pmProyectoService.cancelar(proyectoId, principal.getUsuario());
-            ra.addFlashAttribute("success", "Proyecto cancelado correctamente.");
+            var resultado = pmProyectoService.cancelar(proyectoId, principal.getUsuario());
+            ra.addFlashAttribute("success", CierreAsignacionesService.mensaje("cancelado", resultado));
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
         }

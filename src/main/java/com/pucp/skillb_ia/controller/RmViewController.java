@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.service.CierreAsignacionesService;
 import com.pucp.skillb_ia.service.EvaluacionService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -219,6 +220,11 @@ public class RmViewController {
                     .buscarIdPorProyecto(proyecto.getProyecto()).orElse(null));
             model.addAttribute("proyectoAsignable",
                     rmAsignacionService.esProyectoAsignable(proyecto.getProyecto()));
+            // Zona de riesgo: cancelar o finalizar solo en ACTIVO o EN_ESPERA.
+            boolean cerrable = RmProyectoRevisionService.esProyectoCerrable(proyecto.getProyecto());
+            model.addAttribute("proyectoCerrable", cerrable);
+            model.addAttribute("actividadesAbiertas",
+                    cerrable ? rmProyectoRevisionService.contarActividadesAbiertas(proyecto.getProyecto()) : 0L);
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/proyectos?noEncontrado=true";
         }
@@ -386,6 +392,45 @@ public class RmViewController {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
             return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
         }
+    }
+
+    // Zona de riesgo del detalle: éxito y error vuelven al detalle del proyecto.
+    @PostMapping("/proyectos/{id}/cancelar")
+    public String cancelProject(
+            @PathVariable("id") Long proyectoId,
+            @RequestParam(name = "motivo", required = false) String motivo,
+            @RequestParam(name = "confirmacionNombre", required = false) String confirmacionNombre,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            var resultado = rmProyectoRevisionService.cancelar(
+                    proyectoId, motivo, confirmacionNombre, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    CierreAsignacionesService.mensaje("cancelado", resultado));
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
+    }
+
+    @PostMapping("/proyectos/{id}/finalizar")
+    public String finishProject(
+            @PathVariable("id") Long proyectoId,
+            @RequestParam(name = "motivo", required = false) String motivo,
+            @RequestParam(name = "confirmacionNombre", required = false) String confirmacionNombre,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            var resultado = rmProyectoRevisionService.finalizar(
+                    proyectoId, motivo, confirmacionNombre, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    CierreAsignacionesService.mensaje("finalizado", resultado));
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
     }
 
     @GetMapping({"/proyectos/detalle-solicitudes", "/rm-detalle-proyecto-solicitudes.html"})

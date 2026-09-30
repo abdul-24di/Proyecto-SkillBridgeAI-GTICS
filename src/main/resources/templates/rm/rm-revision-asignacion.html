@@ -15,9 +15,13 @@
   <main class="page-wrap">
     <div th:if="${not #strings.isEmpty(mensajeExito)}" class="alert alert-success" role="alert" th:text="${mensajeExito}"></div>
     <div th:if="${not #strings.isEmpty(mensajeError)}" class="alert alert-danger" role="alert" th:text="${mensajeError}"></div>
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <th:block th:each="miga : ${navegacion.migas}"><a class="breadcrumb-link" th:href="@{${miga.url}}" th:text="${miga.texto}">Asignaciones</a><span class="breadcrumb-separator">›</span></th:block>
+      <span class="text-secondary" th:text="${navegacion.actual}">Asignación</span>
+    </nav>
     <div class="page-head page-head-stack-mobile">
       <div>
-        <a class="text-secondary text-decoration-none small" th:href="@{/rm/asignaciones}">← Volver a asignaciones</a>
+        <a class="text-secondary text-decoration-none small" th:href="@{${navegacion.volverUrl}}" th:text="|← ${navegacion.volverTexto}|">← Volver a asignaciones</a>
         <h1 class="page-title mt-2"
             th:text="${asignacion.solicitudColaborador} ? 'Revisión de solicitud del colaborador' : 'Revisión de propuesta de asignación'">Revisión</h1>
         <div class="text-secondary" th:text="|Asignación #${asignacion.asignacion.id} · ${asignacion.origenTexto}|">Asignación</div>
@@ -138,6 +142,7 @@
                     th:action="@{/rm/proyectos/{id}/presupuesto(id=${asignacion.asignacion.proyecto.id})}">
                 <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <input type="hidden" name="asignacionId" th:value="${asignacion.asignacion.id}">
+                <input th:if="${navegacion.origen != null}" type="hidden" name="origen" th:value="${navegacion.origen}">
                 <div class="col-sm-8">
                   <label for="assignmentProjectBudget" class="form-label">Nuevo presupuesto total (S/)</label>
                   <input id="assignmentProjectBudget" name="presupuesto" type="text" class="form-control"

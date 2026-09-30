@@ -2,6 +2,8 @@
 
 Este documento resume todas las actualizaciones e implementaciones funcionales realizadas recientemente en el proyecto SkillBridge AI.
 
+Última verificación: **30 de septiembre de 2026**, commit `42b57fc`.
+
 ## 1. Chat Funcional (PM y Colaboradores)
 Se ha reemplazado la maqueta de chat (Javascript simulado) por un sistema de chat real, impulsado por AJAX para soportar actualizaciones en tiempo real (Polling).
 
@@ -57,4 +59,39 @@ La sección de reportes pasó de ser visualizaciones estáticas a mostrar datos 
     *   `actividad.comentario_colaborador`
 *   **Despliegue en AWS EC2:** Se configuraron las credenciales de base de datos como variables de entorno en el servidor (`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`) para conectar Spring Boot a AWS RDS de forma segura sin exponer credenciales en el código.
 *   **Puerto 8080 en AWS:** Se habilitó la regla de entrada en el Security Group de EC2 para el puerto `8080` (TCP, `0.0.0.0/0`).
+
+## 7. Finalización de Cursos con Evidencia (30 Sep 2026)
+
+La inscripción de un colaborador ahora puede avanzar de `EN_CURSO` a `EVIDENCIA_PENDIENTE` y, después de la revisión del RM, a `COMPLETADO`.
+
+*   **Carga del colaborador:** Desde su perfil puede adjuntar un PDF, JPG o PNG de hasta 10 MB para una inscripción propia en estado `EN_CURSO`. La carga usa `ArchivoAlmacenamientoService`, se audita y notifica a los RM activos.
+*   **Perfil:** La sección de cursos muestra inscripciones en curso, pendientes de evidencia y completadas, junto con el archivo, el estado y el motivo de rechazo cuando corresponda.
+*   **Decisión del RM:** Existen endpoints para aprobar o rechazar. Aprobar fija `fechaCompletado`; rechazar exige motivo, devuelve la inscripción a `EN_CURSO` y permite reemplazar el archivo sin un máximo de intentos implementado.
+*   **Horas:** Al aprobar la evidencia, las horas del curso se agregan al cálculo mensual de horas trabajadas y cuentan para la meta y el bono informativo. No reducen `horasDisponibles`.
+*   **Pendientes de interfaz y trazabilidad:** La bandeja `rm-solicitudes-cursos.html` todavía no presenta el filtro `EVIDENCIA_PENDIENTE`, el enlace al archivo ni los botones de decisión. También faltan revisor, fecha y auditoría de aprobación/rechazo.
+*   **Pendiente de base de datos:** `skillbridge_db_v4.sql` ya contiene los campos y el nuevo estado, pero falta una migración idempotente para bases existentes. `migracion_cursos.sql` no cubre `evidencia_url`, `fecha_evidencia`, el ancho de `estado` ni su `CHECK`.
+*   **Script de instalación con error:** El mismo commit llevó `horas_semanales` y `documento_contexto_url` a los `CREATE TABLE`, pero dejó al final los `ALTER TABLE ... ADD COLUMN` de esas columnas. Una instalación nueva falla con `Duplicate column name` antes de cargar los datos de prueba (TASK-048).
+*   **Cobertura:** La suite completa continúa en verde (454 pruebas), pero no hay pruebas específicas para este flujo.
+
+## 8. Correo Real para Activación y Recuperación (30 Sep 2026)
+
+*   **SMTP:** `EmailService` envía mediante Gmail cuando existen `MAIL_USERNAME` y `MAIL_PASSWORD`; si faltan, conserva el fallback a registro en el log.
+*   **Enlaces absolutos:** `APP_BASE_URL` define la URL base usada en los mensajes.
+*   **Seguridad:** Las rutas reales de activación y recuperación quedaron públicas en `SecurityConfig`, mientras las áreas por rol permanecen protegidas.
+*   **Configuración administrativa:** El Admin puede crear parámetros desde `/admin/configuracion/crear`.
+*   **Cobertura pendiente:** No hay pruebas automatizadas del envío SMTP ni de las rutas públicas de Auth.
+
+## 9. Validaciones del Catálogo de Cursos del Admin (30 Sep 2026)
+
+*   **Datos obligatorios:** La categoría siempre es obligatoria; las fechas de inicio y fin también, salvo en cursos autodidactas (el formulario las libera al marcar la casilla). Se valida en `AdminCursoService` y en `admin-cursos.html`.
+*   **Fechas:** La fecha de fin no puede ser anterior a la de inicio y, al crear, la de inicio no puede ser anterior a hoy. Al editar se conserva la fecha original de un curso ya iniciado.
+*   **Pendiente:** Editar aún no actualiza `lugar` ni `institucion`, y no hay pruebas del CRUD (TASK-005).
+
+## 10. Política de Contraseñas Unificada (30 Sep 2026)
+
+*   **Regla única:** Mínimo 8 caracteres, con una mayúscula, un número y un símbolo, en la activación, la recuperación y el cambio de contraseña de Admin, RM, PM y Colaborador. Antes, salvo el Colaborador, bastaban 6 caracteres.
+*   **Activación:** Además exige aceptar la política de tratamiento de datos (`aceptaPolitica`), validada en el servidor.
+*   **Formularios de Auth:** Muestran el error debajo de cada campo con estilos propios (`auth.js`, `auth.css`) y comprueban que la confirmación coincida.
+*   **Compatibilidad:** Las contraseñas existentes y las de los usuarios demo siguen funcionando.
+*   **Cobertura:** Suite completa en verde (454 pruebas) tras el cambio, sin pruebas específicas de la regla.
 

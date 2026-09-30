@@ -1025,7 +1025,7 @@ public class RmViewController {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
         }
-        return "redirect:/rm/cursos/solicitudes";
+        return "redirect:/rm/cursos/solicitudes?estado=EVIDENCIA_PENDIENTE";
     }
 
     @PostMapping("/cursos/solicitudes/{id}/evidencia/rechazar")
@@ -1042,7 +1042,7 @@ public class RmViewController {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
         }
-        return "redirect:/rm/cursos/solicitudes";
+        return "redirect:/rm/cursos/solicitudes?estado=EVIDENCIA_PENDIENTE";
     }
 
     @GetMapping({"/asignaciones", "/rm-asignaciones.html"})

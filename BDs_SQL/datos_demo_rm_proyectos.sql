@@ -17,6 +17,8 @@
 --   * equipo, vacantes, habilidades y pendientes del RM
 --   * foros, publicaciones, respuestas, soluciones y votos de solo lectura
 --   * catalogo, solicitudes e inscripciones de cursos
+--   * evidencias de finalizacion de cursos por revisar, su notificacion
+--     y un curso ya completado (seccion 10.1)
 --
 -- SEGURIDAD
 --   * No elimina tablas ni registros normales.
@@ -33,6 +35,10 @@
 -- ejecutar primero migracion_solicitud_personal.sql.
 -- Si la BD ya existía antes del flujo completo de Cursos, ejecutar también
 -- migracion_cursos.sql antes de cargar estos datos.
+-- La seccion 10.1 usa las columnas colaborador_curso.evidencia_url y
+-- fecha_evidencia y el estado EVIDENCIA_PENDIENTE (v4 desde el 2026-09-30).
+-- Aun no existe migracion para bases anteriores: reinstalar con
+-- skillbridge_db_v4.sql si esas columnas no existen.
 -- ============================================================================
 ROLLBACK;
 
@@ -1144,6 +1150,115 @@ UPDATE colaborador_curso SET origen = 'ASIGNADO_POR_RM', estado = 'EN_CURSO',
     fecha_respuesta = CURRENT_TIMESTAMP - INTERVAL 4 DAY,
     motivo_respuesta = 'Capacitacion recomendada para fortalecer la operacion cloud.'
 WHERE id = @demo_cc_asignado_id;
+-- Si en una prueba anterior se subio evidencia a estas inscripciones, se limpia.
+UPDATE colaborador_curso SET evidencia_url = NULL, fecha_evidencia = NULL, fecha_completado = NULL
+WHERE id IN (@demo_cc_spring_id, @demo_cc_aws_id, @demo_cc_comunicacion_id,
+             @demo_cc_rechazado_id, @demo_cc_asignado_id);
+
+-- --------------------------------------------------------------------------
+-- 10.1 Evidencias de finalizacion de cursos (TASK-049)
+-- Ver en: RM -> Cursos -> Solicitudes -> Estado "Evidencia en revision"
+--         /rm/cursos/solicitudes?estado=EVIDENCIA_PENDIENTE
+--   * Carla Rojas  / Comunicacion efectiva : evidencia pendiente (para validar).
+--   * Elena Torres / AWS Cloud Practitioner: evidencia pendiente (para rechazar
+--     con motivo; vuelve a EN_CURSO y la colaboradora puede reenviarla).
+--   * Diego Salazar / Spring Boot avanzado : curso COMPLETADO este mes (historial).
+-- Los archivos son ficticios y se sirven desde static/documentos.
+-- Al volver a ejecutar el script, las tres inscripciones regresan a este estado.
+-- --------------------------------------------------------------------------
+INSERT INTO colaborador_curso (
+    colaborador_id, curso_id, origen, estado, asignado_por,
+    fecha_solicitud, fecha_respuesta, motivo_respuesta, evidencia_url, fecha_evidencia
+)
+SELECT @demo_colaborador1_id, @demo_curso_comunicacion_id, 'SOLICITUD_COLABORADOR',
+       'EVIDENCIA_PENDIENTE', @demo_rm_id, CURRENT_TIMESTAMP - INTERVAL 12 DAY,
+       CURRENT_TIMESTAMP - INTERVAL 10 DAY, NULL,
+       '/documentos/evidencia-curso-demo-comunicacion.txt', CURRENT_TIMESTAMP - INTERVAL 1 DAY
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM colaborador_curso
+    WHERE colaborador_id = @demo_colaborador1_id AND curso_id = @demo_curso_comunicacion_id
+);
+
+INSERT INTO colaborador_curso (
+    colaborador_id, curso_id, origen, estado, asignado_por,
+    fecha_solicitud, fecha_respuesta, motivo_respuesta, evidencia_url, fecha_evidencia
+)
+SELECT @demo_colaborador3_id, @demo_curso_aws_id, 'ASIGNADO_POR_RM',
+       'EVIDENCIA_PENDIENTE', @demo_rm_id, CURRENT_TIMESTAMP - INTERVAL 20 DAY,
+       CURRENT_TIMESTAMP - INTERVAL 20 DAY,
+       'Preparacion para los despliegues del proyecto Migracion Cloud.',
+       '/documentos/evidencia-curso-demo-aws.txt', CURRENT_TIMESTAMP - INTERVAL 3 HOUR
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM colaborador_curso
+    WHERE colaborador_id = @demo_colaborador3_id AND curso_id = @demo_curso_aws_id
+);
+
+INSERT INTO colaborador_curso (
+    colaborador_id, curso_id, origen, estado, asignado_por,
+    fecha_solicitud, fecha_respuesta, fecha_completado, motivo_respuesta, evidencia_url, fecha_evidencia
+)
+SELECT @demo_colaborador2_id, @demo_curso_spring_id, 'SOLICITUD_COLABORADOR',
+       'COMPLETADO', @demo_rm_id, CURRENT_TIMESTAMP - INTERVAL 40 DAY,
+       CURRENT_TIMESTAMP - INTERVAL 38 DAY,
+       CAST(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS DATETIME) + INTERVAL 9 HOUR, NULL,
+       '/documentos/evidencia-curso-demo-spring.txt',
+       CAST(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS DATETIME) + INTERVAL 8 HOUR
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM colaborador_curso
+    WHERE colaborador_id = @demo_colaborador2_id AND curso_id = @demo_curso_spring_id
+);
+
+SET @demo_cc_evid_validar_id := (SELECT MIN(id) FROM colaborador_curso WHERE colaborador_id = @demo_colaborador1_id AND curso_id = @demo_curso_comunicacion_id);
+SET @demo_cc_evid_rechazar_id := (SELECT MIN(id) FROM colaborador_curso WHERE colaborador_id = @demo_colaborador3_id AND curso_id = @demo_curso_aws_id);
+SET @demo_cc_completado_id := (SELECT MIN(id) FROM colaborador_curso WHERE colaborador_id = @demo_colaborador2_id AND curso_id = @demo_curso_spring_id);
+
+UPDATE colaborador_curso SET origen = 'SOLICITUD_COLABORADOR', estado = 'EVIDENCIA_PENDIENTE',
+    asignado_por = @demo_rm_id, fecha_solicitud = CURRENT_TIMESTAMP - INTERVAL 12 DAY,
+    fecha_respuesta = CURRENT_TIMESTAMP - INTERVAL 10 DAY, fecha_completado = NULL,
+    motivo_respuesta = NULL,
+    evidencia_url = '/documentos/evidencia-curso-demo-comunicacion.txt',
+    fecha_evidencia = CURRENT_TIMESTAMP - INTERVAL 1 DAY
+WHERE id = @demo_cc_evid_validar_id;
+UPDATE colaborador_curso SET origen = 'ASIGNADO_POR_RM', estado = 'EVIDENCIA_PENDIENTE',
+    asignado_por = @demo_rm_id, fecha_solicitud = CURRENT_TIMESTAMP - INTERVAL 20 DAY,
+    fecha_respuesta = CURRENT_TIMESTAMP - INTERVAL 20 DAY, fecha_completado = NULL,
+    motivo_respuesta = 'Preparacion para los despliegues del proyecto Migracion Cloud.',
+    evidencia_url = '/documentos/evidencia-curso-demo-aws.txt',
+    fecha_evidencia = CURRENT_TIMESTAMP - INTERVAL 3 HOUR
+WHERE id = @demo_cc_evid_rechazar_id;
+UPDATE colaborador_curso SET origen = 'SOLICITUD_COLABORADOR', estado = 'COMPLETADO',
+    asignado_por = @demo_rm_id, fecha_solicitud = CURRENT_TIMESTAMP - INTERVAL 40 DAY,
+    fecha_respuesta = CURRENT_TIMESTAMP - INTERVAL 38 DAY,
+    fecha_completado = CAST(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS DATETIME) + INTERVAL 9 HOUR,
+    motivo_respuesta = NULL,
+    evidencia_url = '/documentos/evidencia-curso-demo-spring.txt',
+    fecha_evidencia = CAST(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS DATETIME) + INTERVAL 8 HOUR
+WHERE id = @demo_cc_completado_id;
+
+-- Notificaciones del RM demo: al abrirlas llevan a la bandeja filtrada por evidencias.
+INSERT INTO notificacion (usuario_id, tipo, categoria, titulo, descripcion, entidad, entidad_id, leida, fecha_creacion)
+SELECT @demo_rm_id, 'EVIDENCIA_CURSO_PENDIENTE', 'CURSO', 'Evidencia de curso pendiente de revision',
+       'Carla Rojas subio evidencia para el curso "[DEMO] Comunicacion efectiva".',
+       'COLABORADOR_CURSO', @demo_cc_evid_validar_id, FALSE, CURRENT_TIMESTAMP - INTERVAL 1 DAY
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM notificacion
+    WHERE usuario_id = @demo_rm_id AND tipo = 'EVIDENCIA_CURSO_PENDIENTE'
+      AND entidad_id = @demo_cc_evid_validar_id
+);
+
+INSERT INTO notificacion (usuario_id, tipo, categoria, titulo, descripcion, entidad, entidad_id, leida, fecha_creacion)
+SELECT @demo_rm_id, 'EVIDENCIA_CURSO_PENDIENTE', 'CURSO', 'Evidencia de curso pendiente de revision',
+       'Elena Torres subio evidencia para el curso "[DEMO] AWS Cloud Practitioner".',
+       'COLABORADOR_CURSO', @demo_cc_evid_rechazar_id, FALSE, CURRENT_TIMESTAMP - INTERVAL 3 HOUR
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM notificacion
+    WHERE usuario_id = @demo_rm_id AND tipo = 'EVIDENCIA_CURSO_PENDIENTE'
+      AND entidad_id = @demo_cc_evid_rechazar_id
+);
+
+UPDATE notificacion SET leida = FALSE
+WHERE usuario_id = @demo_rm_id AND tipo = 'EVIDENCIA_CURSO_PENDIENTE'
+  AND entidad_id IN (@demo_cc_evid_validar_id, @demo_cc_evid_rechazar_id);
 
 COMMIT;
 
@@ -1255,7 +1370,10 @@ SELECT
     CONCAT(u.nombre, ' ', u.apellido) AS colaborador,
     cc.origen,
     cc.estado,
-    cc.motivo_respuesta
+    cc.motivo_respuesta,
+    cc.evidencia_url,
+    cc.fecha_evidencia,
+    cc.fecha_completado
 FROM curso c
 LEFT JOIN colaborador_curso cc ON cc.curso_id = c.id
 LEFT JOIN usuario u ON u.id = cc.colaborador_id

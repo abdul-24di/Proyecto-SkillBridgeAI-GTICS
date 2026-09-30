@@ -1,0 +1,9 @@
+EVIDENCIA DE FINALIZACION DE CURSO - DEMOSTRACION
+
+Curso: [DEMO] Spring Boot avanzado
+Colaborador: Diego Salazar
+Duracion: 20 horas
+
+Documento ficticio de una evidencia ya validada por el Resource Manager
+(historial de cursos completados en SkillBridge AI).
+No tiene validez academica ni profesional.

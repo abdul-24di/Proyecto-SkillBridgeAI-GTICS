@@ -53,10 +53,12 @@ public final class RmCursoView {
         private final long aprobadasEsteMes;
         private final long rechazadasEsteMes;
         private final long enCurso;
+        private final long evidenciasPorRevisar;
 
         public Bandeja(List<InscripcionItem> inscripciones, int paginaActual, int totalPaginas,
                        long totalRegistros, long pendientes,
-                       long aprobadasEsteMes, long rechazadasEsteMes, long enCurso) {
+                       long aprobadasEsteMes, long rechazadasEsteMes, long enCurso,
+                       long evidenciasPorRevisar) {
             this.inscripciones = List.copyOf(inscripciones);
             this.paginaActual = paginaActual;
             this.totalPaginas = totalPaginas;
@@ -65,6 +67,7 @@ public final class RmCursoView {
             this.aprobadasEsteMes = aprobadasEsteMes;
             this.rechazadasEsteMes = rechazadasEsteMes;
             this.enCurso = enCurso;
+            this.evidenciasPorRevisar = evidenciasPorRevisar;
         }
 
         public List<InscripcionItem> getInscripciones() { return inscripciones; }
@@ -75,6 +78,7 @@ public final class RmCursoView {
         public long getAprobadasEsteMes() { return aprobadasEsteMes; }
         public long getRechazadasEsteMes() { return rechazadasEsteMes; }
         public long getEnCurso() { return enCurso; }
+        public long getEvidenciasPorRevisar() { return evidenciasPorRevisar; }
     }
 
     public static class CursoItem {

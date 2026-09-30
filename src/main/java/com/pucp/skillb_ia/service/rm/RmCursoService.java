@@ -132,7 +132,7 @@ public class RmCursoService {
     }
 
     /**
-     * Filtra y pagina la bandeja (10 por página, fecha de solicitud descendente). Los cuatro
+     * Filtra y pagina la bandeja (10 por página, fecha de solicitud descendente). Los cinco
      * indicadores se calculan sobre todas las inscripciones, sin filtros ni página.
      */
     @Transactional(readOnly = true)
@@ -162,7 +162,8 @@ public class RmCursoService {
                         .filter(item -> perteneceAlMes(item.getFechaRespuesta(), mesActual)).count(),
                 todas.stream().filter(item -> item.getEstado() == EstadoColaboradorCurso.RECHAZADO)
                         .filter(item -> perteneceAlMes(item.getFechaRespuesta(), mesActual)).count(),
-                todas.stream().filter(item -> item.getEstado() == EstadoColaboradorCurso.EN_CURSO).count());
+                todas.stream().filter(item -> item.getEstado() == EstadoColaboradorCurso.EN_CURSO).count(),
+                todas.stream().filter(this::esEvidenciaPendiente).count());
     }
 
     @Transactional(readOnly = true)

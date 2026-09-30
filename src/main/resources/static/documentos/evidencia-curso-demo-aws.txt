@@ -1,0 +1,10 @@
+EVIDENCIA DE FINALIZACION DE CURSO - DEMOSTRACION
+
+Curso: [DEMO] AWS Cloud Practitioner
+Colaboradora: Elena Torres
+Duracion: 32 horas
+
+Documento ficticio utilizado exclusivamente para probar la revision de
+evidencias de cursos del Resource Manager en SkillBridge AI.
+Pensado para practicar el rechazo con motivo (por ejemplo: falta la fecha
+de emision). No tiene validez academica ni profesional.

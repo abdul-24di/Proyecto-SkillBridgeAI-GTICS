@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia;
 
+import com.pucp.skillb_ia.dto.NotificacionView;
 import com.pucp.skillb_ia.dto.RmCursoView;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
@@ -7,6 +8,7 @@ import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.Cargo;
 import com.pucp.skillb_ia.repository.CargoRepository;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
@@ -14,13 +16,17 @@ import com.pucp.skillb_ia.repository.CursoRepository;
 import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.rm.RmCursoService;
 import com.pucp.skillb_ia.service.NotificacionService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -36,6 +42,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -74,6 +81,11 @@ class RmCursoTests {
         spring = curso("Spring Boot avanzado test", "Técnico", "20.00", true);
         aws = curso("AWS Practitioner test", "Certificación", "40.00", true);
         inactivo = curso("Curso inactivo test", "Técnico", "8.00", false);
+    }
+
+    @AfterEach
+    void limpiarSesion() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -402,6 +414,298 @@ class RmCursoTests {
             assertEquals(esperada, ((RmCursoView.Bandeja) bandeja.getModelAndView().getModel()
                     .get("bandeja")).getPaginaActual(), "Bandeja, pagina=" + pagina);
         }
+    }
+
+    // --- TASK-049: revisión de la evidencia de finalización desde la bandeja ---
+
+    private static final String URL_EVIDENCIAS = "/rm/cursos/solicitudes?estado=EVIDENCIA_PENDIENTE";
+
+    @Test
+    void filtroEvidenciaPendienteMuestraSoloEvidenciasConSuOpcionSeleccionada() throws Exception {
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+        inscripcion(colaboradorDos, aws, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        inscripcion(colaboradorDos, spring, OrigenCurso.ASIGNADO_POR_RM, EstadoColaboradorCurso.EN_CURSO);
+
+        MvcResult resultado = mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", "EVIDENCIA_PENDIENTE"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("estadoSeleccionado", "EVIDENCIA_PENDIENTE"))
+                .andReturn();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        RmCursoView.Bandeja bandeja = (RmCursoView.Bandeja) resultado.getModelAndView().getModel().get("bandeja");
+
+        assertEquals(List.of(evidencia.getId()),
+                bandeja.getInscripciones().stream().map(RmCursoView.InscripcionItem::getId).toList());
+        assertTrue(html.contains("<option value=\"EVIDENCIA_PENDIENTE\" selected=\"selected\">Evidencia en revisión</option>"));
+        assertFalse(html.contains("Luis Ramos"), "Solo las evidencias en revisión");
+        assertEquals(1, totalBandeja(null, "EVIDENCIA_PENDIENTE", null));
+        assertEquals(1, totalBandeja(null, null, null), "Sin estado sigue mostrando solo SOLICITADO");
+    }
+
+    @Test
+    void paginacionDeEvidenciasConservaElFiltroYEntregaSoloLaPaginaActual() throws Exception {
+        LocalDateTime base = LocalDateTime.now().minusDays(1);
+        for (int i = 0; i < 12; i++) {
+            evidenciaPendiente(colaboradorUno, i % 2 == 0 ? spring : aws, "ev" + i + ".pdf", base.minusHours(i));
+        }
+        inscripcion(colaboradorDos, aws, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+
+        MvcResult resultado = mockMvc.perform(get("/rm/cursos/solicitudes")
+                        .param("estado", "EVIDENCIA_PENDIENTE").param("pagina", "2"))
+                .andExpect(status().isOk())
+                .andReturn();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        RmCursoView.Bandeja bandeja = (RmCursoView.Bandeja) resultado.getModelAndView().getModel().get("bandeja");
+
+        assertEquals(2, bandeja.getInscripciones().size(), "La vista recibe solo la página actual");
+        assertEquals(2, bandeja.getPaginaActual());
+        assertEquals(12, bandeja.getTotalRegistros());
+        assertEquals(2, html.split("class=\"solicitud-row\"", -1).length - 1);
+        assertTrue(html.contains("Mostrando 11-12 de 12 solicitudes"));
+        String paginacion = bloquePaginacion(html);
+        String filtro = "estado=EVIDENCIA_PENDIENTE&amp;origen=&amp;pagina=";
+        assertTrue(paginacion.contains(filtro + "1\">Anterior"));
+        assertTrue(paginacion.contains(filtro + "1\">1"));
+        assertTrue(paginacion.contains(filtro + "2\">2"));
+        assertTrue(paginacion.contains(filtro + "3\">Siguiente"));
+        assertFalse(paginacion.contains("estado=&amp;"), "Ningún enlace pierde el filtro");
+    }
+
+    @Test
+    void indicadorEvidenciasPorRevisarSeCalculaSobreTodasLasInscripciones() throws Exception {
+        prepararBandejaPaginada();
+        for (int i = 0; i < 3; i++) evidenciaPendiente(colaboradorDos, spring, "luis" + i + ".pdf", null);
+        inscripcion(colaboradorUno, aws, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.COMPLETADO);
+
+        List<RmCursoView.Bandeja> vistas = List.of(
+                cursoService.obtenerBandeja(cursoService.normalizarFiltrosBandeja(null, null, null), "2"),
+                cursoService.obtenerBandeja(cursoService.normalizarFiltrosBandeja(
+                        "luis", "RECHAZADO", "SOLICITUD_COLABORADOR"), "1"),
+                cursoService.obtenerBandeja(cursoService.normalizarFiltrosBandeja(
+                        "sin coincidencias", "EVIDENCIA_PENDIENTE", "ASIGNADO_POR_RM"), "9"));
+        for (RmCursoView.Bandeja bandeja : vistas) {
+            assertEquals(3, bandeja.getEvidenciasPorRevisar());
+            assertEquals(12, bandeja.getPendientes(), "Los indicadores existentes no cambian");
+            assertEquals(2, bandeja.getEnCurso());
+        }
+
+        mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", "RECHAZADO").param("pagina", "3"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Evidencias por revisar")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "id=\"evidenciasPorRevisar\" class=\"metric-number\">3<")));
+    }
+
+    @Test
+    void filaConEvidenciaEnlazaElArchivoDeFormaSeguraYLasDemasConservanVerPerfil() throws Exception {
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "constancia-ana.pdf", null);
+        inscripcion(colaboradorDos, aws, OrigenCurso.ASIGNADO_POR_RM, EstadoColaboradorCurso.EN_CURSO);
+
+        String html = mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertEquals(1, ocurrencias(html, ">Ver evidencia</a>"));
+        String enlace = etiquetaAnterior(html, ">Ver evidencia</a>", "<a");
+        assertTrue(enlace.contains("href=\"" + evidencia.getEvidenciaUrl() + "\""));
+        assertTrue(enlace.contains("target=\"_blank\""));
+        assertTrue(enlace.contains("rel=\"noopener\""));
+        assertTrue(html.contains("data-action=\"/rm/cursos/solicitudes/" + evidencia.getId() + "/evidencia/aprobar\""));
+        assertTrue(html.contains("data-action=\"/rm/cursos/solicitudes/" + evidencia.getId() + "/evidencia/rechazar\""));
+        assertTrue(html.contains(">Validar evidencia</button>"));
+        assertTrue(html.contains(">Rechazar evidencia</button>"));
+        assertEquals(1, ocurrencias(html, ">Ver perfil</a>"), "Solo la fila sin decisión pendiente");
+        assertTrue(html.contains("/rm/colaboradores/perfil?id=" + colaboradorDos.getId()));
+        assertFalse(html.contains("/rm/colaboradores/perfil?id=" + colaboradorUno.getId()));
+    }
+
+    @Test
+    void modalesDeEvidenciaValidanSinMotivoYRechazanConMotivoObligatorio() throws Exception {
+        evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+
+        String html = mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", "EVIDENCIA_PENDIENTE"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        String aprobar = bloqueModal(html, "approveEvidenceModal");
+        assertTrue(aprobar.contains("course-decision-modal"));
+        assertFalse(aprobar.contains("name=\"motivo\""), "La validación no pide motivo");
+        assertFalse(aprobar.contains("js-motivo"));
+        assertTrue(aprobar.contains("class=\"btn btn-success js-confirmar\">Confirmar validación</button>"),
+                "Confirmar está habilitado desde el inicio");
+        String rechazar = bloqueModal(html, "rejectEvidenceModal");
+        assertTrue(rechazar.contains("id=\"evidenceRejectReason\" name=\"motivo\" maxlength=\"500\""));
+        assertTrue(rechazar.contains("js-motivo\" required"));
+        assertTrue(rechazar.contains("class=\"btn btn-danger js-confirmar\" disabled"));
+        assertTrue(rechazar.contains("podrá reenviar la evidencia"));
+
+        String js = new ClassPathResource("static/js/rm-js/rm-solicitudes-cursos.js")
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(js.contains("motivo !== null && motivo.value.trim() === \"\""),
+                "El motivo se exige solo en los modales que tienen el campo");
+        assertFalse(js.contains("pagination") || js.contains("solicitud-row") || js.contains("estado")
+                || js.contains("busqueda"), "Filtros y paginación siguen en el servidor");
+    }
+
+    @Test
+    void validarEvidenciaCompletaElCursoYUnaSegundaDecisionSeRechaza() throws Exception {
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+        autenticarRm();
+
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/aprobar", evidencia.getId()))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attribute("mensajeExito",
+                        "Evidencia validada; el curso quedó marcado como completado y se notificó al colaborador."));
+
+        ColaboradorCurso completada = colaboradorCursoRepository.findById(evidencia.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.COMPLETADO, completada.getEstado());
+        assertNotNull(completada.getFechaCompletado());
+        var notificaciones = notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno);
+        assertEquals(1, notificaciones.size());
+        assertEquals("CURSO_COMPLETADO", notificaciones.get(0).getTipo());
+
+        String yaDecidida = "Esta inscripción no tiene una evidencia pendiente de revisión.";
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/aprobar", evidencia.getId()))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attribute("mensajeError", yaDecidida));
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/rechazar", evidencia.getId())
+                        .param("motivo", "Llegó tarde."))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attribute("mensajeError", yaDecidida));
+        assertEquals(EstadoColaboradorCurso.COMPLETADO,
+                colaboradorCursoRepository.findById(evidencia.getId()).orElseThrow().getEstado());
+        assertEquals(1, notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno).size());
+    }
+
+    @Test
+    void rechazarEvidenciaExigeMotivoYPermiteReenviarla() throws Exception {
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+        autenticarRm();
+
+        String sinMotivo = "El motivo del rechazo de la evidencia es obligatorio.";
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/rechazar", evidencia.getId()))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attribute("mensajeError", sinMotivo));
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/rechazar", evidencia.getId())
+                        .param("motivo", "   "))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attribute("mensajeError", sinMotivo));
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/rechazar", evidencia.getId())
+                        .param("motivo", "x".repeat(501)))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attribute("mensajeError", "El motivo no puede superar 500 caracteres."));
+        assertEquals(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE,
+                colaboradorCursoRepository.findById(evidencia.getId()).orElseThrow().getEstado());
+        assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno).isEmpty());
+
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/rechazar", evidencia.getId())
+                        .param("motivo", "  La constancia no muestra tu nombre.  "))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attribute("mensajeExito",
+                        "Evidencia rechazada; el colaborador fue notificado y puede volver a subirla."));
+
+        ColaboradorCurso rechazada = colaboradorCursoRepository.findById(evidencia.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.EN_CURSO, rechazada.getEstado(), "Vuelve a En curso para reenviarla");
+        assertEquals("La constancia no muestra tu nombre.", rechazada.getMotivoRespuesta());
+        var notificaciones = notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno);
+        assertEquals(1, notificaciones.size());
+        assertEquals("EVIDENCIA_CURSO_RECHAZADA", notificaciones.get(0).getTipo());
+
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/aprobar", evidencia.getId()))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attribute("mensajeError",
+                        "Esta inscripción no tiene una evidencia pendiente de revisión."));
+    }
+
+    @Test
+    void notificacionDeEvidenciaAbreLaBandejaFiltradaYLasDemasConservanSuEnlace() {
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+        notificacionService.crear(rm, "EVIDENCIA_CURSO_PENDIENTE", CategoriaNotificacion.CURSO,
+                "Evidencia de curso pendiente de revisión", "Ana subió evidencia.",
+                "COLABORADOR_CURSO", evidencia.getId());
+        notificacionService.crear(rm, "CURSO_SOLICITADO", CategoriaNotificacion.CURSO,
+                "Nueva solicitud de curso", "Ana solicitó un curso.", "COLABORADOR_CURSO", evidencia.getId());
+
+        List<NotificacionView> vistas = notificacionService.listar(rm.getId());
+        assertEquals(URL_EVIDENCIAS, urlPorTitulo(vistas, "Evidencia de curso pendiente de revisión"));
+        assertEquals("/rm/cursos/solicitudes", urlPorTitulo(vistas, "Nueva solicitud de curso"));
+    }
+
+    @Test
+    void solicitudesSolicitadoConservanSuFlujoSinAccionesDeEvidencia() throws Exception {
+        ColaboradorCurso paraAprobar = inscripcion(colaboradorUno, spring,
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        ColaboradorCurso paraRechazar = inscripcion(colaboradorDos, aws,
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorDos, spring, "luis.pdf", null);
+
+        String html = mockMvc.perform(get("/rm/cursos/solicitudes"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("estadoSeleccionado", "SOLICITADO"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("data-action=\"/rm/cursos/solicitudes/" + paraAprobar.getId() + "/aprobar\""));
+        assertFalse(html.contains("/evidencia/aprobar\""), "La vista predeterminada no incluye evidencias");
+        assertFalse(html.contains(">Ver evidencia</a>"));
+        assertTrue(bloqueModal(html, "approveCourseModal").contains("class=\"btn btn-success js-confirmar\" disabled"),
+                "La aprobación de solicitudes sigue exigiendo motivo");
+
+        autenticarRm();
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/aprobar", paraAprobar.getId())
+                        .param("motivo", "Aporta al proyecto actual."))
+                .andExpect(redirectedUrl("/rm/cursos/solicitudes"))
+                .andExpect(flash().attribute("mensajeExito", "Solicitud aprobada; el colaborador fue notificado."));
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/rechazar", paraRechazar.getId()))
+                .andExpect(redirectedUrl("/rm/cursos/solicitudes"))
+                .andExpect(flash().attributeExists("mensajeError"));
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/rechazar", paraRechazar.getId())
+                        .param("motivo", "Primero el curso básico."))
+                .andExpect(redirectedUrl("/rm/cursos/solicitudes"))
+                .andExpect(flash().attributeExists("mensajeExito"));
+
+        assertEquals(EstadoColaboradorCurso.EN_CURSO,
+                colaboradorCursoRepository.findById(paraAprobar.getId()).orElseThrow().getEstado());
+        assertEquals(EstadoColaboradorCurso.RECHAZADO,
+                colaboradorCursoRepository.findById(paraRechazar.getId()).orElseThrow().getEstado());
+        assertEquals(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE,
+                colaboradorCursoRepository.findById(evidencia.getId()).orElseThrow().getEstado());
+    }
+
+    private ColaboradorCurso evidenciaPendiente(Usuario colaborador, Curso curso, String archivo,
+                                                LocalDateTime fechaSolicitud) {
+        ColaboradorCurso item = inscripcion(colaborador, curso, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
+        item.setEvidenciaUrl("/uploads/cursos-evidencia/" + archivo);
+        item.setFechaEvidencia(LocalDateTime.now());
+        if (fechaSolicitud != null) item.setFechaSolicitud(fechaSolicitud);
+        return colaboradorCursoRepository.save(item);
+    }
+
+    private void autenticarRm() {
+        UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER")
+                .stream().filter(u -> u.getId().equals(rm.getId())).findFirst().orElseThrow());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities()));
+    }
+
+    private String bloqueModal(String html, String id) {
+        int posicion = html.indexOf("id=\"" + id + "\"");
+        assertTrue(posicion >= 0, "Existe el modal " + id);
+        int inicio = html.lastIndexOf("<div", posicion);
+        return html.substring(inicio, html.indexOf("</form>", posicion));
+    }
+
+    private String etiquetaAnterior(String html, String texto, String apertura) {
+        int posicion = html.indexOf(texto);
+        assertTrue(posicion >= 0, "Existe " + texto);
+        return html.substring(html.lastIndexOf(apertura, posicion), posicion);
+    }
+
+    private int ocurrencias(String html, String texto) {
+        return html.split(java.util.regex.Pattern.quote(texto), -1).length - 1;
+    }
+
+    private String urlPorTitulo(List<NotificacionView> vistas, String titulo) {
+        return vistas.stream().filter(item -> titulo.equals(item.titulo()))
+                .findFirst().orElseThrow().url();
     }
 
     /**

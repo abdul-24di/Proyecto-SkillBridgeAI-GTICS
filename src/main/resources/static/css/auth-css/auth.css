@@ -324,6 +324,21 @@ input[type="password"]::-ms-clear {
     border: 1px solid #c6ecd8;
 }
 
+.auth-field-error {
+    display: none;
+    color: #a02a2a;
+    font-size: .8rem;
+    margin-top: .35rem;
+}
+
+.auth-field-error.is-visible {
+    display: block;
+}
+
+.auth-input-icon.has-error input {
+    border-color: #e88;
+}
+
 .auth-note {
     margin-top: 18px;
     padding: .85rem 1rem;

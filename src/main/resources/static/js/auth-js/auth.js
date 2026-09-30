@@ -1,4 +1,51 @@
 
+/* ---------- Validación propia (sin el globo nativo del navegador) ---------- */
+/* Los forms marcados con data-custom-validate llevan novalidate: seguimos
+   usando required/minlength/pattern en el HTML (checkValidity() los sigue
+   evaluando), pero el mensaje de error se muestra con nuestro propio estilo
+   en el <div class="auth-field-error" data-error-for="idDelCampo">. */
+document.querySelectorAll("form[data-custom-validate]").forEach(form => {
+    const campos = Array.from(form.querySelectorAll("[required], [pattern], [minlength]"));
+
+    const errorDe = campo => form.querySelector(`[data-error-for="${campo.id}"]`);
+    const limpiar = campo => {
+        errorDe(campo)?.classList.remove("is-visible");
+        campo.closest(".auth-input-icon")?.classList.remove("has-error");
+    };
+    const marcar = campo => {
+        errorDe(campo)?.classList.add("is-visible");
+        campo.closest(".auth-input-icon")?.classList.add("has-error");
+    };
+
+    campos.forEach(campo => {
+        campo.addEventListener("input", () => limpiar(campo));
+        campo.addEventListener("change", () => limpiar(campo));
+    });
+
+    form.addEventListener("submit", e => {
+        campos.forEach(limpiar);
+        let primerInvalido = null;
+        campos.forEach(campo => {
+            if (!campo.checkValidity()) {
+                marcar(campo);
+                primerInvalido = primerInvalido || campo;
+            }
+        });
+
+        const password = form.querySelector('input[name="password"]');
+        const confirmar = form.querySelector('input[name="confirmarPassword"]');
+        if (password && confirmar && password.value && confirmar.value && password.value !== confirmar.value) {
+            marcar(confirmar);
+            primerInvalido = primerInvalido || confirmar;
+        }
+
+        if (primerInvalido) {
+            e.preventDefault();
+            primerInvalido.focus();
+        }
+    });
+});
+
 /* Mostrar / ocultar contraseña en cualquier input marcado */
 document.querySelectorAll("[data-toggle-password]").forEach(btn => {
     const input = document.getElementById(btn.dataset.togglePassword);

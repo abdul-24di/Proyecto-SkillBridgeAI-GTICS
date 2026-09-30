@@ -9,12 +9,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 // Épica 2 — Autenticación. El login en sí lo maneja Spring Security
 // (SecurityConfig.formLogin, sin método en este controller) — acá va todo lo
 // demás del flujo: activación de cuenta (A6) y recuperación de contraseña.
 @Controller
 public class AuthViewController {
+
+    // Al menos 8 caracteres, una mayúscula, un número y un símbolo — misma regla que
+    // el cambio de contraseña desde el perfil de cada rol.
+    private static final Pattern PASSWORD_VALIDA =
+            Pattern.compile("(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9\\s]).{8,}");
 
     private final AuthService authService;
 
@@ -52,8 +58,10 @@ public class AuthViewController {
     public String activarCuentaSubmit(@RequestParam String token,
                                        @RequestParam String nombreCompleto,
                                        @RequestParam String password,
-                                       @RequestParam String confirmarPassword) {
-        if (nombreCompleto.trim().length() < 3 || password.length() < 6 || !password.equals(confirmarPassword)) {
+                                       @RequestParam String confirmarPassword,
+                                       @RequestParam(required = false) String aceptaPolitica) {
+        if (nombreCompleto.trim().length() < 3 || !PASSWORD_VALIDA.matcher(password).matches()
+                || !password.equals(confirmarPassword) || aceptaPolitica == null) {
             return "redirect:/activar-cuenta?token=" + token + "&error";
         }
         try {
@@ -106,7 +114,7 @@ public class AuthViewController {
     public String nuevaContrasenaSubmit(@RequestParam String token,
                                          @RequestParam String password,
                                          @RequestParam String confirmarPassword) {
-        if (password.length() < 6 || !password.equals(confirmarPassword)) {
+        if (!PASSWORD_VALIDA.matcher(password).matches() || !password.equals(confirmarPassword)) {
             return "redirect:/nueva-contrasena?token=" + token + "&error";
         }
         try {

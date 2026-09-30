@@ -96,8 +96,8 @@ public class RmPerfilService {
         if (!passwordEncoder.matches(passwordActual, rm.getPasswordHash())) {
             throw new IllegalArgumentException("La contraseña actual es incorrecta.");
         }
-        if (passwordNueva == null || passwordNueva.length() < 6) {
-            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 6 caracteres.");
+        if (passwordNueva == null || !passwordNueva.matches("(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9\\s]).{8,}")) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo.");
         }
         rm.setPasswordHash(passwordEncoder.encode(passwordNueva));
         usuarioRepository.save(rm);

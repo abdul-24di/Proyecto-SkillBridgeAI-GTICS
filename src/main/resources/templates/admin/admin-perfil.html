@@ -111,11 +111,11 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Nueva Contraseña</label>
-                                    <input type="password" class="form-control" name="passwordNueva" minlength="6" required>
+                                    <input type="password" class="form-control" name="passwordNueva" minlength="8" pattern="(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}" title="Debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." required>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Confirmar Contraseña</label>
-                                    <input type="password" class="form-control" name="passwordConfirm" minlength="6" required>
+                                    <input type="password" class="form-control" name="passwordConfirm" minlength="8" required>
                                 </div>
                                 <div class="col-12 d-flex justify-content-end">
                                     <button type="submit" class="btn btn-primary">Cambiar contraseña</button>

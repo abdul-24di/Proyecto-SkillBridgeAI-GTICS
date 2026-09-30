@@ -117,8 +117,8 @@
                             <input type="text" name="nombre" class="form-control" required maxlength="150">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Categoría</label>
-                            <input type="text" name="categoria" class="form-control" maxlength="50" placeholder="Ej. Liderazgo">
+                            <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                            <input type="text" name="categoria" class="form-control" required maxlength="50" placeholder="Ej. Liderazgo">
                         </div>
                         <div class="col-12">
                             <label class="form-label">Descripción</label>
@@ -139,16 +139,18 @@
                             <input type="number" name="horas" class="form-control" required step="0.5" min="0.5">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Fecha Inicio</label>
-                            <input type="date" name="fechaInicio" id="newCursoInicio" class="form-control" onchange="document.getElementById('newCursoFin').min = this.value;">
+                            <label class="form-label">Fecha Inicio <span class="text-danger curso-fecha-required">*</span></label>
+                            <input type="date" name="fechaInicio" id="newCursoInicio" class="form-control curso-fecha-input"
+                                   th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" required
+                                   onchange="document.getElementById('newCursoFin').min = this.value;">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Fecha Fin</label>
-                            <input type="date" name="fechaFin" id="newCursoFin" class="form-control">
+                            <label class="form-label">Fecha Fin <span class="text-danger curso-fecha-required">*</span></label>
+                            <input type="date" name="fechaFin" id="newCursoFin" class="form-control curso-fecha-input" required>
                         </div>
                         <div class="col-md-4 d-flex align-items-end mb-2">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="autodidacta" id="newAutodidacta">
+                                <input class="form-check-input curso-autodidacta-toggle" type="checkbox" name="autodidacta" id="newAutodidacta">
                                 <label class="form-check-label" for="newAutodidacta">Es curso autodidacta (sin profesor en vivo)</label>
                             </div>
                         </div>
@@ -181,8 +183,8 @@
                                 <input type="text" name="nombre" class="form-control" th:value="${curso.nombre}" required maxlength="150">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Categoría</label>
-                                <input type="text" name="categoria" class="form-control" th:value="${curso.categoria}" maxlength="50">
+                                <label class="form-label">Categoría <span class="text-danger">*</span></label>
+                                <input type="text" name="categoria" class="form-control" th:value="${curso.categoria}" required maxlength="50">
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Descripción</label>
@@ -203,16 +205,16 @@
                                 <input type="number" name="horas" class="form-control" th:value="${curso.horas}" required step="0.5" min="0.5">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Fecha Inicio</label>
-                                <input type="date" name="fechaInicio" th:id="|editInicio${curso.id}|" class="form-control" th:value="${curso.fechaInicio}" th:onchange="|document.getElementById('editFin${curso.id}').min = this.value;|">
+                                <label class="form-label">Fecha Inicio <span class="text-danger curso-fecha-required">*</span></label>
+                                <input type="date" name="fechaInicio" th:id="|editInicio${curso.id}|" class="form-control curso-fecha-input" th:value="${curso.fechaInicio}" th:onchange="|document.getElementById('editFin${curso.id}').min = this.value;|">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Fecha Fin</label>
-                                <input type="date" name="fechaFin" th:id="|editFin${curso.id}|" class="form-control" th:value="${curso.fechaFin}">
+                                <label class="form-label">Fecha Fin <span class="text-danger curso-fecha-required">*</span></label>
+                                <input type="date" name="fechaFin" th:id="|editFin${curso.id}|" class="form-control curso-fecha-input" th:value="${curso.fechaFin}">
                             </div>
                             <div class="col-md-4 d-flex align-items-end mb-2">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="autodidacta" th:id="|editAuto${curso.id}|" th:checked="${curso.autodidacta}">
+                                    <input class="form-check-input curso-autodidacta-toggle" type="checkbox" name="autodidacta" th:id="|editAuto${curso.id}|" th:checked="${curso.autodidacta}">
                                     <label class="form-check-label" th:for="|editAuto${curso.id}|">Es curso autodidacta</label>
                                 </div>
                             </div>
@@ -229,5 +231,23 @@
 </th:block>
 
 <script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script>
+    // Si el curso es autodidacta, la fecha de inicio/fin dejan de ser obligatorias
+    // (ya tiene "horas" como su duración). Aplica tanto al modal de creación como a
+    // cada modal de edición.
+    document.querySelectorAll('.curso-autodidacta-toggle').forEach(function (checkbox) {
+        var form = checkbox.closest('form');
+        if (!form) return;
+        var fechas = form.querySelectorAll('.curso-fecha-input');
+        var asteriscos = form.querySelectorAll('.curso-fecha-required');
+        function actualizar() {
+            var obligatorias = !checkbox.checked;
+            fechas.forEach(function (input) { input.required = obligatorias; });
+            asteriscos.forEach(function (span) { span.style.display = obligatorias ? '' : 'none'; });
+        }
+        checkbox.addEventListener('change', actualizar);
+        actualizar();
+    });
+</script>
 </body>
 </html>

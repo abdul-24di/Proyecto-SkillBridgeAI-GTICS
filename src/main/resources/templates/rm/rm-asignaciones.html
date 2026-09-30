@@ -68,9 +68,11 @@
           <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoBandeja}">Estado</span></td>
           <td th:text="${#temporals.format(item.asignacion.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
           <td class="text-end">
-            <a th:if="${item.requiereDecisionRm}" class="btn btn-primary btn-sm" th:href="${item.solicitudColaborador} ? @{/rm/asignaciones/revision-postulacion(id=${item.asignacion.id})} : @{/rm/asignaciones/revision(id=${item.asignacion.id})}">Revisar</a>
-            <a th:if="${item.pendientePm}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/pendiente-pm(id=${item.asignacion.id})}">Ver</a>
-            <a th:if="${item.grupo == 'active' or item.grupo == 'history'}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/activa(id=${item.asignacion.id})}">Ver</a>
+            <th:block th:with="origenDetalle=${proyectoId != null} ? 'proyecto' : 'asignaciones'">
+            <a th:if="${item.requiereDecisionRm}" class="btn btn-primary btn-sm" th:href="${item.solicitudColaborador} ? @{/rm/asignaciones/revision-postulacion(id=${item.asignacion.id},origen=${origenDetalle})} : @{/rm/asignaciones/revision(id=${item.asignacion.id},origen=${origenDetalle})}">Revisar</a>
+            <a th:if="${item.pendientePm}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/pendiente-pm(id=${item.asignacion.id},origen=${origenDetalle})}">Ver</a>
+            <a th:if="${item.grupo == 'active' or item.grupo == 'history'}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/activa(id=${item.asignacion.id},origen=${origenDetalle})}">Ver</a>
+            </th:block>
           </td>
         </tr>
         <tr id="emptyAssignments" th:if="${#lists.isEmpty(asignaciones)}"><td colspan="8" class="text-center text-secondary py-5">No se encontraron asignaciones con los filtros seleccionados.</td></tr>

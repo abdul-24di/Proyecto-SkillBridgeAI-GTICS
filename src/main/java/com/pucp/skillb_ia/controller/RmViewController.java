@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.dto.RmColaboradorDetalle;
 import com.pucp.skillb_ia.dto.RmAsignacionView;
+import com.pucp.skillb_ia.dto.RmNavegacionView;
 import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.dto.RmReporteView;
@@ -49,6 +50,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Controller
 @RequestMapping("/rm")
@@ -245,6 +247,7 @@ public class RmViewController {
             @PathVariable("id") Long proyectoId,
             @RequestParam(name = "presupuesto", required = false) String presupuestoTexto,
             @RequestParam(name = "asignacionId", required = false) Long asignacionId,
+            @RequestParam(name = "origen", required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
@@ -254,12 +257,12 @@ public class RmViewController {
             EstadoProyecto estado = rmProyectoRevisionService.asignarPresupuesto(
                     proyectoId, presupuesto, principal.getUsuario().getId());
             redirectAttributes.addFlashAttribute("mensajeExito", "Presupuesto guardado correctamente.");
-            String redireccionAsignacion = redireccionAsignacionDelProyecto(proyectoId, asignacionId);
+            String redireccionAsignacion = redireccionAsignacionDelProyecto(proyectoId, asignacionId, origen);
             if (redireccionAsignacion != null) return redireccionAsignacion;
             return redireccionPresupuestoProyecto(proyectoId, estado);
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
-            String redireccionAsignacion = redireccionAsignacionDelProyecto(proyectoId, asignacionId);
+            String redireccionAsignacion = redireccionAsignacionDelProyecto(proyectoId, asignacionId, origen);
             if (redireccionAsignacion != null) return redireccionAsignacion;
             return redireccionPresupuestoProyecto(proyectoId, null);
         }
@@ -299,12 +302,12 @@ public class RmViewController {
         }
     }
 
-    private String redireccionAsignacionDelProyecto(Long proyectoId, Long asignacionId) {
+    private String redireccionAsignacionDelProyecto(Long proyectoId, Long asignacionId, String origen) {
         if (asignacionId == null) return null;
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
             if (!asignacion.getAsignacion().getProyecto().getId().equals(proyectoId)) return null;
-            return redirectDetalleAsignacion(asignacion);
+            return redirectDetalleAsignacion(asignacion, origen);
         } catch (IllegalArgumentException ex) {
             return null;
         }
@@ -1001,15 +1004,17 @@ public class RmViewController {
     @GetMapping({"/asignaciones/revision", "/rm-revision-asignacion.html"})
     public String assignmentReview(
             @RequestParam(name = "id", required = false) Long asignacionId,
+            @RequestParam(name = "origen", required = false) String origen,
             Model model) {
         if (asignacionId == null) return "redirect:/rm/asignaciones";
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
-            if (!asignacion.isRequiereDecisionRm()) return redirectDetalleAsignacion(asignacion);
+            if (!asignacion.isRequiereDecisionRm()) return redirectDetalleAsignacion(asignacion, origen);
             model.addAttribute("asignacion", asignacion);
             model.addAttribute("impacto", rmPresupuestoService.calcularImpacto(
                     asignacion.getAsignacion().getProyecto(), asignacion.getAsignacion().getColaborador(),
                     asignacion.getAsignacion().getHorasSemanales()));
+            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
@@ -1019,15 +1024,17 @@ public class RmViewController {
     @GetMapping({"/asignaciones/revision-postulacion", "/rm-revision-postulacion.html"})
     public String applicationReview(
             @RequestParam(name = "id", required = false) Long asignacionId,
+            @RequestParam(name = "origen", required = false) String origen,
             Model model) {
         if (asignacionId == null) return "redirect:/rm/asignaciones";
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
-            if (!asignacion.isRequiereDecisionRm()) return redirectDetalleAsignacion(asignacion);
+            if (!asignacion.isRequiereDecisionRm()) return redirectDetalleAsignacion(asignacion, origen);
             model.addAttribute("asignacion", asignacion);
             model.addAttribute("impacto", rmPresupuestoService.calcularImpacto(
                     asignacion.getAsignacion().getProyecto(), asignacion.getAsignacion().getColaborador(),
                     asignacion.getAsignacion().getHorasSemanales()));
+            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
@@ -1037,12 +1044,14 @@ public class RmViewController {
     @GetMapping({"/asignaciones/pendiente-pm", "/rm-detalle-asignacion-pendiente-pm.html"})
     public String pendingPmAssignment(
             @RequestParam(name = "id", required = false) Long asignacionId,
+            @RequestParam(name = "origen", required = false) String origen,
             Model model) {
         if (asignacionId == null) return "redirect:/rm/asignaciones";
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
-            if (!asignacion.isPendientePm()) return redirectDetalleAsignacion(asignacion);
+            if (!asignacion.isPendientePm()) return redirectDetalleAsignacion(asignacion, origen);
             model.addAttribute("asignacion", asignacion);
+            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
@@ -1052,18 +1061,56 @@ public class RmViewController {
     @GetMapping({"/asignaciones/activa", "/rm-detalle-asignacion-activa.html"})
     public String activeAssignment(
             @RequestParam(name = "id", required = false) Long asignacionId,
+            @RequestParam(name = "origen", required = false) String origen,
             Model model) {
         if (asignacionId == null) return "redirect:/rm/asignaciones";
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
             if (asignacion.isRequiereDecisionRm() || asignacion.isPendientePm()) {
-                return redirectDetalleAsignacion(asignacion);
+                return redirectDetalleAsignacion(asignacion, origen);
             }
             model.addAttribute("asignacion", asignacion);
+            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
         return "rm/rm-detalle-asignacion-activa";
+    }
+
+    // TASK-026: orígenes cerrados de los detalles y revisiones de asignación (propios de estos cuatro GET;
+    // la propuesta de TASK-034 tiene su propia lista). Cualquier otro valor usa la ruta canónica /rm/asignaciones.
+    private static final Set<String> ORIGENES_DETALLE_ASIGNACION = Set.of("colaborador", "proyecto", "asignaciones");
+
+    private static String origenDetalleAsignacion(String origen) {
+        return origen != null && ORIGENES_DETALLE_ASIGNACION.contains(origen) ? origen : null;
+    }
+
+    // Migas y regreso armados con el colaborador y el proyecto de la propia asignación, no con datos del navegador.
+    private RmNavegacionView navegacionAsignacion(RmAsignacionView asignacion, String origen) {
+        String origenValido = origenDetalleAsignacion(origen);
+        String actual = "Asignación #" + asignacion.getAsignacion().getId();
+        if ("colaborador".equals(origenValido)) {
+            Long colaboradorId = asignacion.getAsignacion().getColaborador().getId();
+            String asignacionesColaborador = "/rm/colaboradores/asignaciones?id=" + colaboradorId;
+            return new RmNavegacionView(origenValido, List.of(
+                    new RmNavegacionView.Miga("Colaboradores", "/rm/colaboradores"),
+                    new RmNavegacionView.Miga(asignacion.getColaboradorNombre(),
+                            "/rm/colaboradores/perfil?id=" + colaboradorId),
+                    new RmNavegacionView.Miga("Asignaciones", asignacionesColaborador)),
+                    actual, asignacionesColaborador, "Volver a las asignaciones del colaborador");
+        }
+        if ("proyecto".equals(origenValido)) {
+            var proyecto = asignacion.getAsignacion().getProyecto();
+            String asignacionesProyecto = "/rm/asignaciones?proyectoId=" + proyecto.getId();
+            return new RmNavegacionView(origenValido, List.of(
+                    new RmNavegacionView.Miga("Proyectos", "/rm/proyectos"),
+                    new RmNavegacionView.Miga(proyecto.getNombre(), "/rm/proyectos/detalle?id=" + proyecto.getId()),
+                    new RmNavegacionView.Miga("Asignaciones", asignacionesProyecto)),
+                    actual, asignacionesProyecto, "Volver a las asignaciones del proyecto");
+        }
+        return new RmNavegacionView(origenValido,
+                List.of(new RmNavegacionView.Miga("Asignaciones", "/rm/asignaciones")),
+                actual, "/rm/asignaciones", "Volver a asignaciones");
     }
 
     @PostMapping("/asignaciones/{id}/aprobar")
@@ -1120,17 +1167,20 @@ public class RmViewController {
         return "redirect:/rm/asignaciones";
     }
 
-    private String redirectDetalleAsignacion(RmAsignacionView asignacion) {
+    // Conserva el origen solo si pertenece a la lista cerrada de los detalles (TASK-026).
+    private String redirectDetalleAsignacion(RmAsignacionView asignacion, String origen) {
         Long id = asignacion.getAsignacion().getId();
+        String origenValido = origenDetalleAsignacion(origen);
+        String sufijo = origenValido == null ? "" : "&origen=" + origenValido;
         if (asignacion.isRequiereDecisionRm()) {
             return asignacion.isSolicitudColaborador()
-                    ? "redirect:/rm/asignaciones/revision-postulacion?id=" + id
-                    : "redirect:/rm/asignaciones/revision?id=" + id;
+                    ? "redirect:/rm/asignaciones/revision-postulacion?id=" + id + sufijo
+                    : "redirect:/rm/asignaciones/revision?id=" + id + sufijo;
         }
         if (asignacion.isPendientePm()) {
-            return "redirect:/rm/asignaciones/pendiente-pm?id=" + id;
+            return "redirect:/rm/asignaciones/pendiente-pm?id=" + id + sufijo;
         }
-        return "redirect:/rm/asignaciones/activa?id=" + id;
+        return "redirect:/rm/asignaciones/activa?id=" + id + sufijo;
     }
 
     @GetMapping({"/asignaciones/solicitudes-colaboradores", "/rm-solicitudes-colaboradores.html"})
@@ -1209,7 +1259,20 @@ public class RmViewController {
     }
 
     @GetMapping({"/talent-matching", "/rm-talent-matching.html"})
-    public String talentMatching() {
+    public String talentMatching(
+            @RequestParam(name = "proyectoId", required = false) String proyectoIdTexto,
+            Model model) {
+        // TASK-026: la ruta muestra el proyecto solo si proyectoId es un proyecto existente;
+        // vacío, mal formado o inexistente => ruta canónica "Talent Matching" (sin inventar un proyecto).
+        RmProyectoView proyectoContexto = null;
+        try {
+            if (proyectoIdTexto != null && !proyectoIdTexto.isBlank()) {
+                proyectoContexto = rmProyectoConsultaService.obtener(Long.valueOf(proyectoIdTexto.trim()));
+            }
+        } catch (IllegalArgumentException ignorado) {
+            // NumberFormatException también es IllegalArgumentException.
+        }
+        model.addAttribute("proyectoContexto", proyectoContexto);
         return "rm/rm-talent-matching";
     }
 

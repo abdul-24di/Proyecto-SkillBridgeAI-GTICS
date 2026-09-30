@@ -244,9 +244,6 @@ const missingSkillsBox =
 const candidateGrid =
   document.getElementById("candidateGrid");
 
-const breadcrumbProject =
-  document.getElementById("breadcrumbProject");
-
 const selectedName =
   document.getElementById("selectedProjectName");
 
@@ -401,9 +398,7 @@ function renderMissingSkills(project) {
 
 
 function renderSelectedProject(project) {
-  breadcrumbProject.textContent =
-    project.name;
-
+  // La ruta de navegación la arma el servidor con datos reales (TASK-026); el mock no la modifica.
   selectedName.textContent =
     project.name;
 

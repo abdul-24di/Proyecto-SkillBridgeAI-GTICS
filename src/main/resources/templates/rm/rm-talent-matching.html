@@ -88,20 +88,26 @@
 
   <main class="page-wrap">
 
-    <!-- BREADCRUMB -->
+    <!-- BREADCRUMB: el proyecto sale del modelo (proyectoId válido); sin contexto, ruta canónica -->
     <nav class="breadcrumb-wrap"
          aria-label="Migas de pan">
 
-      <a href="rm-talent-matching.html"
-         class="breadcrumb-link" th:href="@{/rm/talent-matching}">
-        Talent Matching
-      </a>
+      <th:block th:if="${proyectoContexto != null}">
+        <a class="breadcrumb-link" th:href="@{/rm/talent-matching}">
+          Talent Matching
+        </a>
 
-      <span class="breadcrumb-separator">›</span>
+        <span class="breadcrumb-separator">›</span>
 
-      <span id="breadcrumbProject"
+        <span class="text-secondary"
+              th:text="${proyectoContexto.proyecto.nombre}">
+          Proyecto
+        </span>
+      </th:block>
+
+      <span th:if="${proyectoContexto == null}"
             class="text-secondary">
-        Clínica AI
+        Talent Matching
       </span>
 
     </nav>
@@ -215,7 +221,7 @@
 
                   <h2 class="mb-0"
                       id="selectedProjectName">
-                    Clínica AI
+                    Proyecto seleccionado
                   </h2>
 
                   <span class="badge bg-green-lt"
@@ -456,7 +462,7 @@
             <h3 class="mb-1">
               Recomendaciones para
               <span id="recommendationProjectLabel">
-                Clínica AI
+                el proyecto seleccionado
               </span>
             </h3>
 

@@ -117,7 +117,7 @@ public class RmViewController {
 
     @GetMapping({"/dashboard", "/rm-dashboard.html"})
     public String dashboard(Model model) {
-        List<RmAsignacionView> asignaciones = rmAsignacionService.listar();
+        List<RmAsignacionView> asignaciones = rmAsignacionService.listarParaDashboard();
         List<RmAsignacionView> pendientes = asignaciones.stream()
                 .filter(item -> item.isRequiereDecisionRm() || item.isPendientePm())
                 .toList();

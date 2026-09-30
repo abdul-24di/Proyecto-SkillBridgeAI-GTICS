@@ -40,6 +40,9 @@ public class RmAsignacionService {
     public static final int MAX_JUSTIFICACION_CUPO = 500;
     private static final Set<EstadoAsignacion> ESTADOS_CON_CUPO =
             EnumSet.of(EstadoAsignacion.ACTIVA, EstadoAsignacion.PENDIENTE);
+    // Dashboard (TASK-033): excluye proyectos RECHAZADO, CANCELADO y FINALIZADO.
+    private static final Set<EstadoProyecto> ESTADOS_PROYECTO_DASHBOARD =
+            EnumSet.of(EstadoProyecto.ACTIVO, EstadoProyecto.EN_ESPERA, EstadoProyecto.EN_REVISION);
 
     // Bandeja de asignaciones (TASK-027): filtros GET y paginación en el servidor.
     public static final int TAMANIO_PAGINA = 10;
@@ -108,6 +111,19 @@ public class RmAsignacionService {
     public List<RmAsignacionView> listar() {
         int maxAsignaciones = obtenerMaxAsignaciones();
         return asignacionRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
+                .map(asignacion -> crearVista(asignacion, maxAsignaciones))
+                .toList();
+    }
+
+    /**
+     * Conjunto del dashboard (TASK-033): mismo orden que listar(), solo de proyectos ACTIVO,
+     * EN_ESPERA o EN_REVISION. EN_REVISION se muestra para seguimiento; sigue sin ser asignable.
+     */
+    @Transactional(readOnly = true)
+    public List<RmAsignacionView> listarParaDashboard() {
+        int maxAsignaciones = obtenerMaxAsignaciones();
+        return asignacionRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
+                .filter(asignacion -> ESTADOS_PROYECTO_DASHBOARD.contains(asignacion.getProyecto().getEstado()))
                 .map(asignacion -> crearVista(asignacion, maxAsignaciones))
                 .toList();
     }

@@ -71,6 +71,30 @@ public class AdminConfiguracionService {
     }
 
     @Transactional
+    public void crear(String clave, String descripcion, String valorInicial, Usuario admin) {
+        String claveLimpia = clave == null ? "" : clave.trim().toUpperCase().replace(' ', '_');
+        String valorLimpio = valorInicial == null ? "" : valorInicial.trim();
+        if (claveLimpia.isEmpty()) {
+            throw new IllegalArgumentException("La clave del parámetro no puede estar vacía.");
+        }
+        if (valorLimpio.isEmpty()) {
+            throw new IllegalArgumentException("El valor no puede estar vacío.");
+        }
+        if (configuracionRepository.findByClave(claveLimpia).isPresent()) {
+            throw new IllegalArgumentException("Ya existe un parámetro con la clave \"" + claveLimpia + "\".");
+        }
+
+        ConfiguracionSistema config = new ConfiguracionSistema();
+        config.setClave(claveLimpia);
+        config.setDescripcion(descripcion == null ? "" : descripcion.trim());
+        config.setValor(valorLimpio);
+        configuracionRepository.save(config);
+
+        auditoriaService.registrar(admin, "CREAR_CONFIGURACION", ENTIDAD, config.getId(),
+                config.getClave(), null, valorLimpio, null);
+    }
+
+    @Transactional
     public void editar(Long id, String nuevoValor, Usuario admin) {
         String valorLimpio = nuevoValor == null ? "" : nuevoValor.trim();
         if (valorLimpio.isEmpty()) {

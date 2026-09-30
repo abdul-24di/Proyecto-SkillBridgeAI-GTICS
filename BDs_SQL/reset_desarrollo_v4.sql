@@ -14,6 +14,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS log_auditoria, configuracion_sistema, notificacion,
     mensaje, conversacion_usuario, conversacion, voto_respuesta, voto_publicacion,
     respuesta_foro, publicacion_foro, foro, etiqueta,
+    evaluacion, solicitud_personal, educacion, documento,
     nomina_mensual, penalizacion, colaborador_curso, curso, actividad,
     asignacion, proyecto_habilidad_requerida, proyecto, certificado,
     colaborador_habilidad, habilidad, categoria_habilidad,

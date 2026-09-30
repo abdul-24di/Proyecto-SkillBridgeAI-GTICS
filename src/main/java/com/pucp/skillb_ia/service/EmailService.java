@@ -2,23 +2,75 @@ package com.pucp.skillb_ia.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
-// Sin servidor SMTP configurado todavía (no hay credenciales de correo en
-// application.properties), así que por ahora "envía" logueando a consola.
-// La interfaz pública ya queda lista: cuando se agregue spring-boot-starter-mail
-// y las credenciales reales, solo hay que cambiar la implementación de estos
-// dos métodos — nadie más en el código necesita cambiar.
+// Envía correos reales por SMTP cuando MAIL_USERNAME/MAIL_PASSWORD están
+// configurados (ver application.properties). Si no lo están (por ejemplo, un
+// compañero sin credenciales de Gmail configuradas localmente), cae de
+// vuelta a solo loguear a consola para no romper el flujo de activación.
 @Service
 public class EmailService {
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
+    private final JavaMailSender mailSender;
+    private final String remitente;
+    private final String baseUrl;
+
+    public EmailService(JavaMailSender mailSender,
+                         @Value("${app.mail.from:}") String remitente,
+                         @Value("${app.base-url}") String baseUrl) {
+        this.mailSender = mailSender;
+        this.remitente = remitente;
+        this.baseUrl = baseUrl;
+    }
+
     public void enviarActivacion(String correo, String enlaceActivacion) {
-        log.info("[EMAIL] Activación de cuenta -> {} | enlace: {}", correo, enlaceActivacion);
+        String enlaceCompleto = baseUrl + enlaceActivacion;
+        String asunto = "Activa tu cuenta en SkillBridge AI";
+        String cuerpo = "Hola,\n\n"
+                + "Se creó una cuenta para ti en SkillBridge AI. Para activarla y elegir tu contraseña, "
+                + "entra al siguiente enlace (válido por 48 horas):\n\n"
+                + enlaceCompleto + "\n\n"
+                + "Si no esperabas este correo, puedes ignorarlo.\n\n"
+                + "— SkillBridge AI";
+
+        if (!enviar(correo, asunto, cuerpo)) {
+            log.info("[EMAIL] Activación de cuenta -> {} | enlace: {}", correo, enlaceCompleto);
+        }
     }
 
     public void enviarCodigoRecuperacion(String correo, String codigo) {
-        log.info("[EMAIL] Código de recuperación -> {} | código: {}", correo, codigo);
+        String asunto = "Código de recuperación de contraseña — SkillBridge AI";
+        String cuerpo = "Hola,\n\n"
+                + "Recibimos una solicitud para restablecer tu contraseña. Tu código de recuperación es:\n\n"
+                + codigo + "\n\n"
+                + "Este código es válido por 15 minutos. Si no solicitaste esto, puedes ignorar este correo.\n\n"
+                + "— SkillBridge AI";
+
+        if (!enviar(correo, asunto, cuerpo)) {
+            log.info("[EMAIL] Código de recuperación -> {} | código: {}", correo, codigo);
+        }
+    }
+
+    // Devuelve true si intentó enviar por SMTP (con o sin éxito), false si cayó al modo log-only.
+    private boolean enviar(String destinatario, String asunto, String cuerpo) {
+        if (remitente == null || remitente.isBlank()) {
+            return false;
+        }
+        try {
+            SimpleMailMessage mensaje = new SimpleMailMessage();
+            mensaje.setFrom("SkillBridge AI <" + remitente + ">");
+            mensaje.setTo(destinatario);
+            mensaje.setSubject(asunto);
+            mensaje.setText(cuerpo);
+            mailSender.send(mensaje);
+        } catch (Exception e) {
+            log.warn("[EMAIL] No se pudo enviar el correo a {}: {}", destinatario, e.getMessage());
+        }
+        return true;
     }
 }

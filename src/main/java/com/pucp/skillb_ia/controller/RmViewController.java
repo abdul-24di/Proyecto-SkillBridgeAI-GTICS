@@ -1012,6 +1012,39 @@ public class RmViewController {
         return "redirect:/rm/cursos/solicitudes";
     }
 
+    @PostMapping("/cursos/solicitudes/{id}/evidencia/aprobar")
+    public String approveCourseEvidence(
+            @PathVariable("id") Long inscripcionId,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmCursoService.aprobarEvidencia(inscripcionId, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Evidencia validada; el curso quedó marcado como completado y se notificó al colaborador.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/cursos/solicitudes";
+    }
+
+    @PostMapping("/cursos/solicitudes/{id}/evidencia/rechazar")
+    public String rejectCourseEvidence(
+            @PathVariable("id") Long inscripcionId,
+            @RequestParam(name = "motivo", required = false) String motivo,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmCursoService.rechazarEvidencia(inscripcionId, motivo, principal.getUsuario().getId());
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Evidencia rechazada; el colaborador fue notificado y puede volver a subirla.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/cursos/solicitudes";
+    }
+
     @GetMapping({"/asignaciones", "/rm-asignaciones.html"})
     public String assignments(
             @RequestParam(required = false) String grupo,

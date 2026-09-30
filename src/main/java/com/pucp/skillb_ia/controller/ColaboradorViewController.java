@@ -420,8 +420,25 @@ public class ColaboradorViewController {
         model.addAttribute("pendientesCompletar", colaboradorPerfilService.listarPendientesCompletar(colaborador));
         model.addAttribute("experienciaProfesional", colaboradorPerfilService.listarExperienciaProfesional(colaborador));
         model.addAttribute("historialProyectos", colaboradorProyectoService.listarHistorialProyectos(colaborador));
+        model.addAttribute("misCursosEnCurso", colaboradorCursoService.listarMisCursos(colaborador));
 
         return "col/col-perfil";
+    }
+
+    @PostMapping("/perfil/cursos/{inscripcionId}/evidencia")
+    public String subirEvidenciaCurso(@AuthenticationPrincipal UsuarioDetails principal,
+                                      @PathVariable Long inscripcionId,
+                                      @RequestParam("evidencia") MultipartFile evidencia,
+                                      RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorCursoService.subirEvidencia(principal.getUsuario(), inscripcionId, evidencia);
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Tu evidencia fue enviada. Quedará pendiente de revisión del Resource Manager.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/perfil";
     }
 
     @PostMapping("/perfil/sobre-mi")

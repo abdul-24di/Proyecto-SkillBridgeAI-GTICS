@@ -9,36 +9,45 @@ import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.CursoRepository;
+import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
 
 @Service
 public class ColaboradorCursoService {
 
-    // Mientras el colaborador tenga una solicitud pendiente o una inscripción activa en un curso, no puede volver a solicitarlo.
+    //Mientras el colaborador tenga una solicitud pendiente, una inscripción activa o una
+    //evidencia en revisión para un curso, no puede volver a solicitarlo.
     private static final List<EstadoColaboradorCurso> ESTADOS_QUE_BLOQUEAN =
-            List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO);
+            List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO, EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
+
+    //Para la evidencia de finalización del curso
+    private static final Set<String> TIPOS_EVIDENCIA_PERMITIDOS = Set.of("application/pdf", "image/jpeg", "image/png");
+    private static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10 MB
 
     private final CursoRepository cursoRepository;
     private final ColaboradorCursoRepository colaboradorCursoRepository;
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
 
     public ColaboradorCursoService(CursoRepository cursoRepository,
                                    ColaboradorCursoRepository colaboradorCursoRepository,
                                    AuditoriaService auditoriaService,
-                                   NotificacionService notificacionService) {
+                                   NotificacionService notificacionService,
+                                   ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
     // ============================================================
@@ -159,6 +168,71 @@ public class ColaboradorCursoService {
     }
 
     // ============================================================
+    // MIS CURSOS (perfil profesional). Listamos los cursos que se están llevando, con evidencia enviada o completados
+    // ============================================================
+    @Transactional(readOnly = true)
+    public List<ColaboradorCurso> listarMisCursos(Usuario colaborador) {
+        List<ColaboradorCurso> todos = colaboradorCursoRepository.findByColaborador(colaborador);
+        List<ColaboradorCurso> misCursos = new ArrayList<>();
+
+        for (ColaboradorCurso registro : todos) {
+            if (registro.getEstado() == EstadoColaboradorCurso.EN_CURSO
+                    || registro.getEstado() == EstadoColaboradorCurso.EVIDENCIA_PENDIENTE
+                    || registro.getEstado() == EstadoColaboradorCurso.COMPLETADO) {
+                misCursos.add(registro);
+            }
+        }
+
+        //Listamos del más reciente al más antiguo.
+        misCursos.sort(Comparator.comparing(ColaboradorCurso::getFechaSolicitud).reversed());
+        return misCursos;
+    }
+
+    // ============================================================
+    // COLABORADOR SUBE LA EVIDENCIA DE FINALIZACIÓN DE UN CURSO
+    // ============================================================
+    @Transactional
+    public void subirEvidencia(Usuario colaborador, Long inscripcionId, MultipartFile evidencia) {
+        ColaboradorCurso inscripcion = colaboradorCursoRepository.findByIdAndColaborador(inscripcionId, colaborador).orElseThrow(() -> new IllegalArgumentException("No se encontró esa inscripción a un curso."));
+
+        if (inscripcion.getEstado() != EstadoColaboradorCurso.EN_CURSO) {
+            throw new IllegalArgumentException("Solo puedes subir evidencia de un curso que esté \"En curso\".");
+        }
+        if (evidencia == null || evidencia.isEmpty()) {
+            throw new IllegalArgumentException("Debes adjuntar una evidencia (PDF, JPG o PNG).");
+        }
+        if (!TIPOS_EVIDENCIA_PERMITIDOS.contains(evidencia.getContentType())) {
+            throw new IllegalArgumentException("La evidencia debe estar en formato PDF, JPG o PNG.");
+        }
+        if (evidencia.getSize() > TAMANO_MAXIMO_EVIDENCIA_BYTES) {
+            throw new IllegalArgumentException("La evidencia supera el máximo de 10MB.");
+        }
+
+        String extension = switch (evidencia.getContentType()) {
+            case "application/pdf" -> ".pdf";
+            case "image/png" -> ".png";
+            default -> ".jpg";
+        };
+
+        String nombreArchivo = "evidencia-curso-" + colaborador.getId() + "-" + inscripcionId + "-" + UUID.randomUUID() + extension;
+        String evidenciaUrl = archivoAlmacenamientoService.guardar(evidencia, "cursos-evidencia", nombreArchivo);
+
+        inscripcion.setEvidenciaUrl(evidenciaUrl);
+        inscripcion.setFechaEvidencia(LocalDateTime.now());
+        inscripcion.setEstado(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
+        colaboradorCursoRepository.save(inscripcion);
+
+        auditoriaService.registrar(colaborador, "SUBIR_EVIDENCIA_CURSO", "COLABORADOR_CURSO", inscripcion.getId(),
+                "Subió evidencia de finalización del curso \"" + inscripcion.getCurso().getNombre() + "\".");
+
+        notificacionService.crearParaTodosLosRm("EVIDENCIA_CURSO_PENDIENTE", CategoriaNotificacion.CURSO,
+                "Evidencia de curso pendiente de revisión",
+                colaborador.getNombre() + " " + colaborador.getApellido()
+                        + " subió evidencia para el curso \"" + inscripcion.getCurso().getNombre() + "\".",
+                "COLABORADOR_CURSO", inscripcion.getId());
+    }
+
+    // ============================================================
     // VALIDACIONES
     // ============================================================
     private String validarJustificacion(String justificacion) {
@@ -176,6 +250,7 @@ public class ColaboradorCursoService {
     private String textoEstado(EstadoColaboradorCurso estado) {
         if (estado == EstadoColaboradorCurso.SOLICITADO) return "Solicitud pendiente";
         if (estado == EstadoColaboradorCurso.EN_CURSO) return "Inscrito";
+        if (estado == EstadoColaboradorCurso.EVIDENCIA_PENDIENTE) return "Evidencia en revisión";
         if (estado == EstadoColaboradorCurso.COMPLETADO) return "Completado";
         if (estado == EstadoColaboradorCurso.RECHAZADO) return "Solicitud rechazada";
         return "";
@@ -184,6 +259,7 @@ public class ColaboradorCursoService {
     private String claseEstado(EstadoColaboradorCurso estado) {
         if (estado == EstadoColaboradorCurso.SOLICITADO) return "bg-yellow-lt";
         if (estado == EstadoColaboradorCurso.EN_CURSO) return "bg-green-lt";
+        if (estado == EstadoColaboradorCurso.EVIDENCIA_PENDIENTE) return "bg-purple-lt";
         if (estado == EstadoColaboradorCurso.COMPLETADO) return "bg-blue-lt";
         if (estado == EstadoColaboradorCurso.RECHAZADO) return "bg-red-lt";
         return "bg-secondary-lt";

@@ -6,8 +6,10 @@ import com.pucp.skillb_ia.dto.ColProyectoAvanceView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
+import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
+import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.ConfiguracionSistemaRepository;
 import com.pucp.skillb_ia.service.PenalizacionService;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class ColaboradorActividadService {
     private final PenalizacionService penalizacionService;
     private final AsignacionRepository asignacionRepository;
     private final ConfiguracionSistemaRepository configuracionSistemaRepository;
+    private final ColaboradorCursoRepository colaboradorCursoRepository;
 
     //Establecemos que la meta mensual de horas sea de 160 horas al mes
     private static final BigDecimal META_MENSUAL_HORAS = new BigDecimal("160");
@@ -34,11 +37,13 @@ public class ColaboradorActividadService {
     public ColaboradorActividadService(ActividadRepository actividadRepository,
                                        PenalizacionService penalizacionService,
                                        AsignacionRepository asignacionRepository,
-                                       ConfiguracionSistemaRepository configuracionSistemaRepository) {
+                                       ConfiguracionSistemaRepository configuracionSistemaRepository,
+                                       ColaboradorCursoRepository colaboradorCursoRepository) {
         this.actividadRepository = actividadRepository;
         this.penalizacionService = penalizacionService;
         this.asignacionRepository = asignacionRepository;
         this.configuracionSistemaRepository = configuracionSistemaRepository;
+        this.colaboradorCursoRepository = colaboradorCursoRepository;
     }
 
     //Listamos todas las actividades del colaborador, de la fecha límite más próxima a la más lejana
@@ -127,8 +132,24 @@ public class ColaboradorActividadService {
             }
         }
 
+        //Para la meta mensual, también contamos las horas de capacitación en los cursos que ya fueron validados por el RM.
+
+        List<ColaboradorCurso> misCursos = colaboradorCursoRepository.findByColaborador(colaborador);
+
+        for (ColaboradorCurso registro : misCursos) {
+
+            boolean estaCompletado = registro.getEstado() == EstadoColaboradorCurso.COMPLETADO;
+
+            boolean esDeEsteMes = registro.getFechaCompletado() != null && YearMonth.from(registro.getFechaCompletado()).equals(mesActual);
+
+            if (estaCompletado && esDeEsteMes && registro.getCurso().getHoras() != null) {
+                horasTrabajadasMes = horasTrabajadasMes.add(registro.getCurso().getHoras());
+            }
+        }
+
         return new ColHorasResumenView(colaborador.getHorasContratadasSemana(), colaborador.getHorasDisponibles(), horasTrabajadasMes, META_MENSUAL_HORAS);
     }
+
 
     //Listamos las penalizaciones del colaborador
     public List<Penalizacion> listarMisPenalizaciones(Usuario colaborador) {

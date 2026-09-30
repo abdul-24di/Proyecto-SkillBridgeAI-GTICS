@@ -9,11 +9,31 @@ import com.pucp.skillb_ia.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
 public class RmForoConsultaService {
+    public static final int TAMANIO_PAGINA = 4;
+    public static final String ESTADO_GENERAL = "GENERAL";
+    public static final String ACTIVIDAD_RECIENTE = "recent";
+    public static final String ACTIVIDAD_ANTIGUA = "older";
+    private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
+
+    /** Filtros ya validados: los valores nulos significan "Todos". */
+    public record FiltrosForo(String busqueda, String estado, String actividad) {
+    }
+
+    /** Indicadores de las tarjetas sobre todos los foros, sin filtros ni página. */
+    public record IndicadoresForos(int totalForos, long totalActivos, int totalPublicaciones,
+                                   LocalDateTime ultimaActividad) {
+    }
+
+    public record PaginaForos(List<RmForoView> foros, int paginaActual, int totalPaginas,
+                              long totalRegistros, IndicadoresForos indicadores) {
+    }
+
     private final ForoRepository foroRepository;
     private final PublicacionForoRepository publicacionRepository;
     private final RespuestaForoRepository respuestaRepository;
@@ -41,6 +61,59 @@ public class RmForoConsultaService {
         return foroRepository.findTodosConProyectoYPm().stream()
                 .map(foro -> crearVista(foro, "fecha"))
                 .toList();
+    }
+
+    /**
+     * Normaliza los parámetros GET del listado. Vacíos, "all" o valores desconocidos
+     * significan "Todos" (null); la búsqueda se recorta a 100 caracteres.
+     */
+    public FiltrosForo normalizarFiltros(String busqueda, String estado, String actividad) {
+        String busquedaLimpia = busqueda == null ? "" : busqueda.trim();
+        if (busquedaLimpia.length() > LONGITUD_MAXIMA_BUSQUEDA) {
+            busquedaLimpia = busquedaLimpia.substring(0, LONGITUD_MAXIMA_BUSQUEDA);
+        }
+        List<String> estados = new ArrayList<>();
+        estados.add(ESTADO_GENERAL);
+        Arrays.stream(EstadoProyecto.values()).map(Enum::name).forEach(estados::add);
+        return new FiltrosForo(
+                busquedaLimpia.isEmpty() ? null : busquedaLimpia,
+                opcionValida(estado, estados),
+                opcionValida(actividad, List.of(ACTIVIDAD_RECIENTE, ACTIVIDAD_ANTIGUA)));
+    }
+
+    /**
+     * Filtra y pagina el listado conservando el orden de listar() (fecha de creación
+     * descendente). Los indicadores se calculan sobre todos los foros, sin filtros ni página.
+     */
+    @Transactional(readOnly = true)
+    public PaginaForos listarPagina(FiltrosForo filtros, String pagina) {
+        List<RmForoView> todos = listar();
+        IndicadoresForos indicadores = new IndicadoresForos(
+                todos.size(),
+                todos.stream().filter(foro -> "ACTIVO".equals(foro.getProyectoEstadoCodigo())).count(),
+                todos.stream().mapToInt(RmForoView::getTotalPublicaciones).sum(),
+                todos.stream().map(RmForoView::getUltimaActividad)
+                        .filter(Objects::nonNull)
+                        .max(LocalDateTime::compareTo)
+                        .orElse(null));
+
+        // Como el JS anterior: sin tildes ni mayúsculas sobre textoBusqueda.
+        String busqueda = normalizarTexto(filtros.busqueda());
+        List<RmForoView> filtrados = todos.stream()
+                .filter(foro -> busqueda.isEmpty()
+                        || normalizarTexto(foro.getTextoBusqueda()).contains(busqueda))
+                .filter(foro -> filtros.estado() == null
+                        || filtros.estado().equals(foro.getProyectoEstadoCodigo()))
+                .filter(foro -> filtros.actividad() == null
+                        || ACTIVIDAD_RECIENTE.equals(filtros.actividad()) == foro.isActividadReciente())
+                .toList();
+
+        int totalPaginas = Math.max(1, (int) Math.ceil(filtrados.size() / (double) TAMANIO_PAGINA));
+        int paginaActual = Math.min(Math.max(1, numeroPagina(pagina)), totalPaginas);
+        int desde = (paginaActual - 1) * TAMANIO_PAGINA;
+        int hasta = Math.min(desde + TAMANIO_PAGINA, filtrados.size());
+        List<RmForoView> foros = desde < hasta ? filtrados.subList(desde, hasta) : List.of();
+        return new PaginaForos(foros, paginaActual, totalPaginas, filtrados.size(), indicadores);
     }
 
     @Transactional(readOnly = true)
@@ -136,6 +209,28 @@ public class RmForoConsultaService {
                 nombreCompleto(respuesta.getAutor()), iniciales(respuesta.getAutor()),
                 cargoAutor(respuesta.getAutor()), respuesta.isEsSolucion(),
                 respuesta.getFechaCreacion(), positivos, negativos);
+    }
+
+    private String opcionValida(String valor, List<String> opciones) {
+        if (valor == null) return null;
+        return opciones.stream()
+                .filter(opcion -> opcion.equalsIgnoreCase(valor.trim()))
+                .findFirst().orElse(null);
+    }
+
+    private int numeroPagina(String pagina) {
+        if (pagina == null) return 1;
+        try {
+            return Integer.parseInt(pagina.trim());
+        } catch (NumberFormatException ex) {
+            return 1;
+        }
+    }
+
+    private String normalizarTexto(String texto) {
+        if (texto == null) return "";
+        return Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }
 
     private Comparator<RmForoView.Publicacion> comparadorPublicaciones(String orden) {

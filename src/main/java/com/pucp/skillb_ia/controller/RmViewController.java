@@ -10,7 +10,6 @@ import com.pucp.skillb_ia.dto.RmColaboradorDetalle;
 import com.pucp.skillb_ia.dto.RmAsignacionView;
 import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
-import com.pucp.skillb_ia.dto.RmForoView;
 import com.pucp.skillb_ia.dto.RmReporteView;
 import com.pucp.skillb_ia.dto.RmCursoView;
 import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
@@ -45,7 +44,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
@@ -1217,20 +1215,26 @@ public class RmViewController {
 
     @GetMapping({"/foros", "/rm-foros.html"})
     public String forums(@RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
+                         @RequestParam(required = false) String busqueda,
+                         @RequestParam(required = false) String estado,
+                         @RequestParam(required = false) String actividad,
+                         @RequestParam(required = false) String pagina,
                          Model model) {
-        List<RmForoView> foros = rmForoConsultaService.listar();
-        model.addAttribute("foros", foros);
-        model.addAttribute("totalForos", foros.size());
-        model.addAttribute("totalActivos", foros.stream()
-                .filter(foro -> "ACTIVO".equals(foro.getProyectoEstadoCodigo()))
-                .count());
-        model.addAttribute("totalPublicaciones", foros.stream()
-                .mapToInt(RmForoView::getTotalPublicaciones).sum());
-        model.addAttribute("ultimaActividad", foros.stream()
-                .map(RmForoView::getUltimaActividad)
-                .filter(java.util.Objects::nonNull)
-                .max(LocalDateTime::compareTo)
-                .orElse(null));
+        var filtros = rmForoConsultaService.normalizarFiltros(busqueda, estado, actividad);
+        var paginaForos = rmForoConsultaService.listarPagina(filtros, pagina);
+        var indicadores = paginaForos.indicadores();
+        model.addAttribute("foros", paginaForos.foros());
+        model.addAttribute("paginaActual", paginaForos.paginaActual());
+        model.addAttribute("totalPaginas", paginaForos.totalPaginas());
+        model.addAttribute("totalRegistros", paginaForos.totalRegistros());
+        model.addAttribute("tamanioPagina", RmForoConsultaService.TAMANIO_PAGINA);
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("estado", filtros.estado());
+        model.addAttribute("actividad", filtros.actividad());
+        model.addAttribute("totalForos", indicadores.totalForos());
+        model.addAttribute("totalActivos", indicadores.totalActivos());
+        model.addAttribute("totalPublicaciones", indicadores.totalPublicaciones());
+        model.addAttribute("ultimaActividad", indicadores.ultimaActividad());
         model.addAttribute("foroNoEncontrado", Boolean.TRUE.equals(noEncontrado));
         return "rm/rm-foros";
     }

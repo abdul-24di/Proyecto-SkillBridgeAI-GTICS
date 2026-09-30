@@ -6,6 +6,7 @@ import com.pucp.skillb_ia.repository.CursoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -28,14 +29,13 @@ public class AdminCursoService {
         if (curso.getNombre() == null || curso.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre del curso es obligatorio.");
         }
-        
-        curso.setCreadoPor(admin);
-        if (curso.getFechaInicio() != null && curso.getFechaFin() != null) {
-            if (curso.getFechaFin().isBefore(curso.getFechaInicio())) {
-                throw new IllegalArgumentException("La fecha de fin no puede ser anterior a la de inicio.");
-            }
+        validarCategoriaYFechas(curso.getCategoria(), curso.isAutodidacta(), curso.getFechaInicio(), curso.getFechaFin());
+        if (curso.getFechaInicio() != null && curso.getFechaInicio().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser anterior a hoy.");
         }
-        
+
+        curso.setCreadoPor(admin);
+
         cursoRepository.save(curso);
         
         auditoriaService.registrar(admin, "CREAR", "CURSO", curso.getId(),
@@ -50,12 +50,7 @@ public class AdminCursoService {
         if (datos.getNombre() == null || datos.getNombre().isBlank()) {
             throw new IllegalArgumentException("El nombre del curso es obligatorio.");
         }
-        
-        if (datos.getFechaInicio() != null && datos.getFechaFin() != null) {
-            if (datos.getFechaFin().isBefore(datos.getFechaInicio())) {
-                throw new IllegalArgumentException("La fecha de fin no puede ser anterior a la de inicio.");
-            }
-        }
+        validarCategoriaYFechas(datos.getCategoria(), datos.isAutodidacta(), datos.getFechaInicio(), datos.getFechaFin());
 
         String nombreAnterior = curso.getNombre();
         
@@ -86,5 +81,23 @@ public class AdminCursoService {
         String accion = curso.isActivo() ? "REACTIVAR" : "DESACTIVAR";
         auditoriaService.registrar(admin, accion, "CURSO", curso.getId(),
                 accion + " el curso: " + curso.getNombre());
+    }
+
+    // Categoría siempre obligatoria (A25). Fechas obligatorias solo si el curso NO es
+    // autodidacta (uno autodidacta ya usa "horas" como su duración). La restricción de
+    // "fecha de inicio no anterior a hoy" se valida aparte, solo al crear — al editar un
+    // curso que ya empezó, su fecha de inicio original sigue siendo válida.
+    private void validarCategoriaYFechas(String categoria, boolean autodidacta,
+                                          LocalDate fechaInicio, LocalDate fechaFin) {
+        if (categoria == null || categoria.isBlank()) {
+            throw new IllegalArgumentException("La categoría del curso es obligatoria.");
+        }
+        if (!autodidacta && (fechaInicio == null || fechaFin == null)) {
+            throw new IllegalArgumentException(
+                    "La fecha de inicio y de fin son obligatorias para un curso que no es autodidacta.");
+        }
+        if (fechaInicio != null && fechaFin != null && fechaFin.isBefore(fechaInicio)) {
+            throw new IllegalArgumentException("La fecha de fin no puede ser anterior a la de inicio.");
+        }
     }
 }

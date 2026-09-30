@@ -292,8 +292,8 @@ public class ColaboradorPerfilService {
 
     //Validamos contraseña
     private void validarPassword(String password) {
-        if (password == null || password.length() < 6) {
-            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 6 caracteres.");
+        if (password == null || password.length() < 8) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 8 caracteres.");
         }
 
         boolean tieneMayuscula = false;

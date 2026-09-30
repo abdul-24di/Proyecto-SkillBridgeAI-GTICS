@@ -499,16 +499,16 @@
                                     <div class="row g-3">
                                         <div class="col-md-12">
                                             <label class="form-label">Contraseña actual</label>
-                                            <input type="password" class="form-control" name="passwordActual">
+                                            <input type="password" class="form-control" name="passwordActual" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Nueva contraseña</label>
-                                            <input type="password" class="form-control" name="passwordNueva">
-                                            <div class="form-hint">Mínimo 6 caracteres, con al menos una mayúscula, un número y un símbolo.</div>
+                                            <input type="password" class="form-control" name="passwordNueva" minlength="8" pattern="(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}" title="Debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." required>
+                                            <div class="form-hint">Mínimo 8 caracteres, con al menos una mayúscula, un número y un símbolo.</div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Confirmar contraseña</label>
-                                            <input type="password" class="form-control" name="passwordConfirmar">
+                                            <input type="password" class="form-control" name="passwordConfirmar" minlength="8" required>
                                         </div>
                                     </div>
 

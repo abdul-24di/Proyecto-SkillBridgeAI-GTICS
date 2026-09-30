@@ -43,6 +43,17 @@ tarifas, el cargo o el nivel. Una base creada antes de este cambio (con
 [`BDs_SQL/migracion_cargos.sql`](BDs_SQL/migracion_cargos.sql); los textos de
 cargo existentes se conservan como cargos sin tarifa.
 
+La tabla `asignacion` solo impide duplicar asignaciones abiertas: un
+colaborador no puede tener dos `PENDIENTE` ni dos `ACTIVA` en el mismo
+proyecto, pero sí varias `RECHAZADA` o `FINALIZADA` (historial). Para ello usa
+la columna generada `estado_abierto` y la restricción `uq_asignacion_abierta`,
+que reemplaza a `uq_asignacion_proyecto_colaborador_estado`. Una base creada
+antes de este cambio debe ejecutar
+[`BDs_SQL/migracion_asignacion_unicidad_abierta.sql`](BDs_SQL/migracion_asignacion_unicidad_abierta.sql)
+(requiere MySQL 5.7 o superior). No borra ni modifica registros y puede
+ejecutarse nuevamente sin error. La aplicación no lee esa columna, así que
+funciona igual antes y después de migrar.
+
 `skillbridge_db_v4.sql` incluye además la tabla `evaluacion` (calificación de
 1 a 5 y comentarios al finalizar una asignación) y las columnas
 `proyecto_habilidad_requerida.horas_semanales` y

@@ -306,6 +306,10 @@ CREATE TABLE asignacion (
     fecha_solicitud     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_activacion    DATETIME NULL,
     fecha_finalizacion  DATETIME NULL,
+    -- Solo tiene valor en asignaciones abiertas; las cerradas quedan en NULL
+    -- para que el historial (varias RECHAZADA/FINALIZADA) no choque con la unicidad.
+    estado_abierto      VARCHAR(30) GENERATED ALWAYS AS
+        (CASE WHEN estado IN ('PENDIENTE','ACTIVA') THEN estado END) STORED,
 
     CONSTRAINT fk_asignacion_proyecto FOREIGN KEY (proyecto_id) REFERENCES proyecto(id),
     CONSTRAINT fk_asignacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
@@ -325,8 +329,8 @@ CREATE TABLE asignacion (
     CONSTRAINT chk_asignacion_finalizacion
         CHECK (motivo_finalizacion IS NULL OR motivo_finalizacion IN ('BAJO_DESEMPENO','PROYECTO_CANCELADO','OTRO')),
 
-    CONSTRAINT uq_asignacion_proyecto_colaborador_estado
-        UNIQUE (proyecto_id, colaborador_id, estado)
+    CONSTRAINT uq_asignacion_abierta
+        UNIQUE (proyecto_id, colaborador_id, estado_abierto)
 ) ENGINE=InnoDB;
 
 

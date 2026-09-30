@@ -386,7 +386,7 @@ public class RmCursoService {
                 iniciales(colaborador), valor(colaborador.getCargo() != null ? colaborador.getCargo().getNombre() : null, "Cargo sin registrar"),
                 curso.getId(), curso.getNombre(), valor(curso.getCategoria(), "Sin categoría"),
                 curso.getHoras(), item.getOrigen().name(), textoOrigen(item.getOrigen()),
-                item.getEstado().name(), textoEstado(item.getEstado()), claseEstado(item.getEstado()),
+                item.getEstado().name(), textoEstado(item), claseEstado(item),
                 item.getFechaSolicitud(), item.getJustificacion(), item.getMotivoRespuesta(), esSolicitudPendiente(item),
                 item.getEvidenciaUrl(), esEvidenciaPendiente(item));
     }
@@ -442,8 +442,13 @@ public class RmCursoService {
                 ? "Solicitud del colaborador" : "Asignado por RM";
     }
 
-    private String textoEstado(EstadoColaboradorCurso estado) {
-        return switch (estado) {
+    private String textoEstado(ColaboradorCurso item) {
+        //Si volvió a "En curso" pero ya tenía una evidencia guardada, es porque el RM
+        //la rechazó y está esperando que el colaborador vuelva a subir una nueva.
+        if (item.getEstado() == EstadoColaboradorCurso.EN_CURSO && item.getEvidenciaUrl() != null) {
+            return "Evidencia rechazada";
+        }
+        return switch (item.getEstado()) {
             case SOLICITADO -> "Pendiente";
             case EN_CURSO -> "En curso";
             case EVIDENCIA_PENDIENTE -> "Evidencia en revisión";
@@ -452,8 +457,11 @@ public class RmCursoService {
         };
     }
 
-    private String claseEstado(EstadoColaboradorCurso estado) {
-        return switch (estado) {
+    private String claseEstado(ColaboradorCurso item) {
+        if (item.getEstado() == EstadoColaboradorCurso.EN_CURSO && item.getEvidenciaUrl() != null) {
+            return "bg-red-lt text-red";
+        }
+        return switch (item.getEstado()) {
             case SOLICITADO -> "bg-yellow-lt text-yellow";
             case EN_CURSO -> "bg-blue-lt text-blue";
             case EVIDENCIA_PENDIENTE -> "bg-purple-lt text-purple";

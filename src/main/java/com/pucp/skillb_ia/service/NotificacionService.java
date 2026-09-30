@@ -125,6 +125,10 @@ public class NotificacionService {
             }
             return "/rm/cursos/solicitudes";
         }
+        if ("COLABORADOR_CURSO".equals(item.getEntidad()) && esColaborador) {
+            return "/colaborador/perfil#mis-cursos";
+        }
+
         if ("FORO".equals(item.getEntidad()) && item.getEntidadId() != null) {
             Optional<Foro> foroOpt = foroRepository.findById(item.getEntidadId());
             if (foroOpt.isPresent()) {

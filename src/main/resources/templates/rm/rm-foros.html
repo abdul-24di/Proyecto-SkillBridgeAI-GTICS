@@ -135,55 +135,59 @@
         </div>
       </div>
 
-      <div class="card-body border-bottom">
+      <form id="forumFiltersForm" method="get" th:action="@{/rm/foros}" class="card-body border-bottom">
         <div class="row g-3 align-items-end">
           <div class="col-xl-5 col-md-6">
             <label for="forumSearch" class="form-label">Buscar</label>
             <input id="forumSearch"
+                   name="busqueda"
+                   type="text"
+                   maxlength="100"
                    class="form-control"
+                   th:value="${busqueda}"
                    placeholder="Proyecto, tema reciente o Project Manager">
           </div>
 
-          <div class="col-xl-3 col-md-6">
+          <div class="col-xl-2 col-md-6">
             <label for="forumStatusFilter" class="form-label">Estado del proyecto</label>
-            <select id="forumStatusFilter" class="form-select">
+            <select id="forumStatusFilter" name="estado" class="form-select">
               <option value="all">Todos</option>
-              <option value="GENERAL">General</option>
-              <option value="EN_REVISION">En revisión</option>
-              <option value="ACTIVO">Activo</option>
-              <option value="EN_ESPERA">En espera</option>
-              <option value="RECHAZADO">Rechazado</option>
-              <option value="CANCELADO">Cancelado</option>
-              <option value="FINALIZADO">Finalizado</option>
+              <option value="GENERAL" th:selected="${estado == 'GENERAL'}">General</option>
+              <option value="EN_REVISION" th:selected="${estado == 'EN_REVISION'}">En revisión</option>
+              <option value="ACTIVO" th:selected="${estado == 'ACTIVO'}">Activo</option>
+              <option value="EN_ESPERA" th:selected="${estado == 'EN_ESPERA'}">En espera</option>
+              <option value="RECHAZADO" th:selected="${estado == 'RECHAZADO'}">Rechazado</option>
+              <option value="CANCELADO" th:selected="${estado == 'CANCELADO'}">Cancelado</option>
+              <option value="FINALIZADO" th:selected="${estado == 'FINALIZADO'}">Finalizado</option>
             </select>
           </div>
 
           <div class="col-xl-2 col-md-6">
             <label for="forumActivityFilter" class="form-label">Actividad</label>
-            <select id="forumActivityFilter" class="form-select">
+            <select id="forumActivityFilter" name="actividad" class="form-select">
               <option value="all">Todas</option>
-              <option value="recent">Últimos 7 días</option>
-              <option value="older">Más de 7 días</option>
+              <option value="recent" th:selected="${actividad == 'recent'}">Últimos 7 días</option>
+              <option value="older" th:selected="${actividad == 'older'}">Más de 7 días</option>
             </select>
           </div>
 
-          <div class="col-xl-2 col-md-6 d-grid">
-            <button id="clearForumFilters"
-                    type="button"
-                    class="btn btn-outline-secondary">
+          <div class="col-xl-3 col-md-6 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Filtrar</button>
+            <a id="clearForumFilters"
+               class="btn btn-outline-secondary flex-fill"
+               th:href="@{/rm/foros}">
               Limpiar
-            </button>
+            </a>
           </div>
         </div>
-      </div>
+      </form>
 
       <div class="forum-list" id="forumList">
-        <div th:if="${foros.isEmpty()}" class="forum-empty" id="forumEmptyInitial">
+        <div th:if="${totalForos == 0}" class="forum-empty" id="forumEmptyInitial">
           No hay foros registrados en la organización.
         </div>
 
-        <div th:each="foro : ${foros}" class="forum-row forum-data-row"
-             th:attr="data-search=${foro.textoBusqueda},data-status=${foro.proyectoEstadoCodigo},data-recent=${foro.actividadReciente}">
+        <div th:each="foro : ${foros}" class="forum-row forum-data-row">
           <div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
               <div class="forum-project" th:text="${foro.nombre}">Foro del proyecto</div>
@@ -224,14 +228,32 @@
           </div>
         </div>
 
-        <div class="forum-empty d-none" id="forumEmptyFiltered">
+        <div class="forum-empty" id="forumEmptyFiltered"
+             th:classappend="${totalForos > 0 and #lists.isEmpty(foros)} ? '' : 'd-none'">
           No se encontraron foros con los filtros seleccionados.
         </div>
       </div>
 
       <div class="pagination-wrap">
-        <div id="forumPaginationInfo" class="text-secondary small"></div>
-        <ul id="forumPagination" class="pagination pagination-sm m-0"></ul>
+        <div id="forumPaginationInfo" class="text-secondary small"
+             th:with="desdeFila=${totalRegistros == 0 ? 0 : ((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(foros)}"
+             th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} foros|">Mostrando 0-0 de 0 foros</div>
+        <ul id="forumPagination" class="pagination pagination-sm m-0" th:if="${totalPaginas > 1}">
+          <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/rm/foros(busqueda=${busqueda}, estado=${estado}, actividad=${actividad}, pagina=${paginaActual - 1})}">Anterior</a>
+          </li>
+          <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}"
+              th:classappend="${n == paginaActual} ? 'active'">
+            <a class="page-link"
+               th:href="@{/rm/foros(busqueda=${busqueda}, estado=${estado}, actividad=${actividad}, pagina=${n})}"
+               th:text="${n}">1</a>
+          </li>
+          <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/rm/foros(busqueda=${busqueda}, estado=${estado}, actividad=${actividad}, pagina=${paginaActual + 1})}">Siguiente</a>
+          </li>
+        </ul>
       </div>
     </div>
 
@@ -244,10 +266,6 @@
 
 <script src="../../static/js/rm-js/rm-navigation.js"
         th:src="@{/js/rm-js/rm-navigation.js}">
-</script>
-
-<script src="../../static/js/rm-js/rm-foros.js"
-        th:src="@{/js/rm-js/rm-foros.js}">
 </script>
 
 </body>

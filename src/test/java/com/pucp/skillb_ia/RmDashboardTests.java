@@ -19,34 +19,48 @@ import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.model.enums.Prioridad;
+import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.CursoRepository;
 import com.pucp.skillb_ia.repository.EducacionRepository;
 import com.pucp.skillb_ia.repository.NotificacionRepository;
+import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.rm.*;
 import com.pucp.skillb_ia.service.EvaluacionService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.ui.ConcurrentModel;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -65,6 +79,9 @@ class RmDashboardTests {
     @Autowired private CursoRepository cursoRepository;
     @Autowired private ColaboradorCursoRepository colaboradorCursoRepository;
     @Autowired private NotificacionRepository notificacionRepository;
+    @Autowired private ProyectoRepository proyectoRepository;
+    @Autowired private AsignacionRepository asignacionRepository;
+    @Autowired private RmAsignacionService rmAsignacionService;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -173,6 +190,250 @@ class RmDashboardTests {
         assertFalse(sinPendientes.contains("solicitud(es) de curso pendiente(s)"));
     }
 
+    // TASK-033: el dashboard solo toma asignaciones de proyectos ACTIVO, EN_ESPERA y EN_REVISION.
+    private static final Set<EstadoProyecto> ESTADOS_DASHBOARD =
+            EnumSet.of(EstadoProyecto.ACTIVO, EstadoProyecto.EN_ESPERA, EstadoProyecto.EN_REVISION);
+    // Orden intercalado: los proyectos excluidos quedan entre los incluidos por fecha de solicitud.
+    private static final List<EstadoProyecto> ESTADOS_ESCENARIO = List.of(
+            EstadoProyecto.ACTIVO, EstadoProyecto.CANCELADO, EstadoProyecto.EN_ESPERA,
+            EstadoProyecto.FINALIZADO, EstadoProyecto.EN_REVISION, EstadoProyecto.RECHAZADO);
+
+    private enum TipoPendiente { DECISION_RM, ESPERANDO_PM, POSTULACION }
+
+    private record Escenario(List<Asignacion> asignaciones, Map<EstadoProyecto, Proyecto> proyectos) {
+        List<Long> idsIncluidos() {
+            return asignaciones.stream()
+                    .filter(item -> ESTADOS_DASHBOARD.contains(item.getProyecto().getEstado()))
+                    .map(Asignacion::getId)
+                    .toList();
+        }
+    }
+
+    private final List<Asignacion> asignacionesCreadas = new ArrayList<>();
+    private final List<Proyecto> proyectosCreados = new ArrayList<>();
+
+    // Los proyectos de estas pruebas no deben quedar en las demás clases.
+    @AfterEach
+    void limpiarProyectosDelDashboard() {
+        asignacionRepository.deleteAll(asignacionesCreadas);
+        proyectoRepository.deleteAll(proyectosCreados);
+        asignacionesCreadas.clear();
+        proyectosCreados.clear();
+    }
+
+    @ParameterizedTest
+    @EnumSource(EstadoProyecto.class)
+    void dashboardIncluyeOExcluyeLasAsignacionesSegunElEstadoDelProyecto(EstadoProyecto estado) throws Exception {
+        asignacionRepository.deleteAll();
+        Proyecto proyecto = guardarProyecto(estado);
+        LocalDateTime base = LocalDateTime.now().minusHours(1);
+        Asignacion decisionRm = guardarPendiente(proyecto, TipoPendiente.DECISION_RM, base);
+        Asignacion esperandoPm = guardarPendiente(proyecto, TipoPendiente.ESPERANDO_PM, base.minusMinutes(1));
+        Asignacion postulacion = guardarPendiente(proyecto, TipoPendiente.POSTULACION, base.minusMinutes(2));
+        boolean incluido = ESTADOS_DASHBOARD.contains(estado);
+
+        MvcResult resultado = mockMvc.perform(get("/rm/dashboard")).andExpect(status().isOk()).andReturn();
+        Map<String, Object> modelo = resultado.getModelAndView().getModel();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertEquals(incluido ? 2L : 0L, modelo.get("totalAprobacionesRm"));
+        assertEquals(incluido ? 1L : 0L, modelo.get("totalEsperandoPm"));
+        assertEquals(incluido ? 1L : 0L, modelo.get("totalPostulaciones"));
+        assertEquals(incluido ? 3 : 0, modelo.get("totalAccionesPendientes"));
+        assertEquals(incluido ? List.of(decisionRm.getId(), esperandoPm.getId(), postulacion.getId()) : List.of(),
+                idsDeVistas(modelo.get("accionesPendientes")));
+        assertEquals(incluido, html.contains("href=\"/rm/asignaciones/revision?id=" + decisionRm.getId() + "\""));
+        assertEquals(incluido, html.contains("href=\"/rm/asignaciones/pendiente-pm?id=" + esperandoPm.getId() + "\""));
+        assertEquals(incluido, html.contains(
+                "href=\"/rm/asignaciones/revision-postulacion?id=" + postulacion.getId() + "\""));
+    }
+
+    @Test
+    void conteosYTablaResumidaUsanElMismoConjuntoFiltradoYConservanElOrden() throws Exception {
+        Escenario escenario = crearEscenarioConTodosLosEstados();
+        List<RmAsignacionView> conjunto = rmAsignacionService.listarParaDashboard();
+        assertEquals(escenario.idsIncluidos(), idsDeVistas(conjunto));
+        assertEquals(ESTADOS_DASHBOARD, conjunto.stream()
+                .map(item -> item.getAsignacion().getProyecto().getEstado())
+                .collect(Collectors.toSet()));
+        List<Long> pendientes = conjunto.stream()
+                .filter(item -> item.isRequiereDecisionRm() || item.isPendientePm())
+                .map(item -> item.getAsignacion().getId())
+                .toList();
+
+        MvcResult resultado = mockMvc.perform(get("/rm/dashboard")).andExpect(status().isOk()).andReturn();
+        Map<String, Object> modelo = resultado.getModelAndView().getModel();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertEquals(conjunto.stream().filter(RmAsignacionView::isRequiereDecisionRm).count(),
+                modelo.get("totalAprobacionesRm"));
+        assertEquals(conjunto.stream().filter(RmAsignacionView::isPendientePm).count(),
+                modelo.get("totalEsperandoPm"));
+        assertEquals(conjunto.stream().filter(RmAsignacionView::isSolicitudColaborador)
+                .filter(RmAsignacionView::isRequiereDecisionRm).count(), modelo.get("totalPostulaciones"));
+        assertEquals(6L, modelo.get("totalAprobacionesRm"));
+        assertEquals(3L, modelo.get("totalEsperandoPm"));
+        assertEquals(3L, modelo.get("totalPostulaciones"));
+        assertEquals(pendientes.size(), modelo.get("totalAccionesPendientes"));
+        assertEquals(9, modelo.get("totalAccionesPendientes"));
+        // Acciones pendientes = aprobaciones RM + esperando PM, sin contradicciones.
+        assertEquals((long) (Integer) modelo.get("totalAccionesPendientes"),
+                (Long) modelo.get("totalAprobacionesRm") + (Long) modelo.get("totalEsperandoPm"));
+        assertEquals(pendientes.subList(0, 4), idsDeVistas(modelo.get("accionesPendientes")));
+        assertTrue(html.contains("Mostrando 4 de 9 acciones pendientes"));
+    }
+
+    @Test
+    void cadaResumenMuestraComoMaximoCincoFilasYConservaSuEnlaceALaListaCompleta() throws Exception {
+        crearEscenarioConTodosLosEstados();
+
+        MvcResult resultado = mockMvc.perform(get("/rm/dashboard")).andExpect(status().isOk()).andReturn();
+        Map<String, Object> modelo = resultado.getModelAndView().getModel();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        for (String resumen : List.of("accionesPendientes", "solicitudesRecientes", "proyectosAtencion")) {
+            assertTrue(((List<?>) modelo.get(resumen)).size() <= 5, resumen + " supera 5 filas");
+        }
+        assertEquals(4, ((List<?>) modelo.get("accionesPendientes")).size());
+        assertTrue(tieneEnlaceDeSeccion(html, "/rm/asignaciones"), "Falta el enlace a la bandeja de asignaciones");
+        assertTrue(tieneEnlaceDeSeccion(html, "/rm/asignaciones/solicitudes-colaboradores"),
+                "Falta el enlace a las solicitudes de personal");
+        assertTrue(tieneEnlaceDeSeccion(html, "/rm/proyectos"), "Falta el enlace a los proyectos");
+        // Aprobaciones RM, Esperando PM y Postulaciones enlazan a la bandeja completa.
+        Matcher tarjetas = Pattern.compile("class=\"stretched-link\" href=\"/rm/asignaciones\"").matcher(html);
+        int totalTarjetas = 0;
+        while (tarjetas.find()) totalTarjetas++;
+        assertEquals(3, totalTarjetas);
+    }
+
+    @Test
+    void bandejaGeneralSigueIncluyendoAsignacionesDeProyectosCerrados() {
+        Escenario escenario = crearEscenarioConTodosLosEstados();
+
+        assertEquals(escenario.asignaciones().stream().map(Asignacion::getId).toList(),
+                idsDeVistas(rmAsignacionService.listar()));
+        RmAsignacionService.ContadoresAsignaciones contadores = rmAsignacionService.listarPagina(
+                rmAsignacionService.normalizarFiltros(null, null, null, null, null), null).contadores();
+        assertEquals(12L, contadores.pendientesRm());
+        assertEquals(6L, contadores.pendientesPm());
+        assertEquals(6L, contadores.solicitudesColaborador());
+
+        Proyecto cancelado = escenario.proyectos().get(EstadoProyecto.CANCELADO);
+        RmAsignacionService.PaginaAsignaciones pagina = rmAsignacionService.listarPagina(
+                rmAsignacionService.normalizarFiltros(null, null, null, null, cancelado.getId().toString()), null);
+        assertEquals(2L, pagina.contadores().pendientesRm());
+        assertEquals(1L, pagina.contadores().pendientesPm());
+    }
+
+    @Test
+    void enRevisionApareceParaSeguimientoPeroSigueSinSerAsignable() {
+        asignacionRepository.deleteAll();
+        Proyecto enRevision = guardarProyecto(EstadoProyecto.EN_REVISION);
+        Asignacion propuestaPm = guardarPendiente(enRevision, TipoPendiente.DECISION_RM, LocalDateTime.now());
+        Usuario rm = usuarioDePrueba("rm.dashboard.t033@skillbridge.test", "Rita", "RESOURCE_MANAGER");
+
+        assertTrue(idsDeVistas(rmAsignacionService.listarParaDashboard()).contains(propuestaPm.getId()));
+        assertFalse(rmAsignacionService.esProyectoAsignable(enRevision));
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> rmAsignacionService.aprobar(propuestaPm.getId(), null, rm.getId()));
+        assertEquals("Solo se pueden proponer asignaciones para proyectos activos o en espera.", error.getMessage());
+        Asignacion sinCambios = asignacionRepository.findById(propuestaPm.getId()).orElseThrow();
+        assertEquals(EstadoAsignacion.PENDIENTE, sinCambios.getEstado());
+        assertFalse(sinCambios.isAprobadoPorRm());
+    }
+
+    // Un proyecto por estado y, en cada uno, una pendiente de cada tipo (18 en total, 9 incluidas).
+    private Escenario crearEscenarioConTodosLosEstados() {
+        asignacionRepository.deleteAll();
+        Map<EstadoProyecto, Proyecto> proyectos = new EnumMap<>(EstadoProyecto.class);
+        ESTADOS_ESCENARIO.forEach(estado -> proyectos.put(estado, guardarProyecto(estado)));
+        List<Asignacion> asignaciones = new ArrayList<>();
+        LocalDateTime fecha = LocalDateTime.now().minusHours(1);
+        for (TipoPendiente tipo : TipoPendiente.values()) {
+            for (EstadoProyecto estado : ESTADOS_ESCENARIO) {
+                asignaciones.add(guardarPendiente(proyectos.get(estado), tipo, fecha));
+                fecha = fecha.minusMinutes(1);
+            }
+        }
+        return new Escenario(asignaciones, proyectos);
+    }
+
+    private Proyecto guardarProyecto(EstadoProyecto estado) {
+        Proyecto proyecto = new Proyecto();
+        proyecto.setNombre("Proyecto dashboard T033 " + estado + " " + System.nanoTime());
+        proyecto.setDescripcion("Proyecto para probar el filtro de asignaciones del dashboard.");
+        proyecto.setEstado(estado);
+        proyecto.setPrioridad(Prioridad.MEDIA);
+        proyecto.setJustificacionPrioridad("Prueba del dashboard RM.");
+        proyecto.setColaboradoresRequeridos(3);
+        proyecto.setPm(usuarioDePrueba("pm.dashboard.t033@skillbridge.test", "Paula", "PROJECT_MANAGER"));
+        proyecto.setPresupuesto(new BigDecimal("50000.00"));
+        proyecto.setFechaInicio(LocalDate.now());
+        proyecto.setFechaFinEstimada(LocalDate.now().plusMonths(3));
+        proyecto = proyectoRepository.save(proyecto);
+        proyectosCreados.add(proyecto);
+        return proyecto;
+    }
+
+    // Un colaborador por tipo: la unicidad de asignaciones abiertas es por colaborador y proyecto.
+    private Asignacion guardarPendiente(Proyecto proyecto, TipoPendiente tipo, LocalDateTime fechaSolicitud) {
+        Asignacion asignacion = new Asignacion();
+        asignacion.setProyecto(proyecto);
+        asignacion.setColaborador(usuarioDePrueba(
+                "col.dashboard.t033." + tipo.name().toLowerCase() + "@skillbridge.test", "Colab", "COLABORADOR"));
+        asignacion.setHorasSemanales(new BigDecimal("8"));
+        asignacion.setEstado(EstadoAsignacion.PENDIENTE);
+        switch (tipo) {
+            case DECISION_RM -> {
+                asignacion.setOrigen(OrigenAsignacion.PROPUESTA_PM);
+                asignacion.setAprobadoPorPm(true);
+            }
+            case ESPERANDO_PM -> {
+                asignacion.setOrigen(OrigenAsignacion.PROPUESTA_RM);
+                asignacion.setAprobadoPorRm(true);
+            }
+            case POSTULACION -> {
+                asignacion.setOrigen(OrigenAsignacion.SOLICITADA_COLABORADOR);
+                asignacion.setAprobadoPorPm(true);
+            }
+        }
+        asignacion.setMensajeSolicitud("Solicitud de prueba del dashboard.");
+        asignacion.setFechaSolicitud(fechaSolicitud);
+        asignacion = asignacionRepository.save(asignacion);
+        asignacionesCreadas.add(asignacion);
+        return asignacion;
+    }
+
+    private Usuario usuarioDePrueba(String correo, String nombre, String rolNombre) {
+        Rol rol = rolRepository.findByNombre(rolNombre).orElseGet(() -> {
+            Rol nuevo = new Rol(); nuevo.setNombre(rolNombre); return rolRepository.save(nuevo);
+        });
+        return usuarioRepository.findByCorreo(correo).orElseGet(() -> {
+            Usuario nuevo = new Usuario();
+            nuevo.setCorreo(correo);
+            nuevo.setNombre(nombre);
+            nuevo.setApellido("Dashboard");
+            nuevo.setRol(rol);
+            nuevo.setHorasDisponibles(new BigDecimal("40"));
+            nuevo.setHorasContratadasSemana(new BigDecimal("40"));
+            return usuarioRepository.save(nuevo);
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Long> idsDeVistas(Object vistas) {
+        return ((List<RmAsignacionView>) vistas).stream().map(item -> item.getAsignacion().getId()).toList();
+    }
+
+    private boolean tieneEnlaceDeSeccion(String html, String url) {
+        Matcher enlace = Pattern.compile("<a\\b[^>]*>").matcher(html);
+        while (enlace.find()) {
+            String etiqueta = enlace.group();
+            if (etiqueta.contains("section-action") && etiqueta.contains("href=\"" + url + "\"")) return true;
+        }
+        return false;
+    }
+
     private void guardarInscripcion(Usuario colaborador, Curso curso, OrigenCurso origen,
                                     EstadoColaboradorCurso estado) {
         ColaboradorCurso inscripcion = new ColaboradorCurso();
@@ -215,7 +476,7 @@ class RmDashboardTests {
                 OrigenAsignacion.SOLICITADA_COLABORADOR, false, true);
         RmAsignacionView esperandoPm = asignacion(
                 OrigenAsignacion.PROPUESTA_RM, true, false);
-        when(asignacionService.listar()).thenReturn(List.of(postulacion, esperandoPm));
+        when(asignacionService.listarParaDashboard()).thenReturn(List.of(postulacion, esperandoPm));
 
         RmProyectoView activoConVacantes = proyecto(
                 "Proyecto activo", EstadoProyecto.ACTIVO, Prioridad.ALTA, 1, 2, 1);

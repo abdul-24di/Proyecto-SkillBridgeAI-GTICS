@@ -30,6 +30,7 @@ public class ColaboradorActividadService {
     private final AsignacionRepository asignacionRepository;
     private final ConfiguracionSistemaRepository configuracionSistemaRepository;
     private final ColaboradorCursoRepository colaboradorCursoRepository;
+    private final ColaboradorCursoService colaboradorCursoService;
 
     //Establecemos que la meta mensual de horas sea de 160 horas al mes
     private static final BigDecimal META_MENSUAL_HORAS = new BigDecimal("160");
@@ -38,12 +39,15 @@ public class ColaboradorActividadService {
                                        PenalizacionService penalizacionService,
                                        AsignacionRepository asignacionRepository,
                                        ConfiguracionSistemaRepository configuracionSistemaRepository,
-                                       ColaboradorCursoRepository colaboradorCursoRepository) {
+                                       ColaboradorCursoRepository colaboradorCursoRepository,
+                                       ColaboradorCursoService colaboradorCursoService) {
+
         this.actividadRepository = actividadRepository;
         this.penalizacionService = penalizacionService;
         this.asignacionRepository = asignacionRepository;
         this.configuracionSistemaRepository = configuracionSistemaRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
+        this.colaboradorCursoService = colaboradorCursoService;
     }
 
     //Listamos todas las actividades del colaborador, de la fecha límite más próxima a la más lejana
@@ -116,7 +120,11 @@ public class ColaboradorActividadService {
 
     public ColHorasResumenView obtenerResumenHoras(Usuario colaborador) {
 
+        //Si algún curso con horario fijo ya llegó a su fecha fin, lo completamos
+        colaboradorCursoService.completarCursosProgramadosVencidos(colaborador);
+
         List<Actividad> todas = actividadRepository.findByColaborador(colaborador);
+
         YearMonth mesActual = YearMonth.now();
 
         BigDecimal horasTrabajadasMes = BigDecimal.ZERO;

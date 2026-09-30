@@ -305,7 +305,7 @@
                     <div class="card-header section-header">
                         <div>
                             <h3 class="card-title mb-1">Mis cursos</h3>
-                            <div class="section-description">Cursos que estás llevando o ya completaste. Al terminarlos, sube tu evidencia para que el Resource Manager la valide.</div>
+                            <div class="section-description">Cursos que estás llevando o ya completaste. Los autodidacta piden subir evidencia. Los de horario fijo se completan solos al llegar su fecha de fin.</div>
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -323,18 +323,30 @@
                                         <span th:text="|${mc.curso.horas} horas|">12 horas</span>
                                     </div>
                                 </div>
+
+
+
+
+
                                 <span class="badge"
                                       th:classappend="${mc.estado.name() == 'COMPLETADO'} ? 'bg-green-lt' : (${mc.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'bg-purple-lt' : 'bg-blue-lt')"
                                       th:text="${mc.estado.name() == 'COMPLETADO'} ? 'Completado' : (${mc.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'Evidencia en revisión' : 'En curso')">En curso</span>
                             </div>
 
                             <!-- Si volvió a EN_CURSO pero ya tenía una evidencia guardada, es porque el RM la rechazó -->
-                            <div class="form-hint text-red mt-1" th:if="${mc.estado.name() == 'EN_CURSO' and mc.evidenciaUrl != null}">
+                            <div class="form-hint text-red mt-1" th:if="${mc.estado.name() == 'EN_CURSO' and mc.curso.autodidacta and mc.evidenciaUrl != null}">
                                 Tu evidencia anterior fue rechazada. Motivo: <span th:text="${mc.motivoRespuesta}"></span>. Puedes volver a subirla.
                             </div>
 
                             <div class="form-hint mt-1" th:if="${mc.estado.name() == 'EVIDENCIA_PENDIENTE'}">
                                 Evidencia enviada el <span th:text="${#temporals.format(mc.fechaEvidencia, 'dd/MM/yyyy')}">01/01/2026</span>, esperando revisión del Resource Manager.
+                            </div>
+
+                            <!-- Curso con horario fijo (no autodidacta): no pide evidencia, se completa solo -->
+                            <div class="form-hint mt-1" th:if="${mc.estado.name() == 'EN_CURSO' and !mc.curso.autodidacta}">
+                                <span th:if="${mc.curso.fechaFin != null}"
+                                      th:text="|Este curso se marcará como completado automáticamente el ${#temporals.format(mc.curso.fechaFin, 'dd/MM/yyyy')}.|">Se completa solo</span>
+                                <span th:if="${mc.curso.fechaFin == null}">Este curso no requiere evidencia; el Resource Manager debe registrarle una fecha de fin para que se complete automáticamente.</span>
                             </div>
 
                             <div class="mt-2 d-flex align-items-center gap-3 flex-wrap">
@@ -344,12 +356,16 @@
                                     Ver evidencia subida
                                 </a>
 
-                                <button th:if="${mc.estado.name() == 'EN_CURSO'}" type="button"
+                                <button th:if="${mc.estado.name() == 'EN_CURSO' and mc.curso.autodidacta}" type="button"
                                         class="btn btn-sm btn-primary" data-bs-toggle="modal"
                                         th:attr="data-bs-target='#evidenciaCursoModal-' + ${mc.id}">
                                     <span th:text="${mc.evidenciaUrl != null} ? 'Volver a subir evidencia' : 'Subir evidencia de finalización'">Subir evidencia de finalización</span>
                                 </button>
                             </div>
+
+
+
+
                         </div>
                     </div>
                         </div>
@@ -831,7 +847,7 @@
 
 <!-- MODAL PARA SUBIR EVIDENCIA DE FINALIZACIÓN DE CURSO -->
 <div th:each="mc : ${misCursosEnCurso}">
-    <div th:if="${mc.estado.name() == 'EN_CURSO'}"
+    <div th:if="${mc.estado.name() == 'EN_CURSO' and mc.curso.autodidacta}"
          class="modal modal-blur fade col-modal" th:id="'evidenciaCursoModal-' + ${mc.id}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <form th:action="@{'/colaborador/perfil/cursos/' + ${mc.id} + '/evidencia'}" method="post" enctype="multipart/form-data">

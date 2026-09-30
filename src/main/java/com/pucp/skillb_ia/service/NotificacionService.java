@@ -120,6 +120,9 @@ public class NotificacionService {
         }
         if ("COLABORADOR_CURSO".equals(item.getEntidad())
                 && item.getUsuario().getRol().getNombre().equals("RESOURCE_MANAGER")) {
+            if ("EVIDENCIA_CURSO_PENDIENTE".equals(item.getTipo())) {
+                return "/rm/cursos/solicitudes?estado=EVIDENCIA_PENDIENTE";
+            }
             return "/rm/cursos/solicitudes";
         }
         if ("FORO".equals(item.getEntidad()) && item.getEntidadId() != null) {

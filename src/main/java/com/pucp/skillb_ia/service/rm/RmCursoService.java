@@ -29,7 +29,8 @@ public class RmCursoService {
     private static final String ROL_RM = "RESOURCE_MANAGER";
     private static final String ROL_COLABORADOR = "COLABORADOR";
     private static final List<EstadoColaboradorCurso> ESTADOS_DUPLICADOS =
-            List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO);
+            List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO,
+                    EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
     // Paginación en el servidor (TASK-030).
     public static final int TAMANIO_PAGINA_CATALOGO = 6;
     public static final int TAMANIO_PAGINA_BANDEJA = 10;
@@ -245,11 +246,48 @@ public class RmCursoService {
         return inscripcion;
     }
 
+    @Transactional
+    public ColaboradorCurso aprobarEvidencia(Long inscripcionId, Long rmId) {
+        Usuario rm = obtenerRm(rmId);
+        ColaboradorCurso inscripcion = obtenerEvidenciaPendiente(inscripcionId);
+        inscripcion.setEstado(EstadoColaboradorCurso.COMPLETADO);
+        inscripcion.setFechaCompletado(LocalDateTime.now());
+        inscripcion.setAsignadoPor(rm);
+        inscripcion = colaboradorCursoRepository.save(inscripcion);
+        notificar(inscripcion, "CURSO_COMPLETADO", "Curso completado",
+                "Tu evidencia para “" + inscripcion.getCurso().getNombre() + "” fue validada. ¡Curso completado!");
+        return inscripcion;
+    }
+
+    @Transactional
+    public ColaboradorCurso rechazarEvidencia(Long inscripcionId, String motivo, Long rmId) {
+        Usuario rm = obtenerRm(rmId);
+        ColaboradorCurso inscripcion = obtenerEvidenciaPendiente(inscripcionId);
+        String motivoValidado = validarMotivo(motivo, "El motivo del rechazo de la evidencia es obligatorio.");
+        inscripcion.setEstado(EstadoColaboradorCurso.EN_CURSO);
+        inscripcion.setAsignadoPor(rm);
+        inscripcion.setMotivoRespuesta(motivoValidado);
+        inscripcion = colaboradorCursoRepository.save(inscripcion);
+        notificar(inscripcion, "EVIDENCIA_CURSO_RECHAZADA", "Evidencia de curso rechazada",
+                "Tu evidencia para “" + inscripcion.getCurso().getNombre()
+                        + "” fue rechazada. Motivo: " + motivoValidado + " Puedes volver a subirla.");
+        return inscripcion;
+    }
+
     private ColaboradorCurso obtenerSolicitudPendiente(Long id) {
         ColaboradorCurso inscripcion = colaboradorCursoRepository.findByIdConDetalle(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la solicitud de curso."));
         if (!esSolicitudPendiente(inscripcion)) {
             throw new IllegalStateException("La solicitud ya fue gestionada o no fue enviada por un colaborador.");
+        }
+        return inscripcion;
+    }
+
+    private ColaboradorCurso obtenerEvidenciaPendiente(Long id) {
+        ColaboradorCurso inscripcion = colaboradorCursoRepository.findByIdConDetalle(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la inscripción al curso."));
+        if (inscripcion.getEstado() != EstadoColaboradorCurso.EVIDENCIA_PENDIENTE) {
+            throw new IllegalStateException("Esta inscripción no tiene una evidencia pendiente de revisión.");
         }
         return inscripcion;
     }
@@ -348,12 +386,17 @@ public class RmCursoService {
                 curso.getId(), curso.getNombre(), valor(curso.getCategoria(), "Sin categoría"),
                 curso.getHoras(), item.getOrigen().name(), textoOrigen(item.getOrigen()),
                 item.getEstado().name(), textoEstado(item.getEstado()), claseEstado(item.getEstado()),
-                item.getFechaSolicitud(), item.getJustificacion(), item.getMotivoRespuesta(), esSolicitudPendiente(item));
+                item.getFechaSolicitud(), item.getJustificacion(), item.getMotivoRespuesta(), esSolicitudPendiente(item),
+                item.getEvidenciaUrl(), esEvidenciaPendiente(item));
     }
 
     private boolean esSolicitudPendiente(ColaboradorCurso item) {
         return item.getOrigen() == OrigenCurso.SOLICITUD_COLABORADOR
                 && item.getEstado() == EstadoColaboradorCurso.SOLICITADO;
+    }
+
+    private boolean esEvidenciaPendiente(ColaboradorCurso item) {
+        return item.getEstado() == EstadoColaboradorCurso.EVIDENCIA_PENDIENTE;
     }
 
     private String textoBusqueda(ColaboradorCurso item) {
@@ -402,6 +445,7 @@ public class RmCursoService {
         return switch (estado) {
             case SOLICITADO -> "Pendiente";
             case EN_CURSO -> "En curso";
+            case EVIDENCIA_PENDIENTE -> "Evidencia en revisión";
             case COMPLETADO -> "Completado";
             case RECHAZADO -> "Rechazado";
         };
@@ -411,6 +455,7 @@ public class RmCursoService {
         return switch (estado) {
             case SOLICITADO -> "bg-yellow-lt text-yellow";
             case EN_CURSO -> "bg-blue-lt text-blue";
+            case EVIDENCIA_PENDIENTE -> "bg-purple-lt text-purple";
             case COMPLETADO -> "bg-green-lt text-green";
             case RECHAZADO -> "bg-red-lt text-red";
         };

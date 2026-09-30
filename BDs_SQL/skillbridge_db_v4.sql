@@ -243,6 +243,7 @@ CREATE TABLE proyecto (
     pm_id                       BIGINT NOT NULL,
     rm_revisor_id               BIGINT NULL,
     fecha_creacion              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    documento_contexto_url 		VARCHAR(500),
 
     CONSTRAINT fk_proyecto_pm FOREIGN KEY (pm_id) REFERENCES usuario(id),
     CONSTRAINT fk_proyecto_rm FOREIGN KEY (rm_revisor_id) REFERENCES usuario(id),
@@ -267,6 +268,7 @@ CREATE TABLE proyecto_habilidad_requerida (
     habilidad_id        BIGINT NOT NULL,
     nivel_requerido     VARCHAR(20) NULL,
     cantidad_personas   INT NOT NULL DEFAULT 1,
+    horas_semanales 	DECIMAL(5,2),
 
     PRIMARY KEY (proyecto_id, habilidad_id),
 
@@ -408,13 +410,15 @@ CREATE TABLE colaborador_curso (
     colaborador_id      BIGINT NOT NULL,
     curso_id            BIGINT NOT NULL,
     origen              VARCHAR(25) NOT NULL,
-    estado              VARCHAR(20) NOT NULL DEFAULT 'SOLICITADO',
+    estado              VARCHAR(25) NOT NULL DEFAULT 'SOLICITADO',
     asignado_por        BIGINT NULL,
     motivo_respuesta            VARCHAR(500) NULL,
     justificacion_colaborador   VARCHAR(500) NULL,
     fecha_solicitud     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_respuesta     DATETIME NULL,
     fecha_completado    DATETIME NULL,
+    evidencia_url       VARCHAR(500) NULL,
+    fecha_evidencia     DATETIME NULL,
 
     CONSTRAINT fk_colcurso_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
     CONSTRAINT fk_colcurso_curso FOREIGN KEY (curso_id) REFERENCES curso(id),
@@ -424,7 +428,7 @@ CREATE TABLE colaborador_curso (
         CHECK (origen IN ('SOLICITUD_COLABORADOR','ASIGNADO_POR_RM')),
 
     CONSTRAINT chk_colcurso_estado
-        CHECK (estado IN ('SOLICITADO','EN_CURSO','COMPLETADO','RECHAZADO'))
+        CHECK (estado IN ('SOLICITADO','EN_CURSO','EVIDENCIA_PENDIENTE','COMPLETADO','RECHAZADO'))
 ) ENGINE=InnoDB;
 
 

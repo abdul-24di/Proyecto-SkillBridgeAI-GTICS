@@ -12,7 +12,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-// Solicitudes e inscripciones de cursos (A26/A27).
 public interface ColaboradorCursoRepository extends JpaRepository<ColaboradorCurso, Long> {
     List<ColaboradorCurso> findByColaborador(Usuario colaborador);
     List<ColaboradorCurso> findByEstado(EstadoColaboradorCurso estado);
@@ -38,11 +37,13 @@ public interface ColaboradorCursoRepository extends JpaRepository<ColaboradorCur
             """)
     Optional<ColaboradorCurso> findByIdConDetalle(@Param("id") Long id);
 
-    boolean existsByColaboradorAndCursoAndEstadoIn(
-            Usuario colaborador, Curso curso,
-            List<EstadoColaboradorCurso> estados);
+    boolean existsByColaboradorAndCursoAndEstadoIn(Usuario colaborador, Curso curso, List<EstadoColaboradorCurso> estados);
 
-    boolean existsByColaboradorAndCursoAndEstado(
-            Usuario colaborador, Curso curso,
-            EstadoColaboradorCurso estado);
+    boolean existsByColaboradorAndCursoAndEstado(Usuario colaborador, Curso curso, EstadoColaboradorCurso estado);
+
+    //Lo usabmos para subir la evidencia de que llevo el curso. Confirmamos que la inscripción sea del propio colaborador.
+    Optional<ColaboradorCurso> findByIdAndColaborador(Long id, Usuario colaborador);
+
+
+
 }

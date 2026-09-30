@@ -44,7 +44,13 @@ public class ColaboradorCurso {
     @Column(name = "fecha_completado")
     private LocalDateTime fechaCompletado;
 
-    // Motivo del rechazo o justificación de una asignación directa del RM.
+    @Column(name = "evidencia_url", length = 500)
+    private String evidenciaUrl;
+
+    @Column(name = "fecha_evidencia")
+    private LocalDateTime fechaEvidencia;
+
+    //Motivo del rechazo o justificación de una asignación directa del RM.
     @Column(name = "motivo_respuesta", length = 500)
     private String motivoRespuesta;
 
@@ -89,4 +95,20 @@ public class ColaboradorCurso {
 
     public String getJustificacion() { return justificacion; }
     public void setJustificacion(String justificacion) { this.justificacion = justificacion; }
+
+    public String getEvidenciaUrl() {
+        return evidenciaUrl;
+    }
+
+    public void setEvidenciaUrl(String evidenciaUrl) {
+        this.evidenciaUrl = evidenciaUrl;
+    }
+
+    public LocalDateTime getFechaEvidencia() {
+        return fechaEvidencia;
+    }
+
+    public void setFechaEvidencia(LocalDateTime fechaEvidencia) {
+        this.fechaEvidencia = fechaEvidencia;
+    }
 }

@@ -108,7 +108,7 @@
                             <div class="card-header section-header">
                                 <div>
                                     <h3 class="card-title mb-1">Sobre mí</h3>
-                                    <div class="section-description">Una breve descripción visible para PMs y RMs.</div>
+                                    <div class="section-description">Cuenta brevemente tu experiencia, intereses y fortalezas profesionales.</div>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#editAboutModal">Editar</button>
                             </div>
@@ -124,7 +124,7 @@
                             <div class="card-header section-header">
                                 <div>
                                     <h3 class="card-title mb-1">Habilidades</h3>
-                                    <div class="section-description">Visibles para el Resource Manager y el Talent Matching.</div>
+                                    <div class="section-description">Destaca tus conocimientos y fortalezas profesionales.</div>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addSkillModal">+ Agregar habilidad</button>
                             </div>
@@ -180,18 +180,21 @@
 
                 <!-- EXPERIENCIA + EDUCACIÓN -->
                 <div class="row row-cards mb-4 g-3">
+
+
+
+
                     <div class="col-lg-6">
                         <div class="card section-card h-100">
                             <div class="card-header section-header">
                                 <div>
                                     <h3 class="card-title mb-1">Experiencia profesional</h3>
-                                    <div class="section-description">Historial laboral fuera de SkillBridge AI.</div>
+                                    <div class="section-description">Historial laboral fuera de SkillBridge AI. Esta información la ingresa el Administrador.</div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addExperienciaModal">+ Agregar experiencia</button>
                             </div>
                             <div class="card-body p-0">
-                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada. Registra tus trabajos anteriores aquí.</div>
-                                <div th:each="exp : ${experienciaProfesional}" class="timeline-entry position-relative">
+                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada. Esta información la ingresa el Administrador.</div>
+                                <div th:each="exp : ${experienciaProfesional}" class="timeline-entry">
                                     <div class="timeline-entry-title"
                                          th:text="${exp.cargo != null and exp.empresa != null} ? (${exp.cargo} + ' — ' + ${exp.empresa}) : (${exp.cargo != null} ? ${exp.cargo} : ${exp.empresa})">Cargo — Empresa</div>
                                     <div class="timeline-entry-meta">
@@ -200,15 +203,12 @@
                                         <span th:text="${exp.actual} ? 'Actualidad' : (${exp.fechaFin != null} ? ${#temporals.format(exp.fechaFin, 'MM/yyyy')} : '¿?')">Actualidad</span>
                                     </div>
                                     <div class="timeline-entry-desc" th:text="${exp.descripcion}">Descripción</div>
-                                    <form th:action="@{/colaborador/perfil/experiencia/{id}/eliminar(id=${exp.id})}" method="post" class="position-absolute" style="top: 15px; right: 20px;" onsubmit="return confirm(\'¿Estás seguro de eliminar esta experiencia profesional?\');">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-1" title="Eliminar experiencia">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+
 
                     <div class="col-lg-6">
                         <div class="card section-card h-100">
@@ -263,8 +263,11 @@
                     </div>
                 </div>
 
-                <!-- Evaluaciones / Feedback -->
-                <div class="card section-card mb-4">
+                <!-- FEEDBACK + MIS CURSOS -->
+                <div class="row row-cards mb-4 g-3">
+                    <div class="col-lg-6">
+                        <!-- Evaluaciones / Feedback -->
+                        <div class="card section-card h-100">
                     <div class="card-header section-header">
                         <div>
                             <h3 class="card-title mb-1">Feedback y Evaluaciones</h3>
@@ -289,8 +292,67 @@
                             <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
                         </div>
                     </div>
-                    <div class="empty-state" th:if="${#lists.isEmpty(evaluaciones)}">
-                        Aún no tienes evaluaciones registradas.
+                            <div class="empty-state" th:if="${#lists.isEmpty(evaluaciones)}">
+                                Aún no tienes evaluaciones registradas.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <!-- MIS CURSOS -->
+                        <div class="card section-card h-100">
+
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Mis cursos</h3>
+                            <div class="section-description">Cursos que estás llevando o ya completaste. Al terminarlos, sube tu evidencia para que el Resource Manager la valide.</div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${misCursosEnCurso.isEmpty()}" class="empty-state">
+                            Aún no tienes cursos asignados. Puedes explorar el catálogo y solicitar uno desde la pestaña Explorar.
+                        </div>
+
+                        <div th:each="mc : ${misCursosEnCurso}" class="timeline-entry">
+                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div>
+                                    <div class="timeline-entry-title" th:text="${mc.curso.nombre}">Curso X</div>
+                                    <div class="timeline-entry-meta">
+                                        <span th:text="${mc.curso.categoria != null and !mc.curso.categoria.isBlank()} ? ${mc.curso.categoria} : 'Sin categoría'">Técnico</span>
+                                        &nbsp;·&nbsp;
+                                        <span th:text="|${mc.curso.horas} horas|">12 horas</span>
+                                    </div>
+                                </div>
+                                <span class="badge"
+                                      th:classappend="${mc.estado.name() == 'COMPLETADO'} ? 'bg-green-lt' : (${mc.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'bg-purple-lt' : 'bg-blue-lt')"
+                                      th:text="${mc.estado.name() == 'COMPLETADO'} ? 'Completado' : (${mc.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'Evidencia en revisión' : 'En curso')">En curso</span>
+                            </div>
+
+                            <!-- Si volvió a EN_CURSO pero ya tenía una evidencia guardada, es porque el RM la rechazó -->
+                            <div class="form-hint text-red mt-1" th:if="${mc.estado.name() == 'EN_CURSO' and mc.evidenciaUrl != null}">
+                                Tu evidencia anterior fue rechazada. Motivo: <span th:text="${mc.motivoRespuesta}"></span>. Puedes volver a subirla.
+                            </div>
+
+                            <div class="form-hint mt-1" th:if="${mc.estado.name() == 'EVIDENCIA_PENDIENTE'}">
+                                Evidencia enviada el <span th:text="${#temporals.format(mc.fechaEvidencia, 'dd/MM/yyyy')}">01/01/2026</span>, esperando revisión del Resource Manager.
+                            </div>
+
+                            <div class="mt-2 d-flex align-items-center gap-3 flex-wrap">
+                                <a th:if="${mc.evidenciaUrl != null}"
+                                   th:href="@{${mc.evidenciaUrl}}" target="_blank" rel="noopener" class="skill-item-doc-link">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                                    Ver evidencia subida
+                                </a>
+
+                                <button th:if="${mc.estado.name() == 'EN_CURSO'}" type="button"
+                                        class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                        th:attr="data-bs-target='#evidenciaCursoModal-' + ${mc.id}">
+                                    <span th:text="${mc.evidenciaUrl != null} ? 'Volver a subir evidencia' : 'Subir evidencia de finalización'">Subir evidencia de finalización</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                        </div>
                     </div>
                 </div>
 
@@ -299,7 +361,7 @@
                     <div class="card-header section-header">
                         <div>
                             <h3 class="card-title mb-1">Historial de proyectos</h3>
-                            <div class="section-description">Participación registrada en proyectos de la organización. Vista de solo lectura.</div>
+                            <div class="section-description">Participación registrada en proyectos de la organización.</div>
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -766,6 +828,33 @@
             </div>
         </div>
     </div>
+
+<!-- MODAL PARA SUBIR EVIDENCIA DE FINALIZACIÓN DE CURSO -->
+<div th:each="mc : ${misCursosEnCurso}">
+    <div th:if="${mc.estado.name() == 'EN_CURSO'}"
+         class="modal modal-blur fade col-modal" th:id="'evidenciaCursoModal-' + ${mc.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form th:action="@{'/colaborador/perfil/cursos/' + ${mc.id} + '/evidencia'}" method="post" enctype="multipart/form-data">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" th:text="|Subir evidencia - ${mc.curso.nombre}|">Subir evidencia</h5>
+
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">Evidencia de finalización</label>
+                        <input type="file" name="evidencia" class="form-control" accept="application/pdf,image/jpeg,image/png">
+                        <div class="form-hint">PDF, JPG o PNG; máximo 10MB. El Resource Manager la revisará antes de dar el curso por completado.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-primary" type="submit">Enviar evidencia</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/col-js/col-perfil.js" th:src="@{/js/col-js/col-perfil.js}"></script>

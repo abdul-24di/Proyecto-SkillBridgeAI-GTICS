@@ -120,10 +120,14 @@ public final class RmCursoView {
         private final String estadoClase;
 
 
+
+
         private final LocalDateTime fechaSolicitud;
         private final String justificacion;
         private final String motivoRespuesta;
         private final boolean pendienteGestionRm;
+        private final String evidenciaUrl;
+        private final boolean pendienteRevisionEvidencia;
 
         public InscripcionItem(Long id, Long colaboradorId, String colaborador,
                                String iniciales, String cargo, Long cursoId,
@@ -131,7 +135,7 @@ public final class RmCursoView {
                                String origenCodigo, String origenTexto,
                                String estadoCodigo, String estadoTexto, String estadoClase,
                                LocalDateTime fechaSolicitud, String justificacion, String motivoRespuesta,
-                               boolean pendienteGestionRm) {
+                               boolean pendienteGestionRm, String evidenciaUrl, boolean pendienteRevisionEvidencia) {
             this.id = id;
             this.colaboradorId = colaboradorId;
             this.colaborador = colaborador;
@@ -150,6 +154,8 @@ public final class RmCursoView {
             this.justificacion = justificacion;
             this.motivoRespuesta = motivoRespuesta;
             this.pendienteGestionRm = pendienteGestionRm;
+            this.evidenciaUrl = evidenciaUrl;
+            this.pendienteRevisionEvidencia = pendienteRevisionEvidencia;
         }
 
         public Long getId() { return id; }
@@ -170,6 +176,8 @@ public final class RmCursoView {
         public String getJustificacion() { return justificacion; }
         public String getMotivoRespuesta() { return motivoRespuesta; }
         public boolean isPendienteGestionRm() { return pendienteGestionRm; }
+        public String getEvidenciaUrl() { return evidenciaUrl; }
+        public boolean isPendienteRevisionEvidencia() { return pendienteRevisionEvidencia; }
     }
 
     public static class ColaboradorOpcion {

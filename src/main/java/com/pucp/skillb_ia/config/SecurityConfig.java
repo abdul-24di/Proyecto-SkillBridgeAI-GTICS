@@ -33,7 +33,12 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/css/**", "/js/**", "/img/**", "/uploads/**", "/favicon.ico", "/tabler/**", "/documentos/**", "/plantillas/**").permitAll()
-                .requestMatchers("/login", "/auth/**", "/reset-password", "/activate").permitAll()
+                .requestMatchers("/", "/login", "/login.html").permitAll()
+                .requestMatchers("/activar-cuenta", "/activar-cuenta.html").permitAll()
+                .requestMatchers("/recuperar", "/recuperar-contrasena.html").permitAll()
+                .requestMatchers("/verificar-codigo", "/verificar-codigo.html").permitAll()
+                .requestMatchers("/nueva-contrasena", "/nueva-contrasena.html").permitAll()
+                .requestMatchers("/contrasena-actualizada", "/contrasena-actualizada.html").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMINISTRADOR")
                 .requestMatchers("/pm/**").hasRole("PROJECT_MANAGER")
                 .requestMatchers("/rm/**").hasRole("RESOURCE_MANAGER")

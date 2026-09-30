@@ -56,6 +56,11 @@
           Estos valores afectan reglas de negocio en toda la organización. Todo cambio queda registrado en el log de auditoría.
         </div>
       </div>
+      <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createParamModal">
+          Nuevo parámetro
+        </button>
+      </div>
     </div>
 
     <div class="card section-card mb-4">
@@ -133,6 +138,40 @@
     </div>
 
   </main>
+</div>
+
+<!-- MODAL: CREAR PARÁMETRO -->
+<div class="modal modal-blur fade admin-modal" id="createParamModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nuevo parámetro</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/configuracion/crear}" method="post">
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="createParamClave">Clave</label>
+          <input id="createParamClave" name="clave" type="text" class="form-control" required maxlength="60"
+                 placeholder="Ejemplo: MAX_ASIGNACIONES_POR_COLABORADOR">
+          <div class="form-hint">Se guardará en mayúsculas, sin espacios.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="createParamDesc">Descripción</label>
+          <textarea id="createParamDesc" name="descripcion" class="form-control" rows="2" maxlength="300"></textarea>
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="createParamValue">Valor inicial</label>
+          <input id="createParamValue" name="valor" type="text" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear parámetro</button>
+      </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL: EDITAR PARÁMETRO -->

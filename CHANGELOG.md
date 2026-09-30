@@ -1,4 +1,49 @@
 # CHANGELOG - SkillBridge AI
+
+## Sesión 30 de Septiembre 2026
+
+---
+
+## 1. Configuración de Parámetros Globales (Administrador) — crear parámetro nuevo
+
+### Descripción
+Antes solo se podían editar los parámetros de `configuracion_sistema` ya existentes (cargados por SQL). Ahora el Admin puede crear parámetros nuevos desde la UI.
+
+### Archivos modificados
+- `src/main/java/com/pucp/skillb_ia/service/AdminConfiguracionService.java` — Nuevo método `crear(clave, descripcion, valorInicial, admin)`: normaliza la clave (mayúsculas, sin espacios), valida que no esté vacía ni duplicada, y audita el cambio.
+- `src/main/java/com/pucp/skillb_ia/controller/AdminViewController.java` — Nuevo endpoint `POST /admin/configuracion/crear`.
+- `src/main/resources/templates/admin/admin-configuracion.html` — Botón "Nuevo parámetro" + modal de creación.
+
+---
+
+## 2. Envío real de correos (activación de cuenta y recuperación de contraseña)
+
+### Descripción
+`EmailService` era un stub que solo logueaba a consola (no había SMTP configurado). Ahora envía correos reales por Gmail SMTP, con fallback automático a solo-log si no hay credenciales configuradas (para no romper a quien no las tenga en su máquina).
+
+### Archivos modificados
+- `pom.xml` — Agregada dependencia `spring-boot-starter-mail`.
+- `src/main/resources/application.properties` — Configuración SMTP (`smtp.gmail.com:587`) vía variables de entorno `MAIL_USERNAME`/`MAIL_PASSWORD` (con default vacío), más `app.mail.from` y `app.base-url` para construir enlaces completos en los correos.
+- `src/main/java/com/pucp/skillb_ia/service/EmailService.java` — Reemplazado el logging por envío real vía `JavaMailSender`. El remitente se muestra como "SkillBridge AI" en vez del correo crudo.
+
+### Cómo configurarlo localmente
+Cada quien necesita su propia cuenta de Gmail con una "contraseña de aplicación" (Google no permite la contraseña normal por SMTP). Se configura como variables de entorno `MAIL_USERNAME` y `MAIL_PASSWORD` en la configuración de ejecución de IntelliJ — **nunca en `application.properties`**, para no exponer credenciales en el repositorio.
+
+---
+
+## 3. Fix de seguridad: rutas públicas de autenticación faltantes
+
+### Bug encontrado
+Al probar el flujo real de activación y recuperación de contraseña (sin sesión iniciada, como le pasaría a cualquier usuario nuevo), Spring Security redirigía todo a `/login` porque `SecurityConfig` tenía una lista de rutas públicas desactualizada (`/auth/**`, `/reset-password`, `/activate`, que no corresponden a ninguna ruta real del proyecto) y le faltaban las rutas reales: `/activar-cuenta`, `/recuperar`, `/verificar-codigo`, `/nueva-contrasena`, `/contrasena-actualizada`, `/login.html`. Esto rompía por completo la activación de cuenta y la recuperación de contraseña para cualquier usuario sin sesión activa.
+
+### Archivos modificados
+- `src/main/java/com/pucp/skillb_ia/config/SecurityConfig.java` — Corregida la lista de `permitAll()` con las rutas reales del flujo de autenticación.
+
+### Verificación
+Probado de punta a punta sin sesión previa: creación de usuario individual y por carga masiva (CSV), envío real de correo (Gmail e institucional PUCP), activación de cuenta vía enlace, login con la contraseña elegida, y recuperación de contraseña completa (código de 6 dígitos → nueva contraseña → login).
+
+---
+
 ## Sesión 28 de Septiembre 2026
 
 ---

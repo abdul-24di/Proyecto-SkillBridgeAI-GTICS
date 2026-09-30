@@ -385,6 +385,20 @@ public class AdminViewController {
         return "admin/admin-configuracion";
     }
 
+    @PostMapping("/configuracion/crear")
+    public String crearConfiguracion(@RequestParam String clave, @RequestParam(required = false) String descripcion,
+                                      @RequestParam String valor,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
+                                      RedirectAttributes redirectAttributes) {
+        try {
+            adminConfiguracionService.crear(clave, descripcion, valor, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el parámetro.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/configuracion";
+    }
+
     @PostMapping("/configuracion/editar")
     public String editarConfiguracion(@RequestParam Long parametroId, @RequestParam String valor,
                                        @AuthenticationPrincipal UsuarioDetails principal,

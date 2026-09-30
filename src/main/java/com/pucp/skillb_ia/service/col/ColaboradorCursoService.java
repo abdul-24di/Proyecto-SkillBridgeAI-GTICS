@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -53,9 +54,13 @@ public class ColaboradorCursoService {
     // ============================================================
     // CATÁLOGO DE CURSOS DISPONIBLES (activos del Admin)
     // ============================================================
-    @Transactional(readOnly = true)
+    @Transactional
     public List<CursoDisponibleView> listarCursosDisponibles(Usuario colaborador) {
+        //Antes de listar, completamos solos los cursos con horario fijo cuya fecha fin ya pasó.
+        completarCursosProgramadosVencidos(colaborador);
+
         List<Curso> cursosActivos = cursoRepository.findByActivoTrueOrderByNombreAsc();
+
         List<ColaboradorCurso> misRegistros = colaboradorCursoRepository.findByColaborador(colaborador);
         List<CursoDisponibleView> resultado = new ArrayList<>();
 
@@ -170,8 +175,11 @@ public class ColaboradorCursoService {
     // ============================================================
     // MIS CURSOS (perfil profesional). Listamos los cursos que se están llevando, con evidencia enviada o completados
     // ============================================================
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ColaboradorCurso> listarMisCursos(Usuario colaborador) {
+        //Antes de listar, completamos solos los cursos con horario fijo cuya fecha fin ya pasó.
+        completarCursosProgramadosVencidos(colaborador);
+
         List<ColaboradorCurso> todos = colaboradorCursoRepository.findByColaborador(colaborador);
         List<ColaboradorCurso> misCursos = new ArrayList<>();
 
@@ -189,7 +197,53 @@ public class ColaboradorCursoService {
     }
 
     // ============================================================
+    // CAMBIAMOS EL ESTADO A COMPLETAR AUTOMÁTICAMENTE LOS CURSOS CON HORARIO FIJO (NO AUTODIDACTAS)
+    // Estos cursos no piden evidencia: apenas se cumple su fecha fin, se dan
+    // por completados solos y sus horas pasan a contarse en el dashboard.
+    // ============================================================
+    public void completarCursosProgramadosVencidos(Usuario colaborador) {
+
+        List<ColaboradorCurso> todos = colaboradorCursoRepository.findByColaborador(colaborador);
+
+        LocalDate hoy = LocalDate.now();
+
+        for (ColaboradorCurso registro : todos) {
+            if (registro.getEstado() != EstadoColaboradorCurso.EN_CURSO) {
+                continue;
+            }
+
+            Curso curso = registro.getCurso();
+
+            if (curso.isAutodidacta()) {
+                continue;
+            }
+
+            if (curso.getFechaFin() == null) {
+                continue;
+            }
+
+            //Todavía no llega la fecha fin, así que sigue "En curso".
+            if (curso.getFechaFin().isAfter(hoy)) {
+                continue;
+            }
+
+            registro.setEstado(EstadoColaboradorCurso.COMPLETADO);
+            registro.setFechaCompletado(LocalDateTime.now());
+            colaboradorCursoRepository.save(registro);
+
+            auditoriaService.registrar(colaborador, "COMPLETAR_CURSO_PROGRAMADO", "COLABORADOR_CURSO", registro.getId(),
+                    "El curso \"" + curso.getNombre() + "\" se completó automáticamente al llegar su fecha de fin.");
+
+            notificacionService.crear(colaborador, "CURSO_COMPLETADO", CategoriaNotificacion.CURSO,
+                    "Curso completado",
+                    "Tu curso \"" + curso.getNombre() + "\" se marcó como completado automáticamente.",
+                    "COLABORADOR_CURSO", registro.getId());
+        }
+    }
+
+    // ============================================================
     // COLABORADOR SUBE LA EVIDENCIA DE FINALIZACIÓN DE UN CURSO
+    //(Solo aplica a cursos autodidacta. Los de horario fijo se completan solos.
     // ============================================================
     @Transactional
     public void subirEvidencia(Usuario colaborador, Long inscripcionId, MultipartFile evidencia) {
@@ -198,6 +252,11 @@ public class ColaboradorCursoService {
         if (inscripcion.getEstado() != EstadoColaboradorCurso.EN_CURSO) {
             throw new IllegalArgumentException("Solo puedes subir evidencia de un curso que esté \"En curso\".");
         }
+        if (!inscripcion.getCurso().isAutodidacta()) {
+            throw new IllegalArgumentException("Este curso no requiere evidencia: se completa automáticamente al llegar su fecha de fin.");
+        }
+
+
         if (evidencia == null || evidencia.isEmpty()) {
             throw new IllegalArgumentException("Debes adjuntar una evidencia (PDF, JPG o PNG).");
         }

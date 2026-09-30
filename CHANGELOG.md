@@ -44,6 +44,93 @@ Probado de punta a punta sin sesión previa: creación de usuario individual y p
 
 ---
 
+## 4. Finalización de cursos con evidencia (implementación parcial de TASK-043)
+
+### Descripción
+El colaborador ahora ve en su perfil los cursos `EN_CURSO`, `EVIDENCIA_PENDIENTE` y `COMPLETADO`. Para un curso en progreso puede adjuntar una evidencia PDF, JPG o PNG de hasta 10 MB. La evidencia se guarda mediante `ArchivoAlmacenamientoService`, queda asociada a la inscripción (`ColaboradorCurso`) y se notifica a todos los Resource Managers.
+
+El backend del RM permite aprobar o rechazar la evidencia. Aprobar cambia la inscripción a `COMPLETADO` y registra `fecha_completado`; rechazar la devuelve a `EN_CURSO`, conserva el archivo y el motivo, y permite volver a subir evidencia. Las horas del curso completado se suman al total mensual usado por el dashboard y por el cálculo informativo del bono.
+
+### Archivos modificados
+
+**Modelo y base de datos:**
+- `src/main/java/com/pucp/skillb_ia/model/ColaboradorCurso.java` — Nuevos campos `evidenciaUrl` y `fechaEvidencia`.
+- `src/main/java/com/pucp/skillb_ia/model/enums/EstadoColaboradorCurso.java` — Nuevo estado `EVIDENCIA_PENDIENTE`.
+- `BDs_SQL/skillbridge_db_v4.sql` — `colaborador_curso.estado` pasa a `VARCHAR(25)`, el `CHECK` admite `EVIDENCIA_PENDIENTE` y se agregan `evidencia_url` y `fecha_evidencia`. El mismo commit también movió `proyecto.documento_contexto_url` y `proyecto_habilidad_requerida.horas_semanales` a sus `CREATE TABLE`, pero no retiró los `ALTER TABLE ... ADD COLUMN` del final del script (ver *Alcance pendiente*).
+- `src/main/java/com/pucp/skillb_ia/repository/ColaboradorCursoRepository.java` — Nuevo `findByIdAndColaborador`, usado para validar que la inscripción sea del colaborador autenticado.
+
+**Colaborador:**
+- `src/main/java/com/pucp/skillb_ia/service/col/ColaboradorCursoService.java` — Lista los cursos del perfil, valida propiedad/estado/tipo/tamaño, almacena la evidencia, audita `SUBIR_EVIDENCIA_CURSO` y notifica a los RM. Una inscripción en `EVIDENCIA_PENDIENTE` también impide volver a solicitar el mismo curso (igual que en la asignación directa del RM).
+- `src/main/java/com/pucp/skillb_ia/controller/ColaboradorViewController.java` — Expone `misCursosEnCurso` y añade `POST /colaborador/perfil/cursos/{inscripcionId}/evidencia`.
+- `src/main/resources/templates/col/col-perfil.html` — Nueva tarjeta "Mis cursos", estados, motivo de rechazo, enlace al archivo y modal de carga. La experiencia profesional queda de solo lectura y administrada por el Admin.
+- `src/main/java/com/pucp/skillb_ia/service/col/ColaboradorActividadService.java` — Suma las horas de cursos completados durante el mes a `horasTrabajadasMes`.
+
+**Resource Manager:**
+- `src/main/java/com/pucp/skillb_ia/service/rm/RmCursoService.java` — Soporta `EVIDENCIA_PENDIENTE`, aprobación y rechazo de evidencias, finalización del curso y notificaciones al colaborador.
+- `src/main/java/com/pucp/skillb_ia/controller/RmViewController.java` — Nuevos endpoints `POST /rm/cursos/solicitudes/{id}/evidencia/aprobar` y `/rechazar`.
+- `src/main/java/com/pucp/skillb_ia/dto/RmCursoView.java` — La fila de inscripción expone la URL y si la evidencia está pendiente.
+
+### Migración requerida para bases existentes
+
+El commit actualizó el esquema de instalaciones nuevas, pero **no agregó una migración idempotente**. Antes de desplegar sobre una base existente se deben añadir las columnas, ampliar `estado` y reemplazar `chk_colcurso_estado`. No basta con la versión actual de `BDs_SQL/migracion_cursos.sql`, porque esa migración solo agrega `motivo_respuesta`.
+
+### Alcance pendiente y verificación
+- **Instalación nueva corregida (TASK-048):** `skillbridge_db_v4.sql` conserva `horas_semanales` y `documento_contexto_url` dentro de sus `CREATE TABLE` y ya no intenta agregarlas otra vez con `ALTER TABLE`. Las bases existentes siguen usando las sentencias de la sesión del 28 de septiembre.
+- La plantilla `rm-solicitudes-cursos.html` todavía no muestra `EVIDENCIA_PENDIENTE`, el archivo ni botones que invoquen los nuevos endpoints; por UI el RM aún no puede decidir la evidencia.
+- No se registran `revisado_por` ni `fecha_revision`, y aprobar/rechazar la evidencia no genera auditoría.
+- No existe alerta al llegar la fecha final ni correo de aprobación del curso con fechas y horas.
+- Las notificaciones de curso dirigidas al colaborador todavía resuelven a `#`; las de RM abren la bandeja general.
+- No se añadieron pruebas específicas del flujo. La suite existente se ejecutó el 30 de septiembre de 2026: **454 pruebas, 0 fallos**.
+
+---
+
+## 5. Validaciones del catálogo de cursos (Admin) — commit `42b57fc`
+
+### Descripción
+Crear y editar un curso en `/admin/cursos` ahora exige más datos, validados en el servidor (`AdminCursoService`) y también en el formulario:
+- **Categoría obligatoria** al crear y al editar.
+- **Fechas de inicio y fin obligatorias**, salvo en los cursos autodidactas, que usan `horas` como duración. En el formulario, marcar "autodidacta" quita el `required` y los asteriscos de las fechas.
+- La fecha de fin no puede ser anterior a la de inicio.
+- **Al crear**, la fecha de inicio no puede ser anterior a hoy. Al editar no se aplica, para que un curso ya iniciado conserve su fecha original.
+
+### Archivos modificados
+- `src/main/java/com/pucp/skillb_ia/service/AdminCursoService.java` — Nuevo `validarCategoriaYFechas`, usado por `crear` y `editar`; validación de fecha de inicio ≥ hoy solo en `crear`.
+- `src/main/resources/templates/admin/admin-cursos.html` — Categoría y fechas con `required`, `min` = hoy en la fecha de inicio del modal de creación y script que libera las fechas si el curso es autodidacta.
+
+### Consideraciones
+- Un curso existente sin categoría, o no autodidacta y sin fechas, ya no se puede guardar al editarlo hasta completar esos datos.
+- `editar` sigue sin actualizar `lugar` ni `institucion`, y `horas` solo se valida en el HTML (`min="0.5"`), no en el servidor.
+- Sin pruebas automatizadas del CRUD de cursos (TASK-005).
+
+---
+
+## 6. Política de contraseñas unificada — commit `42b57fc`
+
+### Descripción
+Toda contraseña nueva debe tener **al menos 8 caracteres, una mayúscula, un número y un símbolo** (antes bastaban 6 caracteres, salvo en el perfil del Colaborador). La regla se aplica en:
+- Activación de cuenta (`POST /activar-cuenta`) y recuperación (`POST /nueva-contrasena`), validada en `AuthViewController` con la expresión `(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}`.
+- Cambio de contraseña desde el perfil de Admin, RM y PM (`AdminPerfilService`, `RmPerfilService`, `PmPerfilService`, con la misma expresión) y del Colaborador (`ColaboradorPerfilService.validarPassword`, que pasó de 6 a 8 caracteres y ya exigía mayúscula, número y símbolo).
+
+Además, la activación exige **aceptar la política de tratamiento de datos**: el checkbox ahora se envía como `aceptaPolitica` y, si falta, el servidor rechaza la activación.
+
+Las contraseñas que ya existen (incluidas las de los usuarios demo) siguen funcionando: la regla solo se aplica al definir una contraseña nueva.
+
+### Archivos modificados
+- `src/main/java/com/pucp/skillb_ia/controller/AuthViewController.java` — Constante `PASSWORD_VALIDA` y parámetro `aceptaPolitica`.
+- `src/main/java/com/pucp/skillb_ia/service/{AdminPerfilService,rm/RmPerfilService,pm/PmPerfilService,col/ColaboradorPerfilService}.java` — Nueva regla y mensaje de error.
+- `src/main/resources/templates/auth/{activar-cuenta,nueva-contrasena}.html` — `required`, `minlength="8"`, `pattern` y mensajes por campo; los formularios usan `novalidate data-custom-validate`.
+- `src/main/resources/static/js/auth-js/auth.js` — Validación propia que muestra el error debajo de cada campo (en lugar del globo del navegador) y verifica que la confirmación coincida.
+- `src/main/resources/static/css/auth-css/auth.css` — Estilos de `.auth-field-error` y del campo con error.
+- `src/main/resources/templates/{admin/admin-perfil,rm/rm-perfil,pm/pm-perfil,col/col-perfil}.html` — `minlength="8"`, `pattern` y `required` en el cambio de contraseña.
+
+### Consideraciones
+- Si el navegador no valida (p. ej. una petición manual), el servidor redirige a `?error` con un mensaje genérico que no indica qué regla falló.
+- La aceptación de la política no se guarda ni se audita; solo se exige para activar.
+- El Colaborador valida con `Character` (acepta mayúsculas y dígitos no ASCII, como "Ñ"), mientras que Auth y los perfiles de Admin/RM/PM usan la expresión regular (solo `A-Z` y `0-9`). La diferencia solo afecta a contraseñas con caracteres acentuados.
+- Sin pruebas automatizadas de la nueva regla. La suite completa se ejecutó después del commit: **454 pruebas, 0 fallos**.
+
+---
+
 ## Sesión 28 de Septiembre 2026
 
 ---

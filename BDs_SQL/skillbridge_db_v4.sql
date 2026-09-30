@@ -765,14 +765,6 @@ CREATE TABLE IF NOT EXISTS evaluacion (
     CONSTRAINT fk_eval_asignacion FOREIGN KEY (asignacion_id) REFERENCES asignacion(id)
 );
 
--- 2. Columna de horas por habilidad
--- 2. Columna de horas por habilidad
-ALTER TABLE proyecto_habilidad_requerida 
-    ADD COLUMN horas_semanales DECIMAL(5,2);
-
--- 3. Columna de documento de contexto en proyecto
-ALTER TABLE proyecto 
-    ADD COLUMN documento_contexto_url VARCHAR(500);
 -- =====================================================================
 -- DATOS DE PRUEBA: USUARIOS (contraseña para todos: abc123)
 -- Hash generado con BCrypt $ (compatible con Spring Security Java)

@@ -232,8 +232,74 @@
         </div>
       </div>
     </div>
+
+    <!-- Zona de riesgo: al final de la página, solo en ACTIVO/EN_ESPERA. Cada acción abre un modal que exige
+         motivo y el nombre exacto del proyecto; el servidor vuelve a validar todo. -->
+    <div class="card border-danger mb-4" id="projectDangerZone" th:if="${proyectoCerrable}">
+      <div class="card-header section-header"><div><h3 class="card-title mb-1 text-danger">Zona de riesgo</h3>
+        <div class="section-description">Acciones irreversibles: el proyecto se cierra y sus asignaciones pendientes y activas se cierran con él.</div></div></div>
+      <div class="card-body">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 pb-3 mb-3 border-bottom">
+          <div>
+            <div class="fw-semibold">Finalizar proyecto</div>
+            <div class="small text-secondary">Marca el proyecto como finalizado. Requiere que todas sus actividades estén completadas.</div>
+            <div class="small text-danger mt-1" id="finishProjectBlocked" th:if="${actividadesAbiertas > 0}"
+                 th:text="|No disponible: ${actividadesAbiertas} actividad(es) siguen pendientes, en progreso o en revisión.|">No disponible</div>
+          </div>
+          <button type="button" class="btn btn-outline-secondary" id="finishProjectButton"
+                  data-bs-toggle="modal" data-bs-target="#finishProjectModal"
+                  th:disabled="${actividadesAbiertas > 0}">Finalizar proyecto</button>
+        </div>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div>
+            <div class="fw-semibold">Cancelar proyecto</div>
+            <div class="small text-secondary">Detiene el proyecto de forma definitiva. Se notificará al Project Manager y a los colaboradores afectados.</div>
+          </div>
+          <button type="button" class="btn btn-outline-danger" id="cancelProjectButton"
+                  data-bs-toggle="modal" data-bs-target="#cancelProjectModal">Cancelar proyecto</button>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
+
+<th:block th:if="${proyectoCerrable}">
+<div class="modal modal-blur fade" th:each="cierre : ${ {'finalizar', 'cancelar'} }"
+     th:id="${cierre == 'finalizar'} ? 'finishProjectModal' : 'cancelProjectModal'"
+     tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" data-rm-cierre-form
+          th:action="@{/rm/proyectos/{id}/{accion}(id=${proyecto.proyecto.id}, accion=${cierre})}"
+          th:attr="data-nombre=${proyecto.proyecto.nombre}">
+      <div class="modal-header">
+        <h5 class="modal-title" th:text="${cierre == 'finalizar'} ? 'Finalizar proyecto' : 'Cancelar proyecto'">Cerrar proyecto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" role="alert">
+          <div th:text="${cierre == 'finalizar'}
+                ? 'El proyecto pasará a FINALIZADO. Esta acción no se puede deshacer.'
+                : 'El proyecto pasará a CANCELADO. Esta acción no se puede deshacer.'">Aviso</div>
+          <div class="small mt-1">Las asignaciones pendientes se rechazarán y las activas se finalizarán, liberando las horas de los colaboradores (sin strikes).</div>
+        </div>
+        <label class="form-label required" th:for="|motivo-${cierre}|">Motivo</label>
+        <textarea class="form-control mb-3" name="motivo" rows="3" maxlength="500" required
+                  th:id="|motivo-${cierre}|" placeholder="Explica por qué se cierra el proyecto (máx. 500 caracteres)"></textarea>
+        <label class="form-label required" th:for="|confirmacion-${cierre}|">
+          Para confirmar, escribe el nombre del proyecto: <strong th:text="${proyecto.proyecto.nombre}">Proyecto</strong>
+        </label>
+        <input type="text" class="form-control" name="confirmacionNombre" autocomplete="off" required
+               th:id="|confirmacion-${cierre}|">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Volver</button>
+        <button type="submit" class="btn btn-danger" data-rm-cierre-confirmar disabled
+                th:text="${cierre == 'finalizar'} ? 'Finalizar proyecto' : 'Cancelar proyecto'">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+</th:block>
 
 <div class="modal modal-blur fade" id="budgetChangeModal" tabindex="-1"
      aria-labelledby="budgetChangeModalTitle" aria-hidden="true">
@@ -267,6 +333,7 @@
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
 <script src="../../static/js/rm-js/rm-presupuesto-confirmacion.js" th:src="@{/js/rm-js/rm-presupuesto-confirmacion.js}"></script>
+<script th:if="${proyectoCerrable}" src="../../static/js/rm-js/rm-proyecto-cierre.js" th:src="@{/js/rm-js/rm-proyecto-cierre.js}"></script>
 <script src="../../static/js/rm-js/rm-proyecto-fechas.js" th:src="@{/js/rm-js/rm-proyecto-fechas.js}"></script>
 </body>
 </html>

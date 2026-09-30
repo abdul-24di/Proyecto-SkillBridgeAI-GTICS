@@ -27,6 +27,9 @@ public class RmCertificadoService {
     private static final String ROL_RM = "RESOURCE_MANAGER";
     private static final String ROL_COLABORADOR = "COLABORADOR";
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
+    /** Orden explícito del nivel general: solo se permite mantenerlo o subirlo (TASK-036). */
+    private static final List<NivelExperiencia> ORDEN_NIVELES =
+            List.of(NivelExperiencia.JUNIOR, NivelExperiencia.SEMI_SENIOR, NivelExperiencia.SENIOR);
 
     public static final int TAMANIO_PAGINA = 6;
 
@@ -135,16 +138,13 @@ public class RmCertificadoService {
         validarPendiente(certificado);
         ColaboradorHabilidad habilidad = obtenerHabilidadDelPerfil(certificado);
 
+        // Vacío equivale a mantener. Bajar lanza una excepción y revierte toda la aprobación.
+        if (nivelGeneral != null) aplicarNivelGeneral(certificado.getColaborador(), nivelGeneral, rm);
+
         if (nivelHabilidad != null) habilidad.setNivelDominio(nivelHabilidad);
         habilidad.setEstadoValidacion(EstadoValidacion.VALIDADA);
         habilidad.setActivo(true);
         colaboradorHabilidadRepository.save(habilidad);
-
-        if (nivelGeneral != null) {
-            certificado.getColaborador().setNivelExperiencia(nivelGeneral);
-            AdminCargoService.aplicarSueldoSegunCargo(certificado.getColaborador());
-            usuarioRepository.save(certificado.getColaborador());
-        }
 
         certificado.setEstado(EstadoCertificado.APROBADO);
         certificado.setMotivoRechazo(null);
@@ -196,13 +196,35 @@ public class RmCertificadoService {
         Usuario rm = obtenerRm(rmId);
         Usuario colaborador = obtenerColaborador(colaboradorId);
         if (nivel == null) throw new IllegalArgumentException("Selecciona un nivel de experiencia.");
+        aplicarNivelGeneral(colaborador, nivel, rm);
+    }
+
+    /**
+     * Regla única del nivel general para los flujos del RM (perfil y aprobación de certificado):
+     * bajar se rechaza sin modificar nada; mantener no cambia el usuario, el sueldo ni la auditoría;
+     * subir asigna el nivel, recalcula el sueldo según el cargo, guarda y audita anterior y nuevo.
+     */
+    private void aplicarNivelGeneral(Usuario colaborador, NivelExperiencia nuevo, Usuario rm) {
         NivelExperiencia anterior = colaborador.getNivelExperiencia();
-        colaborador.setNivelExperiencia(nivel);
+        int comparacion = Integer.compare(posicionNivel(nuevo), posicionNivel(anterior));
+        if (comparacion < 0) {
+            throw new IllegalStateException("No se puede bajar el nivel general de experiencia de "
+                    + textoNivel(anterior) + " a " + textoNivel(nuevo)
+                    + ". Solo se permite mantenerlo o subirlo.");
+        }
+        if (comparacion == 0) return;
+
+        colaborador.setNivelExperiencia(nuevo);
         AdminCargoService.aplicarSueldoSegunCargo(colaborador);
         usuarioRepository.save(colaborador);
-        auditoriaService.registrar(rm, "ACTUALIZACION_NIVEL_EXPERIENCIA", "USUARIO", colaboradorId,
+        auditoriaService.registrar(rm, "ACTUALIZACION_NIVEL_EXPERIENCIA", "USUARIO", colaborador.getId(),
                 "El RM actualizó el nivel general de " + nombreCompleto(colaborador) + ".",
-                anterior == null ? null : anterior.name(), nivel.name(), null);
+                anterior == null ? null : anterior.name(), nuevo.name(), null);
+    }
+
+    /** Posición en {@link #ORDEN_NIVELES}; sin nivel definido queda por debajo de JUNIOR. */
+    private int posicionNivel(NivelExperiencia nivel) {
+        return nivel == null ? -1 : ORDEN_NIVELES.indexOf(nivel);
     }
 
     private RmCertificadoView crearVista(Certificado certificado) {

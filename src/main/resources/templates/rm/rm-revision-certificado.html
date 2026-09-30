@@ -8,6 +8,51 @@
   <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
   <div class="row row-cards mb-4"><div class="col-lg-7"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Documento presentado</h3><div class="section-description">Revisa la evidencia antes de validar la habilidad.</div></div></div><div class="card-body review-body"><div class="document-preview"><div class="document-icon">DOC</div><div class="flex-fill"><div class="document-name" th:text="${certificado.nombreArchivo}">Documento</div><div class="text-secondary small">Evidencia enviada por el colaborador</div></div><a class="btn btn-outline-primary btn-sm" target="_blank" rel="noopener" th:href="${certificado.certificado.archivoUrl}">Ver documento</a></div><div class="info-grid info-grid-three mt-4"><div><div class="info-label">Habilidad asociada</div><div class="info-value" th:text="${certificado.certificado.habilidad.nombre}">Habilidad</div></div><div><div class="info-label">Nivel actual</div><div class="info-value" th:text="${certificado.nivelHabilidad}">Nivel</div></div><div><div class="info-label">Estado</div><div class="info-value" th:text="${certificado.estadoTexto}">Estado</div></div><div><div class="info-label">Fecha de subida</div><div class="info-value" th:text="${#temporals.format(certificado.certificado.fechaSubida, 'dd MMM yyyy HH:mm')}">Fecha</div></div><div th:if="${certificado.certificado.fechaRevision != null}"><div class="info-label">Fecha de revisión</div><div class="info-value" th:text="${#temporals.format(certificado.certificado.fechaRevision, 'dd MMM yyyy HH:mm')}">Fecha</div></div><div><div class="info-label">Revisado por</div><div class="info-value" th:text="${certificado.revisorNombre}">RM</div></div></div><div class="evidence-note mt-4"><div class="fw-semibold">Criterio de revisión</div><div class="small text-secondary">Aprobar valida la habilidad. Rechazar conserva el documento y registra obligatoriamente el motivo.</div></div></div></div></div>
     <div class="col-lg-5"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Colaborador</h3></div></div><div class="card-body review-body"><div class="d-flex gap-3"><span class="avatar profile-avatar bg-blue-lt text-blue" th:text="${certificado.colaboradorIniciales}">CO</span><div><h3 class="mb-1" th:text="${certificado.colaboradorNombre}">Nombre</h3><div class="text-secondary" th:text="${certificado.cargo}">Cargo</div><span class="badge bg-secondary-lt mt-2" th:text="${certificado.nivelGeneral}">Nivel</span></div></div><div class="mt-3"><span th:each="habilidad : ${certificado.habilidades}" class="badge bg-blue-lt skill-badge" th:text="${habilidad}">Habilidad</span></div><div class="context-grid mt-4"><div><div class="info-label">Nivel en la habilidad</div><div class="info-value" th:text="${certificado.nivelHabilidad}">Nivel</div></div><div><div class="info-label">Certificados aprobados</div><div class="info-value" th:text="${certificado.certificadosAprobados}">0</div></div></div><a class="btn btn-outline-primary btn-sm mt-4" th:href="@{/rm/colaboradores/perfil(id=${certificado.certificado.colaborador.id})}">Ver perfil completo</a></div></div></div></div>
-  <div th:if="${certificado.pendiente}" class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Decisión del Resource Manager</h3><div class="section-description">Los cambios de nivel son opcionales y solo se aplican al aprobar.</div></div></div><div class="card-body decision-body"><form method="post"><div class="row g-4"><div class="col-lg-6"><label for="nivelHabilidad" class="form-label">Nivel de habilidad al aprobar</label><select id="nivelHabilidad" name="nivelHabilidad" class="form-select"><option value="">Mantener nivel actual</option><option value="BASICO">Básico</option><option value="INTERMEDIO">Intermedio</option><option value="AVANZADO">Avanzado</option></select></div><div class="col-lg-6"><label for="nivelGeneral" class="form-label">Nivel general al aprobar</label><select id="nivelGeneral" name="nivelGeneral" class="form-select"><option value="">Mantener nivel actual</option><option value="JUNIOR">Junior</option><option value="SEMI_SENIOR">Semi Senior</option><option value="SENIOR">Senior</option></select></div><div class="col-12"><label for="motivo" class="form-label">Motivo del rechazo</label><textarea id="motivo" name="motivo" maxlength="300" rows="3" class="form-control" placeholder="Obligatorio únicamente si rechazas el certificado"></textarea></div></div><div class="action-bar"><a class="btn btn-outline-secondary" th:href="@{/rm/colaboradores/certificados}">Cancelar</a><button type="submit" class="btn btn-outline-danger" th:formaction="@{/rm/colaboradores/certificados/{id}/rechazar(id=${certificado.certificado.id})}">Rechazar certificado</button><button type="submit" class="btn btn-success" th:formaction="@{/rm/colaboradores/certificados/{id}/aprobar(id=${certificado.certificado.id})}">Aprobar certificado</button></div></form></div></div>
+  <div th:if="${certificado.pendiente}" class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Decisión del Resource Manager</h3><div class="section-description">Los cambios de nivel son opcionales y solo se aplican al aprobar.</div></div></div><div class="card-body decision-body"><form id="approveCertificateForm" method="post" th:action="@{/rm/colaboradores/certificados/{id}/aprobar(id=${certificado.certificado.id})}"><div class="row g-4"><div class="col-lg-6"><label for="nivelHabilidad" class="form-label">Nivel de habilidad al aprobar</label><select id="nivelHabilidad" name="nivelHabilidad" class="form-select"><option value="">Mantener nivel actual</option><option value="BASICO">Básico</option><option value="INTERMEDIO">Intermedio</option><option value="AVANZADO">Avanzado</option></select></div><div class="col-lg-6"><label for="nivelGeneral" class="form-label">Nivel general al aprobar</label><select id="nivelGeneral" name="nivelGeneral" class="form-select"><option value="">Mantener nivel actual</option><option value="JUNIOR">Junior</option><option value="SEMI_SENIOR">Semi Senior</option><option value="SENIOR">Senior</option></select></div></div><div class="action-bar"><a class="btn btn-outline-secondary" th:href="@{/rm/colaboradores/certificados}">Cancelar</a><button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectCertificateModal">Rechazar certificado</button><button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveCertificateModal">Aprobar certificado</button></div></form></div></div>
   <div th:unless="${certificado.pendiente}" class="alert" th:classappend="${certificado.certificado.estado.name() == 'APROBADO' ? 'alert-success' : 'alert-danger'}"><strong th:text="|Certificado ${certificado.estadoTexto.toLowerCase()}.|">Resultado</strong> <span th:text="${certificado.observacion}">Observación</span></div>
-</main></div><script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body></html>
+</main></div>
+
+<div th:if="${certificado.pendiente}" class="modal modal-blur fade rm-modal" id="approveCertificateModal" tabindex="-1" aria-labelledby="approveCertificateModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="approveCertificateModalTitle">Confirmar aprobación</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Vas a aprobar el certificado <strong th:text="|#${certificado.codigo}|">#CERT</strong> de <strong th:text="${certificado.certificado.habilidad.nombre}">Habilidad</strong> presentado por <strong th:text="${certificado.colaboradorNombre}">Colaborador</strong> (<span th:text="${certificado.nombreArchivo}">Documento</span>).</p>
+        <p class="text-secondary small mb-0">La habilidad quedará validada y se aplicarán los niveles elegidos en "Decisión del Resource Manager". Si dejaste "Mantener nivel actual", el nivel no cambia (habilidad: <span th:text="${certificado.nivelHabilidad}">Nivel</span>; general: <span th:text="${certificado.nivelGeneral}">Nivel</span>).</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="approveCertificateForm" class="btn btn-success">Confirmar aprobación</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:if="${certificado.pendiente}" class="modal modal-blur fade rm-modal" id="rejectCertificateModal" tabindex="-1" aria-labelledby="rejectCertificateModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rejectCertificateModalTitle">Confirmar rechazo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" th:action="@{/rm/colaboradores/certificados/{id}/rechazar(id=${certificado.certificado.id})}">
+        <div class="modal-body">
+          <p class="mb-2">Vas a rechazar el certificado <strong th:text="|#${certificado.codigo}|">#CERT</strong> de <strong th:text="${certificado.certificado.habilidad.nombre}">Habilidad</strong> presentado por <strong th:text="${certificado.colaboradorNombre}">Colaborador</strong> (<span th:text="${certificado.nombreArchivo}">Documento</span>).</p>
+          <p class="text-secondary small mb-3">El motivo se notificará al colaborador y quedará registrado en el historial del certificado.</p>
+          <label for="certificateRejectReason" class="form-label">Motivo del rechazo</label>
+          <textarea id="certificateRejectReason" name="motivo" maxlength="300" rows="4" class="form-control" required placeholder="Explica al colaborador por qué se rechaza el certificado"></textarea>
+          <div class="form-hint">El motivo es obligatorio y puede tener hasta 300 caracteres.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Confirmar rechazo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body></html>

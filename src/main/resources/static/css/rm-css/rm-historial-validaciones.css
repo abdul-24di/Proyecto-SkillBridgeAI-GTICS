@@ -146,6 +146,18 @@
   line-height: 1.4;
 }
 
+/* Columna "Acción": ancho mínimo, sin saltos de línea y botones del mismo ancho,
+   alineados a la derecha igual que su encabezado. */
+.history-card .table .history-action {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.history-card .table .history-action .btn {
+  min-width: 78px;
+}
+
 .reason-box {
   max-width: 310px;
   padding: .55rem .7rem;

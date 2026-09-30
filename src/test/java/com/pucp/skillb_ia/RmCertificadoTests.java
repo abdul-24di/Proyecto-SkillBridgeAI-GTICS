@@ -8,6 +8,7 @@ import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.rm.RmCertificadoService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +29,10 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -45,6 +49,7 @@ class RmCertificadoTests {
     @Autowired private CertificadoRepository certificadoRepository;
     @Autowired private RmCertificadoService certificadoService;
     @Autowired private ColaboradorPerfilService colaboradorPerfilService;
+    @Autowired private NotificacionRepository notificacionRepository;
 
     private MockMvc mockMvc;
     private Usuario rm;
@@ -92,6 +97,11 @@ class RmCertificadoTests {
         perfilHabilidad.setNivelDominio(NivelDominio.BASICO);
         perfilHabilidad.setEstadoValidacion(EstadoValidacion.PENDIENTE);
         colaboradorHabilidadRepository.save(perfilHabilidad);
+    }
+
+    @AfterEach
+    void limpiarSesion() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -302,6 +312,171 @@ class RmCertificadoTests {
                 "habilidad=Java", "pagina=1")) {
             assertTrue(anterior.contains(parametro), anterior);
         }
+    }
+
+    @Test
+    void revisionPendienteRechazaEnModalConFormularioPropio() throws Exception {
+        Certificado certificado = guardarPendiente("/uploads/certificados/modal-test.pdf");
+        MvcResult resultado = mockMvc.perform(get("/rm/colaboradores/certificados/revision")
+                        .param("id", certificado.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        String codigo = ((com.pucp.skillb_ia.dto.RmCertificadoView) resultado.getModelAndView()
+                .getModel().get("certificado")).getCodigo();
+        String base = "/rm/colaboradores/certificados/" + certificado.getId();
+
+        assertTrue(html.contains("<button type=\"button\" class=\"btn btn-outline-danger\" data-bs-toggle=\"modal\""
+                + " data-bs-target=\"#rejectCertificateModal\">Rechazar certificado</button>"), html);
+
+        String tarjeta = html.substring(html.indexOf("Decisión del Resource Manager"), html.indexOf("</main>"));
+        assertEquals(1, contar(tarjeta, "<form"));
+        assertTrue(tarjeta.contains("<form id=\"approveCertificateForm\" method=\"post\" action=\"" + base + "/aprobar\">"),
+                tarjeta);
+        assertTrue(tarjeta.contains("name=\"nivelHabilidad\""));
+        assertTrue(tarjeta.contains("name=\"nivelGeneral\""));
+        assertTrue(tarjeta.contains("<button type=\"button\" class=\"btn btn-success\" data-bs-toggle=\"modal\""
+                + " data-bs-target=\"#approveCertificateModal\">Aprobar certificado</button>"), tarjeta);
+        assertFalse(tarjeta.contains("type=\"submit\""));
+        assertFalse(tarjeta.contains("<textarea"));
+        assertFalse(tarjeta.contains("name=\"motivo\""));
+        assertFalse(tarjeta.contains("formaction"));
+
+        int inicioAprobacion = html.indexOf("id=\"approveCertificateModal\"");
+        assertTrue(inicioAprobacion > html.indexOf("</main>"));
+        String aprobacion = html.substring(inicioAprobacion, html.indexOf("id=\"rejectCertificateModal\""));
+        assertFalse(aprobacion.contains("<form"));
+        assertTrue(aprobacion.contains("Confirmar aprobación"));
+        assertTrue(aprobacion.contains("#" + codigo));
+        assertTrue(aprobacion.contains("data-bs-dismiss=\"modal\">Cancelar</button>"));
+        assertTrue(aprobacion.contains("<button type=\"submit\" form=\"approveCertificateForm\" class=\"btn btn-success\">"
+                + "Confirmar aprobación</button>"), aprobacion);
+
+        int inicioModal = html.indexOf("id=\"rejectCertificateModal\"");
+        assertTrue(inicioModal > html.indexOf("</main>"));
+        String modal = html.substring(inicioModal, html.indexOf("<script", inicioModal));
+        assertEquals(1, contar(modal, "<form"));
+        assertTrue(modal.contains("<form method=\"post\" action=\"" + base + "/rechazar\">"), modal);
+        assertTrue(modal.contains("#" + codigo));
+        assertTrue(modal.contains("Java Cert Test"));
+        assertTrue(modal.contains("Carlos Prueba"));
+        assertTrue(modal.contains("El motivo se notificará al colaborador"));
+        Matcher motivo = Pattern.compile("<textarea[^>]*>").matcher(modal);
+        assertTrue(motivo.find());
+        String textarea = motivo.group();
+        assertTrue(textarea.contains("name=\"motivo\""), textarea);
+        assertTrue(textarea.contains("required"), textarea);
+        assertTrue(textarea.contains("maxlength=\"300\""), textarea);
+        assertTrue(modal.contains("data-bs-dismiss=\"modal\">Cancelar</button>"));
+        assertTrue(modal.contains("<button type=\"submit\" class=\"btn btn-danger\">Confirmar rechazo</button>"));
+        assertEquals(1, contar(html, "name=\"motivo\""));
+    }
+
+    @Test
+    void aprobarDesdeLaRevisionNoExigeMotivo() throws Exception {
+        Certificado certificado = guardarPendiente("/uploads/certificados/aprobar-post.pdf");
+        autenticarRm();
+
+        mockMvc.perform(post("/rm/colaboradores/certificados/{id}/aprobar", certificado.getId())
+                        .param("nivelHabilidad", "INTERMEDIO").param("nivelGeneral", ""))
+                .andExpect(redirectedUrl("/rm/colaboradores/certificados"))
+                .andExpect(flash().attribute("mensajeExito", "Certificado aprobado y perfil actualizado."));
+
+        Certificado aprobado = certificadoRepository.findById(certificado.getId()).orElseThrow();
+        assertEquals(EstadoCertificado.APROBADO, aprobado.getEstado());
+        assertNull(aprobado.getMotivoRechazo());
+        assertEquals(NivelDominio.INTERMEDIO, colaboradorHabilidadRepository
+                .findByColaboradorAndHabilidad(colaborador, habilidad).orElseThrow().getNivelDominio());
+    }
+
+    @Test
+    void rechazarSinMotivoLoRechazaElServidorYConservaPendiente() throws Exception {
+        Certificado certificado = guardarPendiente("/uploads/certificados/sin-motivo.pdf");
+        autenticarRm();
+
+        mockMvc.perform(post("/rm/colaboradores/certificados/{id}/rechazar", certificado.getId())
+                        .param("motivo", "   "))
+                .andExpect(redirectedUrl("/rm/colaboradores/certificados/revision?id=" + certificado.getId()))
+                .andExpect(flash().attribute("mensajeError", "Debes indicar el motivo del rechazo."));
+        mockMvc.perform(post("/rm/colaboradores/certificados/{id}/rechazar", certificado.getId()))
+                .andExpect(status().isBadRequest());
+
+        Certificado pendiente = certificadoRepository.findById(certificado.getId()).orElseThrow();
+        assertEquals(EstadoCertificado.PENDIENTE, pendiente.getEstado());
+        assertNull(pendiente.getMotivoRechazo());
+        assertNull(pendiente.getRevisadoPor());
+        assertEquals(EstadoValidacion.PENDIENTE, colaboradorHabilidadRepository
+                .findByColaboradorAndHabilidad(colaborador, habilidad).orElseThrow().getEstadoValidacion());
+    }
+
+    @Test
+    void rechazarConMotivoConservaElComportamientoExistente() throws Exception {
+        Certificado certificado = guardarPendiente("/uploads/certificados/con-motivo.pdf");
+        autenticarRm();
+
+        mockMvc.perform(post("/rm/colaboradores/certificados/{id}/rechazar", certificado.getId())
+                        .param("motivo", "  La evidencia es ilegible.  "))
+                .andExpect(redirectedUrl("/rm/colaboradores/certificados"))
+                .andExpect(flash().attribute("mensajeExito", "Certificado rechazado; el motivo quedó guardado."));
+
+        Certificado rechazado = certificadoRepository.findById(certificado.getId()).orElseThrow();
+        assertEquals(EstadoCertificado.RECHAZADO, rechazado.getEstado());
+        assertEquals("La evidencia es ilegible.", rechazado.getMotivoRechazo());
+        assertEquals(rm.getId(), rechazado.getRevisadoPor().getId());
+        assertNotNull(rechazado.getFechaRevision());
+        assertEquals(EstadoValidacion.RECHAZADA, colaboradorHabilidadRepository
+                .findByColaboradorAndHabilidad(colaborador, habilidad).orElseThrow().getEstadoValidacion());
+        assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaborador).stream()
+                .anyMatch(n -> "CERTIFICADO_RECHAZADO".equals(n.getTipo())
+                        && certificado.getId().equals(n.getEntidadId())
+                        && n.getDescripcion().contains("La evidencia es ilegible.")));
+    }
+
+    @Test
+    void certificadoRevisadoNoMuestraDecisionNiModal() throws Exception {
+        Certificado aprobado = guardar("/uploads/certificados/ya-aprobado.pdf", habilidad, EstadoCertificado.APROBADO);
+        Certificado rechazado = guardar("/uploads/certificados/ya-rechazado.pdf", habilidad, EstadoCertificado.RECHAZADO);
+
+        for (Certificado certificado : List.of(aprobado, rechazado)) {
+            String html = mockMvc.perform(get("/rm/colaboradores/certificados/revision")
+                            .param("id", certificado.getId().toString()))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+            assertFalse(html.contains("rejectCertificateModal"));
+            assertFalse(html.contains("approveCertificateModal"));
+            assertFalse(html.contains("Decisión del Resource Manager"));
+            assertFalse(html.contains("name=\"motivo\""));
+            assertFalse(html.contains("Confirmar rechazo"));
+            assertTrue(html.contains(certificado == aprobado ? "alert-success" : "alert-danger"));
+        }
+    }
+
+    @Test
+    void historialConservaRevisarYVerConLaColumnaDeAccionAlineada() throws Exception {
+        Certificado pendiente = guardarPendiente("/uploads/certificados/hist-pendiente.pdf");
+        Certificado aprobado = guardar("/uploads/certificados/hist-aprobado.pdf", habilidad, EstadoCertificado.APROBADO);
+        Certificado rechazado = guardar("/uploads/certificados/hist-rechazado.pdf", habilidad, EstadoCertificado.RECHAZADO);
+
+        String html = mockMvc.perform(get("/rm/colaboradores/historial-validaciones")
+                        .param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        String revision = "href=\"/rm/colaboradores/certificados/revision?id=";
+        assertTrue(html.contains(revision + pendiente.getId() + "\">Revisar</a>"), html);
+        assertTrue(html.contains(revision + aprobado.getId() + "\">Ver</a>"));
+        assertTrue(html.contains(revision + rechazado.getId() + "\">Ver</a>"));
+        assertTrue(html.contains("<table class=\"table table-vcenter card-table mb-0\">"));
+        assertTrue(html.contains("<th class=\"text-end history-action\">Acción</th>"));
+        assertEquals(3, contar(html, "<td class=\"text-end history-action\"><a class=\"btn btn-outline-secondary btn-sm\""));
+        assertEquals(3, contar(html, "<td class=\"observation\">"));
+    }
+
+    private void autenticarRm() {
+        UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER")
+                .stream().filter(u -> u.getId().equals(rm.getId())).findFirst().orElseThrow());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities()));
     }
 
     private int filas(MvcResult resultado) {

@@ -100,10 +100,10 @@
     <div class="card section-card mb-4">
       <div class="card-header section-header"><div><h3 class="card-title mb-1">Nivel general de experiencia</h3><div class="section-description">El Resource Manager puede actualizar esta clasificación de forma independiente a un certificado.</div></div></div>
       <div class="card-body">
-        <form class="row g-3 align-items-end" method="post"
+        <form id="nivelExperienciaForm" class="row g-3 align-items-end" method="post"
               th:action="@{/rm/colaboradores/{id}/nivel-experiencia(id=${colaborador.resumen.id})}">
-          <div class="col-md-8"><label for="nivelExperiencia" class="form-label">Nivel</label><select id="nivelExperiencia" name="nivel" class="form-select"><option value="JUNIOR" th:selected="${colaborador.resumen.nivelCodigo == 'JUNIOR'}">Junior</option><option value="SEMI_SENIOR" th:selected="${colaborador.resumen.nivelCodigo == 'SEMI_SENIOR'}">Semi Senior</option><option value="SENIOR" th:selected="${colaborador.resumen.nivelCodigo == 'SENIOR'}">Senior</option></select></div>
-          <div class="col-md-4 d-grid"><button type="submit" class="btn btn-primary">Guardar nivel</button></div>
+          <div class="col-md-8"><label for="nivelExperiencia" class="form-label">Nivel</label><select id="nivelExperiencia" name="nivel" class="form-select"><option value="JUNIOR" th:unless="${colaborador.resumen.nivelCodigo == 'SEMI_SENIOR' or colaborador.resumen.nivelCodigo == 'SENIOR'}" th:selected="${colaborador.resumen.nivelCodigo == 'JUNIOR'}">Junior</option><option value="SEMI_SENIOR" th:unless="${colaborador.resumen.nivelCodigo == 'SENIOR'}" th:selected="${colaborador.resumen.nivelCodigo == 'SEMI_SENIOR'}">Semi Senior</option><option value="SENIOR" th:selected="${colaborador.resumen.nivelCodigo == 'SENIOR'}">Senior</option></select><div class="form-hint">Solo se puede mantener o subir el nivel general; nunca bajarlo.</div></div>
+          <div class="col-md-4 d-grid"><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nivelExperienciaModal">Guardar nivel</button></div>
         </form>
       </div>
     </div>
@@ -419,7 +419,32 @@
 
 <div th:replace="~{fragments/rm-asignacion-modales :: modalPropuesta}"></div>
 
+<!-- MODAL: CONFIRMAR NIVEL GENERAL (TASK-036); envía #nivelExperienciaForm -->
+<div class="modal modal-blur fade rm-modal" id="nivelExperienciaModal" tabindex="-1" aria-labelledby="nivelExperienciaModalTitle" aria-hidden="true" data-nivel-select="nivelExperiencia">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="nivelExperienciaModalTitle">Confirmar nivel general</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Nivel general de <strong th:text="${colaborador.resumen.nombreCompleto}">Colaborador</strong>:</p>
+        <ul class="mb-3">
+          <li>Nivel actual: <strong th:text="${colaborador.resumen.nivel}">Nivel</strong></li>
+          <li>Nivel seleccionado: <strong data-nivel-seleccionado th:text="${colaborador.resumen.nivel}">Nivel</strong></li>
+        </ul>
+        <p class="text-secondary small mb-0">Si el nivel sube, se recalculará el sueldo según el cargo. Mantener el mismo nivel no cambia el sueldo; no se permite bajarlo.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="nivelExperienciaForm" class="btn btn-primary">Confirmar nivel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/rm-js/rm-nivel-general.js" th:src="@{/js/rm-js/rm-nivel-general.js}"></script>
 <script src="../../static/js/rm-js/rm-propuesta-asignacion.js" th:src="@{/js/rm-js/rm-propuesta-asignacion.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
 <script src="../../static/js/rm-js/rm-perfil-colaborador.js" th:src="@{/js/rm-js/rm-perfil-colaborador.js}"></script>

@@ -6,8 +6,9 @@
   width: auto;
   max-width: none;
   min-height: 58px;
+  /* Hija directa de .app-shell (ancho completo). Un margen negativo en vw incluiría la barra de
+     desplazamiento vertical y provocaría scroll horizontal. */
   margin: 0;
-  margin-inline: calc(50% - 50vw);
   padding: 0;
   color: #ffffff;
   background: linear-gradient(

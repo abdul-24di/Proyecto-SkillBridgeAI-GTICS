@@ -30,22 +30,36 @@ import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
+import com.pucp.skillb_ia.controller.RmViewController;
+import com.pucp.skillb_ia.service.EvaluacionService;
+import com.pucp.skillb_ia.service.rm.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.ui.ConcurrentModel;
 import org.springframework.web.context.WebApplicationContext;
+import org.thymeleaf.context.WebContext;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.thymeleaf.web.servlet.JakartaServletWebApplication;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -1659,5 +1673,91 @@ class RmProyectoViewTests {
         // Solo se renderizan los 6 proyectos de la página, visibles sin que JS los muestre u oculte.
         org.junit.jupiter.api.Assertions.assertEquals(6, contar(html, "class=\"col-lg-6 project-item\""));
         org.junit.jupiter.api.Assertions.assertEquals(0, contar(html, "project-item d-none"));
+    }
+
+    // ===== TASK-031: estados vacíos con el fragmento común (fragments/rm-empty-state) =====
+
+    @Autowired private SpringTemplateEngine templateEngine;
+
+    @Test
+    void listadoSinProyectosRegistradosMuestraElEstadoVacioSinAcciones() {
+        // El H2 compartido siempre tiene proyectos: el controlador real recibe un servicio simulado sin datos.
+        RmProyectoConsultaService consulta = mock(RmProyectoConsultaService.class);
+        when(consulta.normalizarFiltros(any(), any(), any(), any()))
+                .thenReturn(new RmProyectoConsultaService.FiltrosProyecto("", "", "", ""));
+        when(consulta.listarPagina(any(), any())).thenReturn(new RmProyectoConsultaService.PaginaProyectos(
+                List.of(), 1, 1, 0, new RmProyectoConsultaService.ContadoresProyectos(0, 0, 0, 0)));
+        ConcurrentModel modelo = new ConcurrentModel();
+        org.junit.jupiter.api.Assertions.assertEquals("rm/rm-proyectos",
+                controladorCon(consulta).projects(null, null, null, null, null, null, modelo));
+        String html = renderizarVista("/rm/proyectos", "rm/rm-proyectos", modelo);
+
+        org.junit.jupiter.api.Assertions.assertEquals(1, contar(html, "class=\"empty-state\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<span class=\"empty-state-icon\" aria-hidden=\"true\">"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<div class=\"empty-state-title\">No hay proyectos registrados</div>"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(
+                "<div class=\"empty-state-text\">Los proyectos que registren los Project Managers aparecerán aquí.</div>"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("noProjectResults"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("empty-state-action"), "El RM no crea proyectos");
+    }
+
+    @Test
+    void listadoSinResultadosFiltradosOfreceLimpiarFiltros() throws Exception {
+        String html = renderizar("/rm/proyectos?busqueda=sin-coincidencias-t031&estado=ACTIVO");
+
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("id=\"noProjectResults\""));
+        org.junit.jupiter.api.Assertions.assertEquals(1, contar(html, "class=\"empty-state\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<div class=\"empty-state-title\">Sin resultados para los filtros</div>"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("No se encontraron proyectos con los filtros seleccionados."));
+        // Mismo destino que el botón "Limpiar filtros" del formulario.
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(
+                "<a class=\"btn btn-outline-primary btn-sm\" href=\"/rm/proyectos\">Limpiar filtros</a>"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("No hay proyectos registrados"));
+        // Filtros y paginación se conservan.
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("value=\"sin-coincidencias-t031\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("value=\"ACTIVO\" selected=\"selected\""));
+    }
+
+    @Test
+    void detalleYRevisionUsanElEstadoVacioComunSinCambiarSusCondiciones() throws Exception {
+        String revision = renderizar("/rm/proyectos/revision?id=" + proyectoId);
+        org.junit.jupiter.api.Assertions.assertEquals(1, contar(revision, "class=\"empty-state\""));
+        org.junit.jupiter.api.Assertions.assertTrue(revision.contains("<div class=\"empty-state-title\">Sin habilidades requeridas</div>"));
+        org.junit.jupiter.api.Assertions.assertTrue(revision.contains("No hay habilidades requeridas registradas."));
+
+        activarProyecto();
+        String detalle = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+        org.junit.jupiter.api.Assertions.assertEquals(2, contar(detalle, "class=\"empty-state\""));
+        org.junit.jupiter.api.Assertions.assertTrue(detalle.contains("<div class=\"empty-state-title\">Sin integrantes activos</div>"));
+        org.junit.jupiter.api.Assertions.assertTrue(detalle.contains("El proyecto todavía no tiene integrantes activos."));
+        org.junit.jupiter.api.Assertions.assertTrue(detalle.contains("<div class=\"empty-state-title\">Sin habilidades requeridas</div>"));
+        org.junit.jupiter.api.Assertions.assertTrue(detalle.contains("No se registraron habilidades requeridas."));
+        org.junit.jupiter.api.Assertions.assertFalse(detalle.contains("empty-state-action"));
+
+        // Con un requisito, la condición deja de mostrar ese estado vacío en ambas vistas.
+        guardarRequisito("Requisito T031", NivelDominio.INTERMEDIO, 1);
+        String detalleConRequisito = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+        org.junit.jupiter.api.Assertions.assertEquals(1, contar(detalleConRequisito, "class=\"empty-state\""));
+        org.junit.jupiter.api.Assertions.assertFalse(detalleConRequisito.contains("No se registraron habilidades requeridas."));
+        fijarEstado(EstadoProyecto.EN_REVISION);
+        org.junit.jupiter.api.Assertions.assertEquals(0,
+                contar(renderizar("/rm/proyectos/revision?id=" + proyectoId), "class=\"empty-state\""));
+    }
+
+    private RmViewController controladorCon(RmProyectoConsultaService consulta) {
+        return new RmViewController(
+                mock(RmPerfilService.class), mock(RmColaboradorConsultaService.class), consulta,
+                mock(RmProyectoRevisionService.class), mock(RmAsignacionService.class),
+                mock(RmSolicitudPersonalService.class), mock(RmCertificadoService.class),
+                mock(RmEducacionService.class), mock(RmForoConsultaService.class), mock(RmReporteService.class),
+                mock(RmReporteExportService.class), mock(RmCursoService.class), mock(RmPresupuestoService.class),
+                mock(EvaluacionService.class));
+    }
+
+    private String renderizarVista(String ruta, String plantilla, ConcurrentModel modelo) {
+        MockHttpServletRequest request = new MockHttpServletRequest(context.getServletContext(), "GET", ruta);
+        var intercambio = JakartaServletWebApplication.buildApplication(context.getServletContext())
+                .buildExchange(request, new MockHttpServletResponse());
+        return templateEngine.process(plantilla, new WebContext(intercambio, Locale.forLanguageTag("es"), modelo.asMap()));
     }
 }

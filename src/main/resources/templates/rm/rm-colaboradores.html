@@ -568,13 +568,18 @@
 
           <div class="col-12" th:if="${totalColaboradores == 0}">
             <div class="card">
-              <div class="empty-state">No hay colaboradores activos registrados.</div>
+              <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='usuarios',
+                  vacioTitulo='No hay colaboradores activos registrados',
+                  vacioTexto='Los colaboradores activos aparecerán en este directorio.')}"></div>
             </div>
           </div>
 
           <div id="noFilterResults" class="col-12" th:if="${totalColaboradores > 0 and #lists.isEmpty(colaboradores)}">
             <div class="card">
-              <div class="empty-state">No se encontraron colaboradores con los filtros seleccionados.</div>
+              <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='busqueda',
+                  vacioTitulo='Sin resultados para los filtros',
+                  vacioTexto='No se encontraron colaboradores con los filtros seleccionados.',
+                  vacioAccionTexto='Limpiar filtros', vacioAccionUrl=@{/rm/colaboradores})}"></div>
             </div>
           </div>
         </div>

@@ -443,6 +443,41 @@ class RmSolicitudPersonalTests {
         return proyectoRepository.save(nuevo);
     }
 
+    // TASK-031: la fila vacía usa el fragmento común, conserva id, colspan y la clase d-none cuando hay filas.
+    @Test
+    void filaVaciaUsaElComponenteComunYConservaSuIdColspanYClase() throws Exception {
+        String vacio = html(mockMvc.perform(get(LISTADO).param("busqueda", "sin-coincidencias-t031"))
+                .andExpect(status().isOk()).andReturn());
+        assertTrue(vacio.contains("<tr id=\"emptyRequests\"><td colspan=\"8\" class=\"empty-state-cell\">"
+                + "<div class=\"empty-state\">"), vacio);
+        assertTrue(vacio.contains("<div class=\"empty-state-title\">Sin solicitudes</div>"));
+        assertTrue(vacio.contains("<div class=\"empty-state-text\">No se encontraron solicitudes.</div>"));
+        assertFalse(vacio.contains("empty-state-action"));
+        assertTrue(vacio.contains("value=\"sin-coincidencias-t031\""));
+
+        crearSolicitudDirecta(crearProyecto("Con filas T031", Prioridad.MEDIA), EstadoSolicitudPersonal.PENDIENTE, 0, 1);
+        String conFilas = html(mockMvc.perform(get(LISTADO)).andExpect(status().isOk()).andReturn());
+        assertTrue(conFilas.contains("<tr id=\"emptyRequests\" class=\"d-none\"><td colspan=\"8\" class=\"empty-state-cell\">"),
+                conFilas);
+    }
+
+    @Test
+    void proyectoDeLaSolicitudSinEquipoNiRequisitosUsaElComponenteComun() throws Exception {
+        SolicitudPersonal solicitud = crearSolicitudDirecta(
+                crearProyecto("Sin equipo T031", Prioridad.BAJA), EstadoSolicitudPersonal.PENDIENTE, 0, 1);
+
+        String html = html(mockMvc.perform(get("/rm/proyectos/detalle-solicitudes")
+                        .param("solicitudId", solicitud.getId().toString()))
+                .andExpect(status().isOk()).andReturn());
+
+        assertEquals(2, html.split("class=\"empty-state\"", -1).length - 1);
+        assertTrue(html.contains("<tr><td colspan=\"5\" class=\"empty-state-cell\"><div class=\"empty-state\">"));
+        assertTrue(html.contains("<div class=\"empty-state-title\">Sin asignaciones activas</div>"));
+        assertTrue(html.contains("El proyecto todavía no tiene asignaciones activas."));
+        assertTrue(html.contains("<div class=\"empty-state-title\">Sin requisitos registrados</div>"));
+        assertFalse(html.contains("empty-state-action"));
+    }
+
     private SolicitudPersonal crearSolicitudDirecta(Proyecto destino, EstadoSolicitudPersonal estado,
                                                     int horasAtras, int cantidad) {
         SolicitudPersonal solicitud = new SolicitudPersonal();

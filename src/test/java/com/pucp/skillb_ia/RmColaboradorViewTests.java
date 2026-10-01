@@ -26,6 +26,9 @@ import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.rm.RmColaboradorConsultaService;
+import com.pucp.skillb_ia.controller.RmViewController;
+import com.pucp.skillb_ia.service.EvaluacionService;
+import com.pucp.skillb_ia.service.rm.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +42,12 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.ui.ConcurrentModel;
+import org.thymeleaf.context.WebContext;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.thymeleaf.web.servlet.JakartaServletWebApplication;
 
 import java.math.BigDecimal;
 import java.net.URLDecoder;
@@ -46,6 +55,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,6 +64,9 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -560,5 +573,127 @@ class RmColaboradorViewTests {
     private Cargo cargoDePrueba(String nombre) {
         return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
                 new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
+    }
+
+    // ===== TASK-031: estados vacíos con el fragmento común (fragments/rm-empty-state) =====
+
+    @Autowired private SpringTemplateEngine templateEngine;
+
+    @Test
+    void directorioSinColaboradoresActivosMuestraElEstadoVacioSinAcciones() {
+        // El H2 compartido siempre tiene colaboradores: el controlador real recibe un servicio simulado sin datos.
+        RmColaboradorConsultaService consulta = mock(RmColaboradorConsultaService.class);
+        when(consulta.normalizarFiltrosDirectorio(any(), any(), any(), any()))
+                .thenReturn(new RmColaboradorConsultaService.FiltrosColaborador("", "", "", ""));
+        when(consulta.listarPaginaDirectorio(any(), any())).thenReturn(new RmColaboradorConsultaService.PaginaColaboradores(
+                List.of(), 1, 1, 0, new RmColaboradorConsultaService.ContadoresColaboradores(0, 0, 0, 0)));
+        RmViewController controller = new RmViewController(
+                mock(RmPerfilService.class), consulta, mock(RmProyectoConsultaService.class),
+                mock(RmProyectoRevisionService.class), mock(RmAsignacionService.class),
+                mock(RmSolicitudPersonalService.class), mock(RmCertificadoService.class),
+                mock(RmEducacionService.class), mock(RmForoConsultaService.class), mock(RmReporteService.class),
+                mock(RmReporteExportService.class), mock(RmCursoService.class), mock(RmPresupuestoService.class),
+                mock(EvaluacionService.class));
+        ConcurrentModel modelo = new ConcurrentModel();
+        assertEquals("rm/rm-colaboradores", controller.collaborators(null, null, null, null, null, null, modelo));
+
+        MockHttpServletRequest request = new MockHttpServletRequest(
+                webApplicationContext.getServletContext(), "GET", "/rm/colaboradores");
+        var intercambio = JakartaServletWebApplication.buildApplication(webApplicationContext.getServletContext())
+                .buildExchange(request, new MockHttpServletResponse());
+        String html = templateEngine.process("rm/rm-colaboradores",
+                new WebContext(intercambio, Locale.forLanguageTag("es"), modelo.asMap()));
+
+        assertEquals(1, contar(html, "class=\"empty-state\""));
+        assertTrue(html.contains("<span class=\"empty-state-icon\" aria-hidden=\"true\">"));
+        assertTrue(html.contains("<div class=\"empty-state-title\">No hay colaboradores activos registrados</div>"));
+        assertTrue(html.contains("Los colaboradores activos aparecerán en este directorio."));
+        assertFalse(html.contains("noFilterResults"));
+        assertFalse(html.contains("empty-state-action"), "El RM no registra colaboradores");
+    }
+
+    @Test
+    void directorioSinResultadosFiltradosOfreceLimpiarFiltros() throws Exception {
+        String html = mockMvc.perform(get("/rm/colaboradores")
+                        .param("busqueda", "sin-coincidencias-t031").param("carga", "max"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalRegistros", 0L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("id=\"noFilterResults\""));
+        assertEquals(1, contar(html, "class=\"empty-state\""));
+        assertTrue(html.contains("<div class=\"empty-state-title\">Sin resultados para los filtros</div>"));
+        assertTrue(html.contains("No se encontraron colaboradores con los filtros seleccionados."));
+        // Mismo destino que el botón "Limpiar filtros" del formulario.
+        assertTrue(html.contains("<a class=\"btn btn-outline-primary btn-sm\" href=\"/rm/colaboradores\">Limpiar filtros</a>"));
+        assertFalse(html.contains("No hay colaboradores activos registrados"));
+        assertTrue(html.contains("value=\"sin-coincidencias-t031\""));
+    }
+
+    @Test
+    void perfilSinRegistrosUsaElComponenteEnSusCincoEstadosVacios() throws Exception {
+        Usuario vacio = usuarioRepository.findByCorreo("colaborador.vacio.t031@skillbridge.test").orElseGet(() -> {
+            Usuario nuevo = new Usuario();
+            nuevo.setCorreo("colaborador.vacio.t031@skillbridge.test");
+            nuevo.setNombre("Vacío");
+            nuevo.setApellido("T031");
+            nuevo.setCargo(cargoDePrueba("Backend Developer"));
+            nuevo.setRol(rolRepository.findByNombre("COLABORADOR").orElseThrow());
+            nuevo.setNivelExperiencia(NivelExperiencia.JUNIOR);
+            nuevo.setHorasDisponibles(BigDecimal.valueOf(40));
+            nuevo.setAniosExperiencia(BigDecimal.ZERO);
+            return nuevo;
+        });
+        vacio.setActivo(true);
+        vacio = usuarioRepository.save(vacio);
+        loteCreado.add(vacio);
+
+        String html = mockMvc.perform(get("/rm/colaboradores/perfil").param("id", vacio.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertEquals(5, contar(html, "class=\"empty-state\""));
+        assertEquals(5, contar(html, "<span class=\"empty-state-icon\" aria-hidden=\"true\">"));
+        for (String[] estado : new String[][] {
+                {"Sin habilidades registradas", "Este colaborador todavía no registró habilidades."},
+                {"Sin asignaciones activas", "Este colaborador no tiene asignaciones activas."},
+                {"Sin experiencia profesional", "No hay experiencia profesional registrada."},
+                {"Sin evaluaciones", "El colaborador aún no tiene evaluaciones registradas."},
+                {"Sin estudios registrados", "No hay estudios registrados."}}) {
+            assertTrue(html.contains("<div class=\"empty-state-title\">" + estado[0] + "</div>"), estado[0]);
+            assertTrue(html.contains("<div class=\"empty-state-text\">" + estado[1] + "</div>"), estado[1]);
+        }
+        assertFalse(html.contains("empty-state-action"), "Secciones de solo lectura");
+        // Sin asignaciones activas no se pinta la tabla ni su paginación; el script de TASK-050 sigue cargándose.
+        assertFalse(html.contains("id=\"paginationInfo\""));
+        assertTrue(html.contains("rm-perfil-colaborador.js"));
+        assertTrue(html.contains("Ver historial"));
+    }
+
+    // Distribución del perfil: tarjetas alineadas, sin columnas apiladas que se desborden ni scroll horizontal.
+    @Test
+    void perfilDistribuyeLasTarjetasSinDesbordesNiMargenesSobrantes() throws Exception {
+        String html = mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaboradorId.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+
+        assertFalse(html.contains("h-100 mt-4"), "Información general y Evaluaciones ya no se desplazan con mt-4");
+        int experiencia = html.indexOf(">Experiencia profesional<");
+        int educacion = html.indexOf(">Educación<");
+        int evaluaciones = html.indexOf(">Historial de Desempeño (Evaluaciones)<");
+        assertTrue(experiencia > 0 && experiencia < educacion && educacion < evaluaciones);
+        // Experiencia y Educación comparten fila en dos columnas; Evaluaciones ocupa todo el ancho debajo.
+        String fila = html.substring(html.lastIndexOf("<div class=\"row row-cards mb-4\">", experiencia), evaluaciones);
+        assertEquals(2, contar(fila, "<div class=\"col-lg-6\"> <div class=\"card section-card h-100\">"));
+        assertTrue(html.contains("<div class=\"card section-card mb-4\"> <div class=\"card-header section-header\"> "
+                + "<div> <h3 class=\"card-title mb-1\">Historial de Desempeño (Evaluaciones)</h3>"));
+
+        String topbar = java.nio.file.Files.readString(
+                java.nio.file.Path.of("src/main/resources/static/css/rm-css/rm-topbar.css"), StandardCharsets.UTF_8);
+        assertFalse(topbar.contains("50vw"), "50vw incluye la barra de desplazamiento y provoca scroll horizontal");
+    }
+
+    private static int contar(String texto, String fragmento) {
+        return texto.split(Pattern.quote(fragmento), -1).length - 1;
     }
 }

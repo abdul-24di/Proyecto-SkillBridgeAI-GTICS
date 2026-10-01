@@ -63,7 +63,7 @@
             <div class="course-actions"><a class="btn btn-primary btn-sm" th:href="@{/rm/cursos/asignar(curso=${curso.id})}">Asignar a colaborador</a></div>
           </div></div>
         </div>
-        <div class="col-12" th:if="${#lists.isEmpty(catalogo.cursos)}"><div class="card"><div class="card-body text-center text-secondary py-5">No se encontraron cursos activos con estos filtros.</div></div></div>
+        <div class="col-12" th:if="${#lists.isEmpty(catalogo.cursos)}"><div class="card"><div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='libro', vacioTitulo='Sin cursos', vacioTexto='No se encontraron cursos activos con estos filtros.')}"></div></div></div>
       </div>
     </div>
     <div class="pagination-wrap">

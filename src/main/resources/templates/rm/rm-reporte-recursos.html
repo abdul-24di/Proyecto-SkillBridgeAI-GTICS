@@ -101,7 +101,8 @@
                 <td th:text="${item.colaboradores}">0</td>
                 <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/rm/proyectos/detalle(id=${item.id})}">Ver proyecto</a></td>
               </tr>
-              <tr th:if="${#lists.isEmpty(reporte.proyectos)}"><td colspan="7" class="text-center text-secondary py-5">No hay proyectos que coincidan con los filtros.</td></tr>
+              <th:block th:if="${#lists.isEmpty(reporte.proyectos)}"><tr th:replace="~{fragments/rm-empty-state :: fila(vacioColspan=7, vacioIcono='carpeta',
+                  vacioTitulo='Sin proyectos', vacioTexto='No hay proyectos que coincidan con los filtros.')}"></tr></th:block>
               </tbody>
             </table>
           </div>
@@ -137,7 +138,10 @@
               <div class="d-flex justify-content-between mb-1"><span class="text-truncate" th:text="${item.nombre}">Proyecto</span><strong th:text="|${#numbers.formatDecimal(item.horas, 1, 'COMMA', 2, 'POINT')} h|">0 h</strong></div>
               <div class="progress progress-sm"><div class="progress-bar bg-primary" th:style="|width: ${item.porcentajeHoras}%|"></div></div>
             </div>
-            <div class="text-center text-secondary py-4" th:if="${#lists.isEmpty(reporte.proyectos)}">Sin información para graficar.</div>
+            <th:block th:if="${#lists.isEmpty(reporte.proyectos)}">
+              <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='grafico', vacioTitulo='Sin información para graficar',
+                  vacioTexto='El gráfico se muestra cuando hay proyectos que coinciden con los filtros.')}"></div>
+            </th:block>
           </div>
         </div>
       </div>
@@ -153,7 +157,8 @@
             <td class="fw-semibold" th:text="${item.colaborador}">Colaborador</td><td th:text="${item.cargo}">Cargo</td><td th:text="${item.proyecto}">Proyecto</td>
             <td th:text="|${#numbers.formatDecimal(item.horas, 1, 'COMMA', 2, 'POINT')} h|">0 h</td><td th:text="${item.tareas}">0</td>
           </tr>
-          <tr th:if="${#lists.isEmpty(reporte.detalles)}"><td colspan="5" class="text-center text-secondary py-5">No hay tareas completadas en este periodo.</td></tr>
+          <th:block th:if="${#lists.isEmpty(reporte.detalles)}"><tr th:replace="~{fragments/rm-empty-state :: fila(vacioColspan=5, vacioIcono='lista',
+              vacioTitulo='Sin tareas completadas', vacioTexto='No hay tareas completadas en este periodo.')}"></tr></th:block>
           </tbody>
         </table>
       </div>

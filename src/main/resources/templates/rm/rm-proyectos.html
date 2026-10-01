@@ -531,11 +531,16 @@
           </div>
 
           <div class="col-12" th:if="${totalProyectos == 0}">
-            <div class="card"><div class="empty-state">No hay proyectos registrados.</div></div>
+            <div class="card"><div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='carpeta',
+                vacioTitulo='No hay proyectos registrados',
+                vacioTexto='Los proyectos que registren los Project Managers aparecerán aquí.')}"></div></div>
           </div>
 
           <div id="noProjectResults" class="col-12" th:if="${totalProyectos > 0 and #lists.isEmpty(proyectos)}">
-            <div class="card"><div class="empty-state">No se encontraron proyectos con los filtros seleccionados.</div></div>
+            <div class="card"><div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='busqueda',
+                vacioTitulo='Sin resultados para los filtros',
+                vacioTexto='No se encontraron proyectos con los filtros seleccionados.',
+                vacioAccionTexto='Limpiar filtros', vacioAccionUrl=@{/rm/proyectos})}"></div></div>
           </div>
         </div>
 

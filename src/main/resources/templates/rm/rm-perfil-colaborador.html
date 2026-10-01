@@ -156,7 +156,7 @@
 
     <div class="row row-cards mb-4">
       <div class="col-lg-8">
-        <div class="card section-card h-100 mt-4">
+        <div class="card section-card h-100">
           <div class="card-header section-header">
             <div>
               <h3 class="card-title mb-1">Información general</h3>
@@ -258,9 +258,10 @@
                 th:text="${habilidad.estadoValidacion}">Pendiente</span>
         </div>
       </div>
-      <div class="empty-state" th:if="${#lists.isEmpty(colaborador.habilidades)}">
-        Este colaborador todavía no registró habilidades.
-      </div>
+      <th:block th:if="${#lists.isEmpty(colaborador.habilidades)}">
+        <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='insignia', vacioTitulo='Sin habilidades registradas',
+            vacioTexto='Este colaborador todavía no registró habilidades.')}"></div>
+      </th:block>
     </div>
 
     <div class="card section-card mb-4">
@@ -300,9 +301,10 @@
         <div id="paginationInfo" class="text-secondary small"></div>
         <ul id="pagination" class="pagination pagination-sm m-0"></ul>
       </div>
-      <div class="empty-state" th:if="${#lists.isEmpty(colaborador.asignaciones)}">
-        Este colaborador no tiene asignaciones activas.
-      </div>
+      <th:block th:if="${#lists.isEmpty(colaborador.asignaciones)}">
+        <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='carpeta', vacioTitulo='Sin asignaciones activas',
+            vacioTexto='Este colaborador no tiene asignaciones activas.')}"></div>
+      </th:block>
     </div>
 
     <div class="row row-cards mb-4">
@@ -328,45 +330,15 @@
               <div class="small text-secondary mt-2" th:text="${experiencia.descripcion}">Descripción</div>
             </div>
           </div>
-          <div class="empty-state" th:if="${#lists.isEmpty(colaborador.experiencias)}">
-            No hay experiencia profesional registrada.
-          </div>
+          <th:block th:if="${#lists.isEmpty(colaborador.experiencias)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='maletin', vacioTitulo='Sin experiencia profesional',
+                vacioTexto='No hay experiencia profesional registrada.')}"></div>
+          </th:block>
         </div>
       </div>
 
       <div class="col-lg-6">
-        
-          <!-- Evaluaciones / Feedback -->
-          <div class="card section-card h-100 mt-4">
-            <div class="card-header section-header">
-              <div>
-                <h3 class="card-title mb-1">Historial de Desempeño (Evaluaciones)</h3>
-                <div class="section-description">Calificaciones y feedback recibidos al finalizar proyectos.</div>
-              </div>
-            </div>
-            <div th:if="${!#lists.isEmpty(evaluaciones)}">
-              <div class="timeline-item" th:each="evaluacion : ${evaluaciones}">
-                <div class="d-flex justify-content-between gap-2 flex-wrap">
-                  <div class="fw-semibold">
-                    <span th:if="${evaluacion.asignacion != null}" th:text="${evaluacion.asignacion.proyecto.nombre}">Proyecto</span>
-                    <span th:if="${evaluacion.asignacion == null}">Actividad general</span>
-                    <span class="ms-2 badge" th:classappend="${evaluacion.calificacion >= 4 ? 'bg-success-lt' : (evaluacion.calificacion == 3 ? 'bg-warning-lt' : 'bg-danger-lt')}">
-                      <span th:text="${evaluacion.calificacion}">5</span> ⭐
-                    </span>
-                  </div>
-                  <span class="small text-secondary" th:text="${#temporals.format(evaluacion.fechaCreacion, 'dd/MM/yyyy')}">Fecha</span>
-                </div>
-                <div class="text-secondary small mt-1">
-                  Evaluado por: <span th:text="${evaluacion.evaluador.nombre + ' ' + evaluacion.evaluador.apellido + ' (' + evaluacion.evaluador.rol.nombre + ')'}">Evaluador</span>
-                </div>
-                <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
-              </div>
-            </div>
-            <div class="empty-state" th:if="${#lists.isEmpty(evaluaciones)}">
-              El colaborador aún no tiene evaluaciones registradas.
-            </div>
-          </div>
-<div class="card section-card h-100">
+        <div class="card section-card h-100">
           <div class="card-header section-header">
             <div>
               <h3 class="card-title mb-1">Educación</h3>
@@ -379,9 +351,6 @@
                 <div class="fw-semibold" th:text="${estudio.titulo}">Título</div>
                 <span class="badge bg-secondary-lt" th:text="${estudio.estado}">Pendiente</span>
               </div>
-
-
-
               <div class="text-secondary" th:text="${estudio.institucion}">Institución</div>
               <div class="small text-secondary mt-1">
                 <span th:text="${estudio.fechaInicio != null ? #temporals.format(estudio.fechaInicio, 'MM/yyyy') : 'Sin fecha'}">Inicio</span>
@@ -396,16 +365,44 @@
               </a>
             </div>
           </div>
-
-
-
-
-
-          <div class="empty-state" th:if="${#lists.isEmpty(colaborador.educacion)}">
-            No hay estudios registrados.
-          </div>
+          <th:block th:if="${#lists.isEmpty(colaborador.educacion)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='birrete', vacioTitulo='Sin estudios registrados',
+                vacioTexto='No hay estudios registrados.')}"></div>
+          </th:block>
         </div>
       </div>
+    </div>
+
+    <!-- Evaluaciones / Feedback -->
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Historial de Desempeño (Evaluaciones)</h3>
+          <div class="section-description">Calificaciones y feedback recibidos al finalizar proyectos.</div>
+        </div>
+      </div>
+      <div th:if="${!#lists.isEmpty(evaluaciones)}">
+        <div class="timeline-item" th:each="evaluacion : ${evaluaciones}">
+          <div class="d-flex justify-content-between gap-2 flex-wrap">
+            <div class="fw-semibold">
+              <span th:if="${evaluacion.asignacion != null}" th:text="${evaluacion.asignacion.proyecto.nombre}">Proyecto</span>
+              <span th:if="${evaluacion.asignacion == null}">Actividad general</span>
+              <span class="ms-2 badge" th:classappend="${evaluacion.calificacion >= 4 ? 'bg-success-lt' : (evaluacion.calificacion == 3 ? 'bg-warning-lt' : 'bg-danger-lt')}">
+                <span th:text="${evaluacion.calificacion}">5</span> ⭐
+              </span>
+            </div>
+            <span class="small text-secondary" th:text="${#temporals.format(evaluacion.fechaCreacion, 'dd/MM/yyyy')}">Fecha</span>
+          </div>
+          <div class="text-secondary small mt-1">
+            Evaluado por: <span th:text="${evaluacion.evaluador.nombre + ' ' + evaluacion.evaluador.apellido + ' (' + evaluacion.evaluador.rol.nombre + ')'}">Evaluador</span>
+          </div>
+          <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
+        </div>
+      </div>
+      <th:block th:if="${#lists.isEmpty(evaluaciones)}">
+        <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='estrella', vacioTitulo='Sin evaluaciones',
+            vacioTexto='El colaborador aún no tiene evaluaciones registradas.')}"></div>
+      </th:block>
     </div>
   </main>
 </div>

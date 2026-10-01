@@ -40,7 +40,8 @@
         <td th:text="${#temporals.format(item.solicitud.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
         <td class="text-end"><a class="btn btn-sm" th:classappend="${item.pendiente ? 'btn-primary' : (item.enAtencion ? 'btn-outline-primary' : 'btn-outline-secondary')}" th:href="@{/rm/asignaciones/solicitudes-colaboradores/detalle(id=${item.solicitud.id})}" th:text="${item.accionTexto}">Ver</a></td>
       </tr>
-      <tr id="emptyRequests" th:classappend="${#lists.isEmpty(solicitudes)} ? '' : 'd-none'"><td colspan="8" class="text-center text-secondary py-5">No se encontraron solicitudes.</td></tr>
+      <tr th:replace="~{fragments/rm-empty-state :: fila(vacioId='emptyRequests', vacioFilaClase=${#lists.isEmpty(solicitudes) ? null : 'd-none'}, vacioColspan=8,
+          vacioIcono='bandeja', vacioTitulo='Sin solicitudes', vacioTexto='No se encontraron solicitudes.')}"></tr>
       </tbody>
     </table></div>
     <div class="pagination-wrap">

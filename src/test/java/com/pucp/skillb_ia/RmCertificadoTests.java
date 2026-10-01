@@ -779,6 +779,28 @@ class RmCertificadoTests {
         assertTrue(html.contains("<tr id=\"emptyHistory\"><td colspan=\"8\""), html);
         assertFalse(html.contains("colspan=\"7\""));
         assertEquals(0, contar(html, "<td class=\"history-level\">"));
+        // TASK-031: la fila usa el estado vacío común.
+        assertTrue(html.contains("<tr id=\"emptyHistory\"><td colspan=\"8\" class=\"empty-state-cell\"><div class=\"empty-state\">"));
+        assertTrue(html.contains("<div class=\"empty-state-title\">Sin certificados</div>"));
+        assertTrue(html.contains("<div class=\"empty-state-text\">No hay certificados con estos filtros.</div>"));
+        assertFalse(html.contains("empty-state-action"));
+    }
+
+    // TASK-031: la bandeja vacía usa el fragmento común y conserva su id y las 7 columnas.
+    @Test
+    void bandejaSinCertificadosUsaElEstadoVacioComunConSuIdYColspan() throws Exception {
+        String html = mockMvc.perform(get("/rm/colaboradores/certificados").param("busqueda", "sin-coincidencias-t031"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("<tr id=\"emptyCertificates\"><td colspan=\"7\" class=\"empty-state-cell\">"
+                + "<div class=\"empty-state\">"), html);
+        assertEquals(1, contar(html, "class=\"empty-state\""));
+        assertTrue(html.contains("<span class=\"empty-state-icon\" aria-hidden=\"true\">"));
+        assertTrue(html.contains("<div class=\"empty-state-title\">Sin certificados pendientes</div>"));
+        assertTrue(html.contains("No hay certificados pendientes con estos filtros."));
+        assertFalse(html.contains("empty-state-action"));
+        assertTrue(html.contains("value=\"sin-coincidencias-t031\""));
     }
 
     private String historial() throws Exception {

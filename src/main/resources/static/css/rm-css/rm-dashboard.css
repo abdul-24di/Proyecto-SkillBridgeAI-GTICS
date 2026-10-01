@@ -24,10 +24,6 @@
 
   box-shadow:
     0 2px 7px rgba(24, 36, 51, .035);
-
-  transition:
-    transform .18s ease,
-    box-shadow .18s ease;
 }
 
 .summary-cards > [class*="col-"] {
@@ -43,14 +39,6 @@
 .summary-content {
   min-width: 0;
   align-self: stretch;
-}
-
-.summary-card:hover {
-  transform:
-    translateY(-2px);
-
-  box-shadow:
-    0 7px 18px rgba(24, 36, 51, .07);
 }
 
 .summary-icon {

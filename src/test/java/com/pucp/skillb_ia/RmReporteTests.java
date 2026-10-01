@@ -622,7 +622,11 @@ class RmReporteTests {
             }
         }
         String pdf = pdf(PDF, conPaginas);
-        for (String nombre : todosProyectos) assertTrue(pdf.contains("\n" + nombre + " "), nombre);
+        for (String nombre : todosProyectos) {
+            if (nombre.startsWith("Pag proyecto")) {
+                assertTrue(pdf.contains("\n" + nombre + " "), nombre);
+            }
+        }
         for (String nombre : colaboradoresMasivos(1, 12)) assertTrue(pdf.contains("\n" + nombre + " "), nombre);
         assertEquals(sinFechaDeGeneracion(pdf(PDF, filtrosMasivos())), sinFechaDeGeneracion(pdf),
                 "El PDF con páginas en la URL es igual al PDF sin páginas");

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Revisar Experiencia</title>
+    <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-css/admin-common.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-css/admin-topbar.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('experiencia')}"></header>
+
+    <main class="page-wrap">
+        <div class="breadcrumb-wrap">
+            <span class="text-secondary">Sistema</span> &nbsp;/&nbsp;
+            <a th:href="@{/admin/experiencia}" class="text-secondary">Experiencia Profesional</a> &nbsp;/&nbsp;
+            <span class="text-dark fw-medium" th:text="${colaborador.nombre} + ' ' + ${colaborador.apellido}">Colaborador</span>
+        </div>
+
+        <div class="page-head page-head-stack-mobile">
+            <div>
+                <h1 class="page-title" th:text="|${colaborador.nombre} ${colaborador.apellido}|">Colaborador</h1>
+                <div class="text-secondary" th:text="${colaborador.correo}">correo@skillbridge.com</div>
+            </div>
+            <div>
+                <a th:if="${colaborador.cvUrl != null}" th:href="@{${colaborador.cvUrl}}" target="_blank" rel="noopener" class="btn btn-outline-primary">Ver CV</a>
+                <form th:if="${colaborador.cvEstado == null or colaborador.cvEstado.name() != 'REVISADO'}"
+                      th:action="@{/admin/experiencia/{id}/revisar(id=${colaborador.id})}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-success">Marcar CV como revisado</button>
+                </form>
+                <span th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'REVISADO'}" class="badge bg-green-lt text-green">Revisado</span>
+            </div>
+        </div>
+
+        <div th:if="${mensajeOk}" class="alert alert-success alert-dismissible" role="alert">
+            <div class="d-flex"><div><i class="bi bi-check-circle me-2"></i></div><div th:text="${mensajeOk}"></div></div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+        <div th:if="${mensajeError}" class="alert alert-danger alert-dismissible" role="alert">
+            <div class="d-flex"><div><i class="bi bi-exclamation-triangle me-2"></i></div><div th:text="${mensajeError}"></div></div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Experiencia profesional registrada</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(experiencias)}" class="empty-state p-4 text-center text-muted">
+                            Todavía no se registró experiencia profesional para este colaborador.
+                        </div>
+                        <div th:each="exp : ${experiencias}" class="timeline-entry p-3 border-bottom">
+                            <div class="fw-bold" th:text="${exp.cargo} + ' — ' + ${exp.empresa}">Cargo — Empresa</div>
+                            <div class="text-secondary small">
+                                <span th:text="${exp.fechaInicio != null ? #temporals.format(exp.fechaInicio, 'MM/yyyy') : '¿?'}">2022</span>
+                                –
+                                <span th:text="${exp.actual} ? 'Actualidad' : (${exp.fechaFin != null} ? ${#temporals.format(exp.fechaFin, 'MM/yyyy')} : '¿?')">Actualidad</span>
+                            </div>
+                            <div th:text="${exp.descripcion}">Descripción</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Agregar experiencia profesional</h3>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/admin/experiencia/{id}/agregar(id=${colaborador.id})}" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Cargo <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="cargo" required maxlength="100">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Empresa <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="empresa" required maxlength="150">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Fecha inicio</label>
+                                    <input type="date" class="form-control" name="fechaInicio" id="expFechaInicio"
+                                           onchange="document.getElementById('expFechaFin').min = this.value;">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Fecha fin</label>
+                                    <input type="date" class="form-control" name="fechaFin" id="expFechaFin">
+                                </div>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" name="actual" id="expActual"
+                                       onchange="document.getElementById('expFechaFin').disabled = this.checked; if(this.checked) document.getElementById('expFechaFin').value = '';">
+                                <label class="form-check-label" for="expActual">Trabaja aquí actualmente</label>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                                <textarea class="form-control" name="descripcion" rows="3" required maxlength="500"></textarea>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">Agregar experiencia</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

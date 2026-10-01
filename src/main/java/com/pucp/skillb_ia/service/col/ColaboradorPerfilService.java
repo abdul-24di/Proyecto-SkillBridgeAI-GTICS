@@ -4,6 +4,7 @@ import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
+import com.pucp.skillb_ia.model.enums.EstadoCv;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
@@ -22,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.stream.Collectors;
 
@@ -34,6 +36,8 @@ public class ColaboradorPerfilService {
     private static final Set<String> TIPOS_CERTIFICADO_PERMITIDOS =
             Set.of("application/pdf", "image/jpeg", "image/png");
     private static final long TAMANO_MAXIMO_CERTIFICADO_BYTES = 10L * 1024 * 1024;
+    private static final Set<String> TIPOS_CV_PERMITIDOS = Set.of("application/pdf");
+    private static final long TAMANO_MAXIMO_CV_BYTES = 5L * 1024 * 1024; // 5MB
 
     private final UsuarioRepository usuarioRepository;
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
@@ -259,6 +263,40 @@ public class ColaboradorPerfilService {
         // Registramos en el sistema de auditoría que el usuario actualizó su foto de perfil
         auditoriaService.registrar(colaborador, "ACTUALIZAR_PERFIL", "USUARIO", colaborador.getId(),
                 "Actualizó su foto de perfil.");
+    }
+
+    // ============================================================
+    // CV (hoja de vida) — lo revisa el Admin, que luego llena la experiencia
+    // profesional del colaborador basado en lo que diga el documento.
+    // ============================================================
+
+    @Transactional
+    public void actualizarCv(Usuario colaborador, MultipartFile cv) {
+        if (cv == null || cv.isEmpty()) {
+            throw new IllegalArgumentException("Selecciona un archivo PDF para subir.");
+        }
+        if (!TIPOS_CV_PERMITIDOS.contains(cv.getContentType())) {
+            throw new IllegalArgumentException("El CV debe estar en formato PDF.");
+        }
+        if (cv.getSize() > TAMANO_MAXIMO_CV_BYTES) {
+            throw new IllegalArgumentException("El archivo supera el máximo de 5MB.");
+        }
+
+        String nombreArchivo = "cv-" + colaborador.getId() + "-" + UUID.randomUUID() + ".pdf";
+        String cvUrl = archivoAlmacenamientoService.guardar(cv, "cv", nombreArchivo);
+
+        colaborador.setCvUrl(cvUrl);
+        colaborador.setCvEstado(EstadoCv.PENDIENTE);
+        colaborador.setCvFechaSubida(LocalDateTime.now());
+        usuarioRepository.save(colaborador);
+
+        auditoriaService.registrar(colaborador, "SUBIR_CV", "USUARIO", colaborador.getId(),
+                "Subió su CV para revisión del Administrador.");
+
+        notificacionService.crearParaTodosLosAdmins("CV_PENDIENTE", CategoriaNotificacion.SISTEMA,
+                "CV pendiente de revisión",
+                colaborador.getNombre() + " " + colaborador.getApellido() + " subió su CV.",
+                "USUARIO", colaborador.getId());
     }
 
     @Transactional

@@ -1,8 +1,10 @@
 package com.pucp.skillb_ia.model;
 
+import com.pucp.skillb_ia.model.enums.EstadoCv;
 import com.pucp.skillb_ia.model.enums.NivelExperiencia;
 import jakarta.persistence.*;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,7 +19,9 @@ import java.time.LocalDateTime;
 // Parte 1.2).
 @Entity
 @Table(name = "usuario")
-public class Usuario {
+// Serializable: lo exige Spring Session (clase 6.2) para poder guardar el
+// Usuario autenticado dentro de la sesión HTTP persistida en MySQL.
+public class Usuario implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,6 +49,18 @@ public class Usuario {
 
     @Column(name = "descripcion", length = 500)
     private String descripcion;
+
+    // CV del colaborador (sube uno solo, cada subida reemplaza al anterior).
+    // El Admin lo revisa y recién ahí llena su experiencia profesional.
+    @Column(name = "cv_url", length = 500)
+    private String cvUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cv_estado", length = 20)
+    private EstadoCv cvEstado;
+
+    @Column(name = "cv_fecha_subida")
+    private LocalDateTime cvFechaSubida;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "rol_id", nullable = false)
@@ -112,6 +128,15 @@ public class Usuario {
 
     public String getFotoUrl() { return fotoUrl; }
     public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
+
+    public String getCvUrl() { return cvUrl; }
+    public void setCvUrl(String cvUrl) { this.cvUrl = cvUrl; }
+
+    public EstadoCv getCvEstado() { return cvEstado; }
+    public void setCvEstado(EstadoCv cvEstado) { this.cvEstado = cvEstado; }
+
+    public LocalDateTime getCvFechaSubida() { return cvFechaSubida; }
+    public void setCvFechaSubida(LocalDateTime cvFechaSubida) { this.cvFechaSubida = cvFechaSubida; }
 
     public String getDescripcion() {
         return descripcion;

@@ -60,6 +60,21 @@
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
 
+		<!-- Dialecto de Thymeleaf para Spring Security (sec:authorize, etc. en los .html) -->
+		<dependency>
+			<groupId>org.thymeleaf.extras</groupId>
+			<artifactId>thymeleaf-extras-springsecurity6</artifactId>
+		</dependency>
+
+		<!-- Spring Session con JDBC: la sesión HTTP se guarda en MySQL en vez de
+		     en memoria del servidor (clase 6.2). En Spring Boot 4 el starter que
+		     trae la autoconfiguración es spring-boot-starter-session-jdbc, no el
+		     spring-session-jdbc "pelado" (ese no se autoconfigura solo). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-session-jdbc</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>

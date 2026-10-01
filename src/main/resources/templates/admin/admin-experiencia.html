@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Experiencia Profesional</title>
+    <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-css/admin-common.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-css/admin-topbar.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('experiencia')}"></header>
+
+    <main class="page-wrap">
+        <div class="breadcrumb-wrap">
+            <span class="text-secondary">Sistema</span> &nbsp;/&nbsp;
+            <span class="text-dark fw-medium">Experiencia Profesional</span>
+        </div>
+
+        <div class="page-head page-head-stack-mobile">
+            <div>
+                <h1 class="page-title">CVs y Experiencia Profesional</h1>
+                <div class="text-secondary">Revisa el CV que suben los colaboradores y registra su experiencia profesional.</div>
+            </div>
+        </div>
+
+        <div th:if="${mensajeOk}" class="alert alert-success alert-dismissible" role="alert">
+            <div class="d-flex"><div><i class="bi bi-check-circle me-2"></i></div><div th:text="${mensajeOk}"></div></div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+        <div th:if="${mensajeError}" class="alert alert-danger alert-dismissible" role="alert">
+            <div class="d-flex"><div><i class="bi bi-exclamation-triangle me-2"></i></div><div th:text="${mensajeError}"></div></div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pendientes" type="button">
+                    Pendientes de revisar
+                    <span class="badge bg-yellow-lt text-yellow ms-1" th:text="${#lists.size(cvsPendientes)}">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-revisados" type="button">
+                    Revisados
+                    <span class="badge bg-green-lt text-green ms-1" th:text="${#lists.size(cvsRevisados)}">0</span>
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-pendientes">
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-hover">
+                            <thead>
+                            <tr>
+                                <th>Colaborador</th>
+                                <th>Correo</th>
+                                <th>Fecha de subida</th>
+                                <th>CV</th>
+                                <th class="w-1">Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(cvsPendientes)}">
+                                <td colspan="5" class="text-center text-muted py-4">No hay CVs pendientes de revisar.</td>
+                            </tr>
+                            <tr th:each="cv : ${cvsPendientes}" class="cv-pendiente-row">
+                                <td th:text="${cv.nombreCompleto()}">Nombre</td>
+                                <td th:text="${cv.correo()}">correo@skillbridge.com</td>
+                                <td th:text="${cv.fechaSubida()}">01 ene 2026</td>
+                                <td>
+                                    <a th:href="@{${cv.cvUrl()}}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Ver CV</a>
+                                </td>
+                                <td>
+                                    <a th:href="@{/admin/experiencia/{id}(id=${cv.id()})}" class="btn btn-primary btn-sm">Revisar</a>
+                                </td>
+                            </tr>
+                            <tr id="cvPendientesNoResults" class="d-none" th:if="${!#lists.isEmpty(cvsPendientes)}">
+                                <td colspan="5" class="text-center text-secondary py-4">Ningún CV coincide con los filtros aplicados.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-wrap" th:if="${!#lists.isEmpty(cvsPendientes)}">
+                        <div id="cvPendientesPaginationInfo" class="text-secondary small">Mostrando CVs pendientes</div>
+                        <ul id="cvPendientesPagination" class="pagination pagination-sm m-0"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-revisados">
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-hover">
+                            <thead>
+                            <tr>
+                                <th>Colaborador</th>
+                                <th>Correo</th>
+                                <th>Fecha de subida</th>
+                                <th>CV</th>
+                                <th class="w-1">Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(cvsRevisados)}">
+                                <td colspan="5" class="text-center text-muted py-4">Todavía no hay CVs revisados.</td>
+                            </tr>
+                            <tr th:each="cv : ${cvsRevisados}" class="cv-revisado-row">
+                                <td th:text="${cv.nombreCompleto()}">Nombre</td>
+                                <td th:text="${cv.correo()}">correo@skillbridge.com</td>
+                                <td th:text="${cv.fechaSubida()}">01 ene 2026</td>
+                                <td>
+                                    <a th:href="@{${cv.cvUrl()}}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Ver CV</a>
+                                </td>
+                                <td>
+                                    <a th:href="@{/admin/experiencia/{id}(id=${cv.id()})}" class="btn btn-outline-secondary btn-sm">Ver experiencia</a>
+                                </td>
+                            </tr>
+                            <tr id="cvRevisadosNoResults" class="d-none" th:if="${!#lists.isEmpty(cvsRevisados)}">
+                                <td colspan="5" class="text-center text-secondary py-4">Ningún CV coincide con los filtros aplicados.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-wrap" th:if="${!#lists.isEmpty(cvsRevisados)}">
+                        <div id="cvRevisadosPaginationInfo" class="text-secondary small">Mostrando CVs revisados</div>
+                        <ul id="cvRevisadosPagination" class="pagination pagination-sm m-0"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/admin-js/admin-table-pagination.js}"></script>
+<script th:src="@{/js/admin-js/admin-experiencia.js}"></script>
+</body>
+</html>

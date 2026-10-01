@@ -1,18 +1,20 @@
 <!doctype html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
 <header class="topbar" th:fragment="topbar(activeSection)">
   <div class="container-xl">
     <a href="../admin/admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
 
-    <nav class="main-nav" aria-label="Navegacion principal Admin">
+    <nav class="main-nav" aria-label="Navegacion principal Admin" sec:authorize="hasRole('ADMINISTRADOR')">
       <a href="../admin/admin-dashboard.html"
          th:classappend="${activeSection == 'dashboard'} ? 'active' : ''" th:href="@{/admin/dashboard}">Dashboard</a>
       <a href="../admin/admin-usuarios.html"
          th:classappend="${activeSection == 'usuarios'} ? 'active' : ''" th:href="@{/admin/usuarios}">Usuarios</a>
       <a href="../admin/admin-habilidades.html"
          th:classappend="${activeSection == 'habilidades'} ? 'active' : ''" th:href="@{/admin/habilidades}">Habilidades</a>
+      <a href="../admin/admin-experiencia.html"
+         th:classappend="${activeSection == 'experiencia'} ? 'active' : ''" th:href="@{/admin/experiencia}">Experiencia</a>
       <a href="../admin/admin-cursos.html"
          th:classappend="${activeSection == 'cursos'} ? 'active' : ''" th:href="@{/admin/cursos}">Cursos</a>
       <a href="../admin/admin-configuracion.html"

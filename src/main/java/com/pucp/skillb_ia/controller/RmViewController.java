@@ -676,11 +676,29 @@ public class RmViewController {
     @GetMapping({"/colaboradores/asignaciones", "/rm-asignaciones-colaborador.html"})
     public String collaboratorAssignments(
             @RequestParam(name = "id", required = false) Long colaboradorId,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String anio,
+            @RequestParam(required = false) String pagina,
             Model model) {
         if (colaboradorId == null) return "redirect:/rm/colaboradores";
         try {
             model.addAttribute("colaborador", rmColaboradorConsultaService.obtenerDetalle(colaboradorId));
-            model.addAttribute("asignaciones", rmAsignacionService.listarPorColaborador(colaboradorId));
+            // Filtros y paginación en el servidor (TASK-051); las métricas del encabezado
+            // salen de "colaborador" y no dependen de los filtros ni de la página.
+            var paginaAsignaciones = rmAsignacionService.listarPaginaPorColaborador(
+                    colaboradorId, busqueda, estado, anio, pagina);
+            var filtros = paginaAsignaciones.filtros();
+            model.addAttribute("asignaciones", paginaAsignaciones.filas());
+            model.addAttribute("paginaActual", paginaAsignaciones.paginaActual());
+            model.addAttribute("totalPaginas", paginaAsignaciones.totalPaginas());
+            model.addAttribute("totalRegistros", paginaAsignaciones.totalRegistros());
+            model.addAttribute("totalHistorial", paginaAsignaciones.totalHistorial());
+            model.addAttribute("tamanioPagina", RmAsignacionService.TAMANIO_PAGINA);
+            model.addAttribute("aniosDisponibles", paginaAsignaciones.aniosDisponibles());
+            model.addAttribute("busqueda", filtros.busqueda());
+            model.addAttribute("estado", filtros.estado() == null ? null : filtros.estado().name());
+            model.addAttribute("anio", filtros.anio());
             // Modal "Proponer asignación" (TASK-034): el colaborador ya es conocido.
             agregarProyectosAsignables(model, null);
             model.addAttribute("proyectosConAsignacion",

@@ -174,6 +174,8 @@ padding-right: 24px;
 
 La topbar se incluye siempre como hija directa de `.app-shell`, que ocupa todo el ancho, así que su fondo cubre la ventana con `margin: 0`. No uses `margin-inline: calc(50% - 50vw)`: `50vw` incluye la barra de desplazamiento vertical y provoca un scroll horizontal en las páginas largas.
 
+Tabler (desde `992px`) aplica `:root { margin-left: calc(-100% + 100vw) }`, lo que desplaza toda la página el ancho de la barra de desplazamiento y deja una franja vacía a la izquierda. `rm-common.css` lo anula con `:root { margin-left: 0; margin-right: 0; }`; no lo elimines.
+
 ## Comportamiento responsive
 
 - Debajo de `991px`, se oculta la información textual del usuario.

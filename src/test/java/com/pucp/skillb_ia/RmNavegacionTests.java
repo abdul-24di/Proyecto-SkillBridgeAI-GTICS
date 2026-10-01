@@ -373,16 +373,89 @@ class RmNavegacionTests {
         assertTrue(perfil.contains("id=\"propuestaContexto\" class=\"d-none\" data-origen=\"perfil\""));
     }
 
-    // TASK-050 no toca la vista de asignaciones del colaborador (TASK-051 pendiente).
+    // TASK-051: filtros y paginación en el servidor sin cambiar la navegación de TASK-026 ni el modal de TASK-034.
+    @ParameterizedTest
+    @ValueSource(strings = {"", "&estado=all&anio=all&pagina=1", "&busqueda=PEDRO&pagina=abc", "&estado=desconocido&pagina=-2"})
+    void asignacionesDelColaboradorConservanNavegacionYPropuestaConFiltros(String filtros) throws Exception {
+        String asignacionesColaborador = "/rm/colaboradores/asignaciones?id=" + colaborador.getId();
+        String listado = html(asignacionesColaborador + filtros);
+
+        // Los 4 detalles conservan solo origen=colaborador (el contrato de TASK-026 no admite filtros).
+        assertEquals(List.of(
+                        "/rm/asignaciones/activa?id=" + activa.getId() + "&origen=colaborador",
+                        "/rm/asignaciones/pendiente-pm?id=" + pendientePm.getId() + "&origen=colaborador",
+                        "/rm/asignaciones/revision?id=" + revision.getId() + "&origen=colaborador",
+                        "/rm/asignaciones/revision-postulacion?id=" + postulacion.getId() + "&origen=colaborador")
+                        .stream().sorted().toList(),
+                enlaces(listado, "/rm/asignaciones/[a-z-]+\\?id=\\d+[^\"]*").stream().sorted().toList());
+
+        String migas = migas(listado);
+        assertTrue(migas.contains("href=\"/rm/colaboradores\">Colaboradores</a>"));
+        assertTrue(migas.contains("href=\"/rm/colaboradores/perfil?id=" + colaborador.getId() + "\">Nora Navegación</a>"));
+        assertTrue(migas.endsWith("<span class=\"text-secondary\">Asignaciones</span>"));
+
+        assertTrue(listado.contains("data-bs-toggle=\"modal\" data-bs-target=\"#proyectosModal\">+ Proponer asignación"));
+        assertTrue(listado.contains("id=\"propuestaContexto\" class=\"d-none\" data-origen=\"colaborador\""));
+        assertTrue(listado.contains("id=\"propuestaModal\""));
+        // Topbar compartido, Tabler, modal de propuesta y el JS visual de la vista; sin scripts en línea.
+        assertEquals(List.of("/js/notificaciones.js", "/tabler/js/tabler.min.js", "/js/rm-js/rm-propuesta-asignacion.js",
+                "/js/rm-js/rm-asignaciones-colaborador.js"), scripts(listado));
+        // Sin enlaces vacíos en el contenido de la vista (el topbar compartido queda fuera).
+        assertFalse(listado.substring(listado.indexOf("<nav class=\"breadcrumb-wrap\""), listado.indexOf("</main>"))
+                .contains("href=\"#\""));
+        assertTrue(listado.contains("<form id=\"assignmentFiltersForm\" method=\"get\" action=\"/rm/colaboradores/asignaciones\""));
+    }
+
     @Test
-    void asignacionesDelColaboradorSiguenSinCambios() throws Exception {
-        String listado = html("/rm/colaboradores/asignaciones?id=" + colaborador.getId());
-        // Sigue listando todo el historial (la activa y las tres pendientes) con origen=colaborador.
+    void conFiltroDeEstadoLaPostulacionPendienteSigueAbriendoSuRevisionYVuelveSinFiltros() throws Exception {
+        String asignacionesColaborador = "/rm/colaboradores/asignaciones?id=" + colaborador.getId();
+        String listado = html(asignacionesColaborador + "&estado=PENDIENTE");
+
         List<String> detalles = enlaces(listado, "/rm/asignaciones/[a-z-]+\\?id=\\d+[^\"]*");
-        assertEquals(4, detalles.size());
-        assertTrue(detalles.stream().allMatch(enlace -> enlace.endsWith("&origen=colaborador")), detalles.toString());
-        assertTrue(java.nio.file.Files.exists(
-                java.nio.file.Path.of("src/main/resources/static/js/rm-js/rm-asignaciones-colaborador.js")));
+        assertEquals(3, detalles.size(), detalles.toString());
+        assertTrue(detalles.contains("/rm/asignaciones/revision-postulacion?id=" + postulacion.getId() + "&origen=colaborador"));
+        for (String destino : detalles) {
+            assertEquals(asignacionesColaborador, volver(html(destino)), destino);
+        }
+    }
+
+    @Test
+    void elJsDeAsignacionesDelColaboradorEsSoloVisualYSoloLoCargaSuVista() throws Exception {
+        // El mock se eliminó; el archivo nuevo (solo visual) todavía no tiene código.
+        String js = java.nio.file.Files.readString(
+                java.nio.file.Path.of("src/main/resources/static/js/rm-js/rm-asignaciones-colaborador.js"));
+        String codigo = js.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("//[^\\n]*", "").trim();
+        assertEquals("", codigo);
+        for (String mock : List.of("collaboratorAssignments", "Clínica AI", "Juan Pérez", "pageSize", "currentPage")) {
+            assertFalse(js.contains(mock), mock);
+        }
+        try (var archivos = java.nio.file.Files.walk(java.nio.file.Path.of("src/main/resources"))) {
+            List<java.nio.file.Path> referencias = archivos
+                    .filter(java.nio.file.Files::isRegularFile)
+                    .filter(ruta -> ruta.toString().matches(".*\\.(html|js|css)$"))
+                    .filter(ruta -> {
+                        try {
+                            return new String(java.nio.file.Files.readAllBytes(ruta), StandardCharsets.ISO_8859_1)
+                                    .contains("rm-asignaciones-colaborador.js");
+                        } catch (java.io.IOException ex) {
+                            throw new java.io.UncheckedIOException(ex);
+                        }
+                    })
+                    .toList();
+            assertEquals(List.of(java.nio.file.Path.of(
+                    "src/main/resources/templates/rm/rm-asignaciones-colaborador.html")), referencias);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "&busqueda=x&estado=ACTIVA&anio=2026&pagina=2"})
+    void colaboradorInexistenteConservaLaRedireccionSegura(String filtros) throws Exception {
+        mockMvc.perform(get("/rm/colaboradores/asignaciones?id=999999999" + filtros))
+                .andExpect(redirectedUrl("/rm/colaboradores?noEncontrado=true"));
+        mockMvc.perform(get("/rm/colaboradores/asignaciones?id=" + otroColaborador.getId() + filtros))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/rm/colaboradores/asignaciones" + (filtros.isEmpty() ? "" : "?" + filtros.substring(1))))
+                .andExpect(redirectedUrl("/rm/colaboradores"));
     }
 
     @Test
@@ -438,6 +511,16 @@ class RmNavegacionTests {
         Matcher matcher = Pattern.compile("href=\"(" + patron + ")\"").matcher(html);
         List<String> encontrados = new ArrayList<>();
         while (matcher.find()) encontrados.add(matcher.group(1).replace("&amp;", "&"));
+        return encontrados;
+    }
+
+    private List<String> scripts(String html) {
+        Matcher matcher = Pattern.compile("<script\\b([^>]*)>").matcher(html);
+        List<String> encontrados = new ArrayList<>();
+        while (matcher.find()) {
+            Matcher src = Pattern.compile("src=\"([^\"]*)\"").matcher(matcher.group(1));
+            encontrados.add(src.find() ? src.group(1) : "(en línea)");
+        }
         return encontrados;
     }
 

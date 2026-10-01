@@ -47,6 +47,8 @@ import org.springframework.web.context.WebApplicationContext;
 import com.pucp.skillb_ia.dto.RmAsignacionView;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.transaction.annotation.Transactional;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -1711,5 +1713,316 @@ class RmAsignacionTests {
         assertFalse(html.contains("empty-state-action"));
         assertTrue(html.contains("value=\"sin-coincidencias-t031\""));
         assertEquals(4, contar(html, "class=\"card summary-card\""));
+    }
+
+    // ---- TASK-051: asignaciones del colaborador con filtros GET y paginación en el servidor ----
+    // Las pruebas con historial usan @Transactional: sus proyectos y asignaciones se revierten.
+
+    private static final String HISTORIAL = "/rm/colaboradores/asignaciones";
+    private static final int TOTAL_HISTORIAL = 25;
+
+    @Test
+    @Transactional
+    void historialPaginaDeDiezEnDiezConElOrdenDelRepositorio() throws Exception {
+        List<Long> ids = crearHistorialColaborador();
+        // El orden es el de findByColaboradorIdConDetalle (fechaSolicitud descendente), no el del id.
+        assertEquals(ids, asignacionRepository.findByColaboradorIdConDetalle(colaborador.getId()).stream()
+                .map(Asignacion::getId).toList());
+        assertNotEquals(ids.stream().sorted().toList(), ids);
+
+        String[][] paginas = {{"", "1", "Mostrando 1-10 de 25 asignaciones"},
+                {"pagina=2", "2", "Mostrando 11-20 de 25 asignaciones"},
+                {"pagina=3", "3", "Mostrando 21-25 de 25 asignaciones"}};
+        for (String[] caso : paginas) {
+            MvcResult resultado = mockMvc.perform(historial(caso[0])).andExpect(status().isOk()).andReturn();
+            int pagina = Integer.parseInt(caso[1]);
+            List<Long> esperadas = ids.subList((pagina - 1) * 10, Math.min(pagina * 10, TOTAL_HISTORIAL));
+            assertEquals(esperadas, idsDeLaPagina(resultado), caso[0]);
+            String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+            // La vista solo renderiza las filas de la página actual.
+            assertEquals(esperadas.size(), contar(html, "<tr><td class=\"fw-semibold\">"), caso[0]);
+            assertTrue(html.contains(caso[2]), caso[0]);
+            assertEquals(pagina, resultado.getModelAndView().getModel().get("paginaActual"));
+            assertEquals(3, resultado.getModelAndView().getModel().get("totalPaginas"));
+        }
+    }
+
+    // Índices del historial de crearHistorialColaborador (0 = la solicitud más reciente).
+    static Stream<org.junit.jupiter.params.provider.Arguments> filtrosDelHistorial() {
+        return Stream.of(
+                argumentos("", i -> true),
+                argumentos("busqueda=portal", i -> i == 0 || i == 3),
+                argumentos("busqueda=  PORTAL clientes  ", i -> i == 0 || i == 3),
+                argumentos("busqueda=erp nucleo", i -> i == 1),
+                argumentos("busqueda=inigo alvarez", i -> i == 1),
+                argumentos("busqueda=ÍÑIGO Álvarez", i -> i == 1),
+                argumentos("busqueda=pedro pm", i -> i != 1),
+                argumentos("busqueda=sin-coincidencias-t051", i -> false),
+                argumentos("estado=PENDIENTE", i -> estadoHistorial(i) == EstadoAsignacion.PENDIENTE),
+                argumentos("estado=ACTIVA", i -> estadoHistorial(i) == EstadoAsignacion.ACTIVA),
+                argumentos("estado=RECHAZADA", i -> estadoHistorial(i) == EstadoAsignacion.RECHAZADA),
+                argumentos("estado=FINALIZADA", i -> estadoHistorial(i) == EstadoAsignacion.FINALIZADA),
+                argumentos("estado= finalizada ", i -> estadoHistorial(i) == EstadoAsignacion.FINALIZADA),
+                // El índice 2 no tiene fecha de inicio: solo aparece con "Todos".
+                argumentos("anio=2026", i -> i != 1 && i != 2),
+                argumentos("anio=2025", i -> i == 1),
+                argumentos("busqueda=portal&estado=FINALIZADA&anio=2026", i -> i == 3),
+                argumentos("busqueda=pedro&estado=RECHAZADA&anio=2026",
+                        i -> i != 2 && estadoHistorial(i) == EstadoAsignacion.RECHAZADA));
+    }
+
+    @ParameterizedTest
+    @MethodSource("filtrosDelHistorial")
+    @Transactional
+    void historialFiltraAntesDePaginarYConservaElOrden(String consulta, List<Integer> indices) throws Exception {
+        List<Long> ids = crearHistorialColaborador();
+        List<Long> esperadas = indices.stream().map(ids::get).toList();
+
+        MvcResult primera = mockMvc.perform(historial(consulta)).andExpect(status().isOk()).andReturn();
+        Map<String, Object> modelo = primera.getModelAndView().getModel();
+        assertEquals((long) esperadas.size(), ((Number) modelo.get("totalRegistros")).longValue(), consulta);
+        assertEquals((long) TOTAL_HISTORIAL, ((Number) modelo.get("totalHistorial")).longValue());
+        List<Long> todas = new ArrayList<>(idsDeLaPagina(primera));
+        int totalPaginas = (int) modelo.get("totalPaginas");
+        for (int pagina = 2; pagina <= totalPaginas; pagina++) {
+            todas.addAll(idsDeLaPagina(mockMvc.perform(historial(consulta + "&pagina=" + pagina)).andReturn()));
+        }
+        assertEquals(esperadas, todas, consulta);
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {
+            "estado | ''", "estado | all", "estado | Pendiente RM", "estado | Pendiente PM", "estado | CANCELADA",
+            "anio | ''", "anio | all", "anio | abc", "anio | -2026", "anio | 2024", "anio | 2026.5"})
+    @Transactional
+    void estadoYAnioInvalidosEquivalenATodos(String parametro, String valor) throws Exception {
+        crearHistorialColaborador();
+        MvcResult resultado = mockMvc.perform(get(HISTORIAL).param("id", colaborador.getId().toString())
+                        .param(parametro, valor))
+                .andExpect(status().isOk())
+                .andReturn();
+        Map<String, Object> modelo = resultado.getModelAndView().getModel();
+        assertEquals((long) TOTAL_HISTORIAL, ((Number) modelo.get("totalRegistros")).longValue());
+        assertNull(modelo.get(parametro));
+        // Años de las fechas de inicio reales, sin nulos y en orden descendente.
+        assertEquals(List.of(2026, 2025), modelo.get("aniosDisponibles"));
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("<option value=\"all\">Todos</option><option value=\"2026\">2026</option>"
+                + "<option value=\"2025\">2025</option></select>"));
+    }
+
+    @Test
+    void normalizarFiltrosColaboradorRecortaYUsaValoresSeguros() {
+        var filtros = asignacionService.normalizarFiltrosColaborador(
+                "  " + "a".repeat(150) + "  ", " activa ", " 2025 ", List.of(2026, 2025));
+        assertEquals("a".repeat(100), filtros.busqueda());
+        assertEquals(EstadoAsignacion.ACTIVA, filtros.estado());
+        assertEquals(2025, filtros.anio());
+
+        var vacios = asignacionService.normalizarFiltrosColaborador("   ", "all", "-1", List.of(2026));
+        assertNull(vacios.busqueda());
+        assertNull(vacios.estado());
+        assertNull(vacios.anio());
+        assertNull(asignacionService.normalizarFiltrosColaborador(null, null, null, List.of()).anio());
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', value = {"'' | 1", "abc | 1", "0 | 1", "-3 | 1", "1.5 | 1", "2 | 2", "3 | 3", "999 | 3"})
+    @Transactional
+    void paginaInvalidaOExcesivaUsaUnaPaginaValida(String pagina, int esperada) throws Exception {
+        List<Long> ids = crearHistorialColaborador();
+        MvcResult resultado = mockMvc.perform(get(HISTORIAL).param("id", colaborador.getId().toString())
+                        .param("pagina", pagina))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertEquals(esperada, resultado.getModelAndView().getModel().get("paginaActual"));
+        assertEquals(ids.subList((esperada - 1) * 10, Math.min(esperada * 10, TOTAL_HISTORIAL)), idsDeLaPagina(resultado));
+    }
+
+    @Test
+    @Transactional
+    void sinResultadosLaPaginaEsUnoYElResultadoEsValido() throws Exception {
+        crearHistorialColaborador();
+        MvcResult resultado = mockMvc.perform(historial("busqueda=sin-coincidencias-t051&pagina=4"))
+                .andExpect(status().isOk())
+                .andReturn();
+        Map<String, Object> modelo = resultado.getModelAndView().getModel();
+        assertEquals(1, modelo.get("paginaActual"));
+        assertEquals(1, modelo.get("totalPaginas"));
+        assertEquals(List.of(), idsDeLaPagina(resultado));
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("Mostrando 0-0 de 0 asignaciones"));
+        assertFalse(html.contains("id=\"pagination\""));
+    }
+
+    @Test
+    @Transactional
+    void enlacesYFormularioConservanIdYFiltros() throws Exception {
+        crearHistorialColaborador();
+        String id = colaborador.getId().toString();
+        // pedro + FINALIZADA + 2026 = 12 asignaciones → 2 páginas.
+        String html = mockMvc.perform(get(HISTORIAL).param("id", id).param("busqueda", " pedro ")
+                        .param("estado", "FINALIZADA").param("anio", "2026").param("pagina", "2"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        String base = HISTORIAL + "?id=" + id + "&busqueda=pedro&estado=FINALIZADA&anio=2026&pagina=";
+        // Anterior, 1, 2 y Siguiente (deshabilitado en la última página).
+        assertEquals(List.of(base + 1, base + 1, base + 2, base + 2),
+                enlaces(html, "/rm/colaboradores/asignaciones\\?[^\"]*pagina=\\d+"));
+        assertTrue(html.contains("Mostrando 11-12 de 12 asignaciones"));
+
+        // Formulario GET con el id oculto y los filtros normalizados seleccionados.
+        assertTrue(html.contains("<form id=\"assignmentFiltersForm\" method=\"get\" action=\"/rm/colaboradores/asignaciones\""));
+        assertTrue(html.contains("<input type=\"hidden\" name=\"id\" value=\"" + id + "\">"));
+        assertTrue(html.contains("name=\"busqueda\" class=\"form-control\" maxlength=\"100\" value=\"pedro\""));
+        assertTrue(html.contains("<option value=\"FINALIZADA\" selected=\"selected\">Finalizada</option>"));
+        assertTrue(html.contains("<option value=\"2026\" selected=\"selected\">2026</option>"));
+        assertTrue(html.contains("<button type=\"submit\" class=\"btn btn-primary\">Filtrar</button>"));
+        // "Limpiar filtros" conserva solo el id.
+        assertTrue(html.contains("id=\"clearFilters\" class=\"btn btn-outline-secondary\" href=\"" + HISTORIAL
+                + "?id=" + id + "\">Limpiar filtros</a>"));
+        // Sin enlaces vacíos en el contenido de la vista (el topbar compartido queda fuera).
+        assertFalse(html.substring(html.indexOf("<nav class=\"breadcrumb-wrap\""), html.indexOf("</main>"))
+                .contains("href=\"#\""));
+
+        // Con una sola página no se muestra la lista de páginas.
+        String unaPagina = mockMvc.perform(historial("busqueda=portal")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(unaPagina.contains("id=\"pagination\""));
+        assertTrue(unaPagina.contains("Mostrando 1-2 de 2 asignaciones"));
+    }
+
+    @Test
+    @Transactional
+    void metricasDelEncabezadoNoDependenDeFiltrosNiPagina() throws Exception {
+        crearHistorialColaborador();
+        String referencia = encabezadoHistorial("");
+        // Una sola asignación ACTIVA (índice 1) y la disponibilidad declarada de Carla.
+        assertTrue(referencia.contains(">1 / "), referencia);
+        assertTrue(referencia.contains("20.00 h/sem"), referencia);
+        assertTrue(referencia.contains("Backend Developer"), referencia);
+        for (String consulta : List.of("estado=PENDIENTE", "busqueda=sin-coincidencias-t051", "anio=2025&pagina=2",
+                "pagina=3", "estado=ACTIVA&anio=2026&busqueda=portal")) {
+            assertEquals(referencia, encabezadoHistorial(consulta), consulta);
+        }
+    }
+
+    @Test
+    @Transactional
+    void historialVacioYFiltrosSinCoincidenciasUsanElEstadoVacioComun() throws Exception {
+        String id = colaborador.getId().toString();
+        // Carla no tiene asignaciones (prepararDatos las borra): el historial está vacío aun con filtros.
+        for (String consulta : List.of("", "busqueda=sin-coincidencias-t051")) {
+            String vacio = mockMvc.perform(historial(consulta)).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+            assertTrue(vacio.contains("<tr id=\"emptyAssignments\"><td colspan=\"7\" class=\"empty-state-cell\">"
+                    + "<div class=\"empty-state\">"), consulta);
+            assertTrue(vacio.contains("<div class=\"empty-state-title\">Sin asignaciones</div>"));
+            assertTrue(vacio.contains("Este colaborador todavía no tiene asignaciones."));
+            assertFalse(vacio.contains("noFilterResults"));
+            assertFalse(vacio.contains("empty-state-action"));
+            assertTrue(vacio.contains("Mostrando 0-0 de 0 asignaciones"));
+            assertCuerpoDeTablaSoloConFilas(vacio);
+        }
+
+        crearHistorialColaborador();
+        String filtrado = mockMvc.perform(historial("busqueda=sin-coincidencias-t051&estado=ACTIVA"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(filtrado.contains("<tr id=\"noFilterResults\"><td colspan=\"7\" class=\"empty-state-cell\">"
+                + "<div class=\"empty-state\">"));
+        assertTrue(filtrado.contains("<div class=\"empty-state-title\">Sin resultados</div>"));
+        assertTrue(filtrado.contains("Ninguna asignación coincide con los filtros seleccionados."));
+        assertTrue(filtrado.contains("<a class=\"btn btn-outline-primary btn-sm\" href=\"" + HISTORIAL + "?id=" + id
+                + "\">Limpiar filtros</a>"), filtrado);
+        assertFalse(filtrado.contains("emptyAssignments"));
+        assertEquals(1, contar(filtrado, "class=\"empty-state\""));
+        assertCuerpoDeTablaSoloConFilas(filtrado);
+    }
+
+    /**
+     * Historial de Carla: 25 asignaciones; el índice es la posición en fechaSolicitud descendente.
+     * 0 Portal Clientes (2026, Pedro PM) PENDIENTE · 1 ERP Núcleo (2025, Íñigo Álvarez) ACTIVA ·
+     * 2 Datos Sin Fecha (sin inicio, Pedro PM) RECHAZADA · 3 Portal Clientes FINALIZADA ·
+     * 4-24 Migración Legado (2026, Pedro PM): pares FINALIZADA e impares RECHAZADA.
+     * Se guardan de la más antigua a la más reciente para que el orden no coincida con el id.
+     */
+    private List<Long> crearHistorialColaborador() {
+        Usuario inigo = obtenerUsuario("pm.t051@skillbridge.test", "Íñigo", "Álvarez", obtenerRol("PROJECT_MANAGER"));
+        Proyecto portal = proyectoDelHistorial("Portal Clientes T051", pm, java.time.LocalDate.of(2026, 3, 1));
+        Proyecto erp = proyectoDelHistorial("ERP Núcleo T051", inigo, java.time.LocalDate.of(2025, 5, 1));
+        Proyecto sinFecha = proyectoDelHistorial("Datos Sin Fecha T051", pm, null);
+        Proyecto legado = proyectoDelHistorial("Migración Legado T051", pm, java.time.LocalDate.of(2026, 1, 10));
+        LocalDateTime base = LocalDateTime.now().withNano(0);
+        Long[] ids = new Long[TOTAL_HISTORIAL];
+        for (int i = TOTAL_HISTORIAL - 1; i >= 0; i--) {
+            Proyecto destino = i == 0 || i == 3 ? portal : i == 1 ? erp : i == 2 ? sinFecha : legado;
+            EstadoAsignacion estado = estadoHistorial(i);
+            ids[i] = guardarAsignacion(destino, colaborador, OrigenAsignacion.PROPUESTA_PM, estado,
+                    estado != EstadoAsignacion.RECHAZADA,
+                    estado == EstadoAsignacion.ACTIVA || estado == EstadoAsignacion.FINALIZADA,
+                    base.minusHours(i + 1)).getId();
+        }
+        return List.of(ids);
+    }
+
+    private static EstadoAsignacion estadoHistorial(int indice) {
+        return switch (indice) {
+            case 0 -> EstadoAsignacion.PENDIENTE;
+            case 1 -> EstadoAsignacion.ACTIVA;
+            case 2 -> EstadoAsignacion.RECHAZADA;
+            case 3 -> EstadoAsignacion.FINALIZADA;
+            default -> indice % 2 == 0 ? EstadoAsignacion.FINALIZADA : EstadoAsignacion.RECHAZADA;
+        };
+    }
+
+    private static org.junit.jupiter.params.provider.Arguments argumentos(
+            String consulta, java.util.function.IntPredicate condicion) {
+        return org.junit.jupiter.params.provider.Arguments.of(
+                consulta, IntStream.range(0, TOTAL_HISTORIAL).filter(condicion).boxed().toList());
+    }
+
+    private Proyecto proyectoDelHistorial(String nombre, Usuario responsable, java.time.LocalDate inicio) {
+        Proyecto nuevo = new Proyecto();
+        nuevo.setNombre(nombre);
+        nuevo.setDescripcion("Proyecto del historial del colaborador (TASK-051).");
+        nuevo.setEstado(EstadoProyecto.FINALIZADO);
+        nuevo.setPrioridad(Prioridad.MEDIA);
+        nuevo.setJustificacionPrioridad("Filtros del historial del colaborador.");
+        nuevo.setColaboradoresRequeridos(2);
+        nuevo.setPm(responsable);
+        nuevo.setFechaInicio(inicio);
+        return proyectoRepository.save(nuevo);
+    }
+
+    // Convierte "a=1&b=2" en parámetros GET (sin codificar) del historial de Carla.
+    private MockHttpServletRequestBuilder historial(String consulta) {
+        MockHttpServletRequestBuilder solicitud = get(HISTORIAL).param("id", colaborador.getId().toString());
+        if (consulta == null || consulta.isEmpty()) return solicitud;
+        for (String par : consulta.split("&")) {
+            if (par.isEmpty()) continue;
+            int igual = par.indexOf('=');
+            solicitud.param(par.substring(0, igual), par.substring(igual + 1));
+        }
+        return solicitud;
+    }
+
+    private String encabezadoHistorial(String consulta) throws Exception {
+        String html = mockMvc.perform(historial(consulta)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        int inicio = html.indexOf("<div class=\"row row-cards mb-4\">");
+        int fin = html.indexOf("<div class=\"card section-card\">");
+        assertTrue(inicio >= 0 && fin > inicio, "La vista no tiene las métricas del encabezado.");
+        return html.substring(inicio, fin);
+    }
+
+    // Dentro de <tbody> solo hay filas: el estado vacío nunca deja un <div> suelto.
+    private void assertCuerpoDeTablaSoloConFilas(String html) {
+        Matcher cuerpo = Pattern.compile("<tbody>(.*?)</tbody>", Pattern.DOTALL).matcher(html);
+        assertTrue(cuerpo.find());
+        String contenido = cuerpo.group(1).trim();
+        assertTrue(contenido.startsWith("<tr"), contenido);
+        assertTrue(contenido.endsWith("</tr>"), contenido);
     }
 }

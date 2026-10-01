@@ -5,6 +5,7 @@ import com.pucp.skillb_ia.dto.RmColaboradorResumen;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.CategoriaHabilidad;
 import com.pucp.skillb_ia.model.ColaboradorHabilidad;
+import com.pucp.skillb_ia.model.ConfiguracionSistema;
 import com.pucp.skillb_ia.model.Habilidad;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
@@ -20,6 +21,7 @@ import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.repository.CategoriaHabilidadRepository;
 import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
+import com.pucp.skillb_ia.repository.ConfiguracionSistemaRepository;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.model.enums.NivelExperiencia;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
@@ -664,10 +666,11 @@ class RmColaboradorViewTests {
             assertTrue(html.contains("<div class=\"empty-state-text\">" + estado[1] + "</div>"), estado[1]);
         }
         assertFalse(html.contains("empty-state-action"), "Secciones de solo lectura");
-        // Sin asignaciones activas no se pinta la tabla ni su paginación; el script de TASK-050 sigue cargándose.
+        // Sin asignaciones activas no se pinta la tabla; desde TASK-050 no hay paginación ni su script.
+        assertFalse(html.contains("asignacion-row"));
         assertFalse(html.contains("id=\"paginationInfo\""));
-        assertTrue(html.contains("rm-perfil-colaborador.js"));
-        assertTrue(html.contains("Ver historial"));
+        assertFalse(html.contains("rm-perfil-colaborador.js"));
+        assertTrue(html.contains("href=\"/rm/colaboradores/asignaciones?id=" + vacio.getId() + "\">Ver historial</a>"));
     }
 
     // Distribución del perfil: tarjetas alineadas, sin columnas apiladas que se desborden ni scroll horizontal.
@@ -691,6 +694,180 @@ class RmColaboradorViewTests {
         String topbar = java.nio.file.Files.readString(
                 java.nio.file.Path.of("src/main/resources/static/css/rm-css/rm-topbar.css"), StandardCharsets.UTF_8);
         assertFalse(topbar.contains("50vw"), "50vw incluye la barra de desplazamiento y provoca scroll horizontal");
+    }
+
+    // ===== TASK-050: "Asignaciones activas" del perfil sin paginación (lista acotada, renderizada en el servidor) =====
+
+    @Autowired private ConfiguracionSistemaRepository configuracionRepository;
+
+    private static final String CLAVE_MAX = "MAX_ASIGNACIONES_POR_COLABORADOR";
+
+    /**
+     * Con el límite por defecto (3) y con un límite configurado mayor (15) el perfil pinta todas las activas
+     * en el orden del repositorio; 12 activas superan el antiguo recorte de 10 filas del JavaScript.
+     */
+    @ParameterizedTest(name = "[{index}] {0} activas, límite {1}")
+    @CsvSource(delimiter = '|', value = {"3 | ", "12 | 15"})
+    void perfilMuestraTodasLasAsignacionesActivasEnElOrdenDelRepositorio(int cantidad, String limite)
+            throws Exception {
+        ConfiguracionSistema configuracion = configuracionRepository.findByClave(CLAVE_MAX).orElse(null);
+        String valorAnterior = configuracion == null ? null : configuracion.getValor();
+        try {
+            if (limite != null) {
+                if (configuracion == null) {
+                    configuracion = new ConfiguracionSistema();
+                    configuracion.setClave(CLAVE_MAX);
+                }
+                configuracion.setValor(limite);
+                configuracion = configuracionRepository.save(configuracion);
+            }
+            Usuario colaborador = colaboradorDeTask050();
+            // Nombres en orden inverso al de creación: el orden esperado lo fija el repositorio, no el alfabeto.
+            for (int i = cantidad; i >= 1; i--) {
+                crearAsignacionT050(colaborador, String.format("T050 Activa %02d", i), EstadoAsignacion.ACTIVA);
+            }
+            for (EstadoAsignacion otro : List.of(EstadoAsignacion.PENDIENTE, EstadoAsignacion.RECHAZADA,
+                    EstadoAsignacion.FINALIZADA)) {
+                crearAsignacionT050(colaborador, "T050 No activa " + otro.name(), otro);
+            }
+
+            String html = mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaborador.getId().toString()))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+            List<String> esperados = asignacionRepository.findByColaboradorAndEstado(colaborador, EstadoAsignacion.ACTIVA)
+                    .stream()
+                    .map(asignacion -> proyectoRepository.findById(asignacion.getProyecto().getId()).orElseThrow().getNombre())
+                    .toList();
+            List<String> filas = proyectosDeLasFilas(html);
+            assertEquals(cantidad, esperados.size());
+            assertEquals(esperados, filas, "Mismo orden que findByColaboradorAndEstado");
+            assertTrue(filas.stream().allMatch(nombre -> nombre.startsWith("T050 Activa ")));
+            // (El modal de propuesta sí lista esos proyectos: están ACTIVO.)
+            assertFalse(tarjetaDeAsignacionesActivas(html).contains("T050 No activa"),
+                    "Pendientes, rechazadas y finalizadas no se muestran");
+            assertEquals(cantidad, contar(html, "<td><span class=\"badge bg-green-lt\">Activa</span></td>"));
+            // Sin JavaScript: todas las filas visibles desde el servidor, sin controles de página.
+            assertFalse(html.contains("asignacion-row d-none"));
+            assertSinPaginacionEnJs(html);
+            if (limite != null) {
+                assertTrue(html.contains(cantidad + " / " + limite), "El resumen usa el límite configurado");
+            }
+        } finally {
+            if (limite != null && configuracion != null) {
+                if (valorAnterior == null) {
+                    configuracionRepository.delete(configuracion);
+                } else {
+                    configuracion.setValor(valorAnterior);
+                    configuracionRepository.save(configuracion);
+                }
+            }
+        }
+    }
+
+    @Test
+    void perfilConservaHistorialModalYScriptsSinElScriptDePaginacion() throws Exception {
+        Usuario colaborador = colaboradorDeTask050();
+        crearAsignacionT050(colaborador, "T050 Activa única", EstadoAsignacion.ACTIVA);
+
+        String html = mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertEquals(List.of("T050 Activa única"), proyectosDeLasFilas(html));
+        assertSinPaginacionEnJs(html);
+        assertFalse(html.contains("Sin asignaciones activas"));
+        assertTrue(html.contains("href=\"/rm/colaboradores/asignaciones?id=" + colaborador.getId() + "\">Ver historial</a>"));
+        // Modal compartido de propuesta (TASK-034) y scripts que siguen teniendo responsabilidad.
+        assertTrue(html.contains("id=\"proyectosModal\""));
+        assertTrue(html.contains("id=\"propuestaModal\""));
+        assertTrue(html.contains("id=\"propuestaContexto\""));
+        for (String script : List.of("rm-nivel-general.js", "rm-propuesta-asignacion.js", "rm-navigation.js")) {
+            assertTrue(html.contains("src=\"/js/rm-js/" + script + "\""), script);
+        }
+    }
+
+    @Test
+    void elScriptDePaginacionDelPerfilFueEliminadoYNoTieneReferencias() throws Exception {
+        java.nio.file.Path recursos = java.nio.file.Path.of("src/main/resources");
+        assertFalse(java.nio.file.Files.exists(recursos.resolve("static/js/rm-js/rm-perfil-colaborador.js")));
+        try (var archivos = java.nio.file.Files.walk(recursos)) {
+            List<java.nio.file.Path> referencias = archivos
+                    .filter(java.nio.file.Files::isRegularFile)
+                    .filter(ruta -> ruta.toString().endsWith(".html") || ruta.toString().endsWith(".js"))
+                    .filter(ruta -> {
+                        try {
+                            // ISO-8859-1 lee cualquier archivo; el nombre buscado es ASCII.
+                            return java.nio.file.Files.readString(ruta, StandardCharsets.ISO_8859_1)
+                                    .contains("rm-perfil-colaborador.js");
+                        } catch (java.io.IOException e) {
+                            throw new java.io.UncheckedIOException(e);
+                        }
+                    })
+                    .toList();
+            assertEquals(List.of(), referencias);
+        }
+    }
+
+    private static void assertSinPaginacionEnJs(String html) {
+        assertFalse(html.contains("id=\"paginationInfo\""));
+        assertFalse(html.contains("id=\"pagination\""));
+        assertFalse(html.contains("pagination-wrap"));
+        assertFalse(html.contains("page-link"));
+        assertFalse(html.contains("rm-perfil-colaborador.js"));
+        // La tarjeta no tiene enlaces vacíos (el único href="#" de la página es la campana de la barra superior).
+        String tarjeta = tarjetaDeAsignacionesActivas(html);
+        assertFalse(tarjeta.contains("href=\"#\""));
+        assertEquals(1, contar(tarjeta, "href=\""), "Solo el enlace \"Ver historial\"");
+    }
+
+    private static String tarjetaDeAsignacionesActivas(String html) {
+        int inicio = html.indexOf(">Asignaciones activas<");
+        return html.substring(inicio, html.indexOf(">Experiencia profesional<", inicio));
+    }
+
+    // Nombres de proyecto de las filas de "Asignaciones activas", en el orden del HTML.
+    private static List<String> proyectosDeLasFilas(String html) {
+        Matcher matcher = Pattern.compile(
+                "<tr class=\"asignacion-row\">\\s*<td class=\"fw-semibold\">([^<]*)</td>").matcher(html);
+        List<String> nombres = new ArrayList<>();
+        while (matcher.find()) nombres.add(matcher.group(1));
+        return nombres;
+    }
+
+    private Usuario colaboradorDeTask050() {
+        Usuario colaborador = usuarioRepository.findByCorreo("colaborador.t050@skillbridge.test").orElseGet(() -> {
+            Usuario nuevo = new Usuario();
+            nuevo.setCorreo("colaborador.t050@skillbridge.test");
+            nuevo.setNombre("Perfil");
+            nuevo.setApellido("T050");
+            nuevo.setCargo(cargoDePrueba("Backend Developer"));
+            nuevo.setRol(rolRepository.findByNombre("COLABORADOR").orElseThrow());
+            nuevo.setNivelExperiencia(NivelExperiencia.JUNIOR);
+            nuevo.setHorasDisponibles(BigDecimal.valueOf(40));
+            nuevo.setAniosExperiencia(BigDecimal.ZERO);
+            return nuevo;
+        });
+        colaborador.setActivo(true);
+        colaborador = usuarioRepository.save(colaborador);
+        loteCreado.add(colaborador);
+        return colaborador;
+    }
+
+    // Cada asignación en su propio proyecto (los borra @AfterEach).
+    private void crearAsignacionT050(Usuario colaborador, String nombreProyecto, EstadoAsignacion estado) {
+        Proyecto proyecto = crearProyectoDeCarga(0);
+        proyecto.setNombre(nombreProyecto);
+        proyecto = proyectoRepository.save(proyecto);
+        Asignacion asignacion = new Asignacion();
+        asignacion.setProyecto(proyecto);
+        asignacion.setColaborador(colaborador);
+        asignacion.setHorasSemanales(new BigDecimal("2"));
+        asignacion.setOrigen(OrigenAsignacion.PROPUESTA_RM);
+        asignacion.setEstado(estado);
+        asignacion.setAprobadoPorPm(true);
+        asignacion.setAprobadoPorRm(true);
+        asignacionesCreadas.add(asignacionRepository.save(asignacion).getId());
     }
 
     private static int contar(String texto, String fragmento) {

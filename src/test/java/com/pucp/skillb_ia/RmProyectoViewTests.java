@@ -128,6 +128,17 @@ class RmProyectoViewTests {
                 .andExpect(model().attributeExists("proyectos", "totalProyectos"));
     }
 
+    // TASK-032: la vista raíz muestra directamente el encabezado, sin ruta de navegación de un solo elemento.
+    @Test
+    void listadoNoMuestraRutaDeNavegacionRedundante() throws Exception {
+        String html = renderizar("/rm/proyectos").replaceAll("\\s+", " ");
+
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("breadcrumb-wrap"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("Migas de pan"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<h1 class=\"page-title\"> Proyectos </h1>"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Consulta el estado de los proyectos"));
+    }
+
     @Test
     void renderizaDetallePorId() throws Exception {
         mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyectoId.toString()))

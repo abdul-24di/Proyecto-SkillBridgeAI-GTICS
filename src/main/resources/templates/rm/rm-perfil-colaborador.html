@@ -297,10 +297,6 @@
           </tbody>
         </table>
       </div>
-      <div class="pagination-wrap" th:if="${!#lists.isEmpty(colaborador.asignaciones)}">
-        <div id="paginationInfo" class="text-secondary small"></div>
-        <ul id="pagination" class="pagination pagination-sm m-0"></ul>
-      </div>
       <th:block th:if="${#lists.isEmpty(colaborador.asignaciones)}">
         <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='carpeta', vacioTitulo='Sin asignaciones activas',
             vacioTexto='Este colaborador no tiene asignaciones activas.')}"></div>
@@ -444,6 +440,5 @@
 <script src="../../static/js/rm-js/rm-nivel-general.js" th:src="@{/js/rm-js/rm-nivel-general.js}"></script>
 <script src="../../static/js/rm-js/rm-propuesta-asignacion.js" th:src="@{/js/rm-js/rm-propuesta-asignacion.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
-<script src="../../static/js/rm-js/rm-perfil-colaborador.js" th:src="@{/js/rm-js/rm-perfil-colaborador.js}"></script>
 </body>
 </html>

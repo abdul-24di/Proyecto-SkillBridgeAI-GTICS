@@ -344,6 +344,47 @@ class RmNavegacionTests {
         }
     }
 
+    // TASK-050: el perfil ya no pagina "Asignaciones activas" en JS; migas, enlaces y scripts restantes no cambian.
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void perfilConservaSuNavegacionSinPaginacionEnJs(boolean conAsignaciones) throws Exception {
+        Usuario persona = conAsignaciones ? colaborador : otroColaborador;
+        String perfil = html("/rm/colaboradores/perfil?id=" + persona.getId());
+
+        String migas = migas(perfil);
+        assertTrue(migas.contains("href=\"/rm/colaboradores\">Colaboradores</a>"));
+        assertTrue(migas.endsWith("<span class=\"text-secondary\">" + persona.getNombre() + " "
+                + persona.getApellido() + "</span>"));
+        String historial = "/rm/colaboradores/asignaciones?id=" + persona.getId();
+        assertTrue(perfil.contains("href=\"" + historial + "\">Ver historial</a>"));
+        assertEquals(List.of(historial, historial), enlaces(perfil, "/rm/colaboradores/asignaciones\\?[^\"]*"),
+                "\"Ver asignaciones\" y \"Ver historial\" apuntan al mismo colaborador");
+
+        // Solo la activa (no las tres pendientes); sin colaborador activo, el estado vacío común de TASK-031.
+        assertEquals(conAsignaciones ? 1 : 0, perfil.split("<tr class=\"asignacion-row\">", -1).length - 1);
+        assertEquals(!conAsignaciones, perfil.contains("<div class=\"empty-state-title\">Sin asignaciones activas</div>"));
+
+        assertFalse(perfil.contains("id=\"paginationInfo\""));
+        assertFalse(perfil.contains("id=\"pagination\""));
+        assertFalse(perfil.contains("rm-perfil-colaborador.js"));
+        for (String script : List.of("rm-nivel-general.js", "rm-propuesta-asignacion.js", "rm-navigation.js")) {
+            assertTrue(perfil.contains("src=\"/js/rm-js/" + script + "\""), script);
+        }
+        assertTrue(perfil.contains("id=\"propuestaContexto\" class=\"d-none\" data-origen=\"perfil\""));
+    }
+
+    // TASK-050 no toca la vista de asignaciones del colaborador (TASK-051 pendiente).
+    @Test
+    void asignacionesDelColaboradorSiguenSinCambios() throws Exception {
+        String listado = html("/rm/colaboradores/asignaciones?id=" + colaborador.getId());
+        // Sigue listando todo el historial (la activa y las tres pendientes) con origen=colaborador.
+        List<String> detalles = enlaces(listado, "/rm/asignaciones/[a-z-]+\\?id=\\d+[^\"]*");
+        assertEquals(4, detalles.size());
+        assertTrue(detalles.stream().allMatch(enlace -> enlace.endsWith("&origen=colaborador")), detalles.toString());
+        assertTrue(java.nio.file.Files.exists(
+                java.nio.file.Path.of("src/main/resources/static/js/rm-js/rm-asignaciones-colaborador.js")));
+    }
+
     @Test
     void origenColaboradorConservaSuSignificadoEnLaPropuestaDeTask034() throws Exception {
         // Los tres orígenes de la propuesta siguen volviendo a su pantalla (error de horas: no crea nada).

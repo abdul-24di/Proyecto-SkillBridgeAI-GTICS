@@ -1396,11 +1396,14 @@ public class RmViewController {
     @GetMapping({"/reportes/recursos", "/rm-reporte-recursos.html"})
     public String resourceReport(
             @RequestParam(name = "periodo", required = false) String periodo,
-            @RequestParam(name = "proyecto", required = false) Long proyectoId,
+            @RequestParam(name = "proyecto", required = false) String proyectoTexto,
             @RequestParam(name = "estado", required = false) String estado,
             Model model) {
-        RmReporteView reporte = rmReporteService.generar(periodo, proyectoId, estado);
+        RmReporteView reporte = rmReporteService.generar(periodo, idReporte(proyectoTexto), estado);
         cargarModeloReporte(model, reporte);
+        model.addAttribute("archivoExportacion", rmReporteExportService.nombreArchivo(reporte));
+        model.addAttribute("columnasProyecto", RmReporteExportService.COLUMNAS_PROYECTO);
+        model.addAttribute("columnasDetalle", RmReporteExportService.COLUMNAS_DETALLE);
         return "rm/rm-reporte-recursos";
     }
 
@@ -1436,23 +1439,29 @@ public class RmViewController {
     @GetMapping("/reportes/recursos/excel")
     public ResponseEntity<byte[]> exportarReporteExcel(
             @RequestParam(name = "periodo", required = false) String periodo,
-            @RequestParam(name = "proyecto", required = false) Long proyectoId,
+            @RequestParam(name = "proyecto", required = false) String proyectoTexto,
             @RequestParam(name = "estado", required = false) String estado) {
-        RmReporteView reporte = rmReporteService.generar(periodo, proyectoId, estado);
+        RmReporteView reporte = rmReporteService.generar(periodo, idReporte(proyectoTexto), estado);
         return archivo(rmReporteExportService.crearExcel(reporte),
-                "reporte-recursos-" + reporte.getPeriodoValor() + ".xlsx",
+                rmReporteExportService.nombreArchivo(reporte) + ".xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 
     @GetMapping("/reportes/recursos/pdf")
     public ResponseEntity<byte[]> exportarReportePdf(
             @RequestParam(name = "periodo", required = false) String periodo,
-            @RequestParam(name = "proyecto", required = false) Long proyectoId,
+            @RequestParam(name = "proyecto", required = false) String proyectoTexto,
             @RequestParam(name = "estado", required = false) String estado) {
-        RmReporteView reporte = rmReporteService.generar(periodo, proyectoId, estado);
+        RmReporteView reporte = rmReporteService.generar(periodo, idReporte(proyectoTexto), estado);
         return archivo(rmReporteExportService.crearPdf(reporte),
-                "reporte-recursos-" + reporte.getPeriodoValor() + ".pdf",
+                rmReporteExportService.nombreArchivo(reporte) + ".pdf",
                 MediaType.APPLICATION_PDF_VALUE);
+    }
+
+    /** Proyecto del reporte: vacío o no numérico se trata como "Todos", igual que un estado inválido. */
+    private Long idReporte(String proyectoTexto) {
+        if (proyectoTexto == null || !proyectoTexto.trim().matches("\\d{1,18}")) return null;
+        return Long.valueOf(proyectoTexto.trim());
     }
 
     private void cargarModeloReporte(Model model, RmReporteView reporte) {

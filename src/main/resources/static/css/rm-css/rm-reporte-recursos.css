@@ -86,3 +86,63 @@
     flex: 1;
   }
 }
+
+/* Modal de exportación: base compartida .rm-modal (rm-common.css); aquí solo su contenido. */
+.rm-modal#exportReportModal .modal-dialog {
+  max-width: 760px;
+}
+
+.export-step {
+  margin: 1.1rem 0 .55rem;
+  color: #24547d;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.export-step:first-of-type {
+  margin-top: 0;
+}
+
+.export-scope {
+  margin-bottom: .6rem;
+}
+
+.export-scope dt {
+  color: #4f5d6b;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.export-scope dd {
+  margin: .15rem 0 0;
+  color: #182433;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.export-scope-wide {
+  grid-column: 1 / -1;
+}
+
+.export-content {
+  padding-left: 1.1rem;
+  margin-bottom: .5rem;
+}
+
+.export-format {
+  display: grid;
+  gap: .35rem;
+  padding: .85rem 1rem;
+  border: 1px solid #dbe5ef;
+  border-left: 4px solid #2565a5;
+  border-radius: 9px;
+  background: #f6f9fc;
+}
+
+.export-file {
+  overflow-wrap: anywhere;
+  font-size: .75rem;
+}

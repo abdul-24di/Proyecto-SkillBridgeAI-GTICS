@@ -48,7 +48,12 @@ public class RmReporteService {
                 .computeIfAbsent(actividad.getProyecto().getId(), clave -> new ArrayList<>())
                 .add(actividad));
 
-        List<Proyecto> proyectos = proyectoRepository.findAllConPmOrderByFechaCreacionDesc().stream()
+        List<Proyecto> todos = proyectoRepository.findAllConPmOrderByFechaCreacionDesc();
+        String proyectoNombre = todos.stream()
+                .filter(proyecto -> proyecto.getId().equals(proyectoId))
+                .map(Proyecto::getNombre)
+                .findFirst().orElse(null);
+        List<Proyecto> proyectos = todos.stream()
                 .filter(proyecto -> proyectoId == null || proyecto.getId().equals(proyectoId))
                 .filter(proyecto -> estado == null || proyecto.getEstado() == estado)
                 .toList();
@@ -81,6 +86,7 @@ public class RmReporteService {
         return new RmReporteView(
                 periodo, textoPeriodo(periodo), proyectoId,
                 estado == null ? "" : estado.name(),
+                proyectoNombre, estado == null ? null : textoEnum(estado.name()),
                 filasProyecto, detalles, colaboradores);
     }
 

@@ -62,6 +62,18 @@ public class NotificacionService {
 
     }
 
+    //Creamos notificaciones para todos los Administradores
+    @Transactional
+    public void crearParaTodosLosAdmins(String tipo, CategoriaNotificacion categoria, String titulo, String descripcion, String entidad, Long entidadId) {
+
+        List<Usuario> administradores = usuarioRepository.findActivosByRolNombre("ADMINISTRADOR");
+
+        for (Usuario admin : administradores) {
+            crear(admin, tipo, categoria, titulo, descripcion, entidad, entidadId);
+        }
+
+    }
+
     @Transactional(readOnly = true)
     public List<NotificacionView> listar(Long usuarioId) {
         Usuario usuario = obtenerUsuario(usuarioId);
@@ -127,6 +139,14 @@ public class NotificacionService {
         }
         if ("COLABORADOR_CURSO".equals(item.getEntidad()) && esColaborador) {
             return "/colaborador/perfil#mis-cursos";
+        }
+        if ("USUARIO".equals(item.getEntidad()) && item.getEntidadId() != null
+                && "CV_PENDIENTE".equals(item.getTipo())
+                && item.getUsuario().getRol().getNombre().equals("ADMINISTRADOR")) {
+            return "/admin/experiencia/" + item.getEntidadId();
+        }
+        if ("USUARIO".equals(item.getEntidad()) && "CV_REVISADO".equals(item.getTipo()) && esColaborador) {
+            return "/colaborador/perfil";
         }
 
         if ("FORO".equals(item.getEntidad()) && item.getEntidadId() != null) {

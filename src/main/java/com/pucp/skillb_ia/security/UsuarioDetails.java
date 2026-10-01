@@ -5,10 +5,13 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public class UsuarioDetails implements UserDetails {
+// Serializable: es el "principal" guardado en el SecurityContext, que Spring
+// Session persiste en MySQL dentro de la sesión HTTP (clase 6.2).
+public class UsuarioDetails implements UserDetails, Serializable {
 
     private final Usuario usuario;
     private final List<GrantedAuthority> authorities;

@@ -488,6 +488,21 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil?tab=cuenta";
     }
 
+    @PostMapping("/perfil/cv")
+    public String actualizarCv(@AuthenticationPrincipal UsuarioDetails principal,
+                               @RequestParam("cv") MultipartFile cv,
+                               RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorPerfilService.actualizarCv(principal.getUsuario(), cv);
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Tu CV se subió correctamente y quedó pendiente de revisión del Administrador.");
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/perfil?tab=cuenta";
+    }
+
     @PostMapping("/perfil/foto/eliminar")
     public String eliminarFoto(@AuthenticationPrincipal UsuarioDetails principal,
                                RedirectAttributes redirectAttributes) {

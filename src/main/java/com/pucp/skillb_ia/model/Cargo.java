@@ -2,11 +2,13 @@ package com.pucp.skillb_ia.model;
 
 import com.pucp.skillb_ia.model.enums.NivelExperiencia;
 import jakarta.persistence.*;
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "cargo")
-public class Cargo {
+// Serializable: Usuario.cargo viaja dentro de la sesión HTTP persistida (Spring Session).
+public class Cargo implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

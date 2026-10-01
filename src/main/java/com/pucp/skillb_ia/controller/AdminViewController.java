@@ -8,7 +8,10 @@ import com.pucp.skillb_ia.service.AdminPerfilService;
 import com.pucp.skillb_ia.service.AdminUsuarioService;
 import com.pucp.skillb_ia.service.admin.AdminCargoService;
 import com.pucp.skillb_ia.service.AdminCursoService;
+import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.model.Curso;
+import com.pucp.skillb_ia.model.ExperienciaProfesional;
+import com.pucp.skillb_ia.model.Usuario;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -38,13 +42,15 @@ public class AdminViewController {
     private final AdminAuditoriaService adminAuditoriaService;
     private final AdminPerfilService adminPerfilService;
     private final AdminCursoService adminCursoService;
+    private final ColaboradorPerfilService colaboradorPerfilService;
 
     public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
                                 AdminConfiguracionService adminConfiguracionService,
                                 AdminAuditoriaService adminAuditoriaService,
                                 AdminPerfilService adminPerfilService,
                                 AdminCargoService adminCargoService,
-                                AdminCursoService adminCursoService) {
+                                AdminCursoService adminCursoService,
+                                ColaboradorPerfilService colaboradorPerfilService) {
         this.adminUsuarioService = adminUsuarioService;
         this.adminHabilidadService = adminHabilidadService;
         this.adminConfiguracionService = adminConfiguracionService;
@@ -52,6 +58,7 @@ public class AdminViewController {
         this.adminCargoService = adminCargoService;
         this.adminPerfilService = adminPerfilService;
         this.adminCursoService = adminCursoService;
+        this.colaboradorPerfilService = colaboradorPerfilService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -614,5 +621,56 @@ public class AdminViewController {
             ra.addFlashAttribute("mensajeError", e.getMessage());
         }
         return "redirect:/admin/cursos";
+    }
+
+    // ============================================================
+    // CV Y EXPERIENCIA PROFESIONAL DE COLABORADORES
+    // ============================================================
+
+    @GetMapping({"/experiencia", "/admin-experiencia.html"})
+    public String experiencia(Model model) {
+        model.addAttribute("cvsPendientes", adminUsuarioService.listarCvsPendientes());
+        model.addAttribute("cvsRevisados", adminUsuarioService.listarCvsRevisados());
+        return "admin/admin-experiencia";
+    }
+
+    // Ojo: el path variable NO se llama "id" a propósito — @ModelAttribute
+    // ExperienciaProfesional también tiene un campo "id", y Spring Data Binder
+    // pisa ese campo con cualquier atributo implícito del modelo que se llame
+    // igual (incluidos los @PathVariable), hacendo que el repository intente
+    // actualizar una fila ajena en vez de crear una nueva.
+    @GetMapping("/experiencia/{colaboradorId}")
+    public String experienciaDetalle(@PathVariable Long colaboradorId, Model model) {
+        Usuario colaborador = adminUsuarioService.obtenerUsuario(colaboradorId);
+        model.addAttribute("colaborador", colaborador);
+        model.addAttribute("experiencias", colaboradorPerfilService.listarExperienciaProfesional(colaborador));
+        return "admin/admin-experiencia-detalle";
+    }
+
+    @PostMapping("/experiencia/{colaboradorId}/agregar")
+    public String agregarExperiencia(@PathVariable Long colaboradorId,
+                                     @ModelAttribute ExperienciaProfesional exp,
+                                     RedirectAttributes ra) {
+        try {
+            Usuario colaborador = adminUsuarioService.obtenerUsuario(colaboradorId);
+            colaboradorPerfilService.agregarExperiencia(colaborador, exp);
+            ra.addFlashAttribute("mensajeOk", "Se agregó la experiencia profesional.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/experiencia/" + colaboradorId;
+    }
+
+    @PostMapping("/experiencia/{colaboradorId}/revisar")
+    public String marcarCvRevisado(@PathVariable Long colaboradorId,
+                                   @AuthenticationPrincipal UsuarioDetails principal,
+                                   RedirectAttributes ra) {
+        try {
+            adminUsuarioService.marcarCvRevisado(colaboradorId, principal.getUsuario());
+            ra.addFlashAttribute("mensajeOk", "Se marcó el CV como revisado.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/admin/experiencia";
     }
 }

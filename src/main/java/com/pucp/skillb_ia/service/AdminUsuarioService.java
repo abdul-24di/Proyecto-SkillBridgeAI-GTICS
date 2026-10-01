@@ -3,6 +3,8 @@ package com.pucp.skillb_ia.service;
 import com.pucp.skillb_ia.model.Cargo;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
+import com.pucp.skillb_ia.model.enums.EstadoCv;
 import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
@@ -83,20 +85,27 @@ public class AdminUsuarioService {
         public boolean tieneErrores() { return !errores.isEmpty(); }
     }
 
+    public record CvFila(Long id, String nombreCompleto, String correo, String cvUrl,
+                          boolean revisado, String fechaSubida) {
+    }
+
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
     private final CargoRepository cargoRepository;
     private final AuthService authService;
     private final AuditoriaService auditoriaService;
+    private final NotificacionService notificacionService;
 
     public AdminUsuarioService(UsuarioRepository usuarioRepository, RolRepository rolRepository,
                                 CargoRepository cargoRepository,
-                                AuthService authService, AuditoriaService auditoriaService) {
+                                AuthService authService, AuditoriaService auditoriaService,
+                                NotificacionService notificacionService) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.cargoRepository = cargoRepository;
         this.authService = authService;
         this.auditoriaService = auditoriaService;
+        this.notificacionService = notificacionService;
     }
 
     public static List<String> etiquetasRoles() {
@@ -370,5 +379,57 @@ public class AdminUsuarioService {
                 u.getFechaCreacion() != null ? u.getFechaCreacion().format(FECHA_FORMATO) : "",
                 u.getCargo() != null ? u.getCargo().getId() : null,
                 u.getCargo() != null ? u.getCargo().getNombre() : null);
+    }
+
+    // ============================================================
+    // CV DE COLABORADORES (revisión + experiencia profesional)
+    // ============================================================
+
+    @Transactional(readOnly = true)
+    public Usuario obtenerUsuario(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el usuario."));
+    }
+
+    @Transactional(readOnly = true)
+    public List<CvFila> listarCvsPendientes() {
+        return listarCvs(false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CvFila> listarCvsRevisados() {
+        return listarCvs(true);
+    }
+
+    private List<CvFila> listarCvs(boolean revisados) {
+        return usuarioRepository.findActivosByRolNombre("COLABORADOR").stream()
+                .filter(u -> u.getCvUrl() != null && !u.getCvUrl().isBlank())
+                .filter(u -> revisados == (u.getCvEstado() == EstadoCv.REVISADO))
+                .map(u -> new CvFila(u.getId(), nombreCompletoCv(u), u.getCorreo(), u.getCvUrl(),
+                        u.getCvEstado() == EstadoCv.REVISADO,
+                        u.getCvFechaSubida() != null ? u.getCvFechaSubida().format(FECHA_FORMATO) : ""))
+                .toList();
+    }
+
+    @Transactional
+    public void marcarCvRevisado(Long colaboradorId, Usuario admin) {
+        Usuario colaborador = usuarioRepository.findById(colaboradorId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el colaborador."));
+        colaborador.setCvEstado(EstadoCv.REVISADO);
+        usuarioRepository.save(colaborador);
+
+        auditoriaService.registrar(admin, "REVISAR_CV", "USUARIO", colaborador.getId(),
+                "Revisó el CV de " + nombreCompletoCv(colaborador) + " y completó su experiencia profesional.");
+
+        notificacionService.crear(colaborador, "CV_REVISADO", CategoriaNotificacion.SISTEMA,
+                "Tu experiencia profesional fue actualizada",
+                "El Administrador revisó tu CV y actualizó tu experiencia profesional.",
+                "USUARIO", colaborador.getId());
+    }
+
+    private String nombreCompletoCv(Usuario u) {
+        String completo = ((u.getNombre() != null ? u.getNombre() : "") + " "
+                + (u.getApellido() != null ? u.getApellido() : "")).trim();
+        return completo.isEmpty() ? u.getCorreo() : completo;
     }
 }

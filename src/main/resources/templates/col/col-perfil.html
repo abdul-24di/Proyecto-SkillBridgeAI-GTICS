@@ -189,11 +189,11 @@
                             <div class="card-header section-header">
                                 <div>
                                     <h3 class="card-title mb-1">Experiencia profesional</h3>
-                                    <div class="section-description">Historial laboral fuera de SkillBridge AI. Esta información la ingresa el Administrador.</div>
+                                    <div class="section-description">Historial laboral fuera de SkillBridge AI. Sube tu CV (sección "Mi CV" más abajo) para que el Administrador la registre.</div>
                                 </div>
                             </div>
                             <div class="card-body p-0">
-                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada. Esta información la ingresa el Administrador.</div>
+                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada. Sube tu CV para que el Administrador la complete.</div>
                                 <div th:each="exp : ${experienciaProfesional}" class="timeline-entry">
                                     <div class="timeline-entry-title"
                                          th:text="${exp.cargo != null and exp.empresa != null} ? (${exp.cargo} + ' — ' + ${exp.empresa}) : (${exp.cargo != null} ? ${exp.cargo} : ${exp.empresa})">Cargo — Empresa</div>
@@ -499,6 +499,33 @@
                             </div>
                         </div>
 
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Mi CV (hoja de vida)</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-hint mb-3">Sube tu CV para que el Administrador registre tu experiencia profesional en tu perfil.</div>
+
+                                <div th:if="${colaborador.cvUrl != null and !colaborador.cvUrl.isBlank()}" class="mb-3">
+                                    <a th:href="@{${colaborador.cvUrl}}" target="_blank" rel="noopener" class="skill-item-doc-link">Ver CV actual</a>
+                                    <span class="badge ms-2" th:classappend="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'REVISADO'} ? 'bg-green-lt text-green' : 'bg-yellow-lt text-yellow'"
+                                          th:text="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'REVISADO'} ? 'Revisado' : 'Pendiente de revisión'">Pendiente de revisión</span>
+                                </div>
+
+                                <form th:action="@{/colaborador/perfil/cv}" method="post" enctype="multipart/form-data">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <input type="file" name="cv" class="form-control" accept="application/pdf" required>
+                                            <div class="form-hint">Solo PDF, máximo 5MB. Si ya tenías uno subido, lo reemplaza.</div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-primary">Subir CV</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
 
 
 
@@ -798,52 +825,6 @@
     </div>
 </div>
 
-
-    <!-- Modal Agregar Experiencia -->
-    <div class="modal fade" id="addExperienciaModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form th:action="@{/colaborador/perfil/experiencia}" method="post">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Agregar Experiencia Profesional</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Cargo <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="cargo" required maxlength="100">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Empresa <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="empresa" required maxlength="150">
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Fecha Inicio</label>
-                                <input type="date" class="form-control" name="fechaInicio" id="expFechaInicio" onchange="document.getElementById('expFechaFin').min = this.value;">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Fecha Fin</label>
-                                <input type="date" class="form-control" name="fechaFin" id="expFechaFin">
-                            </div>
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input type="checkbox" class="form-check-input" name="actual" id="expActual" onchange="document.getElementById('expFechaFin').disabled = this.checked; if(this.checked) document.getElementById('expFechaFin').value = '';">
-                            <label class="form-check-label" for="expActual">Trabajo aquí actualmente</label>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Descripción <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="descripcion" rows="3" required maxlength="500"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
 <!-- MODAL PARA SUBIR EVIDENCIA DE FINALIZACIÓN DE CURSO -->
 <div th:each="mc : ${misCursosEnCurso}">

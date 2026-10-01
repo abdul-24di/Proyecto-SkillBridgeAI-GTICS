@@ -40,8 +40,6 @@ build/
 !.env.example
 application-local.properties
 config/application-local.properties
-u p l o a d s / 
- 
-uploads/evidencias-actividades/
+uploads/
 
 *.log

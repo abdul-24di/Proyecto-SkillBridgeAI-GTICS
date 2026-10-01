@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 
 <header class="topbar" th:fragment="topbar(activeSection)">
     <div class="container-xl">
         <a href="../col/col-dashboard.html" class="brand" th:href="@{/colaborador/dashboard}">SkillBridge AI</a>
 
-        <nav class="main-nav" aria-label="Navegacion principal">
+        <nav class="main-nav" aria-label="Navegacion principal" sec:authorize="hasRole('COLABORADOR')">
             <a href="../col/col-dashboard.html" th:classappend="${activeSection == 'dashboard'} ? 'active' : ''" th:href="@{/colaborador/dashboard}">Dashboard</a>
             <a href="../col/col-proyectos.html" th:classappend="${activeSection == 'proyectos'} ? 'active' : ''" th:href="@{/colaborador/proyectos}">Mis proyectos</a>
             <a href="../col/col-foros.html" th:classappend="${activeSection == 'foros'} ? 'active' : ''" th:href="@{/colaborador/foros}">Foros</a>

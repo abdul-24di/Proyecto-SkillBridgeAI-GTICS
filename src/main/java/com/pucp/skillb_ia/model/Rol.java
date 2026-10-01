@@ -2,12 +2,15 @@ package com.pucp.skillb_ia.model;
 
 import jakarta.persistence.*;
 
+import java.io.Serializable;
+
 // Tabla de 4 filas fijas (ADMINISTRADOR, PROJECT_MANAGER, RESOURCE_MANAGER,
 // COLABORADOR), no un catálogo gestionable por el Admin (consideraciones_bd_v4.md,
 // Parte 1.3). No hay historia de "crear nuevo rol".
 @Entity
 @Table(name = "rol")
-public class Rol {
+// Serializable: Usuario.rol viaja dentro de la sesión HTTP persistida (Spring Session).
+public class Rol implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

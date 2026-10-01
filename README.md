@@ -132,10 +132,15 @@ Este alcance corresponde al RM. El administrador mantiene el catálogo en
 obligatoria y las fechas también, salvo en cursos autodidactas; al crear, la
 fecha de inicio no puede ser anterior a hoy. El RM solo ve los cursos
 activos. El colaborador solicita cursos desde `/colaborador/explorar`; al ser
-aprobados o asignados aparecen en "Mis cursos" de `/colaborador/perfil`, donde
-puede subir una evidencia PDF/JPG/PNG de hasta 10 MB. La evidencia pasa a
-`EVIDENCIA_PENDIENTE`; el backend del RM puede aprobarla (`COMPLETADO`) o
-rechazarla (`EN_CURSO`, con reenvío permitido).
+aprobados o asignados aparecen en "Mis cursos" de `/colaborador/perfil`. Solo
+los cursos autodidactas piden evidencia: el colaborador sube un PDF/JPG/PNG de
+hasta 10 MB, la inscripción pasa a `EVIDENCIA_PENDIENTE` y el RM puede
+aprobarla (`COMPLETADO`) o rechazarla (`EN_CURSO`, con reenvío permitido). Los
+cursos de horario fijo no piden evidencia: pasan solos a `COMPLETADO` cuando
+llega su fecha de fin, lo que se comprueba al abrir las vistas de cursos u
+horas del colaborador. Las notificaciones de cursos del colaborador abren
+`/colaborador/perfil#mis-cursos`. Datos de prueba manual del colaborador:
+[`BDs_SQL/Pruebas_Colaborador/Pruebas_col.sql`](BDs_SQL/Pruebas_Colaborador/Pruebas_col.sql).
 
 La integración sigue parcial: la bandeja HTML del RM todavía no presenta el
 archivo ni los botones de aprobación/rechazo de evidencia, aunque los endpoints

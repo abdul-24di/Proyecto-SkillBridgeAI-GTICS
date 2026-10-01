@@ -1,5 +1,31 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 1 de Octubre 2026
+
+---
+
+## 1. Cursos de horario fijo y evidencia solo para autodidactas (TASK-043 parcial) — commits `996932f`, `3a140f4`, `2bd7b68`
+
+### Descripción
+Solo los cursos autodidactas piden evidencia de finalización. Los cursos con horario fijo (no autodidactas) ya no la piden: cuando llega su `fecha_fin`, la inscripción `EN_CURSO` pasa sola a `COMPLETADO`, se registra `fecha_completado`, se audita `COMPLETAR_CURSO_PROGRAMADO` y se notifica `CURSO_COMPLETADO` al colaborador. Sus horas se suman al total mensual igual que las de un curso aprobado por el RM.
+
+No hay tarea programada: la comprobación se ejecuta cuando el colaborador abre Explorar (catálogo), "Mis cursos" del perfil o el resumen de horas del dashboard.
+
+### Archivos modificados
+- `src/main/java/com/pucp/skillb_ia/service/col/ColaboradorCursoService.java` — Nuevo `completarCursosProgramadosVencidos`, llamado desde `listarCursosDisponibles` y `listarMisCursos` (ambos dejan de ser `readOnly`). `subirEvidencia` rechaza los cursos no autodidactas.
+- `src/main/java/com/pucp/skillb_ia/service/col/ColaboradorActividadService.java` — Inyecta `ColaboradorCursoService` y completa los cursos vencidos antes de calcular `obtenerResumenHoras`.
+- `src/main/java/com/pucp/skillb_ia/service/NotificacionService.java` — Las notificaciones con entidad `COLABORADOR_CURSO` del colaborador enlazan a `/colaborador/perfil#mis-cursos` (antes `#`).
+- `src/main/java/com/pucp/skillb_ia/service/rm/RmCursoService.java` — La bandeja muestra "Evidencia rechazada" (insignia roja) para una inscripción `EN_CURSO` que conserva una evidencia.
+- `src/main/resources/templates/col/col-perfil.html` — Ancla `#mis-cursos`; botón, modal y aviso de rechazo de evidencia solo para autodidactas; aviso con la fecha de autocompletado para los cursos de horario fijo.
+- `BDs_SQL/Pruebas_Colaborador/Pruebas_col.sql` — Nuevo script de datos de prueba manual del colaborador (cursos autodidactas y de horario fijo con inscripciones en varios estados, actividades, asignaciones, notificaciones y evaluación). Reemplaza a `Pruebas_Colaborador_Unificado.sql`, que se eliminó.
+
+### Alcance pendiente
+- `fecha_completado` es la fecha en que el colaborador abre la vista, no `fecha_fin`: si entra en un mes posterior, las horas se imputan a ese mes. Las vistas del RM no disparan la comprobación.
+- Un curso de horario fijo sin `fecha_fin` queda `EN_CURSO` indefinidamente.
+- Sin cambios de esquema y sin pruebas nuevas para estos casos.
+
+---
+
 ## Sesión 30 de Septiembre 2026
 
 ---
@@ -79,7 +105,7 @@ El commit actualizó el esquema de instalaciones nuevas, pero **no agregó una m
 - La plantilla `rm-solicitudes-cursos.html` todavía no muestra `EVIDENCIA_PENDIENTE`, el archivo ni botones que invoquen los nuevos endpoints; por UI el RM aún no puede decidir la evidencia.
 - No se registran `revisado_por` ni `fecha_revision`, y aprobar/rechazar la evidencia no genera auditoría.
 - No existe alerta al llegar la fecha final ni correo de aprobación del curso con fechas y horas.
-- Las notificaciones de curso dirigidas al colaborador todavía resuelven a `#`; las de RM abren la bandeja general.
+- Las notificaciones de curso dirigidas al colaborador todavía resuelven a `#`; las de RM abren la bandeja general. *(Actualización 1 de octubre: las del colaborador ya abren `/colaborador/perfil#mis-cursos`.)*
 - No se añadieron pruebas específicas del flujo. La suite existente se ejecutó el 30 de septiembre de 2026: **454 pruebas, 0 fallos**.
 
 ---

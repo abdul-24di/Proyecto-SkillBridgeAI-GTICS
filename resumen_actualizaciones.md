@@ -2,7 +2,7 @@
 
 Este documento resume todas las actualizaciones e implementaciones funcionales realizadas recientemente en el proyecto SkillBridge AI.
 
-Última verificación: **30 de septiembre de 2026**, commit `42b57fc`.
+Última verificación: **1 de octubre de 2026**, commit `2bd7b68`.
 
 ## 1. Chat Funcional (PM y Colaboradores)
 Se ha reemplazado la maqueta de chat (Javascript simulado) por un sistema de chat real, impulsado por AJAX para soportar actualizaciones en tiempo real (Polling).
@@ -94,4 +94,14 @@ La inscripción de un colaborador ahora puede avanzar de `EN_CURSO` a `EVIDENCIA
 *   **Formularios de Auth:** Muestran el error debajo de cada campo con estilos propios (`auth.js`, `auth.css`) y comprueban que la confirmación coincida.
 *   **Compatibilidad:** Las contraseñas existentes y las de los usuarios demo siguen funcionando.
 *   **Cobertura:** Suite completa en verde (454 pruebas) tras el cambio, sin pruebas específicas de la regla.
+
+## 11. Cursos de Horario Fijo y Evidencia Autodidacta (1 Oct 2026)
+
+*   **Evidencia solo para autodidactas:** El botón, el modal y la validación del servicio solo permiten subir evidencia en cursos autodidactas; para los demás se responde que el curso no la requiere.
+*   **Finalización automática:** Un curso de horario fijo `EN_CURSO` pasa a `COMPLETADO` cuando llega su fecha de fin, con auditoría (`COMPLETAR_CURSO_PROGRAMADO`) y notificación (`CURSO_COMPLETADO`). Se comprueba al abrir Explorar, "Mis cursos" o el resumen de horas del colaborador; no hay tarea programada.
+*   **Perfil:** Los cursos de horario fijo muestran la fecha en que se completarán; si no tienen fecha de fin, se indica que el RM debe registrarla.
+*   **Notificaciones:** Las notificaciones de cursos del colaborador abren `/colaborador/perfil#mis-cursos`.
+*   **Bandeja del RM:** Una inscripción que volvió a `EN_CURSO` tras rechazar su evidencia se muestra como "Evidencia rechazada".
+*   **Datos de prueba:** `BDs_SQL/Pruebas_Colaborador/Pruebas_col.sql` reemplaza a `Pruebas_Colaborador_Unificado.sql`.
+*   **Pendiente:** `fecha_completado` toma la fecha de la visita y no la fecha de fin, así que las horas pueden caer en un mes posterior. Sin pruebas específicas.
 

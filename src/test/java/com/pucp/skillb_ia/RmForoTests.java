@@ -157,6 +157,17 @@ class RmForoTests {
                         org.hamcrest.Matchers.containsString("method=\"post\""))));
     }
 
+    // TASK-032: la vista raíz muestra directamente el encabezado, sin ruta de navegación de un solo elemento.
+    @Test
+    void listadoNoMuestraRutaDeNavegacionRedundante() throws Exception {
+        String pagina = html(mockMvc.perform(get("/rm/foros")).andExpect(status().isOk()).andReturn());
+
+        assertFalse(pagina.contains("breadcrumb-wrap"));
+        assertFalse(pagina.contains("Migas de pan"));
+        assertTrue(pagina.contains("<h1 class=\"page-title mb-0\">Foros de la organización</h1>"));
+        assertTrue(pagina.contains("Consulta las discusiones de los proyectos de la organización"));
+    }
+
     // TASK-039: filtros y paginación del listado en el servidor.
 
     @Test

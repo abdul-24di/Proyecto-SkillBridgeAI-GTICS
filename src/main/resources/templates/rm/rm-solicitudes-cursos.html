@@ -20,11 +20,26 @@
   <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
 
   <div class="row row-cards mb-4">
-    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body"><div class="metric-label">Solicitudes pendientes</div><div class="metric-number" th:text="${bandeja.pendientes}">0</div></div></div></div>
-    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body"><div class="metric-label">Evidencias por revisar</div><div id="evidenciasPorRevisar" class="metric-number" th:text="${bandeja.evidenciasPorRevisar}">0</div></div></div></div>
-    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body"><div class="metric-label">Aprobadas este mes</div><div class="metric-number" th:text="${bandeja.aprobadasEsteMes}">0</div></div></div></div>
-    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body"><div class="metric-label">Rechazadas este mes</div><div class="metric-number" th:text="${bandeja.rechazadasEsteMes}">0</div></div></div></div>
-    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body"><div class="metric-label">En curso</div><div class="metric-number" th:text="${bandeja.enCurso}">0</div></div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-yellow-lt text-yellow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div><div class="metric-label">Solicitudes pendientes</div><div class="metric-number" th:text="${bandeja.pendientes}">0</div></div>
+    </div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-azure-lt text-azure"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M9 14.2 8 21l4-2 4 2-1-6.8"/></svg></div>
+      <div><div class="metric-label">Evidencias por revisar</div><div id="evidenciasPorRevisar" class="metric-number" th:text="${bandeja.evidenciasPorRevisar}">0</div></div>
+    </div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-green-lt text-green"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <div><div class="metric-label">Aprobadas este mes</div><div class="metric-number" th:text="${bandeja.aprobadasEsteMes}">0</div></div>
+    </div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-red-lt text-red"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>
+      <div><div class="metric-label">Rechazadas este mes</div><div class="metric-number" th:text="${bandeja.rechazadasEsteMes}">0</div></div>
+    </div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-blue-lt text-blue"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div><div class="metric-label">En curso</div><div class="metric-number" th:text="${bandeja.enCurso}">0</div></div>
+    </div></div></div>
   </div>
 
   <div class="card section-card mb-4">

@@ -298,26 +298,50 @@ class RmNavegacionTests {
                 .andExpect(redirectedUrl("/rm/asignaciones/solicitudes-colaboradores?noEncontrada=true"));
     }
 
+    // TASK-032: sin proyecto válido es una vista raíz; no se muestra la ruta de un solo elemento.
     @ParameterizedTest
     @ValueSource(strings = {"", "abc", "999999999", "https://malicioso.example"})
-    void talentMatchingSinContextoValidoUsaLaRutaCanonica(String proyectoId) throws Exception {
-        String pagina = html("/rm/talent-matching?proyectoId=" + codificar(proyectoId));
-
-        assertFalse(pagina.contains("Clínica AI"));
-        assertFalse(pagina.contains("malicioso"));
-        assertEquals("<span class=\"text-secondary\">Talent Matching</span>",
-                migas(pagina).replaceAll("\\s+", " ").replace("> ", ">").replace(" <", "<").trim());
+    void talentMatchingSinContextoValidoEsVistaRaizSinRutaDeNavegacion(String proyectoId) throws Exception {
+        for (String pagina : List.of(
+                html("/rm/talent-matching?proyectoId=" + codificar(proyectoId)), html("/rm/talent-matching"))) {
+            assertFalse(pagina.contains("Clínica AI"));
+            assertFalse(pagina.contains("malicioso"));
+            assertFalse(pagina.contains("breadcrumb-wrap"), "Sin proyecto no hay ruta de navegación.");
+            assertTrue(normalizar(pagina).contains("<h1 class=\"page-title mb-0\">Talent Matching</h1>"));
+        }
     }
 
     @Test
-    void talentMatchingMuestraElProyectoRealDelModelo() throws Exception {
+    void talentMatchingConProyectoConservaLaRutaContextual() throws Exception {
         String pagina = html("/rm/talent-matching?proyectoId=" + proyecto.getId());
-        String migas = migas(pagina);
 
         assertFalse(pagina.contains("Clínica AI"));
-        assertTrue(migas.contains("href=\"/rm/talent-matching\""));
-        assertTrue(migas.contains(proyecto.getNombre()));
+        assertEquals("<a class=\"breadcrumb-link\" href=\"/rm/talent-matching\">Talent Matching</a>"
+                        + "<span class=\"breadcrumb-separator\">›</span>"
+                        + "<span class=\"text-secondary\">" + proyecto.getNombre() + "</span>",
+                normalizar(migas(pagina)));
         assertFalse(html("/rm/talent-matching").contains("Clínica AI"));
+    }
+
+    // TASK-032: las vistas secundarias conservan su ruta de varios elementos (TASK-026 sin cambios).
+    @Test
+    void vistasSecundariasConservanSusRutasDeNavegacion() throws Exception {
+        SolicitudPersonal solicitud = solicitudService.crearDesdePm(
+                proyecto.getId(), 2, "Backend", "Completar el equipo.", pm.getId());
+        solicitudes.add(solicitud);
+        List<String> secundarias = new ArrayList<>(List.of(
+                "/rm/colaboradores/asignaciones?id=" + colaborador.getId(),
+                "/rm/proyectos/detalle-solicitudes?solicitudId=" + solicitud.getId(),
+                "/rm/talent-matching?proyectoId=" + proyecto.getId()));
+        for (Asignacion asignacion : List.of(activa, pendientePm, revision, postulacion)) {
+            secundarias.add(rutaDe(asignacion) + "?id=" + asignacion.getId());
+            secundarias.add(rutaDe(asignacion) + "?id=" + asignacion.getId() + "&origen=colaborador");
+        }
+        for (String url : secundarias) {
+            String migas = migas(html(url));
+            assertTrue(migas.contains("class=\"breadcrumb-link\""), url);
+            assertTrue(migas.contains("<span class=\"breadcrumb-separator\">›</span>"), url);
+        }
     }
 
     @Test
@@ -353,6 +377,11 @@ class RmNavegacionTests {
         Matcher matcher = Pattern.compile("<nav class=\"breadcrumb-wrap\"[^>]*>(.*?)</nav>", Pattern.DOTALL).matcher(html);
         assertTrue(matcher.find(), "La vista no tiene ruta de navegación.");
         return matcher.group(1).trim();
+    }
+
+    // Quita los espacios entre etiquetas y dentro de ellas para comparar el marcado.
+    private static String normalizar(String html) {
+        return html.replaceAll("\\s+", " ").replace("> ", ">").replace(" <", "<").trim();
     }
 
     private String volver(String html) {

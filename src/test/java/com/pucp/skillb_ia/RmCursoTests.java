@@ -22,6 +22,8 @@ import com.pucp.skillb_ia.service.NotificacionService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
@@ -39,6 +41,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -249,6 +253,29 @@ class RmCursoTests {
                 .andExpect(status().isOk()).andExpect(view().name("rm/rm-asignar-curso"))
                 .andExpect(model().attributeExists("colaboradoresCurso", "cursosActivos"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Confirmar inscripción")));
+    }
+
+    // TASK-032: todas las tarjetas numéricas del catálogo (4) y de la bandeja (5) tienen un icono decorativo.
+    @ParameterizedTest(name = "[{index}] {0}")
+    @CsvSource(delimiter = '|', value = {
+            "/rm/cursos | Cursos activos;Solicitudes pendientes;Inscripciones activas;Asignados por RM",
+            "/rm/cursos/solicitudes | Solicitudes pendientes;Evidencias por revisar;Aprobadas este mes;"
+                    + "Rechazadas este mes;En curso"})
+    void tarjetasNumericasTienenIconoDecorativo(String url, String etiquetas) throws Exception {
+        String html = mockMvc.perform(get(url)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        Matcher tarjeta = Pattern.compile("<div class=\"card metric-card\">"
+                + "<div class=\"card-body d-flex align-items-center gap-3\">\\s*"
+                + "<div class=\"metric-icon bg-(\\w+)-lt text-\\1\"><svg [^>]*aria-hidden=\"true\"[^>]*>"
+                + "(?:(?!</svg>).)*</svg></div>\\s*"
+                + "<div><div class=\"metric-label\">([^<]+)</div>", Pattern.DOTALL).matcher(html);
+        List<String> conIcono = new ArrayList<>();
+        while (tarjeta.find()) conIcono.add(tarjeta.group(2));
+
+        List<String> esperadas = List.of(etiquetas.split(";"));
+        assertEquals(esperadas, conIcono);
+        assertEquals(esperadas.size(), ocurrencias(html, "class=\"card metric-card\""), "Ninguna tarjeta queda sin icono");
+        assertEquals(esperadas.size(), ocurrencias(html, "<div class=\"metric-icon bg-"));
     }
 
     // --- TASK-030: paginación en el servidor del catálogo (6) y de la bandeja (10) ---
@@ -492,7 +519,11 @@ class RmCursoTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Evidencias por revisar")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString(
-                        "id=\"evidenciasPorRevisar\" class=\"metric-number\">3<")));
+                        "id=\"evidenciasPorRevisar\" class=\"metric-number\">3<")))
+                // TASK-032: el icono se agrega sin cambiar la etiqueta, el id ni el valor del indicador.
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "<div><div class=\"metric-label\">Evidencias por revisar</div>"
+                                + "<div id=\"evidenciasPorRevisar\" class=\"metric-number\">3</div></div>")));
     }
 
     @Test

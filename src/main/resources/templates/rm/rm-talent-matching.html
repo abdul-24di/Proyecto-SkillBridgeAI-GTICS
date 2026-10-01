@@ -88,26 +88,20 @@
 
   <main class="page-wrap">
 
-    <!-- BREADCRUMB: el proyecto sale del modelo (proyectoId válido); sin contexto, ruta canónica -->
+    <!-- BREADCRUMB: el proyecto sale del modelo (proyectoId válido); sin contexto es vista raíz y no hay ruta (TASK-032) -->
     <nav class="breadcrumb-wrap"
-         aria-label="Migas de pan">
+         aria-label="Migas de pan"
+         th:if="${proyectoContexto != null}">
 
-      <th:block th:if="${proyectoContexto != null}">
-        <a class="breadcrumb-link" th:href="@{/rm/talent-matching}">
-          Talent Matching
-        </a>
-
-        <span class="breadcrumb-separator">›</span>
-
-        <span class="text-secondary"
-              th:text="${proyectoContexto.proyecto.nombre}">
-          Proyecto
-        </span>
-      </th:block>
-
-      <span th:if="${proyectoContexto == null}"
-            class="text-secondary">
+      <a class="breadcrumb-link" th:href="@{/rm/talent-matching}">
         Talent Matching
+      </a>
+
+      <span class="breadcrumb-separator">›</span>
+
+      <span class="text-secondary"
+            th:text="${proyectoContexto.proyecto.nombre}">
+        Proyecto
       </span>
 
     </nav>

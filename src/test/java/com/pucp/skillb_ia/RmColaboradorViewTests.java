@@ -149,6 +149,19 @@ class RmColaboradorViewTests {
                 .andExpect(model().attributeExists("colaboradores", "totalColaboradores"));
     }
 
+    // TASK-032: la vista raíz muestra directamente el encabezado, sin ruta de navegación de un solo elemento.
+    @Test
+    void directorioNoMuestraRutaDeNavegacionRedundante() throws Exception {
+        String html = mockMvc.perform(get("/rm/colaboradores"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8).replaceAll("\\s+", " ");
+
+        assertFalse(html.contains("breadcrumb-wrap"));
+        assertFalse(html.contains("Migas de pan"));
+        assertTrue(html.contains("<h1 class=\"page-title\"> Colaboradores </h1>"));
+        assertTrue(html.contains("Consulta habilidades, nivel de experiencia"));
+    }
+
     @Test
     void renderizaPerfilDelColaboradorSeleccionado() throws Exception {
         mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaboradorId.toString()))

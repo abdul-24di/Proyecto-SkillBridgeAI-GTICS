@@ -332,6 +332,43 @@ class RmAsignacionTests {
                 .andExpect(model().attributeExists("asignacion"));
     }
 
+    // TASK-032: la bandeja es vista raíz (sin ruta de un solo elemento) y sus 4 tarjetas tienen icono decorativo.
+    @Test
+    void bandejaNoMuestraRutaDeNavegacionRedundante() throws Exception {
+        String html = mockMvc.perform(get("/rm/asignaciones")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertFalse(html.contains("breadcrumb-wrap"));
+        assertFalse(html.contains("Migas de pan"));
+        assertTrue(html.contains("<h1 class=\"page-title\">Asignaciones</h1>"));
+        assertTrue(html.contains("Gestiona aprobaciones, propuestas del RM"));
+    }
+
+    @Test
+    void tarjetasNumericasTienenIconoYConservanEtiquetasYValores() throws Exception {
+        guardarPendiente(OrigenAsignacion.SOLICITADA_COLABORADOR, false, false, "12");
+        guardarPendiente(OrigenAsignacion.PROPUESTA_PM, false, false, "8");
+        MvcResult resultado = mockMvc.perform(get("/rm/asignaciones")).andExpect(status().isOk()).andReturn();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        Map<String, Object> modelo = resultado.getModelAndView().getModel();
+        Map<String, String> tarjetas = Map.of(
+                "Pendientes de RM", "pendientesRm",
+                "Pendientes de PM", "pendientesPm",
+                "Solicitudes colaborador", "solicitudesColaborador",
+                "Asignaciones activas", "activas");
+
+        assertEquals(4, contar(html, "class=\"card summary-card\""));
+        assertEquals(4, contar(html, "<div class=\"summary-icon bg-"));
+        for (var tarjeta : tarjetas.entrySet()) {
+            Pattern patron = Pattern.compile("<div class=\"card-body d-flex align-items-center gap-3\">\\s*"
+                    + "<div class=\"summary-icon bg-(\\w+)-lt text-\\1\"><svg [^>]*aria-hidden=\"true\"[^>]*>"
+                    + "(?:(?!</svg>).)*</svg></div>\\s*"
+                    + "<div><div class=\"summary-label\">" + Pattern.quote(tarjeta.getKey()) + "</div>"
+                    + "<div class=\"summary-number\">" + modelo.get(tarjeta.getValue()) + "</div>", Pattern.DOTALL);
+            assertTrue(patron.matcher(html).find(), tarjeta.getKey());
+        }
+    }
+
     // TASK-027: filtros y paginación de la bandeja en el servidor.
 
     @Test

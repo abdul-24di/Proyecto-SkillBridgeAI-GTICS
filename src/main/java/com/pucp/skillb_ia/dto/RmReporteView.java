@@ -5,10 +5,17 @@ import java.time.YearMonth;
 import java.util.List;
 
 public class RmReporteView {
+    /** Regla única de horas: la usan la vista, el PDF y el Excel. */
+    public static final String REGLA_HORAS = "Se suman las horas estimadas de las tareas completadas "
+            + "cuya fecha de entrega pertenece al periodo. El periodo solo filtra las horas; "
+            + "el presupuesto asignado es el registrado en cada proyecto (S/ 0.00 si no tiene).";
+
     private final YearMonth periodo;
     private final String periodoTexto;
     private final Long proyectoSeleccionado;
     private final String estadoSeleccionado;
+    private final String proyectoSeleccionadoNombre;
+    private final String estadoSeleccionadoTexto;
     private final List<ProyectoReporte> proyectos;
     private final List<DetalleColaborador> detalles;
     private final List<ColaboradorReporte> colaboradores;
@@ -18,6 +25,7 @@ public class RmReporteView {
 
     public RmReporteView(YearMonth periodo, String periodoTexto,
                          Long proyectoSeleccionado, String estadoSeleccionado,
+                         String proyectoSeleccionadoNombre, String estadoSeleccionadoTexto,
                          List<ProyectoReporte> proyectos,
                          List<DetalleColaborador> detalles,
                          List<ColaboradorReporte> colaboradores) {
@@ -25,6 +33,8 @@ public class RmReporteView {
         this.periodoTexto = periodoTexto;
         this.proyectoSeleccionado = proyectoSeleccionado;
         this.estadoSeleccionado = estadoSeleccionado;
+        this.proyectoSeleccionadoNombre = proyectoSeleccionadoNombre;
+        this.estadoSeleccionadoTexto = estadoSeleccionadoTexto;
         this.proyectos = List.copyOf(proyectos);
         this.detalles = List.copyOf(detalles);
         this.colaboradores = List.copyOf(colaboradores);
@@ -48,6 +58,21 @@ public class RmReporteView {
         return proyectoSeleccionado == null ? "" : proyectoSeleccionado.toString();
     }
     public String getEstadoSeleccionado() { return estadoSeleccionado; }
+    public String getProyectoSeleccionadoNombre() { return proyectoSeleccionadoNombre; }
+    public String getProyectoFiltroTexto() {
+        if (proyectoSeleccionado == null) return "Todos los proyectos";
+        return proyectoSeleccionadoNombre == null
+                ? "No encontrado (ID " + proyectoSeleccionado + ")" : proyectoSeleccionadoNombre;
+    }
+    public String getEstadoFiltroTexto() {
+        return estadoSeleccionadoTexto == null || estadoSeleccionadoTexto.isBlank()
+                ? "Todos" : estadoSeleccionadoTexto;
+    }
+    /** Texto único de los filtros aplicados para la vista, el PDF y el Excel. */
+    public String getFiltrosTexto() {
+        return "Proyecto: " + getProyectoFiltroTexto() + " | Estado: " + getEstadoFiltroTexto();
+    }
+    public String getReglaHoras() { return REGLA_HORAS; }
     public List<ProyectoReporte> getProyectos() { return proyectos; }
     public List<DetalleColaborador> getDetalles() { return detalles; }
     public List<ColaboradorReporte> getColaboradores() { return colaboradores; }

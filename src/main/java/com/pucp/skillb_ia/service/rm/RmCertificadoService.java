@@ -146,6 +146,8 @@ public class RmCertificadoService {
         habilidad.setActivo(true);
         colaboradorHabilidadRepository.save(habilidad);
 
+        // Nivel elegido por el RM o, si lo mantuvo, el vigente de la habilidad en este momento.
+        certificado.setNivelAprobado(habilidad.getNivelDominio());
         certificado.setEstado(EstadoCertificado.APROBADO);
         certificado.setMotivoRechazo(null);
         certificado.setRevisadoPor(rm);

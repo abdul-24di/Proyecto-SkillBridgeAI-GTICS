@@ -562,6 +562,7 @@ class RmCertificadoTests {
                 .findByColaboradorAndHabilidad(colaborador, habilidad).orElseThrow();
         assertEquals(NivelDominio.BASICO, perfil.getNivelDominio());
         assertEquals(EstadoValidacion.PENDIENTE, perfil.getEstadoValidacion());
+        assertNull(pendiente.getNivelAprobado());
         assertNivelYSueldo(NivelExperiencia.SENIOR, new BigDecimal("1234.00"));
         assertEquals(notificaciones, notificacionesDelColaborador());
         assertEquals(auditoriasNivel, auditoriasNivel());
@@ -579,6 +580,8 @@ class RmCertificadoTests {
 
         assertEquals(EstadoCertificado.APROBADO,
                 certificadoRepository.findById(certificado.getId()).orElseThrow().getEstado());
+        assertEquals(NivelDominio.BASICO,
+                certificadoRepository.findById(certificado.getId()).orElseThrow().getNivelAprobado());
         assertEquals(EstadoValidacion.VALIDADA, colaboradorHabilidadRepository
                 .findByColaboradorAndHabilidad(colaborador, habilidad).orElseThrow().getEstadoValidacion());
         assertNivelYSueldo(NivelExperiencia.JUNIOR, new BigDecimal("1234.00"));
@@ -600,6 +603,8 @@ class RmCertificadoTests {
                 certificadoRepository.findById(certificado.getId()).orElseThrow().getEstado());
         assertEquals(NivelDominio.INTERMEDIO, colaboradorHabilidadRepository
                 .findByColaboradorAndHabilidad(colaborador, habilidad).orElseThrow().getNivelDominio());
+        assertEquals(NivelDominio.INTERMEDIO,
+                certificadoRepository.findById(certificado.getId()).orElseThrow().getNivelAprobado());
         assertNivelYSueldo(NivelExperiencia.SENIOR, tarifa(NivelExperiencia.SENIOR));
         assertEquals(1, auditoriasAprobacion(certificado.getId()));
         assertEquals(auditoriasNivel + 1, auditoriasNivel());
@@ -680,6 +685,107 @@ class RmCertificadoTests {
         assertFalse(rechazo.contains("sueldo"));
         assertTrue(rechazo.contains("name=\"motivo\""));
         assertTrue(rechazo.contains("<button type=\"submit\" class=\"btn btn-danger\">Confirmar rechazo</button>"));
+    }
+
+    // ---- TASK-042: nivel aprobado guardado en cada certificado ----
+
+    @Test
+    void aprobarConNivelExplicitoLoGuardaEnElCertificado() {
+        Certificado certificado = guardarPendiente("/uploads/certificados/nivel-explicito.pdf");
+
+        certificadoService.aprobar(certificado.getId(), NivelDominio.INTERMEDIO, null, rm.getId());
+
+        Certificado aprobado = certificadoRepository.findById(certificado.getId()).orElseThrow();
+        assertEquals(EstadoCertificado.APROBADO, aprobado.getEstado());
+        assertEquals(NivelDominio.INTERMEDIO, aprobado.getNivelAprobado());
+    }
+
+    @Test
+    void aprobarManteniendoNivelGuardaElNivelVigenteDeLaHabilidad() {
+        perfilHabilidad.setNivelDominio(NivelDominio.AVANZADO);
+        colaboradorHabilidadRepository.save(perfilHabilidad);
+        Certificado certificado = guardarPendiente("/uploads/certificados/nivel-vigente.pdf");
+
+        certificadoService.aprobar(certificado.getId(), null, null, rm.getId());
+
+        assertEquals(NivelDominio.AVANZADO,
+                certificadoRepository.findById(certificado.getId()).orElseThrow().getNivelAprobado());
+        assertEquals(NivelDominio.AVANZADO, colaboradorHabilidadRepository
+                .findByColaboradorAndHabilidad(colaborador, habilidad).orElseThrow().getNivelDominio());
+    }
+
+    @Test
+    void cambioPosteriorDeLaHabilidadNoAlteraElCertificadoNiElHistorial() throws Exception {
+        Certificado certificado = guardarPendiente("/uploads/certificados/nivel-historico.pdf");
+        certificadoService.aprobar(certificado.getId(), NivelDominio.INTERMEDIO, null, rm.getId());
+
+        ColaboradorHabilidad perfil = colaboradorHabilidadRepository
+                .findByColaboradorAndHabilidad(colaborador, habilidad).orElseThrow();
+        perfil.setNivelDominio(NivelDominio.AVANZADO);
+        colaboradorHabilidadRepository.save(perfil);
+
+        assertEquals(NivelDominio.INTERMEDIO,
+                certificadoRepository.findById(certificado.getId()).orElseThrow().getNivelAprobado());
+        String html = historial();
+        assertTrue(html.contains("<td class=\"history-level\">Intermedio</td>"), html);
+        assertFalse(html.contains("<td class=\"history-level\">Avanzado</td>"));
+    }
+
+    @Test
+    void rechazoYPendienteNoTienenNivelAprobado() {
+        Certificado pendiente = guardarPendiente("/uploads/certificados/sin-nivel-pendiente.pdf");
+        Certificado rechazado = guardarPendiente("/uploads/certificados/sin-nivel-rechazado.pdf");
+
+        certificadoService.rechazar(rechazado.getId(), "Documento incompleto.", rm.getId());
+
+        assertNull(certificadoRepository.findById(rechazado.getId()).orElseThrow().getNivelAprobado());
+        assertEquals(EstadoCertificado.RECHAZADO,
+                certificadoRepository.findById(rechazado.getId()).orElseThrow().getEstado());
+        assertNull(certificadoRepository.findById(pendiente.getId()).orElseThrow().getNivelAprobado());
+    }
+
+    @Test
+    void historialMuestraColumnaNivelAprobadoConGuionYSinRegistro() throws Exception {
+        guardarPendiente("/uploads/certificados/col-pendiente.pdf");
+        guardar("/uploads/certificados/col-rechazado.pdf", habilidad, EstadoCertificado.RECHAZADO);
+        guardar("/uploads/certificados/col-antiguo.pdf", habilidad, EstadoCertificado.APROBADO);
+        Certificado nuevo = guardarPendiente("/uploads/certificados/col-nuevo.pdf");
+        certificadoService.aprobar(nuevo.getId(), NivelDominio.BASICO, null, rm.getId());
+
+        String html = historial();
+        String thead = html.substring(html.indexOf("<thead>"), html.indexOf("</thead>"));
+        assertEquals(8, contar(thead, "<th>") + contar(thead, "<th "));
+        assertTrue(thead.contains("<th>Estado</th><th>Nivel aprobado</th><th>Revisado por</th>"), thead);
+        assertTrue(thead.contains("<th class=\"text-end history-action\">Acción</th>"));
+        assertEquals(4, contar(html, "<tr class=\"history-row\">"));
+        assertEquals(4, contar(html, "<td class=\"history-level\">"));
+        assertEquals(2, contar(html, "<td class=\"history-level\">—</td>"));
+        assertEquals(1, contar(html, "<td class=\"history-level\">Sin registro</td>"));
+        assertEquals(1, contar(html, "<td class=\"history-level\">Básico</td>"));
+        assertEquals(4, contar(html, "<td class=\"text-end history-action\">"));
+        assertFalse(html.contains("id=\"emptyHistory\""));
+    }
+
+    @Test
+    void historialVacioOcupaLasOchoColumnas() throws Exception {
+        guardarPendiente("/uploads/certificados/vacio.pdf");
+
+        String html = mockMvc.perform(get("/rm/colaboradores/historial-validaciones")
+                        .param("id", colaborador.getId().toString()).param("busqueda", "no-existe-xyz"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalRegistros", 0L))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("<tr id=\"emptyHistory\"><td colspan=\"8\""), html);
+        assertFalse(html.contains("colspan=\"7\""));
+        assertEquals(0, contar(html, "<td class=\"history-level\">"));
+    }
+
+    private String historial() throws Exception {
+        return mockMvc.perform(get("/rm/colaboradores/historial-validaciones")
+                        .param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
     }
 
     private void prepararNivel(NivelExperiencia nivel, String sueldo) {

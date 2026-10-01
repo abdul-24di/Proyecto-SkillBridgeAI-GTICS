@@ -1,6 +1,7 @@
 package com.pucp.skillb_ia.model;
 
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
+import com.pucp.skillb_ia.model.enums.NivelDominio;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -35,6 +36,12 @@ public class Certificado {
     @Column(name = "motivo_rechazo", length = 300)
     private String motivoRechazo;
 
+    // Nivel de dominio con el que el RM aprobó el certificado (TASK-042).
+    // Nulo en pendientes, rechazados y aprobados antes de registrar este dato.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_aprobado", length = 20)
+    private NivelDominio nivelAprobado;
+
     // El RM que revisó el certificado.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "revisado_por")
@@ -68,6 +75,9 @@ public class Certificado {
 
     public String getMotivoRechazo() { return motivoRechazo; }
     public void setMotivoRechazo(String motivoRechazo) { this.motivoRechazo = motivoRechazo; }
+
+    public NivelDominio getNivelAprobado() { return nivelAprobado; }
+    public void setNivelAprobado(NivelDominio nivelAprobado) { this.nivelAprobado = nivelAprobado; }
 
     public Usuario getRevisadoPor() { return revisadoPor; }
     public void setRevisadoPor(Usuario revisadoPor) { this.revisadoPor = revisadoPor; }

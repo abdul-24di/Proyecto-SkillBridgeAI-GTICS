@@ -92,6 +92,14 @@ antes de este cambio debe ejecutar
 ejecutarse nuevamente sin error. La aplicación no lee esa columna, así que
 funciona igual antes y después de migrar.
 
+Cada certificado guarda en `certificado.nivel_aprobado` el nivel de dominio con
+el que el RM lo aprobó, y el historial de validaciones muestra ese valor. Una
+base creada antes de este cambio debe ejecutar una sola vez, antes de desplegar,
+[`BDs_SQL/migracion_nivel_aprobado_certificado.sql`](BDs_SQL/migracion_nivel_aprobado_certificado.sql).
+Solo agrega la columna (nula), puede ejecutarse nuevamente sin error y no
+rellena los certificados existentes: los aprobados antes de migrar se muestran
+como "Sin registro".
+
 `skillbridge_db_v4.sql` incluye además la tabla `evaluacion` (calificación de
 1 a 5 y comentarios al finalizar una asignación) y las columnas
 `proyecto_habilidad_requerida.horas_semanales` y

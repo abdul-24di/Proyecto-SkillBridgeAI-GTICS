@@ -203,6 +203,7 @@ CREATE TABLE certificado (
     archivo_url     VARCHAR(500) NOT NULL,
     estado          VARCHAR(20)  NOT NULL DEFAULT 'PENDIENTE',
     motivo_rechazo  VARCHAR(300) NULL,
+    nivel_aprobado  VARCHAR(20)  NULL,
     revisado_por    BIGINT       NULL,
     fecha_subida    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_revision  DATETIME     NULL,

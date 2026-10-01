@@ -2,6 +2,7 @@ package com.pucp.skillb_ia.dto;
 
 import com.pucp.skillb_ia.model.Certificado;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
+import com.pucp.skillb_ia.model.enums.NivelDominio;
 
 import java.util.List;
 
@@ -62,6 +63,19 @@ public class RmCertificadoView {
             case PENDIENTE -> "bg-yellow-lt";
             case APROBADO -> "bg-green-lt";
             case RECHAZADO -> "bg-red-lt";
+        };
+    }
+
+    /** Nivel guardado en el certificado al aprobarlo; nunca se deduce del nivel actual de la habilidad. */
+    public String getNivelAprobadoTexto() {
+        NivelDominio nivel = certificado.getNivelAprobado();
+        if (nivel == null) {
+            return certificado.getEstado() == EstadoCertificado.APROBADO ? "Sin registro" : "—";
+        }
+        return switch (nivel) {
+            case BASICO -> "Básico";
+            case INTERMEDIO -> "Intermedio";
+            case AVANZADO -> "Avanzado";
         };
     }
 

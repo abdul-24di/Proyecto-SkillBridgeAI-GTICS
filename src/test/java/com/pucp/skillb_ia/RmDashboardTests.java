@@ -42,17 +42,28 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.ui.ConcurrentModel;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.context.WebContext;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+import org.thymeleaf.web.IWebExchange;
+import org.thymeleaf.web.servlet.JakartaServletWebApplication;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -558,5 +569,169 @@ class RmDashboardTests {
 
     private String nombreEstado(EstadoProyecto estado) {
         return estado.name().toLowerCase().replace('_', ' ');
+    }
+
+    // ===== TASK-031: hover compartido de las tarjetas indicadoras y estado vacío común =====
+    // Se lee la fuente: target/classes puede conservar hojas anteriores sin "clean".
+
+    private static final Path CSS_RM = Path.of("src/main/resources/static/css/rm-css");
+    private static final Path ESTADO_VACIO = Path.of("src/main/resources/templates/fragments/rm-empty-state.html");
+
+    @Autowired private SpringTemplateEngine templateEngine;
+
+    @Test
+    void rmCommonDefineElHoverCompartidoDeLasTarjetasIndicadoras() throws Exception {
+        String css = leer(CSS_RM.resolve("rm-common.css"));
+
+        assertTrue(Pattern.compile("\\.summary-card,\\s*\\.metric-card\\s*\\{\\s*transition:\\s*transform \\.18s ease,"
+                + "\\s*box-shadow \\.18s ease;\\s*}").matcher(css).find(), "Transición común");
+        Matcher hover = Pattern.compile("\\.summary-card:hover,\\s*\\.metric-card:hover\\s*\\{([^}]*)}").matcher(css);
+        assertTrue(hover.find(), "Hover común de summary-card y metric-card");
+        assertTrue(hover.group(1).contains("transform: translateY(-2px);"));
+        assertTrue(hover.group(1).contains("box-shadow: 0 7px 18px rgba(24, 36, 51, .07);"));
+    }
+
+    @Test
+    void dashboardYaNoMantieneUnaCopiaLocalDelHover() throws Exception {
+        String css = leer(CSS_RM.resolve("rm-dashboard.css"));
+
+        assertFalse(css.contains(".summary-card:hover"));
+        Matcher tarjeta = Pattern.compile("\\.summary-card \\{([^}]*)}").matcher(css);
+        assertTrue(tarjeta.find());
+        assertFalse(tarjeta.group(1).contains("transition"), "La transición también es común");
+        assertTrue(tarjeta.group(1).contains("min-height: 150px;"), "Conserva su tamaño propio");
+    }
+
+    @Test
+    void soloRmCommonDefineElEstadoVacio() throws Exception {
+        List<Path> hojas;
+        try (Stream<Path> listado = Files.list(CSS_RM)) {
+            hojas = listado.filter(hoja -> hoja.toString().endsWith(".css")).sorted().toList();
+        }
+        List<String> conEstadoVacio = new ArrayList<>();
+        for (Path hoja : hojas) {
+            if (leer(hoja).contains(".empty-state")) {
+                conEstadoVacio.add(hoja.getFileName().toString());
+            }
+        }
+        assertEquals(List.of("rm-common.css"), conEstadoVacio);
+        for (String hoja : List.of("rm-buscar-colaboradores-proyecto.css", "rm-colaboradores.css", "rm-proyectos.css")) {
+            assertTrue(Files.exists(CSS_RM.resolve(hoja)), hoja);
+        }
+        String comun = leer(CSS_RM.resolve("rm-common.css"));
+        for (String regla : List.of(".empty-state {", ".empty-state-icon {", ".empty-state-title {",
+                ".empty-state-text {", ".empty-state-action {")) {
+            assertTrue(comun.contains(regla), regla);
+        }
+    }
+
+    @Test
+    void fragmentoDeEstadoVacioDefineIconoTituloTextoYAccionOpcionalSinJavaScript() throws Exception {
+        String fuente = leer(ESTADO_VACIO);
+
+        assertTrue(fuente.contains("<div th:fragment=\"bloque\" class=\"empty-state\">"));
+        assertTrue(fuente.contains("<tr th:fragment=\"fila\""));
+        assertTrue(fuente.contains("<span class=\"empty-state-icon\" aria-hidden=\"true\""));
+        assertTrue(fuente.contains("class=\"empty-state-title\""));
+        assertTrue(fuente.contains("class=\"empty-state-text\""));
+        assertTrue(fuente.contains("class=\"empty-state-action\" th:if=\"${vacioAccionTexto != null and vacioAccionUrl != null}\""));
+        assertEquals(contarTexto(fuente, "<svg "), contarTexto(fuente, "aria-hidden=\"true\" focusable=\"false\""),
+                "Cada icono es decorativo");
+        assertFalse(fuente.contains("<script") || fuente.contains("onclick="), "Funciona sin JavaScript");
+    }
+
+    @Test
+    void bloqueSinAccionNoRenderizaElBoton() {
+        String html = fragmento("bloque", Map.of("vacioIcono", "carpeta", "vacioTitulo", "Sin datos",
+                "vacioTexto", "Explicación breve."));
+        assertTrue(html.startsWith("<div class=\"empty-state\">"), html);
+        assertTrue(html.contains("<span class=\"empty-state-icon\" aria-hidden=\"true\">"));
+        assertEquals(1, contarTexto(html, "<svg "), "Solo se pinta el icono elegido");
+        assertTrue(html.contains("<div class=\"empty-state-title\">Sin datos</div>"));
+        assertTrue(html.contains("<div class=\"empty-state-text\">Explicación breve.</div>"));
+        assertFalse(html.contains("empty-state-action"));
+        assertFalse(html.contains("<a "));
+
+        // Con texto de acción pero sin destino tampoco hay botón; el texto y el icono son opcionales.
+        String minimo = fragmento("bloque", Map.of("vacioTitulo", "Sin datos", "vacioAccionTexto", "Limpiar filtros"));
+        assertFalse(minimo.contains("empty-state-action"));
+        assertFalse(minimo.contains("empty-state-text"));
+        assertEquals(1, contarTexto(minimo, "<svg "), "Icono por defecto");
+    }
+
+    @Test
+    void bloqueConAccionMuestraUnEnlaceAlDestinoIndicado() {
+        String html = fragmento("bloque", Map.of("vacioIcono", "busqueda", "vacioTitulo", "Sin resultados",
+                "vacioAccionTexto", "Limpiar filtros", "vacioAccionUrl", "/rm/proyectos"));
+
+        assertTrue(html.contains("<div class=\"empty-state-action\">"));
+        assertTrue(html.contains("<a class=\"btn btn-outline-primary btn-sm\" href=\"/rm/proyectos\">Limpiar filtros</a>"));
+    }
+
+    @Test
+    void filaParaTablasGeneraUnTrConSuTdYColspan() {
+        String html = fragmento("fila", Map.of("vacioId", "emptyPrueba", "vacioColspan", 7,
+                "vacioIcono", "bandeja", "vacioTitulo", "Sin registros"));
+        assertTrue(html.startsWith("<tr id=\"emptyPrueba\"><td colspan=\"7\" class=\"empty-state-cell\">"
+                + "<div class=\"empty-state\">"), html);
+        assertTrue(html.endsWith("</div></td></tr>"), html);
+        assertEquals(1, contarTexto(html, "<tr"));
+        assertEquals(1, contarTexto(html, "<td"));
+
+        String sinId = fragmento("fila", Map.of("vacioColspan", 5, "vacioTitulo", "Sin registros"));
+        assertTrue(sinId.startsWith("<tr><td colspan=\"5\" class=\"empty-state-cell\">"), sinId);
+
+        String oculta = fragmento("fila", Map.of("vacioId", "emptyPrueba", "vacioFilaClase", "d-none",
+                "vacioColspan", 8, "vacioTitulo", "Sin registros"));
+        assertTrue(oculta.startsWith("<tr id=\"emptyPrueba\" class=\"d-none\"><td colspan=\"8\""), oculta);
+    }
+
+    @Test
+    void dashboardUsaElEstadoVacioSoloEnAccionesPendientes() throws Exception {
+        String fuente = leer(Path.of("src/main/resources/templates/rm/rm-dashboard.html"));
+        assertEquals(1, contarTexto(fuente, "fragments/rm-empty-state"));
+
+        // Controlador real con servicios simulados sin datos: el dashboard queda sin acciones pendientes.
+        RmViewController controller = new RmViewController(
+                mock(RmPerfilService.class), mock(RmColaboradorConsultaService.class),
+                mock(RmProyectoConsultaService.class), mock(RmProyectoRevisionService.class),
+                mock(RmAsignacionService.class), mock(RmSolicitudPersonalService.class),
+                mock(RmCertificadoService.class), mock(RmEducacionService.class), mock(RmForoConsultaService.class),
+                mock(RmReporteService.class), mock(RmReporteExportService.class), mock(RmCursoService.class),
+                mock(RmPresupuestoService.class), mock(EvaluacionService.class));
+        ConcurrentModel modelo = new ConcurrentModel();
+        assertEquals("rm/rm-dashboard", controller.dashboard(modelo));
+        assertEquals(0, modelo.getAttribute("totalAccionesPendientes"));
+        String html = renderizarVista("/rm/dashboard", "rm/rm-dashboard", modelo.asMap());
+
+        assertEquals(1, contarTexto(html, "class=\"empty-state\""));
+        assertTrue(html.contains("<tr><td colspan=\"6\" class=\"empty-state-cell\"><div class=\"empty-state\">"));
+        assertTrue(html.contains("<div class=\"empty-state-title\">Todo al día</div>"));
+        assertTrue(html.contains("<div class=\"empty-state-text\">No hay acciones pendientes en este momento.</div>"));
+        assertFalse(html.contains("empty-state-action"));
+        // Los demás mensajes vacíos del dashboard conservan su marcado.
+        assertTrue(html.contains("No hay solicitudes de personal registradas."));
+        assertTrue(html.contains("Sin acciones pendientes"));
+    }
+
+    private String fragmento(String nombre, Map<String, Object> variables) {
+        Context contexto = new Context(Locale.forLanguageTag("es"), variables);
+        return templateEngine.process("fragments/rm-empty-state", Set.of(nombre), contexto).trim();
+    }
+
+    // Renderiza la plantilla real con el modelo que armó el controlador (sin JavaScript, como MockMvc).
+    private String renderizarVista(String ruta, String plantilla, Map<String, Object> modelo) {
+        MockHttpServletRequest request = new MockHttpServletRequest(context.getServletContext(), "GET", ruta);
+        IWebExchange intercambio = JakartaServletWebApplication.buildApplication(context.getServletContext())
+                .buildExchange(request, new MockHttpServletResponse());
+        return templateEngine.process(plantilla, new WebContext(intercambio, Locale.forLanguageTag("es"), modelo));
+    }
+
+    private static String leer(Path archivo) throws Exception {
+        return Files.readString(archivo, StandardCharsets.UTF_8).replace("\r\n", "\n");
+    }
+
+    private static int contarTexto(String texto, String fragmento) {
+        return texto.split(Pattern.quote(fragmento), -1).length - 1;
     }
 }

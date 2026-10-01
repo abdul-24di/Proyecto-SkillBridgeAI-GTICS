@@ -172,13 +172,7 @@ padding-left: 24px;
 padding-right: 24px;
 ```
 
-También utiliza:
-
-```css
-margin-inline: calc(50% - 50vw);
-```
-
-Esta regla hace que el fondo de la topbar ocupe todo el ancho de la ventana, mientras su contenido permanece centrado.
+La topbar se incluye siempre como hija directa de `.app-shell`, que ocupa todo el ancho, así que su fondo cubre la ventana con `margin: 0`. No uses `margin-inline: calc(50% - 50vw)`: `50vw` incluye la barra de desplazamiento vertical y provoca un scroll horizontal en las páginas largas.
 
 ## Comportamiento responsive
 

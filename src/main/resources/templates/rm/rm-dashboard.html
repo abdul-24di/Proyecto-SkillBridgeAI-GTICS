@@ -466,11 +466,10 @@
             </td>
           </tr>
 
-          <tr th:if="${#lists.isEmpty(accionesPendientes)}">
-            <td colspan="6" class="text-center text-secondary py-5">
-              No hay acciones pendientes en este momento.
-            </td>
-          </tr>
+          <th:block th:if="${#lists.isEmpty(accionesPendientes)}">
+            <tr th:replace="~{fragments/rm-empty-state :: fila(vacioColspan=6, vacioIcono='check',
+                vacioTitulo='Todo al día', vacioTexto='No hay acciones pendientes en este momento.')}"></tr>
+          </th:block>
 
           </tbody>
         </table>

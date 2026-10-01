@@ -1695,4 +1695,21 @@ class RmAsignacionTests {
         return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
                 new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
     }
+
+    // TASK-031: la fila vacía usa el fragmento común y conserva su id, las 8 columnas, filtros e indicadores.
+    @Test
+    void bandejaSinResultadosUsaElEstadoVacioComunConSuIdYColspan() throws Exception {
+        String html = mockMvc.perform(get("/rm/asignaciones").param("busqueda", "sin-coincidencias-t031"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("<tr id=\"emptyAssignments\"><td colspan=\"8\" class=\"empty-state-cell\">"
+                + "<div class=\"empty-state\">"), html);
+        assertEquals(1, contar(html, "class=\"empty-state\""));
+        assertTrue(html.contains("<div class=\"empty-state-title\">Sin asignaciones</div>"));
+        assertTrue(html.contains("No se encontraron asignaciones con los filtros seleccionados."));
+        assertFalse(html.contains("empty-state-action"));
+        assertTrue(html.contains("value=\"sin-coincidencias-t031\""));
+        assertEquals(4, contar(html, "class=\"card summary-card\""));
+    }
 }

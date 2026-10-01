@@ -177,7 +177,10 @@
                 </div>
             </div>
           </div>
-          <div class="empty-state" th:if="${#lists.isEmpty(proyecto.requisitos)}">No hay habilidades requeridas registradas.</div>
+          <th:block th:if="${#lists.isEmpty(proyecto.requisitos)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='lista', vacioTitulo='Sin habilidades requeridas',
+                vacioTexto='No hay habilidades requeridas registradas.')}"></div>
+          </th:block>
         </div>
       </div>
 

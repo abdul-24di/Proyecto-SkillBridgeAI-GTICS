@@ -58,7 +58,8 @@
               <td><span class="badge" th:classappend="${item.alcanzaReferencia ? 'bg-green-lt text-green' : 'bg-yellow-lt text-yellow'}" th:text="${item.alcanzaReferencia ? '160 h o más' : 'Menos de 160 h'}">Referencia</span></td>
               <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/rm/reportes/horas-colaboradores(periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado},busqueda=${busqueda},colaborador=${item.id},pagina=${paginaActual})}">Ver desglose</a></td>
             </tr>
-            <tr th:if="${#lists.isEmpty(colaboradores)}"><td colspan="6" class="text-center text-secondary py-5">No hay colaboradores que coincidan con los filtros.</td></tr>
+            <th:block th:if="${#lists.isEmpty(colaboradores)}"><tr th:replace="~{fragments/rm-empty-state :: fila(vacioColspan=6, vacioIcono='reloj',
+                vacioTitulo='Sin colaboradores', vacioTexto='No hay colaboradores que coincidan con los filtros.')}"></tr></th:block>
             </tbody>
           </table></div>
           <!-- Paginación en el servidor: cada enlace conserva periodo, proyecto, búsqueda y colaborador seleccionado. -->

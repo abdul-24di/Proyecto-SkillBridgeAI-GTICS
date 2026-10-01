@@ -1022,4 +1022,32 @@ class RmReporteTests {
         return cargoRepository.findByNombre(nombre).orElseGet(() -> cargoRepository.save(
                 new Cargo(nombre, new BigDecimal("2000"), new BigDecimal("3000"), new BigDecimal("4000"))));
     }
+
+    // TASK-031: sin filas, las tablas y el gráfico usan el estado vacío común; filtros, paginación e indicadores siguen.
+    @Test
+    void sinFilasLosReportesUsanElEstadoVacioComunYConservanFiltrosPaginacionEIndicadores() throws Exception {
+        String recursos = vista("/rm/reportes/recursos", parametros("periodo", "1999-01", "proyecto", "999999999"));
+        assertEquals(3, ocurrencias(recursos, "class=\"empty-state\""));
+        assertTrue(recursos.contains("<tr><td colspan=\"7\" class=\"empty-state-cell\"><div class=\"empty-state\">"), recursos);
+        assertTrue(recursos.contains("<tr><td colspan=\"5\" class=\"empty-state-cell\"><div class=\"empty-state\">"));
+        assertTrue(recursos.contains("<div class=\"empty-state-title\">Sin proyectos</div>"));
+        assertTrue(recursos.contains("<div class=\"empty-state-title\">Sin información para graficar</div>"));
+        assertTrue(recursos.contains("<div class=\"empty-state-title\">Sin tareas completadas</div>"));
+        assertTrue(recursos.contains(SIN_PROYECTOS) && recursos.contains(SIN_DETALLES));
+        assertFalse(recursos.contains("empty-state-action"));
+        assertTrue(recursos.contains("id=\"reportFiltersForm\""));
+        assertTrue(recursos.contains("Mostrando 0-0 de 0 proyectos") && recursos.contains("Mostrando 0-0 de 0 registros"));
+        assertEquals(4, ocurrencias(recursos, "class=\"card metric-card\""));
+
+        String horas = vista("/rm/reportes/horas-colaboradores",
+                parametros("periodo", "1999-01", "busqueda", "zzz-sin-coincidencias"));
+        assertEquals(1, ocurrencias(horas, "class=\"empty-state\""));
+        assertTrue(horas.contains("<tr><td colspan=\"6\" class=\"empty-state-cell\"><div class=\"empty-state\">"), horas);
+        assertTrue(horas.contains("<div class=\"empty-state-title\">Sin colaboradores</div>"));
+        assertTrue(horas.contains("No hay colaboradores que coincidan con los filtros."));
+        assertFalse(horas.contains("empty-state-action"));
+        assertTrue(horas.contains("value=\"zzz-sin-coincidencias\""));
+        assertTrue(horas.contains("Mostrando 0-0 de 0 colaboradores"));
+        assertEquals(4, ocurrencias(horas, "class=\"card metric-card\""));
+    }
 }

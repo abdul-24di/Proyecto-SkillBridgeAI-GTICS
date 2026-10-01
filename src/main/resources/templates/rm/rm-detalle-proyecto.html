@@ -213,7 +213,10 @@
               </tr></tbody>
             </table>
           </div>
-          <div class="empty-state" th:if="${#lists.isEmpty(proyecto.equipo)}">El proyecto todavía no tiene integrantes activos.</div>
+          <th:block th:if="${#lists.isEmpty(proyecto.equipo)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='usuarios', vacioTitulo='Sin integrantes activos',
+                vacioTexto='El proyecto todavía no tiene integrantes activos.')}"></div>
+          </th:block>
         </div>
       </div>
 
@@ -228,7 +231,10 @@
                 <span class="badge bg-blue-lt" th:text="|${requisito.cantidadPersonas} persona(s)|">1 persona</span></div>
             </div>
           </div>
-          <div class="empty-state" th:if="${#lists.isEmpty(proyecto.requisitos)}">No se registraron habilidades requeridas.</div>
+          <th:block th:if="${#lists.isEmpty(proyecto.requisitos)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='lista', vacioTitulo='Sin habilidades requeridas',
+                vacioTexto='No se registraron habilidades requeridas.')}"></div>
+          </th:block>
         </div>
       </div>
     </div>

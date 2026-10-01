@@ -730,6 +730,34 @@ class RmCursoTests {
         return html.substring(html.lastIndexOf(apertura, posicion), posicion);
     }
 
+    // TASK-031: catálogo y bandeja sin resultados usan el estado vacío común; indicadores y filtros se conservan.
+    @Test
+    void catalogoYBandejaSinResultadosUsanElEstadoVacioComun() throws Exception {
+        String catalogo = mockMvc.perform(get("/rm/cursos").param("busqueda", "sin-coincidencias-t031"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(1, ocurrencias(catalogo, "class=\"empty-state\""));
+        assertTrue(catalogo.contains("<div class=\"card\"><div class=\"empty-state\">"), catalogo);
+        assertTrue(catalogo.contains("<span class=\"empty-state-icon\" aria-hidden=\"true\">"));
+        assertTrue(catalogo.contains("<div class=\"empty-state-title\">Sin cursos</div>"));
+        assertTrue(catalogo.contains("No se encontraron cursos activos con estos filtros."));
+        assertFalse(catalogo.contains("card-body text-center text-secondary py-5"));
+        assertTrue(catalogo.contains("value=\"sin-coincidencias-t031\""));
+        assertEquals(4, ocurrencias(catalogo, "class=\"card metric-card\""));
+
+        String bandeja = mockMvc.perform(get("/rm/cursos/solicitudes").param("busqueda", "sin-coincidencias-t031"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(1, ocurrencias(bandeja, "class=\"empty-state\""));
+        assertTrue(bandeja.contains("<tr><td colspan=\"7\" class=\"empty-state-cell\"><div class=\"empty-state\">"), bandeja);
+        assertTrue(bandeja.contains("<div class=\"empty-state-title\">Sin inscripciones</div>"));
+        assertTrue(bandeja.contains("No se encontraron inscripciones con estos filtros."));
+        assertTrue(bandeja.contains("value=\"sin-coincidencias-t031\""));
+        assertEquals(5, ocurrencias(bandeja, "class=\"card metric-card\""));
+        assertTrue(bandeja.contains("id=\"evidenciasPorRevisar\""));
+        assertFalse(catalogo.contains("empty-state-action") || bandeja.contains("empty-state-action"));
+    }
+
     private int ocurrencias(String html, String texto) {
         return html.split(java.util.regex.Pattern.quote(texto), -1).length - 1;
     }

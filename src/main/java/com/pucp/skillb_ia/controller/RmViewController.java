@@ -1398,9 +1398,16 @@ public class RmViewController {
             @RequestParam(name = "periodo", required = false) String periodo,
             @RequestParam(name = "proyecto", required = false) String proyectoTexto,
             @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "paginaProyectos", required = false) String paginaProyectos,
+            @RequestParam(name = "paginaColaboradores", required = false) String paginaColaboradores,
             Model model) {
-        RmReporteView reporte = rmReporteService.generar(periodo, idReporte(proyectoTexto), estado);
+        var filtros = rmReporteService.normalizarFiltrosRecursos(periodo, idReporte(proyectoTexto), estado);
+        var paginaRecursos = rmReporteService.listarPaginaRecursos(filtros, paginaProyectos, paginaColaboradores);
+        RmReporteView reporte = paginaRecursos.reporte();
         cargarModeloReporte(model, reporte);
+        model.addAttribute("paginaProyectos", paginaRecursos.proyectos());
+        model.addAttribute("paginaColaboradores", paginaRecursos.colaboradores());
+        model.addAttribute("tamanioPagina", RmReporteService.TAMANIO_PAGINA);
         model.addAttribute("archivoExportacion", rmReporteExportService.nombreArchivo(reporte));
         model.addAttribute("columnasProyecto", RmReporteExportService.COLUMNAS_PROYECTO);
         model.addAttribute("columnasDetalle", RmReporteExportService.COLUMNAS_DETALLE);
@@ -1413,18 +1420,26 @@ public class RmViewController {
             @RequestParam(name = "proyecto", required = false) Long proyectoId,
             @RequestParam(name = "busqueda", required = false) String busqueda,
             @RequestParam(name = "colaborador", required = false) Long colaboradorId,
+            @RequestParam(name = "pagina", required = false) String pagina,
             Model model) {
-        RmReporteView reporte = rmReporteService.generar(periodo, proyectoId, null);
-        List<RmReporteView.ColaboradorReporte> colaboradores =
-                rmReporteService.filtrarColaboradores(reporte, busqueda);
+        var filtros = rmReporteService.normalizarFiltrosHoras(periodo, proyectoId, busqueda, colaboradorId);
+        var paginaHoras = rmReporteService.listarPaginaHoras(filtros, pagina);
+        RmReporteView reporte = paginaHoras.reporte();
+        // Conjunto completo filtrado: indicadores y desglose no dependen de la página visible.
+        List<RmReporteView.ColaboradorReporte> colaboradores = paginaHoras.colaboradores();
         RmReporteView.ColaboradorReporte seleccionado = colaboradores.stream()
                 .filter(item -> colaboradorId != null && item.getId().equals(colaboradorId))
                 .findFirst()
                 .orElseGet(() -> colaboradores.stream().findFirst().orElse(null));
         cargarModeloReporte(model, reporte);
-        model.addAttribute("colaboradores", colaboradores);
+        model.addAttribute("colaboradores", paginaHoras.pagina().filas());
+        model.addAttribute("paginaActual", paginaHoras.pagina().paginaActual());
+        model.addAttribute("totalPaginas", paginaHoras.pagina().totalPaginas());
+        model.addAttribute("totalRegistros", paginaHoras.pagina().totalRegistros());
+        model.addAttribute("tamanioPagina", RmReporteService.TAMANIO_PAGINA);
         model.addAttribute("colaboradorSeleccionado", seleccionado);
-        model.addAttribute("busqueda", busqueda == null ? "" : busqueda);
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("colaboradorFiltro", filtros.colaborador());
         model.addAttribute("totalColaboradoresHoras", colaboradores.size());
         model.addAttribute("totalHorasColaboradores", colaboradores.stream()
                 .map(RmReporteView.ColaboradorReporte::getHoras)

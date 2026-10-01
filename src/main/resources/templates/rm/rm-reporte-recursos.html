@@ -92,7 +92,7 @@
             <table class="table table-vcenter card-table mb-0">
               <thead><tr><th th:each="columna : ${columnasProyecto}" th:text="${columna}">Proyecto</th><th class="text-end">Acción</th></tr></thead>
               <tbody>
-              <tr th:each="item : ${reporte.proyectos}" class="proyecto-row">
+              <tr th:each="item : ${paginaProyectos.filas}" class="proyecto-row">
                 <td class="fw-semibold" th:text="${item.nombre}">Proyecto</td>
                 <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Activo</span></td>
                 <td><span class="badge" th:classappend="${item.prioridadClase}" th:text="${item.prioridadTexto}">Alta</span></td>
@@ -105,7 +105,28 @@
               </tbody>
             </table>
           </div>
-          <div class="pagination-wrap"><div id="paginationInfoProyectos" class="text-secondary small"></div><ul id="paginationProyectos" class="pagination pagination-sm m-0"></ul></div>
+          <!-- Paginación en el servidor: cada enlace conserva los filtros aplicados y la página de la otra tabla. -->
+          <div class="pagination-wrap" th:with="pagina=${paginaProyectos}">
+            <div id="paginationInfoProyectos" class="text-secondary small"
+                 th:with="desdeFila=${pagina.totalRegistros == 0 ? 0 : ((pagina.paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((pagina.paginaActual - 1) * tamanioPagina) + #lists.size(pagina.filas)}"
+                 th:text="|Mostrando ${desdeFila}-${hastaFila} de ${pagina.totalRegistros} proyectos|">Mostrando 0-0 de 0 proyectos</div>
+            <ul id="paginationProyectos" class="pagination pagination-sm m-0" th:if="${pagina.totalPaginas > 1}">
+              <li class="page-item" th:classappend="${pagina.paginaActual == 1} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, paginaProyectos=${pagina.paginaActual - 1}, paginaColaboradores=${paginaColaboradores.paginaActual})}">Anterior</a>
+              </li>
+              <li class="page-item" th:each="n : ${#numbers.sequence(1, pagina.totalPaginas)}"
+                  th:classappend="${n == pagina.paginaActual} ? 'active'">
+                <a class="page-link"
+                   th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, paginaProyectos=${n}, paginaColaboradores=${paginaColaboradores.paginaActual})}"
+                   th:text="${n}">1</a>
+              </li>
+              <li class="page-item" th:classappend="${pagina.paginaActual == pagina.totalPaginas} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, paginaProyectos=${pagina.paginaActual + 1}, paginaColaboradores=${paginaColaboradores.paginaActual})}">Siguiente</a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
       <div class="col-lg-4">
@@ -128,7 +149,7 @@
         <table class="table table-vcenter card-table mb-0">
           <thead><tr><th th:each="columna : ${columnasDetalle}" th:text="${columna}">Colaborador</th></tr></thead>
           <tbody>
-          <tr th:each="item : ${reporte.detalles}" class="detalle-row">
+          <tr th:each="item : ${paginaColaboradores.filas}" class="detalle-row">
             <td class="fw-semibold" th:text="${item.colaborador}">Colaborador</td><td th:text="${item.cargo}">Cargo</td><td th:text="${item.proyecto}">Proyecto</td>
             <td th:text="|${#numbers.formatDecimal(item.horas, 1, 'COMMA', 2, 'POINT')} h|">0 h</td><td th:text="${item.tareas}">0</td>
           </tr>
@@ -136,7 +157,27 @@
           </tbody>
         </table>
       </div>
-      <div class="pagination-wrap"><div id="paginationInfoDetalles" class="text-secondary small"></div><ul id="paginationDetalles" class="pagination pagination-sm m-0"></ul></div>
+      <div class="pagination-wrap" th:with="pagina=${paginaColaboradores}">
+        <div id="paginationInfoDetalles" class="text-secondary small"
+             th:with="desdeFila=${pagina.totalRegistros == 0 ? 0 : ((pagina.paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((pagina.paginaActual - 1) * tamanioPagina) + #lists.size(pagina.filas)}"
+             th:text="|Mostrando ${desdeFila}-${hastaFila} de ${pagina.totalRegistros} registros|">Mostrando 0-0 de 0 registros</div>
+        <ul id="paginationDetalles" class="pagination pagination-sm m-0" th:if="${pagina.totalPaginas > 1}">
+          <li class="page-item" th:classappend="${pagina.paginaActual == 1} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, paginaProyectos=${paginaProyectos.paginaActual}, paginaColaboradores=${pagina.paginaActual - 1})}">Anterior</a>
+          </li>
+          <li class="page-item" th:each="n : ${#numbers.sequence(1, pagina.totalPaginas)}"
+              th:classappend="${n == pagina.paginaActual} ? 'active'">
+            <a class="page-link"
+               th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, paginaProyectos=${paginaProyectos.paginaActual}, paginaColaboradores=${n})}"
+               th:text="${n}">1</a>
+          </li>
+          <li class="page-item" th:classappend="${pagina.paginaActual == pagina.totalPaginas} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, paginaProyectos=${paginaProyectos.paginaActual}, paginaColaboradores=${pagina.paginaActual + 1})}">Siguiente</a>
+          </li>
+        </ul>
+      </div>
       <div class="report-note"><div class="small text-secondary"><strong>Importante:</strong> el presupuesto es información del proyecto. El reporte no incluye sueldos, bonos ni pagos mensuales.</div></div>
     </div>
   </main>

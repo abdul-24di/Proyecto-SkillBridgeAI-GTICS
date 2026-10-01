@@ -24,13 +24,18 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
@@ -41,6 +46,7 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -480,11 +486,424 @@ class RmReporteTests {
         try (XSSFWorkbook sinPagina = excel(EXCEL, filtrosProyectoActivo());
              XSSFWorkbook conPagina = excel(EXCEL, parametros("periodo", periodo.toString(),
                      "proyecto", proyecto.getId().toString(), "estado", "ACTIVO", "pagina", "2",
-                     "paginaProyectos", "2", "paginaDetalles", "2"))) {
+                     "paginaProyectos", "2", "paginaColaboradores", "2"))) {
             assertEquals(sinPagina.getSheet("Colaboradores").getLastRowNum(),
                     conPagina.getSheet("Colaboradores").getLastRowNum());
             assertEquals(FILA_CABECERA_DETALLE + 2, conPagina.getSheet("Colaboradores").getLastRowNum());
         }
+    }
+
+    // ---- Paginación en el servidor (TASK-040). Los datos masivos se revierten al final de cada prueba. ----
+
+    @Test
+    @Transactional
+    void recursosPaginaProyectosYDetalleEnElServidorConservandoElOrden() throws Exception {
+        prepararDatosMasivos();
+        List<String> todosProyectos = nombresProyectos(reporteService.generar(PERIODO_MASIVO.toString(), null, "EN_ESPERA"));
+        assertTrue(todosProyectos.size() > 10);
+        // Fecha de creación descendente: los 12 proyectos de 2099 encabezan el listado.
+        assertEquals(nombreProyectoMasivo(12), todosProyectos.get(0));
+        assertEquals(nombreProyectoMasivo(1), todosProyectos.get(11));
+
+        for (int pagina = 1; pagina <= 2; pagina++) {
+            String vista = vista("/rm/reportes/recursos", filtrosMasivos("paginaProyectos", String.valueOf(pagina)));
+            List<String> esperados = todosProyectos.subList((pagina - 1) * 10, Math.min(pagina * 10, todosProyectos.size()));
+            assertEquals(esperados, filas(vista, "proyecto-row"), "Proyectos, página " + pagina);
+            // El detalle sigue en su página 1 (orden por colaborador y proyecto).
+            assertEquals(colaboradoresMasivos(1, 10), filas(vista, "detalle-row"));
+        }
+
+        String paginaDos = vista("/rm/reportes/recursos", filtrosMasivos("paginaColaboradores", "2"));
+        assertEquals(colaboradoresMasivos(11, 12), filas(paginaDos, "detalle-row"));
+        assertEquals(todosProyectos.subList(0, 10), filas(paginaDos, "proyecto-row"));
+        assertTrue(paginaDos.contains("Mostrando 11-12 de 12 registros"));
+        assertTrue(paginaDos.contains("Mostrando 1-10 de " + todosProyectos.size() + " proyectos"));
+    }
+
+    @Test
+    @Transactional
+    void paginasDeRecursosSonIndependientesYLosEnlacesConservanFiltrosYLaOtraPagina() throws Exception {
+        prepararDatosMasivos();
+        List<String> todosProyectos = nombresProyectos(reporteService.generar(PERIODO_MASIVO.toString(), null, "EN_ESPERA"));
+
+        String vista = vista("/rm/reportes/recursos",
+                filtrosMasivos("paginaProyectos", "2", "paginaColaboradores", "1"));
+        assertEquals(todosProyectos.subList(10, Math.min(20, todosProyectos.size())), filas(vista, "proyecto-row"));
+        assertEquals(colaboradoresMasivos(1, 10), filas(vista, "detalle-row"));
+        String cruzada = vista("/rm/reportes/recursos",
+                filtrosMasivos("paginaProyectos", "1", "paginaColaboradores", "2"));
+        assertEquals(todosProyectos.subList(0, 10), filas(cruzada, "proyecto-row"));
+        assertEquals(colaboradoresMasivos(11, 12), filas(cruzada, "detalle-row"));
+
+        List<MultiValueMap<String, String>> enlacesProyectos = enlaces(vista, "paginationProyectos");
+        List<MultiValueMap<String, String>> enlacesDetalle = enlaces(vista, "paginationDetalles");
+        assertFalse(enlacesProyectos.isEmpty());
+        assertFalse(enlacesDetalle.isEmpty());
+        for (MultiValueMap<String, String> enlace : enlacesProyectos) {
+            assertEquals(Set.of("periodo", "proyecto", "estado", "paginaProyectos", "paginaColaboradores"), enlace.keySet());
+            assertEquals(PERIODO_MASIVO.toString(), enlace.getFirst("periodo"));
+            assertEquals("EN_ESPERA", enlace.getFirst("estado"));
+            assertEquals("1", enlace.getFirst("paginaColaboradores"), "Conserva la página del detalle");
+        }
+        for (MultiValueMap<String, String> enlace : enlacesDetalle) {
+            assertEquals(Set.of("periodo", "proyecto", "estado", "paginaProyectos", "paginaColaboradores"), enlace.keySet());
+            assertEquals("2", enlace.getFirst("paginaProyectos"), "Conserva la página de proyectos");
+        }
+        // Anterior (deshabilitado; el servidor normaliza 0 a 1), números y Siguiente del detalle: 0, 1, 2, 2.
+        assertEquals(List.of("0", "1", "2", "2"),
+                enlacesDetalle.stream().map(enlace -> enlace.getFirst("paginaColaboradores")).toList());
+
+        // Con proyecto seleccionado, el detalle sigue paginando y sus enlaces conservan el proyecto.
+        String conProyecto = vista("/rm/reportes/recursos", parametros("periodo", PERIODO_MASIVO.toString(),
+                "proyecto", proyectoMasivo.getId().toString(), "estado", "EN_ESPERA", "paginaColaboradores", "2"));
+        assertEquals(List.of(nombreProyectoMasivo(1)), filas(conProyecto, "proyecto-row"));
+        assertFalse(conProyecto.contains("id=\"paginationProyectos\""), "Una sola página no muestra controles");
+        for (MultiValueMap<String, String> enlace : enlaces(conProyecto, "paginationDetalles")) {
+            assertEquals(proyectoMasivo.getId().toString(), enlace.getFirst("proyecto"));
+            assertEquals("EN_ESPERA", enlace.getFirst("estado"));
+            assertEquals(PERIODO_MASIVO.toString(), enlace.getFirst("periodo"));
+            assertEquals("1", enlace.getFirst("paginaProyectos"));
+        }
+    }
+
+    @Test
+    @Transactional
+    void indicadoresGraficoYModalUsanElConjuntoCompletoNoLaPagina() throws Exception {
+        prepararDatosMasivos();
+        RmReporteView completo = reporteService.generar(PERIODO_MASIVO.toString(), null, "EN_ESPERA");
+        MvcResult resultado = mockMvc.perform(get("/rm/reportes/recursos")
+                        .params(filtrosMasivos("paginaProyectos", "2", "paginaColaboradores", "2")))
+                .andExpect(status().isOk())
+                .andReturn();
+        String vista = resultado.getResponse().getContentAsString();
+        RmReporteView reporte = (RmReporteView) resultado.getModelAndView().getModel().get("reporte");
+
+        assertEquals(nombresProyectos(completo), nombresProyectos(reporte), "RmReporteView no se recorta");
+        assertEquals(12, reporte.getDetalles().size());
+        assertEquals(12, reporte.getColaboradoresInvolucrados());
+        assertEquals(0, new BigDecimal("78.00").compareTo(reporte.getHorasTotales()));
+        assertTrue(vista.contains("<div class=\"metric-number\">" + completo.getTotalProyectos() + "</div>"));
+        assertTrue(vista.contains("78.00 h"));
+        // El gráfico pinta todos los proyectos, también los que no están en la página visible.
+        for (String nombre : nombresProyectos(completo)) {
+            assertTrue(vista.contains("<span class=\"text-truncate\">" + nombre + "</span>"), nombre);
+        }
+        assertEquals(completo.getTotalProyectos(), ocurrencias(vista, "class=\"progress-bar bg-primary\""));
+
+        // El modal informa el total y envía solo los filtros aplicados, sin parámetros de página.
+        String modal = vista.substring(vista.indexOf("id=\"exportReportModal\""));
+        assertTrue(modal.contains(">" + completo.getTotalProyectos() + " proyecto(s) y 12 registro(s) por colaborador<"));
+        assertEquals(Set.of("periodo", "proyecto", "estado"), camposOcultos(modal).keySet());
+        assertFalse(modal.contains("paginaProyectos") || modal.contains("paginaColaboradores")
+                || modal.contains("name=\"pagina"));
+        int inicioFormulario = vista.indexOf("id=\"reportFiltersForm\"");
+        String formulario = vista.substring(inicioFormulario, vista.indexOf("</form>", inicioFormulario));
+        assertFalse(formulario.contains("pagina"), "El formulario de filtros no envía páginas");
+    }
+
+    @Test
+    @Transactional
+    void excelYPdfConPaginaDistintaDeLaPrimeraIncluyenTodosLosRegistrosFiltrados() throws Exception {
+        prepararDatosMasivos();
+        List<String> todosProyectos = nombresProyectos(reporteService.generar(PERIODO_MASIVO.toString(), null, "EN_ESPERA"));
+        MultiValueMap<String, String> conPaginas = filtrosMasivos(
+                "paginaProyectos", "2", "paginaColaboradores", "2", "pagina", "2");
+
+        try (XSSFWorkbook libro = excel(EXCEL, conPaginas)) {
+            Sheet hojaProyectos = libro.getSheet("Proyectos");
+            for (int indice = 0; indice < todosProyectos.size(); indice++) {
+                assertEquals(todosProyectos.get(indice), texto(hojaProyectos, FILA_CABECERA_PROYECTOS + 1 + indice, 0));
+            }
+            Sheet hojaDetalle = libro.getSheet("Colaboradores");
+            assertEquals(FILA_CABECERA_DETALLE + 12, hojaDetalle.getLastRowNum());
+            List<String> esperados = colaboradoresMasivos(1, 12);
+            for (int indice = 0; indice < esperados.size(); indice++) {
+                assertEquals(esperados.get(indice), texto(hojaDetalle, FILA_CABECERA_DETALLE + 1 + indice, 0));
+            }
+        }
+        String pdf = pdf(PDF, conPaginas);
+        for (String nombre : todosProyectos) assertTrue(pdf.contains("\n" + nombre + " "), nombre);
+        for (String nombre : colaboradoresMasivos(1, 12)) assertTrue(pdf.contains("\n" + nombre + " "), nombre);
+        assertEquals(sinFechaDeGeneracion(pdf(PDF, filtrosMasivos())), sinFechaDeGeneracion(pdf),
+                "El PDF con páginas en la URL es igual al PDF sin páginas");
+    }
+
+    @Test
+    @Transactional
+    void horasPaginaEnElServidorConservandoOrdenYFiltros() throws Exception {
+        prepararDatosMasivos();
+        // Orden actual: horas descendentes (12 h, 11 h, ...), distinto del orden por nombre.
+        MvcResult primera = mockMvc.perform(get("/rm/reportes/horas-colaboradores")
+                        .params(filtrosHoras("pagina", "1")))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalColaboradoresHoras", 12))
+                .andExpect(model().attribute("paginaActual", 1))
+                .andExpect(model().attribute("totalPaginas", 2))
+                .andReturn();
+        String vistaUno = primera.getResponse().getContentAsString();
+        assertEquals(colaboradoresMasivosPorHoras(12, 3), filas(vistaUno, "colaborador-row"));
+        assertTrue(vistaUno.contains("Mostrando 1-10 de 12 colaboradores"));
+
+        String colaboradorId = colaboradorMasivo(1).getId().toString();
+        MvcResult segunda = mockMvc.perform(get("/rm/reportes/horas-colaboradores")
+                        .params(filtrosHoras("pagina", "2", "colaborador", colaboradorId)))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalColaboradoresHoras", 12))
+                .andExpect(model().attribute("enReferencia", 0L))
+                .andExpect(model().attribute("debajoReferencia", 12L))
+                .andReturn();
+        String vistaDos = segunda.getResponse().getContentAsString();
+        assertEquals(colaboradoresMasivosPorHoras(2, 1), filas(vistaDos, "colaborador-row"));
+        assertEquals(0, new BigDecimal("78.00").compareTo(
+                (BigDecimal) segunda.getModelAndView().getModel().get("totalHorasColaboradores")));
+        RmReporteView.ColaboradorReporte seleccionado = (RmReporteView.ColaboradorReporte)
+                segunda.getModelAndView().getModel().get("colaboradorSeleccionado");
+        assertEquals(nombreColaboradorMasivo(1), seleccionado.getNombre());
+
+        List<MultiValueMap<String, String>> enlaces = enlaces(vistaDos, "pagination");
+        assertEquals(List.of("1", "1", "2", "3"), enlaces.stream().map(enlace -> enlace.getFirst("pagina")).toList());
+        for (MultiValueMap<String, String> enlace : enlaces) {
+            assertEquals(Set.of("periodo", "proyecto", "busqueda", "colaborador", "pagina"), enlace.keySet());
+            assertEquals(PERIODO_MASIVO.toString(), enlace.getFirst("periodo"));
+            assertEquals(proyectoMasivo.getId().toString(), enlace.getFirst("proyecto"));
+            assertEquals("pag", enlace.getFirst("busqueda"));
+            assertEquals(colaboradorId, enlace.getFirst("colaborador"));
+        }
+        assertTrue(Pattern.compile("<li class=\"page-item disabled\">\\s*<a class=\"page-link\"[^>]*>Siguiente</a>")
+                .matcher(bloqueLista(vistaDos, "pagination")).find(), "Siguiente deshabilitado en la última página");
+        // "Ver desglose" mantiene la página visible.
+        Matcher desglose = Pattern.compile("href=\"([^\"]*colaborador=[^\"]*)\">Ver desglose").matcher(vistaDos);
+        assertTrue(desglose.find());
+        assertEquals("2", parametrosEnlace(desglose.group(1)).getFirst("pagina"));
+    }
+
+    @Test
+    @Transactional
+    void losFiltrosSeAplicanAntesDePaginar() throws Exception {
+        prepararDatosMasivos();
+        // "tester" excluye al colaborador 12 (Analista): quedan 11, en 2 páginas, con el mismo orden.
+        String vista = vista("/rm/reportes/horas-colaboradores", filtrosHoras("busqueda", "tester", "pagina", "2"));
+        assertEquals(List.of(nombreColaboradorMasivo(1)), filas(vista, "colaborador-row"));
+        assertTrue(vista.contains("Mostrando 11-11 de 11 colaboradores"));
+        String primera = vista("/rm/reportes/horas-colaboradores", filtrosHoras("busqueda", "tester"));
+        assertEquals(colaboradoresMasivosPorHoras(11, 2), filas(primera, "colaborador-row"));
+
+        // Recursos: el estado filtra antes de paginar; con ACTIVO no aparece ningún proyecto masivo.
+        String activos = vista("/rm/reportes/recursos", parametros("periodo", PERIODO_MASIVO.toString(),
+                "estado", "ACTIVO", "paginaProyectos", "1"));
+        assertTrue(filas(activos, "proyecto-row").stream().noneMatch(nombre -> nombre.startsWith("Pag proyecto")));
+        assertTrue(filas(activos, "detalle-row").isEmpty(), "Sin actividades de proyectos activos en el periodo");
+        // Con proyecto, el detalle solo contiene ese proyecto antes de paginar (12 registros en 2 páginas).
+        String conProyecto = vista("/rm/reportes/recursos", parametros("periodo", PERIODO_MASIVO.toString(),
+                "proyecto", proyectoMasivo.getId().toString()));
+        assertTrue(conProyecto.contains("Mostrando 1-10 de 12 registros"));
+        assertTrue(conProyecto.contains("Mostrando 1-1 de 1 proyectos"));
+    }
+
+    @ParameterizedTest(name = "página \"{0}\" → {1}")
+    @CsvSource({"'', primera", "'  ', primera", "abc, primera", "1.5, primera", "0, primera",
+            "-3, primera", "999, ultima", "99999999999, ultima"})
+    @Transactional
+    void paginasInvalidasOExcesivasNoProducenErroresTecnicos(String pagina, String esperada) throws Exception {
+        prepararDatosMasivos();
+        boolean ultima = "ultima".equals(esperada);
+        MvcResult recursos = mockMvc.perform(get("/rm/reportes/recursos")
+                        .params(filtrosMasivos("paginaProyectos", pagina, "paginaColaboradores", pagina)))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-reporte-recursos"))
+                .andReturn();
+        var proyectos = (RmReporteService.PaginaReporte<?>) recursos.getModelAndView().getModel().get("paginaProyectos");
+        var detalles = (RmReporteService.PaginaReporte<?>) recursos.getModelAndView().getModel().get("paginaColaboradores");
+        assertEquals(ultima ? proyectos.totalPaginas() : 1, proyectos.paginaActual());
+        assertEquals(ultima ? 2 : 1, detalles.paginaActual());
+        assertEquals(ultima ? colaboradoresMasivos(11, 12) : colaboradoresMasivos(1, 10),
+                filas(recursos.getResponse().getContentAsString(), "detalle-row"));
+
+        String horas = mockMvc.perform(get("/rm/reportes/horas-colaboradores").params(filtrosHoras("pagina", pagina)))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-horas-colaboradores"))
+                .andExpect(model().attribute("paginaActual", ultima ? 2 : 1))
+                .andReturn().getResponse().getContentAsString();
+        assertEquals(ultima ? colaboradoresMasivosPorHoras(2, 1) : colaboradoresMasivosPorHoras(12, 3),
+                filas(horas, "colaborador-row"));
+    }
+
+    @Test
+    void sinRegistrosMuestraUnaPaginaValidaVacia() throws Exception {
+        String recursos = vista("/rm/reportes/recursos", parametros("periodo", "1999-01",
+                "proyecto", "999999999", "paginaProyectos", "3", "paginaColaboradores", "-1"));
+        assertTrue(recursos.contains("Mostrando 0-0 de 0 proyectos"));
+        assertTrue(recursos.contains("Mostrando 0-0 de 0 registros"));
+        assertTrue(recursos.contains(SIN_PROYECTOS) && recursos.contains(SIN_DETALLES));
+        assertFalse(recursos.contains("class=\"page-link\""), "Sin registros no hay controles de página");
+
+        mockMvc.perform(get("/rm/reportes/horas-colaboradores")
+                        .param("periodo", "1999-01").param("busqueda", "zzz-sin-coincidencias").param("pagina", "5"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 1))
+                .andExpect(model().attribute("totalPaginas", 1))
+                .andExpect(model().attribute("totalRegistros", 0L))
+                .andExpect(content().string(containsString("Mostrando 0-0 de 0 colaboradores")))
+                .andExpect(content().string(containsString("No hay colaboradores que coincidan con los filtros.")));
+    }
+
+    @Test
+    @Transactional
+    void listadosFuncionanSinJavaScriptYSinEnlacesVacios() throws Exception {
+        prepararDatosMasivos();
+        String recursos = vista("/rm/reportes/recursos", filtrosMasivos("paginaProyectos", "2"));
+        String horas = vista("/rm/reportes/horas-colaboradores", filtrosHoras("pagina", "2"));
+        assertFalse(recursos.contains("-row d-none") || horas.contains("-row d-none"), "Las filas no dependen de JS para ocultarse");
+        // Los controles son enlaces GET reales con Anterior, números y Siguiente (ninguno con href="#").
+        for (String bloque : List.of(bloqueLista(recursos, "paginationProyectos"),
+                bloqueLista(recursos, "paginationDetalles"), bloqueLista(horas, "pagination"))) {
+            assertTrue(bloque.contains(">Anterior</a>") && bloque.contains(">1</a>")
+                    && bloque.contains(">2</a>") && bloque.contains(">Siguiente</a>"), bloque);
+            assertFalse(bloque.contains("href=\"#\""), "Ningún control de página usa href=\"#\"");
+            assertEquals(ocurrencias(bloque, "class=\"page-link\""),
+                    ocurrencias(bloque, "href=\"/rm/reportes/"), "Cada control es un enlace GET al reporte");
+        }
+
+        assertFalse(horas.contains("rm-horas-colaboradores.js"), "La vista de horas ya no carga JS propio");
+        // Se comprueba la fuente: target/classes puede conservar la copia anterior sin "clean".
+        assertFalse(java.nio.file.Files.exists(java.nio.file.Path.of(
+                "src/main/resources/static/js/rm-js/rm-horas-colaboradores.js")), "El archivo se eliminó");
+        String script = mockMvc.perform(get("/js/rm-js/rm-reporte-recursos.js"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertFalse(script.contains("setupPagination") || script.contains("pageSize")
+                || script.contains("paginationProyectos") || script.contains("page-link"), "Sin paginación en JS");
+        assertTrue(script.contains("exportUnappliedAlert"), "Conserva el comportamiento del modal (TASK-037)");
+    }
+
+    private static final YearMonth PERIODO_MASIVO = YearMonth.of(2001, 3);
+    private Proyecto proyectoMasivo;
+    private final List<Usuario> colaboradoresMasivos = new ArrayList<>();
+
+    /**
+     * 12 proyectos EN_ESPERA creados "en 2099" (encabezan el orden por fecha de creación) y 12
+     * colaboradores con una tarea completada en el primero: el colaborador i registra i horas.
+     * El 12 es "Analista"; los demás, "Tester".
+     */
+    private void prepararDatosMasivos() {
+        for (int indice = 1; indice <= 12; indice++) {
+            Proyecto nuevo = new Proyecto();
+            nuevo.setNombre(nombreProyectoMasivo(indice));
+            nuevo.setDescripcion("Proyecto para verificar la paginación del reporte.");
+            nuevo.setEstado(EstadoProyecto.EN_ESPERA);
+            nuevo.setPrioridad(Prioridad.MEDIA);
+            nuevo.setJustificacionPrioridad("Validación automática.");
+            nuevo.setPresupuesto(new BigDecimal("1000.00"));
+            nuevo.setColaboradoresRequeridos(1);
+            nuevo.setPm(pm);
+            nuevo.setFechaCreacion(LocalDateTime.of(2099, 1, 1, 0, 0).plusMinutes(indice));
+            nuevo = proyectoRepository.save(nuevo);
+            if (indice == 1) proyectoMasivo = nuevo;
+        }
+        colaboradoresMasivos.clear();
+        for (int indice = 1; indice <= 12; indice++) {
+            Usuario colaborador = usuario(String.format("pag%02d.reportes@skillbridge.test", indice),
+                    "Colaborador", String.format("Pag %02d", indice), rol("COLABORADOR"),
+                    indice == 12 ? "Analista Paginado" : "Tester Paginado");
+            colaboradoresMasivos.add(colaborador);
+            Actividad actividad = new Actividad();
+            actividad.setProyecto(proyectoMasivo);
+            actividad.setColaborador(colaborador);
+            actividad.setTitulo("Tarea masiva " + indice);
+            actividad.setDescripcion("Actividad de prueba de la paginación.");
+            actividad.setHorasEstimadas(BigDecimal.valueOf(indice).setScale(2));
+            actividad.setFechaLimite(PERIODO_MASIVO.atEndOfMonth());
+            actividad.setEstado(EstadoActividad.COMPLETADA);
+            actividad.setEstadoEntrega(EstadoEntrega.A_TIEMPO);
+            actividad.setCreadoPor(pm);
+            actividad.setFechaEntrega(PERIODO_MASIVO.atDay(10).atTime(9, 0));
+            actividadRepository.save(actividad);
+        }
+    }
+
+    private String nombreProyectoMasivo(int indice) {
+        return String.format("Pag proyecto %02d", indice);
+    }
+
+    private String nombreColaboradorMasivo(int indice) {
+        return String.format("Colaborador Pag %02d", indice);
+    }
+
+    private Usuario colaboradorMasivo(int indice) {
+        return colaboradoresMasivos.get(indice - 1);
+    }
+
+    /** Nombres de los colaboradores {@code desde..hasta} en orden ascendente (orden del detalle). */
+    private List<String> colaboradoresMasivos(int desde, int hasta) {
+        List<String> nombres = new ArrayList<>();
+        for (int indice = desde; indice <= hasta; indice++) nombres.add(nombreColaboradorMasivo(indice));
+        return nombres;
+    }
+
+    /** Nombres en orden descendente de horas (orden del consolidado de horas). */
+    private List<String> colaboradoresMasivosPorHoras(int desde, int hasta) {
+        List<String> nombres = new ArrayList<>();
+        for (int indice = desde; indice >= hasta; indice--) nombres.add(nombreColaboradorMasivo(indice));
+        return nombres;
+    }
+
+    private List<String> nombresProyectos(RmReporteView reporte) {
+        return reporte.getProyectos().stream().map(RmReporteView.ProyectoReporte::getNombre).toList();
+    }
+
+    private MultiValueMap<String, String> filtrosMasivos(String... extras) {
+        MultiValueMap<String, String> mapa = parametros("periodo", PERIODO_MASIVO.toString(), "proyecto", "", "estado", "EN_ESPERA");
+        mapa.addAll(parametros(extras));
+        return mapa;
+    }
+
+    private MultiValueMap<String, String> filtrosHoras(String... extras) {
+        MultiValueMap<String, String> mapa = parametros("periodo", PERIODO_MASIVO.toString(),
+                "proyecto", proyectoMasivo.getId().toString(), "busqueda", "pag");
+        parametros(extras).forEach((clave, valores) -> mapa.put(clave, valores));
+        return mapa;
+    }
+
+    private String vista(String ruta, MultiValueMap<String, String> parametros) throws Exception {
+        return mockMvc.perform(get(ruta).params(parametros))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    /** Primera celda (nombre) de cada fila renderizada con la clase indicada. */
+    private List<String> filas(String html, String clase) {
+        Matcher matcher = Pattern.compile("<tr class=\"" + clase + "\">\\s*<td class=\"fw-semibold\">([^<]*)</td>").matcher(html);
+        List<String> nombres = new ArrayList<>();
+        while (matcher.find()) nombres.add(matcher.group(1));
+        return nombres;
+    }
+
+    private String bloqueLista(String html, String id) {
+        int inicio = html.indexOf("id=\"" + id + "\"");
+        assertTrue(inicio >= 0, "Falta #" + id);
+        return html.substring(inicio, html.indexOf("</ul>", inicio));
+    }
+
+    private List<MultiValueMap<String, String>> enlaces(String html, String id) {
+        if (!html.contains("id=\"" + id + "\"")) return List.of();
+        Matcher matcher = Pattern.compile("href=\"([^\"]*)\"").matcher(bloqueLista(html, id));
+        List<MultiValueMap<String, String>> enlaces = new ArrayList<>();
+        while (matcher.find()) enlaces.add(parametrosEnlace(matcher.group(1)));
+        return enlaces;
+    }
+
+    private MultiValueMap<String, String> parametrosEnlace(String href) {
+        return UriComponentsBuilder.fromUriString(href.replace("&amp;", "&")).build().getQueryParams();
+    }
+
+    private String sinFechaDeGeneracion(String pdf) {
+        return pdf.replaceAll("Fecha de generación: [^\n]*", "");
+    }
+
+    private int ocurrencias(String texto, String fragmento) {
+        int total = 0;
+        for (int posicion = texto.indexOf(fragmento); posicion >= 0; posicion = texto.indexOf(fragmento, posicion + 1)) total++;
+        return total;
     }
 
     private org.springframework.util.MultiValueMap<String, String> filtrosProyectoActivo() {

@@ -19,7 +19,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
@@ -68,6 +71,18 @@ public class RmAsignacionService {
 
     public record PaginaAsignaciones(List<RmAsignacionView> filas, int paginaActual, int totalPaginas,
                                      long totalRegistros, ContadoresAsignaciones contadores) {
+    }
+
+    // Asignaciones del colaborador (TASK-051): filtros GET y paginación en el servidor.
+    /** Filtros ya validados: los valores nulos significan "Todos". El año es el de proyecto.fechaInicio. */
+    public record FiltrosAsignacionesColaborador(String busqueda, EstadoAsignacion estado, Integer anio) {
+    }
+
+    /** totalHistorial cuenta todas las asignaciones del colaborador, sin filtros (distingue los estados vacíos). */
+    public record PaginaAsignacionesColaborador(List<RmAsignacionView> filas, int paginaActual, int totalPaginas,
+                                                long totalRegistros, long totalHistorial,
+                                                List<Integer> aniosDisponibles,
+                                                FiltrosAsignacionesColaborador filtros) {
     }
 
     private final AsignacionRepository asignacionRepository;
@@ -205,6 +220,75 @@ public class RmAsignacionService {
         return asignacionRepository.findByColaboradorIdConDetalle(colaborador.getId()).stream()
                 .map(asignacion -> crearVista(asignacion, maxAsignaciones))
                 .toList();
+    }
+
+    /**
+     * Normaliza los parámetros GET de las asignaciones del colaborador. Vacíos, "all" o valores
+     * desconocidos equivalen a "Todos"; el año solo vale si está entre los disponibles.
+     */
+    public FiltrosAsignacionesColaborador normalizarFiltrosColaborador(String busqueda, String estado, String anio,
+                                                                       List<Integer> aniosDisponibles) {
+        String busquedaLimpia = busqueda == null ? "" : busqueda.trim();
+        if (busquedaLimpia.length() > LONGITUD_MAXIMA_BUSQUEDA) {
+            busquedaLimpia = busquedaLimpia.substring(0, LONGITUD_MAXIMA_BUSQUEDA);
+        }
+        EstadoAsignacion estadoValido = estado == null ? null : Arrays.stream(EstadoAsignacion.values())
+                .filter(opcion -> opcion.name().equalsIgnoreCase(estado.trim()))
+                .findFirst().orElse(null);
+        Integer anioValido = null;
+        if (anio != null) {
+            try {
+                int valor = Integer.parseInt(anio.trim());
+                if (aniosDisponibles.contains(valor)) anioValido = valor;
+            } catch (NumberFormatException ex) {
+                anioValido = null;
+            }
+        }
+        return new FiltrosAsignacionesColaborador(
+                busquedaLimpia.isEmpty() ? null : busquedaLimpia, estadoValido, anioValido);
+    }
+
+    /**
+     * Filtra y pagina el historial del colaborador conservando el orden de
+     * findByColaboradorIdConDetalle (fechaSolicitud descendente). La búsqueda cubre el nombre
+     * del proyecto y el del PM. Solo las filas de la página se construyen con la vista completa.
+     */
+    @Transactional(readOnly = true)
+    public PaginaAsignacionesColaborador listarPaginaPorColaborador(Long colaboradorId, String busqueda,
+                                                                    String estado, String anio, String pagina) {
+        Usuario colaborador = obtenerColaborador(colaboradorId);
+        List<Asignacion> historial = asignacionRepository.findByColaboradorIdConDetalle(colaborador.getId());
+        List<Integer> aniosDisponibles = historial.stream()
+                .map(asignacion -> asignacion.getProyecto().getFechaInicio())
+                .filter(fecha -> fecha != null)
+                .map(LocalDate::getYear)
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .toList();
+        FiltrosAsignacionesColaborador filtros =
+                normalizarFiltrosColaborador(busqueda, estado, anio, aniosDisponibles);
+
+        String texto = textoComparable(filtros.busqueda());
+        List<Asignacion> filtradas = historial.stream()
+                .filter(asignacion -> filtros.estado() == null || filtros.estado() == asignacion.getEstado())
+                .filter(asignacion -> filtros.anio() == null || (asignacion.getProyecto().getFechaInicio() != null
+                        && asignacion.getProyecto().getFechaInicio().getYear() == filtros.anio()))
+                .filter(asignacion -> texto.isEmpty() || textoComparable(asignacion.getProyecto().getNombre()
+                        + " " + nombreCompleto(asignacion.getProyecto().getPm())).contains(texto))
+                .toList();
+
+        int totalPaginas = Math.max(1, (int) Math.ceil(filtradas.size() / (double) TAMANIO_PAGINA));
+        int paginaActual = Math.min(Math.max(1, numeroPagina(pagina)), totalPaginas);
+        int desde = (paginaActual - 1) * TAMANIO_PAGINA;
+        int hasta = Math.min(desde + TAMANIO_PAGINA, filtradas.size());
+        int maxAsignaciones = obtenerMaxAsignaciones();
+        List<RmAsignacionView> filas = desde < hasta
+                ? filtradas.subList(desde, hasta).stream()
+                        .map(asignacion -> crearVista(asignacion, maxAsignaciones))
+                        .toList()
+                : List.of();
+        return new PaginaAsignacionesColaborador(filas, paginaActual, totalPaginas, filtradas.size(),
+                historial.size(), aniosDisponibles, filtros);
     }
 
     // Ids de colaboradores que ya tienen una asignación pendiente o activa en el

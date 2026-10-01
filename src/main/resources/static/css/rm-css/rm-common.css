@@ -10,6 +10,13 @@ body {
   min-height: 100%;
 }
 
+/* Tabler (>= 992px) aplica :root { margin-left: calc(-100% + 100vw) } para compensar la barra de
+   desplazamiento vertical. Eso deja una franja vacía a la izquierda de la topbar. */
+:root {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 body {
   margin: 0;
   background: #f3f6fa;

@@ -12,14 +12,41 @@
     <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-secondary">Disponibilidad declarada</div><div class="h3 mb-0" th:text="|${colaborador.resumen.horasDisponibles} h/sem|">0</div></div></div></div>
     <div class="col-md-4"><div class="card"><div class="card-body"><div class="text-secondary">Carga activa</div><div class="h3 mb-0" th:text="|${colaborador.resumen.asignacionesActivas} / ${colaborador.resumen.maxAsignaciones}|">0</div></div></div></div>
   </div>
-  <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Participación en proyectos</h3><div class="section-description">Incluye propuestas pendientes, activas, rechazadas y finalizadas.</div></div></div><div class="table-responsive"><table class="table table-vcenter card-table mb-0"><thead><tr><th>Proyecto</th><th>PM</th><th>Origen</th><th>Horas/sem</th><th>Periodo</th><th>Estado</th><th class="text-end">Acción</th></tr></thead><tbody>
+  <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Participación en proyectos</h3><div class="section-description">Incluye propuestas pendientes, activas, rechazadas y finalizadas.</div></div></div>
+    <!-- Filtros GET en el servidor (TASK-051): sin JavaScript; el id del colaborador viaja oculto. -->
+    <form id="assignmentFiltersForm" method="get" th:action="@{/rm/colaboradores/asignaciones}" class="card-body border-bottom">
+      <input type="hidden" name="id" th:value="${colaborador.resumen.id}">
+      <div class="row g-3 align-items-end">
+        <div class="col-xl-4 col-md-6"><label for="assignmentSearch" class="form-label">Buscar</label><input id="assignmentSearch" name="busqueda" class="form-control" maxlength="100" th:value="${busqueda}" placeholder="Proyecto o Project Manager"></div>
+        <div class="col-xl-2 col-md-6"><label for="statusFilter" class="form-label">Estado</label><select id="statusFilter" name="estado" class="form-select"><option value="all">Todos</option><option value="PENDIENTE" th:selected="${estado == 'PENDIENTE'}">Pendiente</option><option value="ACTIVA" th:selected="${estado == 'ACTIVA'}">Activa</option><option value="RECHAZADA" th:selected="${estado == 'RECHAZADA'}">Rechazada</option><option value="FINALIZADA" th:selected="${estado == 'FINALIZADA'}">Finalizada</option></select></div>
+        <div class="col-xl-2 col-md-6"><label for="yearFilter" class="form-label">Año de inicio</label><select id="yearFilter" name="anio" class="form-select"><option value="all">Todos</option><option th:each="opcion : ${aniosDisponibles}" th:value="${opcion}" th:text="${opcion}" th:selected="${opcion == anio}">2026</option></select></div>
+        <div class="col-xl-2 col-md-3 d-grid"><button type="submit" class="btn btn-primary">Filtrar</button></div>
+        <div class="col-xl-2 col-md-3 d-grid"><a id="clearFilters" class="btn btn-outline-secondary" th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id})}">Limpiar filtros</a></div>
+      </div>
+    </form>
+    <div class="table-responsive"><table class="table table-vcenter card-table mb-0"><thead><tr><th>Proyecto</th><th>PM</th><th>Origen</th><th>Horas/sem</th><th>Periodo</th><th>Estado</th><th class="text-end">Acción</th></tr></thead><tbody>
     <tr th:each="item : ${asignaciones}"><td class="fw-semibold" th:text="${item.asignacion.proyecto.nombre}">Proyecto</td><td th:text="${item.projectManagerNombre}">PM</td><td><span class="badge" th:classappend="${item.origenClase}" th:text="${item.origenTexto}">Origen</span></td><td th:text="|${item.asignacion.horasSemanales} h|">0</td><td><div th:text="${item.asignacion.proyecto.fechaInicio == null ? 'Sin fecha de inicio' : #temporals.format(item.asignacion.proyecto.fechaInicio, 'dd MMM yyyy')}">Inicio</div><div class="small text-secondary" th:text="${item.asignacion.proyecto.fechaFinEstimada == null ? 'Sin fecha final' : 'hasta ' + #temporals.format(item.asignacion.proyecto.fechaFinEstimada, 'dd MMM yyyy')}">Fin</div></td><td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td><td class="text-end"><a th:if="${item.requiereDecisionRm}" class="btn btn-outline-secondary btn-sm" th:href="${item.solicitudColaborador} ? @{/rm/asignaciones/revision-postulacion(id=${item.asignacion.id},origen='colaborador')} : @{/rm/asignaciones/revision(id=${item.asignacion.id},origen='colaborador')}">Ver</a><a th:if="${item.pendientePm}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/pendiente-pm(id=${item.asignacion.id},origen='colaborador')}">Ver</a><a th:if="${item.grupo == 'active' or item.grupo == 'history'}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/activa(id=${item.asignacion.id},origen='colaborador')}">Ver</a></td></tr>
-    <tr th:if="${#lists.isEmpty(asignaciones)}"><td colspan="7" class="text-center text-secondary py-5">Este colaborador todavía no tiene asignaciones.</td></tr>
-  </tbody></table></div></div>
+    <th:block th:if="${#lists.isEmpty(asignaciones) and totalHistorial == 0}"><tr th:replace="~{fragments/rm-empty-state :: fila(vacioId='emptyAssignments', vacioColspan=7, vacioIcono='maletin',
+        vacioTitulo='Sin asignaciones', vacioTexto='Este colaborador todavía no tiene asignaciones.')}"></tr></th:block>
+    <th:block th:if="${#lists.isEmpty(asignaciones) and totalHistorial > 0}"><tr th:replace="~{fragments/rm-empty-state :: fila(vacioId='noFilterResults', vacioColspan=7, vacioIcono='busqueda',
+        vacioTitulo='Sin resultados', vacioTexto='Ninguna asignación coincide con los filtros seleccionados.',
+        vacioAccionTexto='Limpiar filtros', vacioAccionUrl=@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id})})}"></tr></th:block>
+  </tbody></table></div>
+    <div class="pagination-wrap">
+      <div id="paginationInfo" class="text-secondary small"
+           th:with="desdeFila=${totalRegistros == 0 ? 0 : ((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(asignaciones)}"
+           th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} ${totalRegistros == 1 ? 'asignación' : 'asignaciones'}|">Mostrando 0-0 de 0 asignaciones</div>
+      <ul id="pagination" class="pagination pagination-sm m-0" th:if="${totalPaginas > 1}">
+        <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id}, busqueda=${busqueda}, estado=${estado}, anio=${anio}, pagina=${paginaActual > 1 ? paginaActual - 1 : 1})}">Anterior</a></li>
+        <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id}, busqueda=${busqueda}, estado=${estado}, anio=${anio}, pagina=${n})}" th:text="${n}">1</a></li>
+        <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id}, busqueda=${busqueda}, estado=${estado}, anio=${anio}, pagina=${paginaActual < totalPaginas ? paginaActual + 1 : totalPaginas})}">Siguiente</a></li>
+      </ul>
+    </div>
+  </div>
 </main></div>
 <!-- Modal "Proponer asignación" (TASK-034): colaborador fijo, se elige el proyecto -->
 <div id="propuestaContexto" class="d-none" data-origen="colaborador"
      th:attr="data-colaborador-id=${colaborador.resumen.id},data-colaborador-nombre=${colaborador.resumen.nombreCompleto},data-colaborador-cargo=${colaborador.resumen.cargo},data-colaborador-nivel=${colaborador.resumen.nivel},data-colaborador-horas=${colaborador.resumen.horasDisponibles},data-colaborador-carga=${colaborador.resumen.asignacionesActivas},data-colaborador-max=${colaborador.resumen.maxAsignaciones},data-colaborador-sueldo=${sueldoColaborador}"></div>
 <div th:replace="~{fragments/rm-asignacion-modales :: modalProyectos(false)}"></div>
 <div th:replace="~{fragments/rm-asignacion-modales :: modalPropuesta}"></div>
-<script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script><script th:src="@{/js/rm-js/rm-propuesta-asignacion.js}" src="../../static/js/rm-js/rm-propuesta-asignacion.js"></script></body></html>
+<script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script><script th:src="@{/js/rm-js/rm-propuesta-asignacion.js}" src="../../static/js/rm-js/rm-propuesta-asignacion.js"></script><script th:src="@{/js/rm-js/rm-asignaciones-colaborador.js}" src="../../static/js/rm-js/rm-asignaciones-colaborador.js"></script></body></html>

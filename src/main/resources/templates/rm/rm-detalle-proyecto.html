@@ -173,6 +173,17 @@
                th:text="${proyecto.proyecto.colaboradoresRequeridos}">0</div></div>
           <div><div class="info-label">Estado</div><div class="info-value" th:text="${proyecto.estadoTexto}">Estado</div></div>
           <div><div class="info-label">Prioridad</div><div class="info-value" th:text="${proyecto.prioridadTexto}">Prioridad</div></div>
+          <div><div class="info-label">Documento de contexto (PM)</div>
+            <div class="info-value">
+              <a th:if="${proyecto.proyecto.documentoContextoUrl != null}"
+                 th:href="${proyecto.proyecto.documentoContextoUrl}"
+                 target="_blank" class="btn btn-sm btn-outline-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Descargar / Ver documento
+              </a>
+              <span th:if="${proyecto.proyecto.documentoContextoUrl == null}" class="text-secondary fst-italic">Sin documento adjunto</span>
+            </div>
+          </div>
         </div>
         <!-- TASK-021: formulario compartido con la revisión (fragments/rm-proyecto-fechas). -->
         <form th:replace="~{fragments/rm-proyecto-fechas :: formulario(${proyecto.proyecto}, 'detalle')}"></form>

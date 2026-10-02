@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.service.col;
 
+import com.pucp.skillb_ia.dto.ColBonoMensualView;
 import com.pucp.skillb_ia.dto.CursoDisponibleView;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
@@ -12,6 +13,7 @@ import com.pucp.skillb_ia.repository.CursoRepository;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,17 +40,22 @@ public class ColaboradorCursoService {
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
+    private final ColaboradorActividadService colaboradorActividadService;
 
     public ColaboradorCursoService(CursoRepository cursoRepository,
                                    ColaboradorCursoRepository colaboradorCursoRepository,
                                    AuditoriaService auditoriaService,
                                    NotificacionService notificacionService,
-                                   ArchivoAlmacenamientoService archivoAlmacenamientoService) {
+                                   ArchivoAlmacenamientoService archivoAlmacenamientoService,
+                                   //@Lazy evita una dependencia circular entre los servicios,
+                                   //haciendo que ColaboradorActividadService se inicialice cuando sea necesario.
+                                   @Lazy ColaboradorActividadService colaboradorActividadService) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
+        this.colaboradorActividadService = colaboradorActividadService;
     }
 
     // ============================================================
@@ -56,9 +63,7 @@ public class ColaboradorCursoService {
     // ============================================================
     @Transactional
     public List<CursoDisponibleView> listarCursosDisponibles(Usuario colaborador) {
-        //Antes de listar, completamos solos los cursos con horario fijo cuya fecha fin ya pasó.
-        completarCursosProgramadosVencidos(colaborador);
-
+        marcarCursosSinEvidenciaVencidos(colaborador);
         List<Curso> cursosActivos = cursoRepository.findByActivoTrueOrderByNombreAsc();
 
         List<ColaboradorCurso> misRegistros = colaboradorCursoRepository.findByColaborador(colaborador);
@@ -147,6 +152,15 @@ public class ColaboradorCursoService {
             throw new IllegalArgumentException("Este curso ya no está disponible.");
         }
 
+        //Si ya llegó al tope de horas que cuentan para el bono este mes, un curso más no le
+        //suma nada (esas horas no se pagarían de todas formas), así que no lo dejamos solicitar.
+        ColBonoMensualView resumenBono = colaboradorActividadService.obtenerResumenBonoMensual(colaborador);
+        if (resumenBono.getHorasExtraBonificables().compareTo(resumenBono.getTopeHorasExtra()) >= 0) {
+            throw new IllegalArgumentException(
+                    "No puedes solicitar este curso: ya alcanzaste el máximo de horas que cuentan para tu bono este mes, "
+                            + "así que no te quedan horas disponibles para sumar.");
+        }
+
         boolean yaTieneSolicitud = colaboradorCursoRepository.existsByColaboradorAndCursoAndEstadoIn(
                 colaborador, curso, ESTADOS_QUE_BLOQUEAN);
         if (yaTieneSolicitud) {
@@ -177,8 +191,7 @@ public class ColaboradorCursoService {
     // ============================================================
     @Transactional
     public List<ColaboradorCurso> listarMisCursos(Usuario colaborador) {
-        //Antes de listar, completamos solos los cursos con horario fijo cuya fecha fin ya pasó.
-        completarCursosProgramadosVencidos(colaborador);
+        marcarCursosSinEvidenciaVencidos(colaborador);
 
         List<ColaboradorCurso> todos = colaboradorCursoRepository.findByColaborador(colaborador);
         List<ColaboradorCurso> misCursos = new ArrayList<>();
@@ -197,11 +210,9 @@ public class ColaboradorCursoService {
     }
 
     // ============================================================
-    // CAMBIAMOS EL ESTADO A COMPLETAR AUTOMÁTICAMENTE LOS CURSOS CON HORARIO FIJO (NO AUTODIDACTAS)
-    // Estos cursos no piden evidencia: apenas se cumple su fecha fin, se dan
-    // por completados solos y sus horas pasan a contarse en el dashboard.
+    // MARCAMOS COMO "NO COMPLETADO" LOS CURSOS (AUTODIDACTA O
     // ============================================================
-    public void completarCursosProgramadosVencidos(Usuario colaborador) {
+    public void marcarCursosSinEvidenciaVencidos(Usuario colaborador) {
 
         List<ColaboradorCurso> todos = colaboradorCursoRepository.findByColaborador(colaborador);
 
@@ -214,10 +225,8 @@ public class ColaboradorCursoService {
 
             Curso curso = registro.getCurso();
 
-            if (curso.isAutodidacta()) {
-                continue;
-            }
-
+            //Sin fecha fin no hay plazo, el curso se queda "En curso" hasta que se suba su
+            //evidencia, sea autodidacta o no.
             if (curso.getFechaFin() == null) {
                 continue;
             }
@@ -227,23 +236,26 @@ public class ColaboradorCursoService {
                 continue;
             }
 
-            registro.setEstado(EstadoColaboradorCurso.COMPLETADO);
-            registro.setFechaCompletado(LocalDateTime.now());
+            if (registro.getEvidenciaUrl() != null) {
+                continue;
+            }
+
+            registro.setEstado(EstadoColaboradorCurso.NO_COMPLETADO);
+
             colaboradorCursoRepository.save(registro);
 
-            auditoriaService.registrar(colaborador, "COMPLETAR_CURSO_PROGRAMADO", "COLABORADOR_CURSO", registro.getId(),
-                    "El curso \"" + curso.getNombre() + "\" se completó automáticamente al llegar su fecha de fin.");
+            auditoriaService.registrar(colaborador, "CURSO_NO_COMPLETADO", "COLABORADOR_CURSO", registro.getId(),
+                    "El curso \"" + curso.getNombre() + "\" quedó como no completado: venció su fecha fin sin una evidencia aprobada.");
 
-            notificacionService.crear(colaborador, "CURSO_COMPLETADO", CategoriaNotificacion.CURSO,
-                    "Curso completado",
-                    "Tu curso \"" + curso.getNombre() + "\" se marcó como completado automáticamente.",
+            notificacionService.crear(colaborador, "CURSO_NO_COMPLETADO", CategoriaNotificacion.CURSO,
+                    "Curso no completado",
+                    "El plazo del curso \"" + curso.getNombre() + "\" venció sin que se aprobara una evidencia. No se te aplicó ninguna penalización, pero tampoco se contaron sus horas.",
                     "COLABORADOR_CURSO", registro.getId());
         }
     }
 
     // ============================================================
     // COLABORADOR SUBE LA EVIDENCIA DE FINALIZACIÓN DE UN CURSO
-    //(Solo aplica a cursos autodidacta. Los de horario fijo se completan solos.
     // ============================================================
     @Transactional
     public void subirEvidencia(Usuario colaborador, Long inscripcionId, MultipartFile evidencia) {
@@ -252,8 +264,10 @@ public class ColaboradorCursoService {
         if (inscripcion.getEstado() != EstadoColaboradorCurso.EN_CURSO) {
             throw new IllegalArgumentException("Solo puedes subir evidencia de un curso que esté \"En curso\".");
         }
-        if (!inscripcion.getCurso().isAutodidacta()) {
-            throw new IllegalArgumentException("Este curso no requiere evidencia: se completa automáticamente al llegar su fecha de fin.");
+        boolean esPrimerIntento = inscripcion.getEvidenciaUrl() == null;
+        if (esPrimerIntento && inscripcion.getCurso().getFechaFin() != null
+                && inscripcion.getCurso().getFechaFin().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("El plazo para subir evidencia de este curso ya venció.");
         }
 
 
@@ -312,6 +326,7 @@ public class ColaboradorCursoService {
         if (estado == EstadoColaboradorCurso.EVIDENCIA_PENDIENTE) return "Evidencia en revisión";
         if (estado == EstadoColaboradorCurso.COMPLETADO) return "Completado";
         if (estado == EstadoColaboradorCurso.RECHAZADO) return "Solicitud rechazada";
+        if (estado == EstadoColaboradorCurso.NO_COMPLETADO) return "No completado";
         return "";
     }
 
@@ -321,6 +336,7 @@ public class ColaboradorCursoService {
         if (estado == EstadoColaboradorCurso.EVIDENCIA_PENDIENTE) return "bg-purple-lt";
         if (estado == EstadoColaboradorCurso.COMPLETADO) return "bg-blue-lt";
         if (estado == EstadoColaboradorCurso.RECHAZADO) return "bg-red-lt";
+        if (estado == EstadoColaboradorCurso.NO_COMPLETADO) return "bg-secondary-lt";
         return "bg-secondary-lt";
     }
 }

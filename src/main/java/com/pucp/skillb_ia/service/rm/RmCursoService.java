@@ -454,6 +454,7 @@ public class RmCursoService {
             case EVIDENCIA_PENDIENTE -> "Evidencia en revisión";
             case COMPLETADO -> "Completado";
             case RECHAZADO -> "Rechazado";
+            case NO_COMPLETADO -> "No completado";
         };
     }
 
@@ -467,6 +468,7 @@ public class RmCursoService {
             case EVIDENCIA_PENDIENTE -> "bg-purple-lt text-purple";
             case COMPLETADO -> "bg-green-lt text-green";
             case RECHAZADO -> "bg-red-lt text-red";
+            case NO_COMPLETADO -> "bg-secondary-lt text-secondary";
         };
     }
 

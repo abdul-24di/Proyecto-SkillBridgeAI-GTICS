@@ -1,21 +1,10 @@
 package com.pucp.skillb_ia.service.col;
 
-import com.pucp.skillb_ia.model.Asignacion;
-import com.pucp.skillb_ia.model.ColaboradorHabilidad;
-import com.pucp.skillb_ia.model.Educacion;
-import com.pucp.skillb_ia.model.ExperienciaProfesional;
-import com.pucp.skillb_ia.model.Habilidad;
-import com.pucp.skillb_ia.model.Proyecto;
-import com.pucp.skillb_ia.model.ProyectoHabilidadRequerida;
-import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
+import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
-import com.pucp.skillb_ia.repository.AsignacionRepository;
-import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
-import com.pucp.skillb_ia.repository.EducacionRepository;
-import com.pucp.skillb_ia.repository.ExperienciaProfesionalRepository;
-import com.pucp.skillb_ia.repository.ProyectoHabilidadRequeridaRepository;
-import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,19 +25,22 @@ public class ColaboradorExplorarService {
     private final ExperienciaProfesionalRepository experienciaProfesionalRepository;
     private final AsignacionRepository asignacionRepository;
     private final ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository;
+    private final ColaboradorCursoRepository colaboradorCursoRepository;
 
     public ColaboradorExplorarService(UsuarioRepository usuarioRepository,
                                       ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                       EducacionRepository educacionRepository,
                                       ExperienciaProfesionalRepository experienciaProfesionalRepository,
                                       AsignacionRepository asignacionRepository,
-                                      ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository) {
+                                      ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository,
+                                      ColaboradorCursoRepository colaboradorCursoRepository) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.educacionRepository = educacionRepository;
         this.experienciaProfesionalRepository = experienciaProfesionalRepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoHabilidadRequeridaRepository = proyectoHabilidadRequeridaRepository;
+        this.colaboradorCursoRepository = colaboradorCursoRepository;
     }
 
     //Listamos a todos los colaboradores activos de la organización, excluyendo al que esta buscando.
@@ -117,8 +109,17 @@ public class ColaboradorExplorarService {
 
         String resumenHabilidades = resumenDeHabilidades(habilidadesValidadas);
 
+        //Solo mostramos los cursos que ya terminó (con evidencia aprobada por el RM).
+        List<ColaboradorCurso> todosMisCursos = colaboradorCursoRepository.findByColaborador(colaborador);
+        List<ColaboradorCurso> cursosCompletados = new ArrayList<>();
+        for (ColaboradorCurso registro : todosMisCursos) {
+            if (registro.getEstado() == EstadoColaboradorCurso.COMPLETADO) {
+                cursosCompletados.add(registro);
+            }
+        }
+
         return new PerfilExplorar(habilidadesValidadas, experiencia, educacion, proyectosDestacados,
-                habilidadesPorProyecto, resumenHabilidades);
+                habilidadesPorProyecto, resumenHabilidades, cursosCompletados);
     }
 
     private String habilidadesDeProyecto(Proyecto proyecto) {
@@ -156,16 +157,19 @@ public class ColaboradorExplorarService {
         private final List<Asignacion> proyectos;
         private final Map<Long, String> habilidadesPorProyecto;
         private final String resumenHabilidades;
+        private final List<ColaboradorCurso> cursosCompletados;
 
         public PerfilExplorar(List<ColaboradorHabilidad> habilidades, List<ExperienciaProfesional> experiencia,
                               List<Educacion> educacion, List<Asignacion> proyectos,
-                              Map<Long, String> habilidadesPorProyecto, String resumenHabilidades) {
+                              Map<Long, String> habilidadesPorProyecto, String resumenHabilidades,
+                              List<ColaboradorCurso> cursosCompletados) {
             this.habilidades = habilidades;
             this.experiencia = experiencia;
             this.educacion = educacion;
             this.proyectos = proyectos;
             this.habilidadesPorProyecto = habilidadesPorProyecto;
             this.resumenHabilidades = resumenHabilidades;
+            this.cursosCompletados = cursosCompletados;
         }
 
         public List<ColaboradorHabilidad> getHabilidades() { return habilidades; }
@@ -174,5 +178,6 @@ public class ColaboradorExplorarService {
         public List<Asignacion> getProyectos() { return proyectos; }
         public Map<Long, String> getHabilidadesPorProyecto() { return habilidadesPorProyecto; }
         public String getResumenHabilidades() { return resumenHabilidades; }
+        public List<ColaboradorCurso> getCursosCompletados() { return cursosCompletados; }
     }
 }

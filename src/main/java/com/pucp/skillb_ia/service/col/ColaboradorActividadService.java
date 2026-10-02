@@ -120,8 +120,8 @@ public class ColaboradorActividadService {
 
     public ColHorasResumenView obtenerResumenHoras(Usuario colaborador) {
 
-        //Si algún curso con horario fijo ya llegó a su fecha fin, lo completamos
-        colaboradorCursoService.completarCursosProgramadosVencidos(colaborador);
+        //Si algún curso ya venció su fecha fin sin evidencia aprobada, lo marcamos como no completado.
+        colaboradorCursoService.marcarCursosSinEvidenciaVencidos(colaborador);
 
         List<Actividad> todas = actividadRepository.findByColaborador(colaborador);
 

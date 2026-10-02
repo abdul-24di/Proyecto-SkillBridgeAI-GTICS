@@ -99,29 +99,23 @@ public class ArchivoAlmacenamientoService {
         return urlBase + "/" + key;
     }
 
-    //Traduce las excepciones típicas del SDK de AWS a un mensaje que un usuario
-    //final pueda entender, sin exponerle el stacktrace completo.
+    //Mostramos mensajes de error más amigables para el colaborador
     private String mensajeAmigableS3(SdkException e) {
         String detalle = e.getMessage() == null ? "" : e.getMessage();
 
         if (detalle.contains("Unable to load credentials")) {
-            return "No se pudo conectar con el almacenamiento en la nube: el servidor no tiene "
-                    + "configuradas las credenciales de AWS. Avisa al equipo técnico.";
+            return "El servidor todavía no está conectado a AWS. Avisa al equipo técnico.";
         }
         if (detalle.contains("ExpiredToken") || (detalle.contains("token") && detalle.contains("expired"))) {
-            return "Las credenciales de AWS del servidor expiraron. Avisa al equipo técnico para "
-                    + "que las renueve.";
+            return "Las credenciales de AWS vencieron y hay que renovarlas.";
         }
         if (detalle.contains("AccessDenied") || detalle.contains("Access Denied")) {
-            return "No se tienen permisos para guardar archivos en el almacenamiento en la nube. "
-                    + "Avisa al equipo técnico.";
+            return "No tenemos permiso para subir archivos a S3 en este momento.";
         }
         if (detalle.contains("NoSuchBucket")) {
-            return "El almacenamiento en la nube no está configurado correctamente (bucket no "
-                    + "encontrado). Avisa al equipo técnico.";
+            return "El bucket de S3 no existe o está mal configurado.";
         }
-        return "No se pudo guardar el archivo en el almacenamiento en la nube. Inténtalo nuevamente "
-                + "en unos minutos.";
+        return "No se pudo subir el archivo. Intenta de nuevo en un momento.";
     }
 
     //Guardamos los archivos de manera local

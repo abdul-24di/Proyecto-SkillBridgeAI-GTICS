@@ -410,9 +410,13 @@
             <!-- ===== CHAT (próximamente) ===== -->
             <div class="tab-pane fade" id="tab-chat" role="tabpanel">
                 <div class="card section-card">
-                    <div class="card-body">
-                        <h3 class="card-title mb-1">Chat del proyecto</h3>
-                        <div class="empty-state">Esta sección todavía está en desarrollo. Próximamente podrás chatear con el equipo del proyecto aquí.</div>
+                    <div class="card-body text-center" style="padding: 5rem 1rem;">
+                        <div style="font-size: 4.5rem; line-height: 1;">💬</div>
+                        <h1 class="mt-4 mb-2">Coming soon</h1>
+                        <p class="text-secondary mb-0" style="font-size: 1.15rem; max-width: 480px; margin: 0 auto;">
+                            Esta sección todavía está en desarrollo.<br>
+                            Próximamente será completada. 
+                        </p>
                     </div>
                 </div>
             </div>
@@ -476,12 +480,21 @@
                                     </ul>
                                     <div class="small text-secondary" th:if="${perfilesIntegrantes.get(miembro.colaborador.id).experiencia.isEmpty()}">Sin experiencia registrada.</div>
 
+
+
                                     <div class="info-label mb-1 mt-3">Proyectos destacados</div>
                                     <ul class="small text-secondary ps-3" th:if="${!perfilesIntegrantes.get(miembro.colaborador.id).proyectos.isEmpty()}">
                                         <li th:each="a : ${perfilesIntegrantes.get(miembro.colaborador.id).proyectos}"
                                             th:text="|${a.proyecto.nombre}: ${perfilesIntegrantes.get(miembro.colaborador.id).habilidadesPorProyecto.get(a.proyecto.id)}|">Proyecto</li>
                                     </ul>
                                     <div class="small text-secondary" th:if="${perfilesIntegrantes.get(miembro.colaborador.id).proyectos.isEmpty()}">Sin proyectos destacados todavía.</div>
+
+                                    <div class="info-label mb-1 mt-3">Cursos completados</div>
+                                    <ul class="small text-secondary ps-3" th:if="${!perfilesIntegrantes.get(miembro.colaborador.id).cursosCompletados.isEmpty()}">
+                                        <li th:each="cc : ${perfilesIntegrantes.get(miembro.colaborador.id).cursosCompletados}"
+                                            th:text="|${cc.curso.nombre} (${cc.curso.horas} horas)|">Curso</li>
+                                    </ul>
+                                    <div class="small text-secondary" th:if="${perfilesIntegrantes.get(miembro.colaborador.id).cursosCompletados.isEmpty()}">Sin cursos completados todavía.</div>
                                 </div>
 
 

@@ -273,16 +273,15 @@
                             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                 <div class="text-secondary" th:text="${c.cargo?.nombre ?: 'Sin cargo asignado'}">Cargo</div>
                                 <div class="availability-pill">
-
-
-
-
-                                <span class="availability-dot" th:classappend="${(c.horasDisponibles != null and c.horasDisponibles.signum() > 0) ? 'bg-green' : 'bg-secondary'}"></span>
-                                <span th:text="${(c.horasDisponibles != null and c.horasDisponibles.signum() > 0) ? 'Disponible' : 'No disponible'}">Disponible</span>
+                                    <span class="availability-dot" th:classappend="${(c.horasDisponibles != null and c.horasDisponibles.signum() > 0) ? 'bg-green' : 'bg-secondary'}"></span>
+                                    <span th:text="${(c.horasDisponibles != null and c.horasDisponibles.signum() > 0) ? 'Disponible' : 'No disponible'}">Disponible</span>
+                                </div>
                             </div>
-                        </div>
-                        <hr>
-                        <div class="row g-4">
+                            <div class="row g-4">
+
+
+
+
                             <div class="col-md-6">
                                 <div class="info-label mb-1" th:text="|Sobre ${c.nombre}|">Sobre</div>
                                 <p class="small text-secondary"
@@ -302,7 +301,17 @@
                                         th:text="|${a.proyecto.nombre}: ${perfilesExplorar.get(c.id).habilidadesPorProyecto.get(a.proyecto.id)}|">Proyecto</li>
                                 </ul>
                                 <div class="small text-secondary" th:if="${perfilesExplorar.get(c.id).proyectos.isEmpty()}">Sin proyectos destacados todavía.</div>
+
+                                <div class="info-label mb-1 mt-3">Cursos completados</div>
+                                <ul class="small text-secondary ps-3" th:if="${!perfilesExplorar.get(c.id).cursosCompletados.isEmpty()}">
+                                    <li th:each="cc : ${perfilesExplorar.get(c.id).cursosCompletados}"
+                                        th:text="|${cc.curso.nombre} (${cc.curso.horas} horas)|">Curso</li>
+                                </ul>
+                                <div class="small text-secondary" th:if="${perfilesExplorar.get(c.id).cursosCompletados.isEmpty()}">Sin cursos completados todavía.</div>
                             </div>
+
+
+
                             <div class="col-md-6">
                                 <div class="info-label mb-1">Habilidades</div>
                                 <div class="mb-3" th:if="${!perfilesExplorar.get(c.id).habilidades.isEmpty()}">

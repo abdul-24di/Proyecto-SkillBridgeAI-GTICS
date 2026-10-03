@@ -42,6 +42,7 @@ public class PmViewController {
     private final PmChatService pmChatService;
     private final HabilidadRepository habilidadRepository;
     private final UsuarioRepository usuarioRepository;
+    private final com.pucp.skillb_ia.service.pm.PmDashboardService pmDashboardService;
 
     public PmViewController(PmProyectoService pmProyectoService,
                             PmActividadService pmActividadService,
@@ -51,7 +52,8 @@ public class PmViewController {
                             PmPerfilService pmPerfilService,
                             PmChatService pmChatService,
                             HabilidadRepository habilidadRepository,
-                            UsuarioRepository usuarioRepository) {
+                            UsuarioRepository usuarioRepository,
+                            com.pucp.skillb_ia.service.pm.PmDashboardService pmDashboardService) {
         this.pmProyectoService = pmProyectoService;
         this.pmActividadService = pmActividadService;
         this.pmAsignacionService = pmAsignacionService;
@@ -61,6 +63,7 @@ public class PmViewController {
         this.pmChatService = pmChatService;
         this.habilidadRepository = habilidadRepository;
         this.usuarioRepository = usuarioRepository;
+        this.pmDashboardService = pmDashboardService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -73,9 +76,19 @@ public class PmViewController {
     // INDEX
     // ═══════════════════════════════════════════════════════════
 
-    @GetMapping({"", "/"})
-    public String index() {
-        return "redirect:/pm/proyectos";
+    @GetMapping({"", "/", "/dashboard"})
+    public String dashboard(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        if (principal == null) return "redirect:/login";
+        Usuario pm = principal.getUsuario();
+        
+        model.addAttribute("totalProyectos", pmDashboardService.getCountProyectosActivos(pm));
+        model.addAttribute("totalActividades", pmDashboardService.getCountActividadesPendientes(pm));
+        model.addAttribute("totalColaboradores", pmDashboardService.getCountColaboradoresEquipo(pm));
+        model.addAttribute("totalAsignaciones", pmDashboardService.getCountAsignacionesEnRevision(pm));
+        model.addAttribute("actividadesPendientes", pmDashboardService.getActividadesPendientes(pm));
+        model.addAttribute("proyectosAtencion", pmDashboardService.getProyectosQueNecesitanAtencion(pm));
+        
+        return "pm/pm-dashboard";
     }
 
     // ═══════════════════════════════════════════════════════════

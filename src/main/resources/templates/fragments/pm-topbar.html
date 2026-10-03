@@ -7,6 +7,8 @@
     <a href="../pm/pm-proyectos.html" class="brand" th:href="@{/pm/proyectos}">SkillBridge AI</a>
 
     <nav class="main-nav" aria-label="Navegacion principal PM" sec:authorize="hasRole('PROJECT_MANAGER')">
+      <a href="../pm/pm-dashboard.html"
+         th:classappend="${activeSection == 'dashboard'} ? 'active' : ''" th:href="@{/pm/dashboard}">Dashboard</a>
       <a href="../pm/pm-proyectos.html"
          th:classappend="${activeSection == 'proyectos'} ? 'active' : ''" th:href="@{/pm/proyectos}">Mis Proyectos</a>
       <a href="../pm/pm-crear-proyecto.html"

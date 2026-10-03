@@ -38,4 +38,10 @@ public interface ActividadRepository extends JpaRepository<Actividad, Long> {
             @Param("estado") EstadoActividad estado,
             @Param("inicio") LocalDateTime inicio,
             @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT COUNT(a) FROM Actividad a WHERE a.proyecto.pm = :pm AND a.estado = :estado AND a.activo = true")
+    long countByPmAndEstado(@Param("pm") Usuario pm, @Param("estado") EstadoActividad estado);
+
+    @Query("SELECT a FROM Actividad a JOIN FETCH a.proyecto p JOIN FETCH a.colaborador c WHERE p.pm = :pm AND a.estado = :estado AND a.activo = true ORDER BY a.fechaLimite ASC")
+    List<Actividad> findByPmAndEstadoConDetalle(@Param("pm") Usuario pm, @Param("estado") EstadoActividad estado);
 }

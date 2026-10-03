@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="utf-8">
@@ -32,7 +32,7 @@
             </div>
             <div>
               <div class="metric-label">Proyectos activos</div>
-              <div class="metric-number" th:text="">0</div>
+              <div class="metric-number" th:text="${totalProyectos}">0</div>
             </div>
           </div>
         </div>
@@ -46,7 +46,7 @@
             </div>
             <div>
               <div class="metric-label">Actividades pendientes</div>
-              <div class="metric-number" th:text="">0</div>
+              <div class="metric-number" th:text="${totalActividades}">0</div>
             </div>
           </div>
         </div>
@@ -60,7 +60,7 @@
             </div>
             <div>
               <div class="metric-label">Colaboradores en equipo</div>
-              <div class="metric-number" th:text="">0</div>
+              <div class="metric-number" th:text="${totalColaboradores}">0</div>
             </div>
           </div>
         </div>
@@ -74,7 +74,7 @@
             </div>
             <div>
               <div class="metric-label">Asignaciones en revisión</div>
-              <div class="metric-number" th:text="">0</div>
+              <div class="metric-number" th:text="${totalAsignaciones}">0</div>
             </div>
           </div>
         </div>
@@ -102,17 +102,17 @@
                 </tr>
               </thead>
               <tbody>
-                <tr th:each="act : ">
-                  <td class="fw-semibold" th:text="">Actividad</td>
-                  <td class="text-secondary" th:text="">Colaborador</td>
-                  <td class="text-secondary" th:text="">Proyecto</td>
-                  <td class="text-secondary" th:text="">Fecha</td>
+                <tr th:each="act : ${actividadesPendientes}">
+                  <td class="fw-semibold" th:text="${act.titulo}">Actividad</td>
+                  <td class="text-secondary" th:text="${act.colaborador != null ? act.colaborador.nombre + ' ' + act.colaborador.apellido : 'Sin asignar'}">Colaborador</td>
+                  <td class="text-secondary" th:text="${act.proyecto.nombre}">Proyecto</td>
+                  <td class="text-secondary" th:text="${act.fechaLimite != null ? #temporals.format(act.fechaLimite, 'dd MMM yyyy') : ''}">Fecha</td>
                   <td><span class="badge bg-yellow-lt">En revisión</span></td>
                   <td>
-                    <a th:href="@{/pm/proyectos/detalle(id=)}" class="btn btn-sm btn-outline-primary">Revisar</a>
+                    <a th:href="@{/pm/proyectos/detalle(id=${act.proyecto.id})}" class="btn btn-sm btn-outline-primary">Revisar</a>
                   </td>
                 </tr>
-                <tr th:if="">
+                <tr th:if="${#lists.isEmpty(actividadesPendientes)}">
                   <td colspan="6" class="text-center py-4 text-secondary">No hay actividades pendientes de revisión.</td>
                 </tr>
               </tbody>
@@ -128,18 +128,18 @@
             <h3 class="card-title">Proyectos que necesitan atención</h3>
           </div>
           <div class="list-group list-group-flush">
-            <div th:each="proy : " class="list-group-item">
+            <div th:each="proy : ${proyectosAtencion}" class="list-group-item">
               <div class="row align-items-center">
                 <div class="col text-truncate">
-                  <a th:href="@{/pm/proyectos/detalle(id=)}" class="text-body d-block fw-semibold" th:text="">Proyecto</a>
+                  <a th:href="@{/pm/proyectos/detalle(id=${proy.id})}" class="text-body d-block fw-semibold" th:text="${proy.nombre}">Proyecto</a>
                   <div class="text-secondary small mt-1">Activo</div>
                 </div>
                 <div class="col-auto">
-                  <a th:href="@{/pm/proyectos/detalle(id=)}" class="btn btn-sm btn-outline-secondary">Ver proyecto</a>
+                  <a th:href="@{/pm/proyectos/detalle(id=${proy.id})}" class="btn btn-sm btn-outline-secondary">Ver proyecto</a>
                 </div>
               </div>
             </div>
-            <div th:if="" class="list-group-item text-center py-4 text-secondary">
+            <div th:if="${#lists.isEmpty(proyectosAtencion)}" class="list-group-item text-center py-4 text-secondary">
               Todos tus proyectos están al día.
             </div>
           </div>

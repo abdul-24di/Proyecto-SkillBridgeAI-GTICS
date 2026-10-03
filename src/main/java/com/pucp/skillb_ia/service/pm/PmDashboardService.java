@@ -40,12 +40,12 @@ public class PmDashboardService {
 
     @Transactional(readOnly = true)
     public long getCountColaboradoresEquipo(Usuario pm) {
-        return asignacionRepository.countColaboradoresUnicosActivosPorPm(pm);
+        return asignacionRepository.countColaboradoresUnicosActivosPorPm(pm, com.pucp.skillb_ia.model.enums.EstadoAsignacion.ACTIVA);
     }
 
     @Transactional(readOnly = true)
     public long getCountAsignacionesEnRevision(Usuario pm) {
-        return asignacionRepository.countPendientesRmByPm(pm);
+        return asignacionRepository.countPendientesRmByPm(pm, com.pucp.skillb_ia.model.enums.EstadoAsignacion.PENDIENTE, com.pucp.skillb_ia.model.enums.OrigenAsignacion.PROPUESTA_PM);
     }
 
     @Transactional(readOnly = true)

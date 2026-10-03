@@ -92,7 +92,7 @@ class RmReporteTests {
         proyecto = proyectoRepository.findAll().stream()
                 .filter(item -> "Reporte mensual test".equals(item.getNombre()))
                 .findFirst().orElseGet(Proyecto::new);
-        if (proyecto.getId() != null) actividadRepository.deleteAll(actividadRepository.findByProyecto(proyecto));
+        if (proyecto.getId() != null) actividadRepository.deleteAll(actividadRepository.findByProyectoAndActivoTrue(proyecto));
         proyecto.setNombre("Reporte mensual test");
         proyecto.setDescripcion("Proyecto para verificar los reportes del RM.");
         proyecto.setEstado(EstadoProyecto.ACTIVO);

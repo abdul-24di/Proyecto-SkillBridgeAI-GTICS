@@ -1,0 +1,157 @@
+﻿<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI - Dashboard PM</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+  <!-- ===================== TOPBAR ===================== -->
+  <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('dashboard')}"></header>
+
+  <main class="page-wrap">
+    <div class="page-head page-head-stack-mobile">
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <div class="text-secondary">Resumen de tus proyectos y actividades pendientes.</div>
+      </div>
+    </div>
+
+    <!-- TARJETAS DE RESUMEN -->
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-xl-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v4a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/><path d="M3 13v4a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-4"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </div>
+            <div>
+              <div class="metric-label">Proyectos activos</div>
+              <div class="metric-number" th:text="">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-sm-6 col-xl-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+            </div>
+            <div>
+              <div class="metric-label">Actividades pendientes</div>
+              <div class="metric-number" th:text="">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-xl-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/></svg>
+            </div>
+            <div>
+              <div class="metric-label">Colaboradores en equipo</div>
+              <div class="metric-number" th:text="">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-xl-3">
+        <div class="card metric-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="metric-icon bg-orange-lt text-orange">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l2 2l4 -4"/><path d="M11 19h-5a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v5.5"/></svg>
+            </div>
+            <div>
+              <div class="metric-label">Asignaciones en revisión</div>
+              <div class="metric-number" th:text="">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLAS DE DETALLE -->
+    <div class="row row-deck row-cards">
+      <!-- Actividades Pendientes -->
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Actividades pendientes de revisión</h3>
+          </div>
+          <div class="table-responsive">
+            <table class="table card-table table-vcenter">
+              <thead>
+                <tr>
+                  <th>Actividad</th>
+                  <th>Colaborador</th>
+                  <th>Proyecto</th>
+                  <th>Fecha límite</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:each="act : ">
+                  <td class="fw-semibold" th:text="">Actividad</td>
+                  <td class="text-secondary" th:text="">Colaborador</td>
+                  <td class="text-secondary" th:text="">Proyecto</td>
+                  <td class="text-secondary" th:text="">Fecha</td>
+                  <td><span class="badge bg-yellow-lt">En revisión</span></td>
+                  <td>
+                    <a th:href="@{/pm/proyectos/detalle(id=)}" class="btn btn-sm btn-outline-primary">Revisar</a>
+                  </td>
+                </tr>
+                <tr th:if="">
+                  <td colspan="6" class="text-center py-4 text-secondary">No hay actividades pendientes de revisión.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proyectos Atención -->
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Proyectos que necesitan atención</h3>
+          </div>
+          <div class="list-group list-group-flush">
+            <div th:each="proy : " class="list-group-item">
+              <div class="row align-items-center">
+                <div class="col text-truncate">
+                  <a th:href="@{/pm/proyectos/detalle(id=)}" class="text-body d-block fw-semibold" th:text="">Proyecto</a>
+                  <div class="text-secondary small mt-1">Activo</div>
+                </div>
+                <div class="col-auto">
+                  <a th:href="@{/pm/proyectos/detalle(id=)}" class="btn btn-sm btn-outline-secondary">Ver proyecto</a>
+                </div>
+              </div>
+            </div>
+            <div th:if="" class="list-group-item text-center py-4 text-secondary">
+              Todos tus proyectos están al día.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+</div>
+
+<!-- SCRIPTS DE BOOTSTRAP Y TABLER -->
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+</body>
+</html>

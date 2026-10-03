@@ -335,6 +335,20 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
+    @PostMapping("/foro/respuesta/{respuestaId}/marcar-solucion")
+    public String marcarRespuestaComoSolucion(@PathVariable Long respuestaId,
+                                              @RequestParam("foroId") Long foroId,
+                                              @AuthenticationPrincipal UsuarioDetails principal,
+                                              RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            colaboradorForoService.alternarSolucion(principal.getUsuario(), respuestaId);
+        } catch (IllegalArgumentException e) {
+            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        }
+        return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
+    }
+
     @PostMapping("/foro/upload-imagen")
     @org.springframework.web.bind.annotation.ResponseBody
     public java.util.Map<String, String> uploadImagenForo(@RequestParam("image") MultipartFile image) {

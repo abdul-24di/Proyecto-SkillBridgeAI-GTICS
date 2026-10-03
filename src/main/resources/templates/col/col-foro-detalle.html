@@ -77,7 +77,10 @@
                                 <div class="flex-fill">
 
                                     <div class="d-flex justify-content-between align-items-start">
-                                        <div class="post-title fw-bold fs-3 mb-1" th:text="${pub.publicacion.titulo}">Título</div>
+                                        <div class="post-title fw-bold fs-3 mb-1">
+                                            <span th:text="${pub.publicacion.titulo}">Título</span>
+                                            <span th:if="${pub.resuelta}" class="badge bg-green-lt ms-2">✓ Resuelta</span>
+                                        </div>
                                         <button type="button" class="btn btn-sm btn-outline-danger"
                                                 th:if="${colaborador.id == pub.publicacion.autor.id}"
                                                 data-bs-toggle="modal"
@@ -101,14 +104,18 @@
 
                                     <div class="mt-3" th:if="${pub.totalRespuestas > 0}">
                                         <h5 class="mb-2 border-bottom pb-1" th:text="${pub.totalRespuestas} + ' Respuestas'"></h5>
-                                        <div th:each="resp : ${pub.respuestas}" class="mb-2 p-2 bg-light rounded d-flex justify-content-between">
+                                        <div th:each="resp : ${pub.respuestas}" class="mb-2 p-2 rounded d-flex justify-content-between"
+                                             th:classappend="${resp.respuesta.esSolucion} ? 'bg-green-lt' : 'bg-light'">
                                             <div class="d-flex">
                                                 <div class="me-2">
                                                     <span class="avatar avatar-sm bg-secondary-lt" th:text="${resp.autorIniciales}"></span>
                                                 </div>
 
                                                 <div>
-                                                    <div class="small fw-semibold" th:text="${resp.autorNombre}">Autor</div>
+                                                    <div class="small fw-semibold d-flex align-items-center gap-2">
+                                                        <span th:text="${resp.autorNombre}">Autor</span>
+                                                        <span th:if="${resp.respuesta.esSolucion}" class="badge bg-green-lt">✓ Solución</span>
+                                                    </div>
                                                     <div class="small text-secondary mb-1" th:text="${#temporals.format(resp.respuesta.fechaCreacion, 'dd MMM HH:mm')}"></div>
                                                     <div th:utext="${resp.respuesta.contenido}"></div>
                                                     <form method="POST" th:action="@{/colaborador/foro/respuesta/{id}/like(id=${resp.respuesta.id})}" class="d-inline">
@@ -121,11 +128,19 @@
                                                 </div>
 
                                             </div>
-                                            <button type="button" class="btn btn-sm btn-outline-danger align-self-start"
-                                                    th:if="${colaborador.id == resp.respuesta.autor.id}"
-                                                    data-bs-toggle="modal"
-                                                    th:data-bs-target="'#deleteReplyModal-' + ${resp.respuesta.id}">Eliminar</button>
-
+                                            <div class="d-flex flex-column align-items-end gap-1">
+                                                <form method="POST" th:if="${puedeParticipar and colaborador.id == pub.publicacion.autor.id}"
+                                                      th:action="@{/colaborador/foro/respuesta/{id}/marcar-solucion(id=${resp.respuesta.id})}">
+                                                    <input type="hidden" name="foroId" th:value="${foro.id}" />
+                                                    <button type="submit" class="btn btn-sm"
+                                                            th:classappend="${resp.respuesta.esSolucion} ? 'btn-outline-secondary' : 'btn-outline-success'"
+                                                            th:text="${resp.respuesta.esSolucion} ? 'Quitar solución' : 'Marcar como solución'">Marcar como solución</button>
+                                                </form>
+                                                <button type="button" class="btn btn-sm btn-outline-danger align-self-end"
+                                                        th:if="${colaborador.id == resp.respuesta.autor.id}"
+                                                        data-bs-toggle="modal"
+                                                        th:data-bs-target="'#deleteReplyModal-' + ${resp.respuesta.id}">Eliminar</button>
+                                            </div>
                                             <!-- MODAL CONFIRMAR ELIMINAR RESPUESTA -->
                                             <div th:if="${colaborador.id == resp.respuesta.autor.id}" class="modal modal-blur fade col-modal"
                                                  th:id="'deleteReplyModal-' + ${resp.respuesta.id}" tabindex="-1" aria-hidden="true">

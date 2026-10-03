@@ -426,6 +426,59 @@ public class ColaboradorForoService {
     }
 
     // ============================================================
+    // MARCAR UNA RESPUESTA COMO SOLUCIÓN
+    // Solo el autor de la publicación puede decidir cuál respuesta resolvió su
+    // pregunta. Solo puede haber una solución por
+    // publicación a la vez: al marcar una nueva se desmarca la anterior.
+    // Volver a hacer clic sobre la que ya es la solución la desmarca.
+    // ============================================================
+    @Transactional
+    public void alternarSolucion(Usuario colaborador, Long respuestaId) {
+        RespuestaForo respuesta = buscarRespuestaActiva(respuestaId);
+        PublicacionForo publicacion = respuesta.getPublicacion();
+        validarAccesoLectura(colaborador, publicacion.getForo().getId());
+
+        if (!publicacion.getAutor().getId().equals(colaborador.getId())) {
+            throw new IllegalArgumentException("Solo el autor de la publicación puede marcar una respuesta como solución.");
+        }
+
+        if (respuesta.isEsSolucion()) {
+
+            respuesta.setEsSolucion(false);
+
+            respuestaForoRepository.save(respuesta);
+
+            auditoriaService.registrar(colaborador, "DESMARCAR_SOLUCION_FORO", "RESPUESTA_FORO",
+                    respuesta.getId(), "Desmarcó la respuesta como solución en \"" + publicacion.getTitulo() + "\".");
+
+            return;
+
+        }
+
+        respuestaForoRepository.findByPublicacionAndEsSolucionTrue(publicacion).ifPresent(anterior -> {
+            anterior.setEsSolucion(false);
+            respuestaForoRepository.save(anterior);
+        });
+
+        respuesta.setEsSolucion(true);
+        respuestaForoRepository.save(respuesta);
+
+        auditoriaService.registrar(colaborador, "MARCAR_SOLUCION_FORO", "RESPUESTA_FORO",
+                respuesta.getId(), "Marcó una respuesta como solución en \"" + publicacion.getTitulo() + "\".");
+
+        if (!respuesta.getAutor().getId().equals(colaborador.getId())) {
+
+            notificacionService.crear(respuesta.getAutor(), "RESPUESTA_MARCADA_SOLUCION", CategoriaNotificacion.MENSAJE,
+                    "Tu respuesta fue marcada como solución",
+                    colaborador.getNombre() + " " + colaborador.getApellido()
+                            + " marcó tu respuesta como la solución de \"" + publicacion.getTitulo() + "\".",
+                    "FORO", publicacion.getForo().getId());
+        }
+
+
+    }
+
+    // ============================================================
     // VALIDACIONES
     // ============================================================
 

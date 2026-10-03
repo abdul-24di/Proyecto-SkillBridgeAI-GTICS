@@ -55,4 +55,15 @@ public class ColPublicacionForoView {
     public String getAutorIniciales() { return autorIniciales; }
     public long getTotalLikes() { return totalLikes; }
     public boolean isMeGusta() { return meGusta; }
+
+
+    //Cuando una de las respuestas esté marcada como activa entonces la publicación quedará resuelta.
+    public boolean isResuelta() {
+        for (ColRespuestaForoView respuestaVista : respuestas) {
+            if (respuestaVista.getRespuesta().isEsSolucion()) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

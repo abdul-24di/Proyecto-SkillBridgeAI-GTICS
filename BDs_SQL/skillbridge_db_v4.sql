@@ -121,6 +121,7 @@ CREATE TABLE token_usuario (
 
 CREATE TABLE experiencia_profesional (
     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+    activo 			BOOLEAN NOT NULL DEFAULT TRUE,
     colaborador_id  BIGINT       NOT NULL,
     empresa         VARCHAR(150) NULL,
     cargo           VARCHAR(100) NULL,
@@ -343,9 +344,9 @@ CREATE TABLE asignacion (
 -- =====================================================================
 -- 11. ACTIVIDADES 
 -- =====================================================================
-
 CREATE TABLE actividad (
     id                      BIGINT AUTO_INCREMENT PRIMARY KEY,
+    activo 					BOOLEAN NOT NULL DEFAULT TRUE,
     proyecto_id             BIGINT NOT NULL,
     colaborador_id          BIGINT NOT NULL,
     titulo                  VARCHAR(200) NOT NULL,

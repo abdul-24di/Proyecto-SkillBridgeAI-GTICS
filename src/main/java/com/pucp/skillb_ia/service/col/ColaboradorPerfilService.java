@@ -587,7 +587,7 @@ public class ColaboradorPerfilService {
     // EXPERIENCIA PROFESIONAL
     // ============================================================
     public List<ExperienciaProfesional> listarExperienciaProfesional(Usuario colaborador) {
-        return experienciaProfesionalRepository.findByColaboradorOrderByFechaInicioDesc(colaborador);
+        return experienciaProfesionalRepository.findByColaboradorAndActivoTrueOrderByFechaInicioDesc(colaborador);
     }
 
     @Transactional
@@ -616,8 +616,9 @@ public class ColaboradorPerfilService {
         experienciaProfesionalRepository.findById(id).ifPresent(exp -> {
             // Verificamos que esta experiencia pertenezca realmente al colaborador
             if (exp.getColaborador().getId().equals(colaborador.getId())) {
-                experienciaProfesionalRepository.delete(exp);
-                
+                exp.setActivo(false);
+                experienciaProfesionalRepository.save(exp);
+
                 auditoriaService.registrar(colaborador, "ELIMINAR", "EXPERIENCIA", id,
                         "Eliminó experiencia profesional en: " + exp.getEmpresa());
             }

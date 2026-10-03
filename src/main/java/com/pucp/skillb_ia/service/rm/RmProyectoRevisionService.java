@@ -152,7 +152,7 @@ public class RmProyectoRevisionService {
             throw new IllegalArgumentException("La fecha de fin debe ser posterior a la fecha de inicio.");
         }
 
-        List<Actividad> fueraDeRango = actividadRepository.findByProyectoOrderByFechaLimiteAsc(proyecto).stream()
+        List<Actividad> fueraDeRango = actividadRepository.findByProyectoAndActivoTrueOrderByFechaLimiteAsc(proyecto).stream()
                 .filter(a -> a.getFechaLimite() != null
                         && (a.getFechaLimite().isBefore(fechaInicio) || a.getFechaLimite().isAfter(fechaFin)))
                 .toList();
@@ -197,9 +197,9 @@ public class RmProyectoRevisionService {
     // Actividades que impiden finalizar (todas menos COMPLETADA).
     @Transactional(readOnly = true)
     public long contarActividadesAbiertas(Proyecto proyecto) {
-        return actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.PENDIENTE)
-                + actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.EN_PROGRESO)
-                + actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.EN_REVISION);
+        return actividadRepository.countByProyectoAndEstadoAndActivoTrue(proyecto, EstadoActividad.PENDIENTE)
+                + actividadRepository.countByProyectoAndEstadoAndActivoTrue(proyecto, EstadoActividad.EN_PROGRESO)
+                + actividadRepository.countByProyectoAndEstadoAndActivoTrue(proyecto, EstadoActividad.EN_REVISION);
     }
 
     // El RM cancela un proyecto ACTIVO o EN_ESPERA. Exige motivo y el nombre exacto del proyecto.

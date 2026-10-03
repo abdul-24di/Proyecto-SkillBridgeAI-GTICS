@@ -10,4 +10,6 @@ public interface ExperienciaProfesionalRepository extends JpaRepository<Experien
     List<ExperienciaProfesional> findByColaborador(Usuario colaborador);
 
     List<ExperienciaProfesional> findByColaboradorOrderByFechaInicioDesc(Usuario colaborador);
+
+    List<ExperienciaProfesional> findByColaboradorAndActivoTrueOrderByFechaInicioDesc(Usuario colaborador);
 }

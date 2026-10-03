@@ -52,7 +52,7 @@ public class PmActividadService {
     @Transactional(readOnly = true)
     public List<PmActividadView> listarPorProyecto(Long proyectoId, Usuario pm) {
         Proyecto proyecto = obtenerProyectoDelPm(proyectoId, pm);
-        return actividadRepository.findByProyectoOrderByFechaLimiteAsc(proyecto)
+        return actividadRepository.findByProyectoAndActivoTrueOrderByFechaLimiteAsc(proyecto)
                 .stream()
                 .map(PmActividadView::new)
                 .toList();
@@ -190,7 +190,8 @@ public class PmActividadService {
 
         String titulo = actividad.getTitulo();
 
-        actividadRepository.delete(actividad);
+        actividad.setActivo(false);
+        actividadRepository.save(actividad);
 
         auditoriaService.registrar(pm, "ELIMINAR", "ACTIVIDAD", actividadId,
                 "PM eliminó la actividad '" + titulo + "'.");
@@ -213,6 +214,9 @@ public class PmActividadService {
     private Actividad obtenerActividadDelPm(Long actividadId, Usuario pm) {
         Actividad actividad = actividadRepository.findById(actividadId)
                 .orElseThrow(() -> new IllegalArgumentException("Actividad no encontrada."));
+        if (!actividad.isActivo()) {
+            throw new IllegalArgumentException("Esta actividad fue eliminada.");
+        }
         if (!actividad.getProyecto().getPm().getId().equals(pm.getId())) {
             throw new SecurityException("No tienes permiso para acceder a esta actividad.");
         }

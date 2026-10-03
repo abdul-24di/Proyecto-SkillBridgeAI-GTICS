@@ -42,7 +42,7 @@ public class PmReporteService {
             throw new SecurityException("No tienes permiso sobre este proyecto.");
         }
 
-        List<Actividad> actividades = actividadRepository.findByProyecto(proyecto);
+        List<Actividad> actividades = actividadRepository.findByProyectoAndActivoTrue(proyecto);
         int total       = actividades.size();
         int pendientes  = (int) actividades.stream().filter(a -> a.getEstado() == EstadoActividad.PENDIENTE).count();
         int enProgreso  = (int) actividades.stream().filter(a -> a.getEstado() == EstadoActividad.EN_PROGRESO).count();

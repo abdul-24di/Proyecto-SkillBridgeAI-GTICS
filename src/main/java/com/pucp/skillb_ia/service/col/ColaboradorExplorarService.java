@@ -81,8 +81,7 @@ public class ColaboradorExplorarService {
         }
 
         List<ExperienciaProfesional> experiencia =
-                experienciaProfesionalRepository.findByColaboradorOrderByFechaInicioDesc(colaborador);
-
+                experienciaProfesionalRepository.findByColaboradorAndActivoTrueOrderByFechaInicioDesc(colaborador);
         List<Educacion> educacion =
                 educacionRepository.findByColaboradorAndActivoTrueOrderByFechaInicioDesc(colaborador);
 

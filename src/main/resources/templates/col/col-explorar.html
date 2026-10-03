@@ -440,8 +440,9 @@
                             <div class="text-secondary small" th:text="'Solicitado el ' + ${#temporals.format(s.fechaSolicitud, 'dd/MM/yyyy')}">Solicitado el 01/09/2026</div>
                         </div>
                         <span class="badge"
-                              th:classappend="${s.estado.name() == 'EN_CURSO'} ? 'bg-green-lt' : (${s.estado.name() == 'RECHAZADO'} ? 'bg-red-lt' : (${s.estado.name() == 'COMPLETADO'} ? 'bg-blue-lt' : 'bg-yellow-lt'))"
-                              th:text="${s.estado.name() == 'EN_CURSO'} ? 'Inscrito' : (${s.estado.name() == 'RECHAZADO'} ? 'Rechazada' : (${s.estado.name() == 'COMPLETADO'} ? 'Completado' : 'Pendiente'))">Pendiente</span>
+                              th:classappend="${s.estado.name() == 'EN_CURSO'} ? 'bg-green-lt' : (${s.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'bg-purple-lt' : (${s.estado.name() == 'RECHAZADO'} ? 'bg-red-lt' : (${s.estado.name() == 'COMPLETADO'} ? 'bg-blue-lt' : (${s.estado.name() == 'NO_COMPLETADO'} ? 'bg-secondary-lt' : 'bg-yellow-lt'))))"
+                              th:text="${s.estado.name() == 'EN_CURSO'} ? 'Inscrito' : (${s.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'Evidencia en revisión' : (${s.estado.name() == 'RECHAZADO'} ? 'Rechazada' : (${s.estado.name() == 'COMPLETADO'} ? 'Completado' : (${s.estado.name() == 'NO_COMPLETADO'} ? 'No completado' : 'Pendiente'))))">Pendiente</span>
+
                     </div>
                 </div>
             </div>

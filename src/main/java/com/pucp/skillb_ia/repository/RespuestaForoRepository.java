@@ -12,6 +12,9 @@ import java.util.Optional;
 public interface RespuestaForoRepository extends JpaRepository<RespuestaForo, Long> {
     List<RespuestaForo> findByPublicacion(PublicacionForo publicacion);
 
+    //Solo puede haber una respuesta marcada como solución por publicación.
+    Optional<RespuestaForo> findByPublicacionAndEsSolucionTrue(PublicacionForo publicacion);
+
     @Query("""
             select r from RespuestaForo r
             join fetch r.autor a

@@ -320,7 +320,7 @@
 <script src="../../static/js/pm-js/pm-asignaciones-proyecto.js" th:src="@{/js/pm-js/pm-asignaciones-proyecto.js}"></script>
 
 <!-- Modals Finalizar Asignación -->
-<th:block th:each="asig : ${colaboradores}">
+<th:block th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Activa'}">
     <div class="modal fade" th:id="|modalFinalizarAsig${asig.asignacion.id}|" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -331,7 +331,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <p>¿Estás seguro que deseas finalizar la participación de <strong th:text="${asig.asignacion.colaborador.nombre + ' ' + asig.asignacion.colaborador.apellido}"></strong> en este proyecto?</p>
+                        <p>¿Estás seguro que deseas finalizar la participación de <strong th:text="${asig.colaboradorNombre}"></strong> en este proyecto?</p>
                         
                         <label class="form-label mt-3">Calificación (Estrellas) <span class="text-secondary">(Opcional)</span></label>
                         <select name="calificacion" class="form-select mb-2">

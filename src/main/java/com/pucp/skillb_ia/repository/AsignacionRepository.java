@@ -106,9 +106,9 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
             "AND a.estado = EstadoAsignacion.ACTIVA")
     BigDecimal sumHorasSemanalesActivasPorColaborador(@Param("colaborador") Usuario colaborador);
 
-    @Query("SELECT COUNT(DISTINCT a.colaborador) FROM Asignacion a WHERE a.proyecto.pm = :pm AND a.estado = 'ACTIVA'")
-    long countColaboradoresUnicosActivosPorPm(@Param("pm") Usuario pm);
+    @Query("SELECT COUNT(DISTINCT a.colaborador) FROM Asignacion a WHERE a.proyecto.pm = :pm AND a.estado = :estado")
+    long countColaboradoresUnicosActivosPorPm(@Param("pm") Usuario pm, @Param("estado") EstadoAsignacion estado);
 
-    @Query("SELECT COUNT(a) FROM Asignacion a WHERE a.proyecto.pm = :pm AND a.estado = 'PENDIENTE' AND a.origen = 'PROPUESTA_PM' AND a.aprobadoPorRm = false")
-    long countPendientesRmByPm(@Param("pm") Usuario pm);
+    @Query("SELECT COUNT(a) FROM Asignacion a WHERE a.proyecto.pm = :pm AND a.estado = :estado AND a.origen = :origen AND a.aprobadoPorRm = false")
+    long countPendientesRmByPm(@Param("pm") Usuario pm, @Param("estado") EstadoAsignacion estado, @Param("origen") com.pucp.skillb_ia.model.enums.OrigenAsignacion origen);
 }

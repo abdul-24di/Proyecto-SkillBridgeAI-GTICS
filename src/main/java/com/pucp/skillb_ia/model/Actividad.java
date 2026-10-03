@@ -69,6 +69,8 @@ public class Actividad {
     @JoinColumn(name = "creado_por", nullable = false)
     private Usuario creadoPor;
 
+    private boolean activo = true;
+
     @PrePersist
     protected void onCreate() {
         if (fechaAsignacion == null) fechaAsignacion = LocalDateTime.now();
@@ -124,4 +126,12 @@ public class Actividad {
 
     public Usuario getCreadoPor() { return creadoPor; }
     public void setCreadoPor(Usuario creadoPor) { this.creadoPor = creadoPor; }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
+    }
 }

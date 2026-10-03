@@ -52,8 +52,7 @@ public class ColaboradorActividadService {
 
     //Listamos todas las actividades del colaborador, de la fecha límite más próxima a la más lejana
     public List<Actividad> listarMisActividades(Usuario colaborador) {
-        List<Actividad> encontradas = actividadRepository.findByColaborador(colaborador);
-
+        List<Actividad> encontradas = actividadRepository.findByColaboradorAndActivoTrue(colaborador);
         //Cada vez que el colaborador entra a ver sus actividades: si alguna ya venció y nunca la entregó, se le aplica el strike recién ahora.
         penalizacionService.revisarVencidasSinEntregar(encontradas);
 
@@ -87,7 +86,7 @@ public class ColaboradorActividadService {
     //Calculamos el porcentaje de avance del colaborador en un proyecto
     //Sus actividades completadas sobre el total de las que tiene en ese proyecto. Si no tiene ninguna, es 0.
     public int calcularAvance(Proyecto proyecto, Usuario colaborador) {
-        List<Actividad> actividades = actividadRepository.findByProyectoAndColaborador(proyecto, colaborador);
+        List<Actividad> actividades = actividadRepository.findByProyectoAndColaboradorAndActivoTrue(proyecto, colaborador);
         if (actividades.isEmpty()) {
             return 0;
         }
@@ -123,7 +122,7 @@ public class ColaboradorActividadService {
         //Si algún curso ya venció su fecha fin sin evidencia aprobada, lo marcamos como no completado.
         colaboradorCursoService.marcarCursosSinEvidenciaVencidos(colaborador);
 
-        List<Actividad> todas = actividadRepository.findByColaborador(colaborador);
+        List<Actividad> todas = actividadRepository.findByColaboradorAndActivoTrue(colaborador);
 
         YearMonth mesActual = YearMonth.now();
 

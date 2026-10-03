@@ -162,12 +162,12 @@ public class PmProyectoService {
         long activos = asignacionRepository.countByProyectoAndEstado(
                 proyecto, EstadoAsignacion.ACTIVA);
         long pendientesPm = asignacionRepository.findPendientesPmByProyecto(proyecto).size();
-        long total = actividadRepository.countByProyectoAndEstado(
+        long total = actividadRepository.countByProyectoAndEstadoAndActivoTrue(
                 proyecto, EstadoActividad.PENDIENTE)
-                + actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.EN_PROGRESO)
-                + actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.EN_REVISION)
-                + actividadRepository.countByProyectoAndEstado(proyecto, EstadoActividad.COMPLETADA);
-        long completadas = actividadRepository.countByProyectoAndEstado(
+                + actividadRepository.countByProyectoAndEstadoAndActivoTrue(proyecto, EstadoActividad.EN_PROGRESO)
+                + actividadRepository.countByProyectoAndEstadoAndActivoTrue(proyecto, EstadoActividad.EN_REVISION)
+                + actividadRepository.countByProyectoAndEstadoAndActivoTrue(proyecto, EstadoActividad.COMPLETADA);
+        long completadas = actividadRepository.countByProyectoAndEstadoAndActivoTrue(
                 proyecto, EstadoActividad.COMPLETADA);
 
         List<ProyectoHabilidadRequerida> habs = habilidadRequeridaRepository.findByProyecto(proyecto);

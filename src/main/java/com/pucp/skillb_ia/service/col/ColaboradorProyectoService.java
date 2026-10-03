@@ -308,7 +308,7 @@ public class ColaboradorProyectoService {
         List<Asignacion> integrantes = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
 
         //Listamos las actividades del colaborador que está viendo el proyecto
-        List<Actividad> todasLasActividades = actividadRepository.findByProyecto(proyecto);
+        List<Actividad> todasLasActividades = actividadRepository.findByProyectoAndActivoTrue(proyecto);
         List<Actividad> misActividades = new ArrayList<>();
         for (Actividad actividad : todasLasActividades) {
             if (actividad.getColaborador().getId().equals(colaborador.getId())) {
@@ -387,6 +387,9 @@ public class ColaboradorProyectoService {
         Actividad actividad = actividadRepository.findById(actividadId)
                 .orElseThrow(() -> new IllegalArgumentException("La actividad no existe."));
 
+        if (!actividad.isActivo()) {
+            throw new IllegalArgumentException("Esta actividad ya no existe.");
+        }
         if (!actividad.getColaborador().getId().equals(colaborador.getId())) {
             throw new IllegalArgumentException("Esta actividad no te pertenece.");
         }

@@ -248,7 +248,7 @@ public class RmColaboradorConsultaService {
                 .toList();
 
         List<RmColaboradorDetalle.ExperienciaDetalle> experiencias =
-                experienciaProfesionalRepository.findByColaboradorOrderByFechaInicioDesc(colaborador)
+                experienciaProfesionalRepository.findByColaboradorAndActivoTrueOrderByFechaInicioDesc(colaborador)
                         .stream()
                         .map(this::crearExperiencia)
                         .toList();

@@ -15,6 +15,11 @@ import com.pucp.skillb_ia.repository.ForoRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.PublicacionForoRepository;
 import com.pucp.skillb_ia.repository.RespuestaForoRepository;
+import com.pucp.skillb_ia.repository.VotoPublicacionRepository;
+import com.pucp.skillb_ia.repository.VotoRespuestaRepository;
+import com.pucp.skillb_ia.model.VotoPublicacion;
+import com.pucp.skillb_ia.model.VotoRespuesta;
+import com.pucp.skillb_ia.model.enums.TipoVoto;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import org.springframework.stereotype.Service;
@@ -22,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +50,8 @@ public class PmForoService {
     private final RespuestaForoRepository respuestaRepository;
     private final AsignacionRepository asignacionRepository;
     private final ProyectoRepository proyectoRepository;
+    private final VotoPublicacionRepository votoPublicacionRepository;
+    private final VotoRespuestaRepository votoRespuestaRepository;
 
     private final AuditoriaService auditoriaService;
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
@@ -53,6 +61,8 @@ public class PmForoService {
                          RespuestaForoRepository respuestaRepository,
                          AsignacionRepository asignacionRepository,
                          ProyectoRepository proyectoRepository,
+                         VotoPublicacionRepository votoPublicacionRepository,
+                         VotoRespuestaRepository votoRespuestaRepository,
                          AuditoriaService auditoriaService,
                          ArchivoAlmacenamientoService archivoAlmacenamientoService) {
         this.foroRepository = foroRepository;
@@ -60,6 +70,8 @@ public class PmForoService {
         this.respuestaRepository = respuestaRepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
+        this.votoPublicacionRepository = votoPublicacionRepository;
+        this.votoRespuestaRepository = votoRespuestaRepository;
         this.auditoriaService = auditoriaService;
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
@@ -126,10 +138,7 @@ public class PmForoService {
         return foroRepository.findByProyecto(proyecto)
                 .map(foro -> publicacionRepository.findByForoConDetalle(foro)
                         .stream()
-                        .map(pub -> {
-                            List<RespuestaForo> respuestas = respuestaRepository.findByPublicacionConAutor(pub);
-                            return new PmPublicacionView(pub, respuestas);
-                        })
+                        .map(pub -> mapToPmPublicacionView(pub, pm))
                         .toList())
                 .orElse(java.util.Collections.emptyList());
     }
@@ -147,11 +156,24 @@ public class PmForoService {
 
         return publicacionRepository.findByForoConDetalle(foro)
                 .stream()
-                .map(pub -> {
-                    List<RespuestaForo> respuestas = respuestaRepository.findByPublicacionConAutor(pub);
-                    return new PmPublicacionView(pub, respuestas);
-                })
+                .map(pub -> mapToPmPublicacionView(pub, pm))
                 .toList();
+    }
+
+    private PmPublicacionView mapToPmPublicacionView(PublicacionForo pub, Usuario pm) {
+        List<RespuestaForo> respuestas = respuestaRepository.findByPublicacionConAutor(pub);
+        List<PmPublicacionView.RespuestaView> respuestasView = new ArrayList<>();
+        
+        for (RespuestaForo resp : respuestas) {
+            long totalLikesResp = votoRespuestaRepository.countByRespuestaAndTipo(resp, TipoVoto.POSITIVO);
+            boolean meGustaResp = votoRespuestaRepository.findByUsuarioAndRespuesta(pm, resp).isPresent();
+            respuestasView.add(new PmPublicacionView.RespuestaView(resp, totalLikesResp, meGustaResp));
+        }
+
+        long totalLikesPub = votoPublicacionRepository.countByPublicacionAndTipo(pub, TipoVoto.POSITIVO);
+        boolean meGustaPub = votoPublicacionRepository.findByUsuarioAndPublicacion(pm, pub).isPresent();
+
+        return new PmPublicacionView(pub, respuestasView, totalLikesPub, meGustaPub);
     }
 
     @Transactional(readOnly = true)
@@ -263,5 +285,63 @@ public class PmForoService {
             throw new SecurityException("No tienes permiso sobre este proyecto.");
         }
         return proyecto;
+    }
+
+    @Transactional
+    public void alternarLikePublicacion(Usuario pm, Long publicacionId) {
+        PublicacionForo publicacion = publicacionRepository.findById(publicacionId)
+                .orElseThrow(() -> new IllegalArgumentException("Publicación no encontrada."));
+
+        Optional<VotoPublicacion> votoOpt = votoPublicacionRepository.findByUsuarioAndPublicacion(pm, publicacion);
+        if (votoOpt.isPresent()) {
+            votoPublicacionRepository.delete(votoOpt.get());
+        } else {
+            VotoPublicacion voto = new VotoPublicacion();
+            voto.setUsuario(pm);
+            voto.setPublicacion(publicacion);
+            voto.setTipo(TipoVoto.POSITIVO);
+            votoPublicacionRepository.save(voto);
+        }
+    }
+
+    @Transactional
+    public void alternarLikeRespuesta(Usuario pm, Long respuestaId) {
+        RespuestaForo respuesta = respuestaRepository.findById(respuestaId)
+                .orElseThrow(() -> new IllegalArgumentException("Respuesta no encontrada."));
+
+        Optional<VotoRespuesta> votoOpt = votoRespuestaRepository.findByUsuarioAndRespuesta(pm, respuesta);
+        if (votoOpt.isPresent()) {
+            votoRespuestaRepository.delete(votoOpt.get());
+        } else {
+            VotoRespuesta voto = new VotoRespuesta();
+            voto.setUsuario(pm);
+            voto.setRespuesta(respuesta);
+            voto.setTipo(TipoVoto.POSITIVO);
+            votoRespuestaRepository.save(voto);
+        }
+    }
+
+    @Transactional
+    public void eliminarPublicacion(Usuario pm, Long publicacionId) {
+        PublicacionForo publicacion = publicacionRepository.findById(publicacionId)
+                .orElseThrow(() -> new IllegalArgumentException("Publicación no encontrada."));
+
+        if (!publicacion.getAutor().getId().equals(pm.getId())) {
+            throw new IllegalArgumentException("Solo puedes eliminar tus propias publicaciones.");
+        }
+        publicacion.setActivo(false);
+        publicacionRepository.save(publicacion);
+    }
+
+    @Transactional
+    public void eliminarRespuesta(Usuario pm, Long respuestaId) {
+        RespuestaForo respuesta = respuestaRepository.findById(respuestaId)
+                .orElseThrow(() -> new IllegalArgumentException("Respuesta no encontrada."));
+
+        if (!respuesta.getAutor().getId().equals(pm.getId())) {
+            throw new IllegalArgumentException("Solo puedes eliminar tus propias respuestas.");
+        }
+        respuesta.setActivo(false);
+        respuestaRepository.save(respuesta);
     }
 }

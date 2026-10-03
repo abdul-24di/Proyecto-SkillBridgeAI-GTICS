@@ -443,6 +443,68 @@ public class PmViewController {
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 
+    @PostMapping("/foro/publicacion/{publicacionId}/like")
+    public String likePublicacion(@PathVariable Long publicacionId,
+                                  @RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                                  @RequestParam(value = "foroId", required = false) Long foroId,
+                                  @AuthenticationPrincipal UsuarioDetails principal,
+                                  RedirectAttributes ra) {
+        try {
+            pmForoService.alternarLikePublicacion(principal.getUsuario(), publicacionId);
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
+        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/foro/respuesta/{respuestaId}/like")
+    public String likeRespuesta(@PathVariable Long respuestaId,
+                                @RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                                @RequestParam(value = "foroId", required = false) Long foroId,
+                                @AuthenticationPrincipal UsuarioDetails principal,
+                                RedirectAttributes ra) {
+        try {
+            pmForoService.alternarLikeRespuesta(principal.getUsuario(), respuestaId);
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
+        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/foro/publicacion/{publicacionId}/eliminar")
+    public String eliminarPublicacionForo(@PathVariable Long publicacionId,
+                                          @RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                                          @RequestParam(value = "foroId", required = false) Long foroId,
+                                          @AuthenticationPrincipal UsuarioDetails principal,
+                                          RedirectAttributes ra) {
+        try {
+            pmForoService.eliminarPublicacion(principal.getUsuario(), publicacionId);
+            ra.addFlashAttribute("success", "Publicación eliminada.");
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
+        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/foro/respuesta/{respuestaId}/eliminar")
+    public String eliminarRespuestaForo(@PathVariable Long respuestaId,
+                                        @RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                                        @RequestParam(value = "foroId", required = false) Long foroId,
+                                        @AuthenticationPrincipal UsuarioDetails principal,
+                                        RedirectAttributes ra) {
+        try {
+            pmForoService.eliminarRespuesta(principal.getUsuario(), respuestaId);
+            ra.addFlashAttribute("success", "Respuesta eliminada.");
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
+        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+    }
+
     @PostMapping("/foro/upload-imagen")
     @org.springframework.web.bind.annotation.ResponseBody
     public java.util.Map<String, String> uploadImagenForo(@RequestParam("image") org.springframework.web.multipart.MultipartFile image) {

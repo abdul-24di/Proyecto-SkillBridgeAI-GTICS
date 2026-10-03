@@ -362,39 +362,58 @@ public class PmViewController {
     public String foros(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         Usuario pm = principal.getUsuario();
         model.addAttribute("foros", pmForoService.listarForosPm(pm));
+        model.addAttribute("forosComunidad", pmForoService.listarForosComunidad());
         model.addAttribute("pm", pm);
         return "pm/pm-foros";
     }
 
     @GetMapping({"/foro/detalle", "/pm-foro-detalle.html"})
-    public String foroDetalle(@RequestParam("proyectoId") Long proyectoId,
+    public String foroDetalle(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                              @RequestParam(value = "foroId", required = false) Long foroId,
                               @AuthenticationPrincipal UsuarioDetails principal,
                               Model model) {
         Usuario pm = principal.getUsuario();
-        model.addAttribute("publicaciones", pmForoService.obtenerDetalle(proyectoId, pm));
-        model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
-        model.addAttribute("pm", pm);
-        return "pm/pm-foro-detalle";
+        if (foroId != null) {
+            model.addAttribute("publicaciones", pmForoService.obtenerDetallePorForo(foroId, pm));
+            model.addAttribute("foroBase", pmForoService.obtenerForoBase(foroId));
+            model.addAttribute("pm", pm);
+            return "pm/pm-foro-detalle";
+        } else if (proyectoId != null) {
+            model.addAttribute("publicaciones", pmForoService.obtenerDetalle(proyectoId, pm));
+            model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
+            model.addAttribute("pm", pm);
+            return "pm/pm-foro-detalle";
+        }
+        return "redirect:/pm/foros";
     }
 
     @PostMapping("/foro/publicar")
-    public String publicarForo(@RequestParam("proyectoId") Long proyectoId,
+    public String publicarForo(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                               @RequestParam(value = "foroId", required = false) Long foroId,
                                @RequestParam("titulo") String titulo,
                                @RequestParam("contenido") String contenido,
                                @AuthenticationPrincipal UsuarioDetails principal,
                                RedirectAttributes ra) {
         try {
-            pmForoService.publicar(proyectoId, titulo, contenido, principal.getUsuario());
-            ra.addFlashAttribute("success", "Publicación creada exitosamente.");
+            if (foroId != null) {
+                pmForoService.publicarEnForo(foroId, titulo, contenido, principal.getUsuario());
+                ra.addFlashAttribute("success", "Publicación creada exitosamente.");
+                return "redirect:/pm/foro/detalle?foroId=" + foroId;
+            } else if (proyectoId != null) {
+                pmForoService.publicar(proyectoId, titulo, contenido, principal.getUsuario());
+                ra.addFlashAttribute("success", "Publicación creada exitosamente.");
+                return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+            }
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
         }
-        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+        return "redirect:/pm/foros";
     }
 
     @PostMapping("/foro/responder")
     public String responderForo(@RequestParam("publicacionId") Long publicacionId,
-                                @RequestParam("proyectoId") Long proyectoId,
+                                @RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                                @RequestParam(value = "foroId", required = false) Long foroId,
                                 @RequestParam("contenido") String contenido,
                                 @AuthenticationPrincipal UsuarioDetails principal,
                                 RedirectAttributes ra) {
@@ -404,6 +423,23 @@ public class PmViewController {
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
         }
+        if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
+        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+    }
+
+    @PostMapping("/foro/respuesta/{id}/marcar-solucion")
+    public String marcarSolucionForo(@PathVariable("id") Long respuestaId,
+                                     @RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                                     @RequestParam(value = "foroId", required = false) Long foroId,
+                                     @AuthenticationPrincipal UsuarioDetails principal,
+                                     RedirectAttributes ra) {
+        try {
+            pmForoService.alternarSolucion(principal.getUsuario(), respuestaId);
+            ra.addFlashAttribute("success", "Estado de solución actualizado.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 

@@ -32,6 +32,13 @@ public class PmPublicacionView {
     public List<RespuestaView> getRespuestas() { return respuestas; }
     public LocalDateTime getFechaCreacion() { return publicacion.getFechaCreacion(); }
 
+    public boolean isResuelta() {
+        for (RespuestaView r : respuestas) {
+            if (r.isEsSolucion()) return true;
+        }
+        return false;
+    }
+
     public static class RespuestaView {
         private final RespuestaForo respuesta;
         private final String autorNombre;

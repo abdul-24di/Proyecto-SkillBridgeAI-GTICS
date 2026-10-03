@@ -102,6 +102,22 @@ public class PmForoService {
         return vistas;
     }
 
+    /** Lista los foros de la comunidad. */
+    @Transactional(readOnly = true)
+    public List<PmForoView> listarForosComunidad() {
+        List<Foro> forosComunidad = foroRepository.findByEsPublicoTrue();
+        List<PmForoView> vistas = new ArrayList<>();
+        
+        for (Foro foro : forosComunidad) {
+            List<PublicacionForo> pubs = publicacionRepository.findByForo(foro);
+            int total = pubs.size();
+            String ultimaTitulo = pubs.isEmpty() ? null : pubs.get(0).getTitulo();
+            var ultimaFecha = pubs.isEmpty() ? null : pubs.get(0).getFechaCreacion();
+            vistas.add(new PmForoView(foro, total, ultimaTitulo, ultimaFecha));
+        }
+        return vistas;
+    }
+
     /** Devuelve las publicaciones del foro del proyecto indicado. */
     @Transactional(readOnly = true)
     public List<PmPublicacionView> obtenerDetalle(Long proyectoId, Usuario pm) {
@@ -118,6 +134,31 @@ public class PmForoService {
                 .orElse(java.util.Collections.emptyList());
     }
 
+    @Transactional(readOnly = true)
+    public List<PmPublicacionView> obtenerDetallePorForo(Long foroId, Usuario pm) {
+        Foro foro = foroRepository.findById(foroId)
+                .orElseThrow(() -> new IllegalArgumentException("Foro no encontrado"));
+        
+        if (!foro.isEsPublico() && foro.getTipo() == TipoForo.PROYECTO) {
+            if (foro.getProyecto() != null && !foro.getProyecto().getPm().getId().equals(pm.getId())) {
+                throw new SecurityException("No tienes permiso para ver este foro.");
+            }
+        }
+
+        return publicacionRepository.findByForoConDetalle(foro)
+                .stream()
+                .map(pub -> {
+                    List<RespuestaForo> respuestas = respuestaRepository.findByPublicacionConAutor(pub);
+                    return new PmPublicacionView(pub, respuestas);
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Foro obtenerForoBase(Long foroId) {
+        return foroRepository.findById(foroId).orElse(null);
+    }
+
     /** Crea una publicación en el foro del proyecto. Crea el Foro si aún no existe. */
     @Transactional
     public PublicacionForo publicar(Long proyectoId, String titulo, String contenido, Usuario pm) {
@@ -125,6 +166,23 @@ public class PmForoService {
         Foro foro = foroRepository.findByProyecto(proyecto)
                 .orElseGet(() -> crearForo(proyecto));
 
+        return publicarInterno(foro, titulo, contenido, pm);
+    }
+
+    @Transactional
+    public PublicacionForo publicarEnForo(Long foroId, String titulo, String contenido, Usuario pm) {
+        Foro foro = foroRepository.findById(foroId)
+                .orElseThrow(() -> new IllegalArgumentException("Foro no encontrado"));
+                
+        if (!foro.isEsPublico() && foro.getTipo() == TipoForo.PROYECTO) {
+            if (foro.getProyecto() != null && !foro.getProyecto().getPm().getId().equals(pm.getId())) {
+                throw new SecurityException("No tienes permiso para publicar en este foro.");
+            }
+        }
+        return publicarInterno(foro, titulo, contenido, pm);
+    }
+
+    private PublicacionForo publicarInterno(Foro foro, String titulo, String contenido, Usuario pm) {
         PublicacionForo pub = new PublicacionForo();
         pub.setForo(foro);
         pub.setAutor(pm);
@@ -132,8 +190,9 @@ public class PmForoService {
         pub.setContenido(contenido);
         PublicacionForo saved = publicacionRepository.save(pub);
 
+        String nombreForo = foro.getProyecto() != null ? foro.getProyecto().getNombre() : foro.getNombre();
         auditoriaService.registrar(pm, "PUBLICAR", "FORO", foro.getId(),
-                "PM publicó en el foro del proyecto '" + proyecto.getNombre() + "': " + titulo);
+                "PM publicó en el foro '" + nombreForo + "': " + titulo);
         return saved;
     }
 
@@ -153,6 +212,37 @@ public class PmForoService {
         respuesta.setAutor(pm);
         respuesta.setContenido(contenido);
         return respuestaRepository.save(respuesta);
+    }
+
+    /** Marca o desmarca una respuesta como solución de la publicación. */
+    @Transactional
+    public void alternarSolucion(Usuario pm, Long respuestaId) {
+        RespuestaForo respuesta = respuestaRepository.findById(respuestaId)
+                .orElseThrow(() -> new IllegalArgumentException("Respuesta no encontrada."));
+        PublicacionForo publicacion = respuesta.getPublicacion();
+
+        // Verificar que el PM tiene acceso al foro de este proyecto
+        if (publicacion.getForo().getProyecto() != null) {
+            obtenerProyectoDelPm(publicacion.getForo().getProyecto().getId(), pm);
+        }
+
+        if (respuesta.isEsSolucion()) {
+            respuesta.setEsSolucion(false);
+            respuestaRepository.save(respuesta);
+            auditoriaService.registrar(pm, "DESMARCAR_SOLUCION_FORO", "RESPUESTA_FORO",
+                    respuesta.getId(), "PM desmarcó la respuesta como solución en \"" + publicacion.getTitulo() + "\".");
+            return;
+        }
+
+        respuestaRepository.findByPublicacionAndEsSolucionTrue(publicacion).ifPresent(anterior -> {
+            anterior.setEsSolucion(false);
+            respuestaRepository.save(anterior);
+        });
+
+        respuesta.setEsSolucion(true);
+        respuestaRepository.save(respuesta);
+        auditoriaService.registrar(pm, "MARCAR_SOLUCION_FORO", "RESPUESTA_FORO",
+                respuesta.getId(), "PM marcó una respuesta como solución en \"" + publicacion.getTitulo() + "\".");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

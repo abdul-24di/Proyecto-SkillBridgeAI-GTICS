@@ -26,10 +26,11 @@ import java.util.*;
 @Service
 public class ColaboradorCursoService {
 
-    //Mientras el colaborador tenga una solicitud pendiente, una inscripción activa o una
-    //evidencia en revisión para un curso, no puede volver a solicitarlo.
+    //Mientras el colaborador tenga una solicitud pendiente, una inscripción activa, una
+    //evidencia en revisión, o ya haya completado el curso, no puede volver a solicitarlo.
     private static final List<EstadoColaboradorCurso> ESTADOS_QUE_BLOQUEAN =
-            List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO, EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
+            List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO,
+                    EstadoColaboradorCurso.EVIDENCIA_PENDIENTE, EstadoColaboradorCurso.COMPLETADO);
 
     //Para la evidencia de finalización del curso
     private static final Set<String> TIPOS_EVIDENCIA_PERMITIDOS = Set.of("application/pdf", "image/jpeg", "image/png");
@@ -90,8 +91,7 @@ public class ColaboradorCursoService {
             if (masReciente != null) {
                 estadoTexto = textoEstado(masReciente.getEstado());
                 estadoClase = claseEstado(masReciente.getEstado());
-                if (masReciente.getEstado() == EstadoColaboradorCurso.SOLICITADO
-                        || masReciente.getEstado() == EstadoColaboradorCurso.EN_CURSO) {
+                if (ESTADOS_QUE_BLOQUEAN.contains(masReciente.getEstado())) {
                     puedeSolicitar = false;
                 }
             }

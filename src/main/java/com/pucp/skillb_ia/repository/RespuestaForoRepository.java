@@ -24,3 +24,4 @@ public interface RespuestaForoRepository extends JpaRepository<RespuestaForo, Lo
 
     Optional<RespuestaForo> findByIdAndActivoTrue(Long id);
 }
+

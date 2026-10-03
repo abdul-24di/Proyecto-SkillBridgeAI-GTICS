@@ -33,3 +33,5 @@ public class Habilidad {
     public boolean isActiva() { return activa; }
     public void setActiva(boolean activa) { this.activa = activa; }
 }
+
+

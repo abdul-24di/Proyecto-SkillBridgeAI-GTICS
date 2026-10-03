@@ -5,10 +5,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// A7/A9: el RM accede de lectura a TODOS los foros de la organización sin
-// necesidad de asignación activa; PM y Colaborador solo a los foros de sus
-// proyectos con asignación activa. Esa regla de acceso se aplica en el
-// service, no aquí — proyecto_id NULL = foro GENERAL (comunidad).
 @Entity
 @Table(name = "foro")
 public class Foro {

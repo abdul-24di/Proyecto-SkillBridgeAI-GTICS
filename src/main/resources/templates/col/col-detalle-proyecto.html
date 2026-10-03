@@ -231,6 +231,16 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="pagination-wrap" th:if="${totalActividadesProyecto > 0}">
+                        <div class="text-secondary small"
+                             th:with="desde=${((paginaActualTodas - 1) * 5) + 1}, hasta=${((paginaActualTodas - 1) * 5) + #lists.size(actividadesDelProyecto)}"
+                             th:text="|Mostrando ${desde}-${hasta} de ${totalActividadesProyecto} actividades|">Mostrando 0-0 de 0 actividades</div>
+                        <ul class="pagination pagination-sm m-0" th:if="${totalPaginasTodas > 1}">
+                            <li class="page-item" th:classappend="${paginaActualTodas == 1} ? 'disabled'"><a class="page-link" th:href="@{/colaborador/proyectos/detalle(asignacionId=${asignacion.id}, tab='actividades', paginaTodas=${paginaActualTodas - 1}, paginaMias=${paginaActualMias})}">Anterior</a></li>
+                            <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginasTodas)}" th:classappend="${n == paginaActualTodas} ? 'active'"><a class="page-link" th:href="@{/colaborador/proyectos/detalle(asignacionId=${asignacion.id}, tab='actividades', paginaTodas=${n}, paginaMias=${paginaActualMias})}" th:text="${n}">1</a></li>
+                            <li class="page-item" th:classappend="${paginaActualTodas == totalPaginasTodas} ? 'disabled'"><a class="page-link" th:href="@{/colaborador/proyectos/detalle(asignacionId=${asignacion.id}, tab='actividades', paginaTodas=${paginaActualTodas + 1}, paginaMias=${paginaActualMias})}">Siguiente</a></li>
+                        </ul>
+                    </div>
                 </div>
 
                 <!-- MODALES: VER (SOLO LECTURA) UNA ACTIVIDAD DE CUALQUIER COMPAÑERO -->
@@ -298,6 +308,8 @@
                                          data-comentario-devolucion=${act.comentarioDevolucion},
                                          data-evidencia-url=${act.evidenciaUrl},
                                          data-comentario-colaborador=${act.comentarioColaborador}">
+
+
                                 <td class="fw-semibold" th:text="${act.titulo}">Título</td>
                                 <td th:text="${act.horasEstimadas}">0</td>
                                 <td th:text="${#temporals.format(act.fechaLimite, 'dd/MM/yyyy')}">—</td>
@@ -306,10 +318,22 @@
                             </tr>
                             </tbody>
                         </table>
+
+
+                    </div>
+
+
+                    <div class="pagination-wrap" th:if="${totalMisActividades > 0}">
+                        <div class="text-secondary small"
+                             th:with="desde=${((paginaActualMias - 1) * 5) + 1}, hasta=${((paginaActualMias - 1) * 5) + #lists.size(misActividades)}"
+                             th:text="|Mostrando ${desde}-${hasta} de ${totalMisActividades} actividades|">Mostrando 0-0 de 0 actividades</div>
+                        <ul class="pagination pagination-sm m-0" th:if="${totalPaginasMias > 1}">
+                            <li class="page-item" th:classappend="${paginaActualMias == 1} ? 'disabled'"><a class="page-link" th:href="@{/colaborador/proyectos/detalle(asignacionId=${asignacion.id}, tab='actividades', paginaTodas=${paginaActualTodas}, paginaMias=${paginaActualMias - 1})}">Anterior</a></li>
+                            <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginasMias)}" th:classappend="${n == paginaActualMias} ? 'active'"><a class="page-link" th:href="@{/colaborador/proyectos/detalle(asignacionId=${asignacion.id}, tab='actividades', paginaTodas=${paginaActualTodas}, paginaMias=${n})}" th:text="${n}">1</a></li>
+                            <li class="page-item" th:classappend="${paginaActualMias == totalPaginasMias} ? 'disabled'"><a class="page-link" th:href="@{/colaborador/proyectos/detalle(asignacionId=${asignacion.id}, tab='actividades', paginaTodas=${paginaActualTodas}, paginaMias=${paginaActualMias + 1})}">Siguiente</a></li>
+                        </ul>
                     </div>
                 </div>
-
-
 
             </div>
 
@@ -415,7 +439,7 @@
                         <h1 class="mt-4 mb-2">Coming soon</h1>
                         <p class="text-secondary mb-0" style="font-size: 1.15rem; max-width: 480px; margin: 0 auto;">
                             Esta sección todavía está en desarrollo.<br>
-                            Próximamente será completada. 
+                            Próximamente será completada.
                         </p>
                     </div>
                 </div>

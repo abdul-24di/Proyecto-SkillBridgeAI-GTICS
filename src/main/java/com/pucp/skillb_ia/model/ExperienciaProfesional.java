@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
-// Historial laboral fuera de SkillBridge AI, parte del perfil del colaborador
-// (Historia de Gestión de habilidades y experiencia, Épica 3).
 @Entity
 @Table(name = "experiencia_profesional")
 public class ExperienciaProfesional {

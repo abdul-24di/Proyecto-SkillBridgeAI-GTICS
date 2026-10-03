@@ -108,13 +108,17 @@ public class ColaboradorViewController {
         return "col/col-proyectos";
     }
 
+
+
     @GetMapping({"/proyectos/detalle", "/col-detalle-proyecto.html"})
     public String projectDetail(@AuthenticationPrincipal UsuarioDetails principal,
-                                     @RequestParam(required = false) Long asignacionId,
-                                     @RequestParam(required = false) String categoriaDoc,
-                                     @RequestParam(required = false) String busquedaDoc,
-                                     Model model,
-                                     RedirectAttributes redirectAttributes) {
+                                @RequestParam(required = false) Long asignacionId,
+                                @RequestParam(required = false) String categoriaDoc,
+                                @RequestParam(required = false) String busquedaDoc,
+                                @RequestParam(required = false) String paginaTodas,
+                                @RequestParam(required = false) String paginaMias,
+                                Model model,
+                                RedirectAttributes redirectAttributes) {
         if (principal == null) return "redirect:/login";
 
         if (asignacionId == null) {
@@ -125,7 +129,7 @@ public class ColaboradorViewController {
         try {
             Usuario colaborador = principal.getUsuario();
             model.addAttribute("colaborador", colaborador);
-            var detalle = colaboradorProyectoService.obtenerDetalleProyecto(colaborador, asignacionId);
+            var detalle = colaboradorProyectoService.obtenerDetalleProyecto(colaborador, asignacionId, paginaTodas, paginaMias);
 
             model.addAttribute("proyecto", detalle.getProyecto());
             model.addAttribute("asignacion", detalle.getAsignacion());
@@ -134,7 +138,12 @@ public class ColaboradorViewController {
             model.addAttribute("misActividades", detalle.getMisActividades());
             model.addAttribute("perfilesIntegrantes", detalle.getPerfilesIntegrantes());
             model.addAttribute("misStrikes", detalle.getMisStrikes());
-
+            model.addAttribute("paginaActualTodas", detalle.getPaginaActualTodas());
+            model.addAttribute("totalPaginasTodas", detalle.getTotalPaginasTodas());
+            model.addAttribute("totalActividadesProyecto", detalle.getTotalActividadesProyecto());
+            model.addAttribute("paginaActualMias", detalle.getPaginaActualMias());
+            model.addAttribute("totalPaginasMias", detalle.getTotalPaginasMias());
+            model.addAttribute("totalMisActividades", detalle.getTotalMisActividades());
             //Pestaña Documentos
             model.addAttribute("documentos", colaboradorDocumentoService.listarDocumentos(
                     colaborador, detalle.getProyecto().getId(), categoriaDoc, busquedaDoc));

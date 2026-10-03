@@ -279,10 +279,14 @@ public class ColaboradorProyectoService {
         return historial;
     }
 
+
+    public static final int TAMANIO_PAGINA_ACTIVIDADES = 5;
+
     // ============================================================
     // DETALLE DE UN PROYECTO (Resumen/ Integrantes/ Actividades)
     // ============================================================
-    public ColProyectoDetalleView obtenerDetalleProyecto(Usuario colaborador, Long asignacionId) {
+    public ColProyectoDetalleView obtenerDetalleProyecto(Usuario colaborador, Long asignacionId,
+                                                         String paginaTodas, String paginaMias) {
         Asignacion asignacion = asignacionRepository.findByIdConDetalle(asignacionId)
                 .orElseThrow(() -> new IllegalArgumentException("El proyecto que buscas no existe."));
 
@@ -328,8 +332,50 @@ public class ColaboradorProyectoService {
 
         int misStrikes = penalizacionService.contarStrikes(colaborador, proyecto);
 
-        return new ColProyectoDetalleView(proyecto, asignacion, integrantes, todasLasActividades, misActividades,
-                perfilesIntegrantes, misStrikes);
+        List<Actividad> todasOrdenadas = new ArrayList<>(todasLasActividades);
+
+        todasOrdenadas.sort(Comparator.comparing(Actividad::getFechaAsignacion).reversed());
+
+        int totalPaginasTodas = totalPaginasActividades(todasOrdenadas.size());
+
+        int paginaActualTodas = paginaActualActividades(paginaTodas, totalPaginasTodas);
+
+        List<Actividad> actividadesDelProyectoPagina = recortarActividades(todasOrdenadas, paginaActualTodas);
+
+        List<Actividad> misActividadesOrdenadas = new ArrayList<>(misActividades);
+
+        misActividadesOrdenadas.sort(Comparator.comparing(Actividad::getFechaAsignacion).reversed());
+
+        int totalPaginasMias = totalPaginasActividades(misActividadesOrdenadas.size());
+
+        int paginaActualMias = paginaActualActividades(paginaMias, totalPaginasMias);
+
+        List<Actividad> misActividadesPagina = recortarActividades(misActividadesOrdenadas, paginaActualMias);
+
+        return new ColProyectoDetalleView(proyecto, asignacion, integrantes,
+                actividadesDelProyectoPagina, misActividadesPagina, perfilesIntegrantes, misStrikes,
+                paginaActualTodas, totalPaginasTodas, todasOrdenadas.size(),
+                paginaActualMias, totalPaginasMias, misActividadesOrdenadas.size());
+    }
+
+    private int totalPaginasActividades(int totalRegistros) {
+        return Math.max(1, (int) Math.ceil(totalRegistros / (double) TAMANIO_PAGINA_ACTIVIDADES));
+    }
+
+    private int paginaActualActividades(String pagina, int totalPaginas) {
+        int numero;
+        try {
+            numero = pagina == null ? 1 : Integer.parseInt(pagina.trim());
+        } catch (NumberFormatException ex) {
+            numero = 1;
+        }
+        return Math.min(Math.max(1, numero), totalPaginas);
+    }
+
+    private List<Actividad> recortarActividades(List<Actividad> registros, int paginaActual) {
+        int desde = (paginaActual - 1) * TAMANIO_PAGINA_ACTIVIDADES;
+        int hasta = Math.min(desde + TAMANIO_PAGINA_ACTIVIDADES, registros.size());
+        return desde < hasta ? registros.subList(desde, hasta) : List.of();
     }
 
     // ============================================================

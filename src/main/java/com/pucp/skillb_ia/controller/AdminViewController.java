@@ -43,6 +43,7 @@ public class AdminViewController {
     private final AdminPerfilService adminPerfilService;
     private final AdminCursoService adminCursoService;
     private final ColaboradorPerfilService colaboradorPerfilService;
+    private final com.pucp.skillb_ia.service.admin.AdminForoService adminForoService;
 
     public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
                                 AdminConfiguracionService adminConfiguracionService,
@@ -50,7 +51,8 @@ public class AdminViewController {
                                 AdminPerfilService adminPerfilService,
                                 AdminCargoService adminCargoService,
                                 AdminCursoService adminCursoService,
-                                ColaboradorPerfilService colaboradorPerfilService) {
+                                ColaboradorPerfilService colaboradorPerfilService,
+                                com.pucp.skillb_ia.service.admin.AdminForoService adminForoService) {
         this.adminUsuarioService = adminUsuarioService;
         this.adminHabilidadService = adminHabilidadService;
         this.adminConfiguracionService = adminConfiguracionService;
@@ -59,6 +61,7 @@ public class AdminViewController {
         this.adminPerfilService = adminPerfilService;
         this.adminCursoService = adminCursoService;
         this.colaboradorPerfilService = colaboradorPerfilService;
+        this.adminForoService = adminForoService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -672,5 +675,74 @@ public class AdminViewController {
             ra.addFlashAttribute("mensajeError", e.getMessage());
         }
         return "redirect:/admin/experiencia";
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // FOROS DE COMUNIDAD
+    // ═══════════════════════════════════════════════════════════
+
+    @GetMapping("/foros")
+    public String foros(Model model) {
+        model.addAttribute("foros", adminForoService.listarForosComunidad());
+        return "admin/admin-foros";
+    }
+
+    @PostMapping("/foros/crear")
+    public String crearForo(@RequestParam String nombre,
+                            @RequestParam(defaultValue = "true") boolean esPublico,
+                            RedirectAttributes ra) {
+        try {
+            adminForoService.crearForo(nombre.trim(), esPublico);
+            ra.addFlashAttribute("success", "Foro \"" + nombre + "\" creado exitosamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/foros";
+    }
+
+    @PostMapping("/foros/{id}/eliminar")
+    public String eliminarForo(@PathVariable Long id, RedirectAttributes ra) {
+        try {
+            adminForoService.eliminarForo(id);
+            ra.addFlashAttribute("success", "Foro eliminado correctamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "No se pudo eliminar el foro: " + e.getMessage());
+        }
+        return "redirect:/admin/foros";
+    }
+
+    @GetMapping("/foros/{id}/publicaciones")
+    public String foroDetalle(@PathVariable Long id, Model model) {
+        model.addAttribute("foro", adminForoService.obtenerForo(id));
+        model.addAttribute("publicaciones", adminForoService.listarPublicaciones(id));
+        return "admin/admin-foro-detalle";
+    }
+
+    @PostMapping("/foros/{id}/publicar")
+    public String publicarEnForo(@PathVariable Long id,
+                                 @RequestParam String titulo,
+                                 @RequestParam String contenido,
+                                 @AuthenticationPrincipal UsuarioDetails principal,
+                                 RedirectAttributes ra) {
+        try {
+            adminForoService.publicar(id, titulo, contenido, principal.getUsuario());
+            ra.addFlashAttribute("success", "Anuncio publicado correctamente.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/foros/" + id + "/publicaciones";
+    }
+
+    @PostMapping("/foros/publicacion/{pubId}/eliminar")
+    public String eliminarPublicacion(@PathVariable Long pubId,
+                                      @RequestParam Long foroId,
+                                      RedirectAttributes ra) {
+        try {
+            adminForoService.eliminarPublicacion(pubId);
+            ra.addFlashAttribute("success", "Publicación eliminada.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
 }

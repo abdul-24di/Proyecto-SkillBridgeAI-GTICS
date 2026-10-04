@@ -13,6 +13,8 @@ public interface PublicacionForoRepository extends JpaRepository<PublicacionForo
 
     List<PublicacionForo> findByForo(Foro foro);
 
+    List<PublicacionForo> findByForoAndActivoTrueOrderByFechaCreacionDesc(Foro foro);
+
     @Query("""
             select p from PublicacionForo p
             join fetch p.autor a

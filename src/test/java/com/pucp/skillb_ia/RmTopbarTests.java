@@ -65,8 +65,7 @@ class RmTopbarTests {
         for (String ruta : new String[]{"/rm/dashboard", "/rm/perfil"}) {
             mockMvc.perform(get(ruta))
                     .andExpect(status().isOk())
-                    .andExpect(content().string(containsString("src=\"/uploads/perfil/usuario-topbar.png\"")))
-                    .andExpect(content().string(containsString("alt=\"Foto de perfil de Rita Topbar\"")))
+                    .andExpect(content().string(containsString("background-image: url(/uploads/perfil/usuario-topbar.png)")))
                     .andExpect(content().string(not(containsString(AVATAR_INICIALES))))
                     .andExpect(content().string(containsString("Rita Topbar")));
         }
@@ -79,7 +78,7 @@ class RmTopbarTests {
 
         mockMvc.perform(get("/rm/dashboard"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("src=\"" + urlS3 + "\"")))
+                .andExpect(content().string(containsString("background-image: url(" + urlS3 + ")")))
                 .andExpect(content().string(not(containsString(AVATAR_INICIALES))));
     }
 
@@ -90,7 +89,6 @@ class RmTopbarTests {
             mockMvc.perform(get("/rm/dashboard"))
                     .andExpect(status().isOk())
                     .andExpect(content().string(containsString(AVATAR_INICIALES)))
-                    .andExpect(content().string(not(containsString("user-avatar-foto"))))
                     .andExpect(content().string(containsString("Rita Topbar")));
         }
     }
@@ -106,7 +104,7 @@ class RmTopbarTests {
 
         mockMvc.perform(get("/rm/dashboard"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("src=\"/uploads/perfil/usuario-topbar-nueva.png\"")))
+                .andExpect(content().string(containsString("background-image: url(/uploads/perfil/usuario-topbar-nueva.png)")))
                 .andExpect(content().string(not(containsString(AVATAR_INICIALES))));
     }
 

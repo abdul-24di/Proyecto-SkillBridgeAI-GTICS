@@ -25,7 +25,7 @@
     <!-- TARJETAS DE RESUMEN -->
     <div class="row row-cards mb-4">
       <div class="col-sm-6 col-xl-3">
-        <div class="card metric-card">
+        <a th:href="@{/pm/proyectos}" class="card metric-card text-decoration-none text-body" style="transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
           <div class="card-body d-flex align-items-center gap-3">
             <div class="metric-icon bg-blue-lt text-blue">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v4a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z"/><path d="M3 13v4a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-4"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
@@ -35,11 +35,11 @@
               <div class="metric-number" th:text="${totalProyectos}">0</div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
       
       <div class="col-sm-6 col-xl-3">
-        <div class="card metric-card">
+        <a href="#actividades-pendientes" class="card metric-card text-decoration-none text-body" style="transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
           <div class="card-body d-flex align-items-center gap-3">
             <div class="metric-icon bg-yellow-lt text-yellow">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
@@ -49,11 +49,11 @@
               <div class="metric-number" th:text="${totalActividades}">0</div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
 
       <div class="col-sm-6 col-xl-3">
-        <div class="card metric-card">
+        <a th:href="@{/pm/proyectos}" class="card metric-card text-decoration-none text-body" style="transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
           <div class="card-body d-flex align-items-center gap-3">
             <div class="metric-icon bg-green-lt text-green">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/></svg>
@@ -63,11 +63,11 @@
               <div class="metric-number" th:text="${totalColaboradores}">0</div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
 
       <div class="col-sm-6 col-xl-3">
-        <div class="card metric-card">
+        <a th:href="@{/pm/proyectos}" class="card metric-card text-decoration-none text-body" style="transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 6px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='none';">
           <div class="card-body d-flex align-items-center gap-3">
             <div class="metric-icon bg-orange-lt text-orange">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 19l2 2l4 -4"/><path d="M11 19h-5a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v5.5"/></svg>
@@ -77,14 +77,14 @@
               <div class="metric-number" th:text="${totalAsignaciones}">0</div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
     </div>
 
     <!-- TABLAS DE DETALLE -->
     <div class="row row-deck row-cards">
       <!-- Actividades Pendientes -->
-      <div class="col-lg-8">
+      <div class="col-lg-8" id="actividades-pendientes">
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Actividades pendientes de revisión</h3>

@@ -552,7 +552,13 @@ public class PmViewController {
     public String perfil(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
         model.addAttribute("pm", principal.getUsuario());
-        if (!model.containsAttribute("pmPerfilDatosForm")) model.addAttribute("pmPerfilDatosForm", new PmPerfilDatosForm());
+                if (!model.containsAttribute("pmPerfilDatosForm")) {
+            PmPerfilDatosForm form = new PmPerfilDatosForm();
+            form.setNombre(principal.getUsuario().getNombre());
+            form.setApellido(principal.getUsuario().getApellido());
+            form.setTelefono(principal.getUsuario().getTelefono());
+            model.addAttribute("pmPerfilDatosForm", form);
+        }
         if (!model.containsAttribute("pmPerfilPasswordForm")) model.addAttribute("pmPerfilPasswordForm", new PmPerfilPasswordForm());
         return "pm/pm-perfil";
     }
@@ -568,7 +574,7 @@ public class PmViewController {
             return "pm/pm-perfil";
         }
         try {
-            pmPerfilService.actualizarDatos(form.getNombre(), form.getApellido(), form.getCargo(), principal.getUsuario());
+            pmPerfilService.actualizarDatos(form.getNombre(), form.getApellido(), form.getCargo(), form.getTelefono(), principal.getUsuario());
             ra.addFlashAttribute("success", "Datos actualizados correctamente.");
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {

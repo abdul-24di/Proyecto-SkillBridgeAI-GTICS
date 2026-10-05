@@ -47,10 +47,11 @@ public class PmPerfilService {
     }
 
     @Transactional
-    public void actualizarDatos(String nombre, String apellido, String cargo, Usuario pm) {
+    public void actualizarDatos(String nombre, String apellido, String cargo, String telefono, Usuario pm) {
         if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("El nombre no puede estar vacío.");
         pm.setNombre(nombre.strip());
         pm.setApellido(apellido != null ? apellido.strip() : pm.getApellido());
+        pm.setTelefono(telefono != null ? telefono.strip() : null);
         // pm.setCargo() ya no es editable desde el formulario de perfil, controlado por Admin
         usuarioRepository.save(pm);
         auditoriaService.registrar(pm, "ACTUALIZAR_PERFIL", "USUARIO", pm.getId(),

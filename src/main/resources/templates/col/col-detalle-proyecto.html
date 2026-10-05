@@ -781,25 +781,47 @@
     }
 </script>
 
-<!-- Lightbox Modal -->
-<div class="modal modal-blur fade" id="evidenciaModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-    <div class="modal-content" style="background: transparent; border: none; box-shadow: none;">
-      <div class="modal-body text-center p-0" style="position: relative;">
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="position: absolute; right: -30px; top: -30px; z-index: 1050; filter: invert(1) grayscale(100%) brightness(200%);"></button>
-        <img id="modalImagePreview" src="" alt="Evidencia" style="max-width: 100%; max-height: 90vh; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain;">
-      </div>
-    </div>
-  </div>
+
+<!-- Pure JS/CSS Lightbox -->
+<div id="pureLightboxOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 99999; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+    <button type="button" onclick="closeLightbox()" style="position: absolute; right: 20px; top: 20px; background: transparent; border: none; color: white; font-size: 40px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+    <div id="pureLightboxContent" style="width: 90%; height: 90%; display: flex; justify-content: center; align-items: center;"></div>
 </div>
 
 <script>
 function showEvidenciaModal(url) {
-    document.getElementById('modalImagePreview').src = url;
-    var myModal = new bootstrap.Modal(document.getElementById('evidenciaModal'));
-    myModal.show();
+    var overlay = document.getElementById('pureLightboxOverlay');
+    var content = document.getElementById('pureLightboxContent');
+    if (!overlay || !content) return;
+    
+    if (url.toLowerCase().includes('.pdf')) {
+        content.innerHTML = '<iframe src="' + url + '" style="width: 100%; height: 100%; border: none; border-radius: 8px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);"></iframe>';
+    } else {
+        content.innerHTML = '<img src="' + url + '" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain;">';
+    }
+    
+    overlay.style.display = 'flex';
 }
+
+function closeLightbox() {
+    var overlay = document.getElementById('pureLightboxOverlay');
+    var content = document.getElementById('pureLightboxContent');
+    if (overlay) overlay.style.display = 'none';
+    if (content) content.innerHTML = '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var overlay = document.getElementById('pureLightboxOverlay');
+    if(overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLightbox();
+            }
+        });
+    }
+});
 </script>
+
 
 </body>
 </html>

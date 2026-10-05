@@ -80,9 +80,9 @@ public class PmProyectoView {
     }
 
     public BigDecimal getPresupuestoVisible() {
-        return proyecto.getPresupuesto() != null
-                ? proyecto.getPresupuesto()
-                : proyecto.getPresupuestoSolicitado();
+        if (proyecto.getPresupuesto() != null) return proyecto.getPresupuesto();
+        if (proyecto.getPresupuestoSolicitado() != null) return proyecto.getPresupuestoSolicitado();
+        return java.math.BigDecimal.ZERO;
     }
 
     public String getPresupuestoEtiqueta() {

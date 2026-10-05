@@ -151,6 +151,14 @@
             alert("Por favor selecciona una habilidad primero.");
             return;
         }
+        if (horas <= 0) {
+            alert("Las horas/sem deben ser mayores a cero.");
+            return;
+        }
+        if (cant <= 0) {
+            alert("La cantidad debe ser mayor a cero.");
+            return;
+        }
         
         const cart = document.getElementById('skills-cart');
         const hiddenContainer = document.getElementById('hidden-inputs-container');

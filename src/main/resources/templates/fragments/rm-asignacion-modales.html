@@ -154,6 +154,11 @@
                   <div><div class="info-label">Presupuesto disponible</div><div class="info-value" data-texto="proyectoDisponibleTexto">—</div></div>
                   <div><div class="info-label">Cupos ocupados</div><div class="info-value" data-texto="proyectoCuposTexto">—</div></div>
                 </div>
+                
+                <div class="mt-3 pt-3 border-top d-none" id="propuestaRequisitosWrap">
+                  <div class="info-label mb-2">Trabajo requerido en el proyecto (referencia)</div>
+                  <div id="propuestaRequisitosLista" class="d-flex flex-wrap gap-2"></div>
+                </div>
               </div>
 
               <div class="propuesta-bloque mb-3">
@@ -250,7 +255,7 @@
                   th:each="p : ${proyectosAsignables}"
                   th:with="asignado=${proyectosConAsignacion != null and proyectosConAsignacion.contains(p.proyecto.id)}"
                   th:disabled="${asignado}"
-                  th:attr="data-busqueda=${#strings.toLowerCase(p.proyecto.nombre + ' ' + p.pmNombre)},data-buscar-url=(${modoBusqueda} ? @{/rm/proyectos/buscar-colaboradores(proyectoId=${p.proyecto.id})} : null),data-proyecto-id=${p.proyecto.id},data-proyecto-nombre=${p.proyecto.nombre},data-proyecto-pm=${p.pmNombre},data-proyecto-inicio=${p.proyecto.fechaInicio},data-proyecto-fin=${p.proyecto.fechaFinEstimada},data-proyecto-presupuesto=${p.proyecto.presupuesto},data-proyecto-disponible=${p.resumenPresupuesto.disponible},data-proyecto-requeridos=${p.proyecto.colaboradoresRequeridos},data-proyecto-ocupados=${cuposOcupados.get(p.proyecto.id)}">
+                  th:attr="data-busqueda=${#strings.toLowerCase(p.proyecto.nombre + ' ' + p.pmNombre)},data-buscar-url=(${modoBusqueda} ? @{/rm/proyectos/buscar-colaboradores(proyectoId=${p.proyecto.id})} : null),data-proyecto-id=${p.proyecto.id},data-proyecto-nombre=${p.proyecto.nombre},data-proyecto-pm=${p.pmNombre},data-proyecto-inicio=${p.proyecto.fechaInicio},data-proyecto-fin=${p.proyecto.fechaFinEstimada},data-proyecto-presupuesto=${p.proyecto.presupuesto},data-proyecto-disponible=${p.resumenPresupuesto.disponible},data-proyecto-requeridos=${p.proyecto.colaboradoresRequeridos},data-proyecto-ocupados=${cuposOcupados.get(p.proyecto.id)},data-proyecto-requisitos=${p.requisitosJson}">
             <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
               <div>
                 <div class="fw-bold" th:text="${p.proyecto.nombre}">Proyecto</div>

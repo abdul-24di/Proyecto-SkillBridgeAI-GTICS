@@ -47,6 +47,21 @@ public class RmProyectoView {
     public List<MiembroEquipo> getEquipo() { return equipo; }
     public List<RequisitoTalento> getRequisitos() { return requisitos; }
 
+    public String getRequisitosJson() {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < requisitos.size(); i++) {
+            RequisitoTalento r = requisitos.get(i);
+            sb.append("{")
+              .append("\"habilidad\":\"").append(r.habilidad.replace("\"", "\\\"")).append("\",")
+              .append("\"nivel\":\"").append(r.nivel.replace("\"", "\\\"")).append("\",")
+              .append("\"horas\":").append(r.horasSemanales != null ? r.horasSemanales : "null")
+              .append("}");
+            if (i < requisitos.size() - 1) sb.append(",");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     public String getEstadoClase() {
         return switch (proyecto.getEstado()) {
             case ACTIVO -> "bg-green-lt";

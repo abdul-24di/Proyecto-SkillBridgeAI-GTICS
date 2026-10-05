@@ -84,6 +84,23 @@ public class PmProyectoService {
         if (fechaInicio != null && fechaFinEstimada != null && fechaFinEstimada.isBefore(fechaInicio)) {
             throw new IllegalArgumentException("La fecha de fin estimada no puede ser anterior a la fecha de inicio.");
         }
+        if (horasSemanalesRequeridas != null && horasSemanalesRequeridas.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Las horas semanales requeridas deben ser mayores a cero.");
+        }
+        if (horasSemanalesHab != null) {
+            for (BigDecimal horas : horasSemanalesHab) {
+                if (horas != null && horas.compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new IllegalArgumentException("Las horas semanales por habilidad deben ser mayores a cero.");
+                }
+            }
+        }
+        if (cantidadesPersonas != null) {
+            for (Integer cant : cantidadesPersonas) {
+                if (cant != null && cant <= 0) {
+                    throw new IllegalArgumentException("La cantidad de personas debe ser mayor a cero.");
+                }
+            }
+        }
 
         Proyecto proyecto = new Proyecto();
         proyecto.setNombre(nombre);
@@ -92,7 +109,7 @@ public class PmProyectoService {
         proyecto.setFechaFinEstimada(fechaFinEstimada);
         proyecto.setPrioridad(Prioridad.valueOf(prioridadStr));
         proyecto.setJustificacionPrioridad(justificacionPrioridad);
-        proyecto.setPresupuestoSolicitado(presupuestoSolicitado);
+        proyecto.setPresupuestoSolicitado(presupuestoSolicitado != null ? presupuestoSolicitado : BigDecimal.ZERO);
         proyecto.setJustificacionPresupuesto(justificacionPresupuesto);
         proyecto.setColaboradoresRequeridos(colaboradoresRequeridos);
         proyecto.setHorasSemanalesRequeridas(horasSemanalesRequeridas != null

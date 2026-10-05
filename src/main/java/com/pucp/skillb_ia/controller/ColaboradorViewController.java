@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -118,7 +120,7 @@ public class ColaboradorViewController {
                                 @RequestParam(required = false) String paginaTodas,
                                 @RequestParam(required = false) String paginaMias,
                                 Model model,
-                                RedirectAttributes redirectAttributes) {
+                                RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
 
         if (asignacionId == null) {
@@ -170,10 +172,11 @@ public class ColaboradorViewController {
                                          @RequestParam Long proyectoId,
                                          @RequestParam Long asignacionId,
                                          @RequestParam("archivo") MultipartFile archivo,
-                                         RedirectAttributes redirectAttributes) {
+                                         RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorDocumentoService.subirDocumento(principal.getUsuario(), proyectoId, archivo);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Documento subido correctamente.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -185,10 +188,11 @@ public class ColaboradorViewController {
     public String eliminarDocumentoProyecto(@AuthenticationPrincipal UsuarioDetails principal,
                                             @PathVariable Long documentoId,
                                             @RequestParam Long asignacionId,
-                                            RedirectAttributes redirectAttributes) {
+                                            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorDocumentoService.eliminarDocumento(principal.getUsuario(), documentoId);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Documento eliminado.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -250,10 +254,11 @@ public class ColaboradorViewController {
                                @RequestParam("contenido") String contenido,
                                @RequestParam(value = "etiquetaId", required = false) Long etiquetaId,
                                @AuthenticationPrincipal UsuarioDetails principal,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorForoService.crearPublicacion(principal.getUsuario(), foroId, titulo, contenido, etiquetaId);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Publicación creada correctamente.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -265,10 +270,11 @@ public class ColaboradorViewController {
     public String eliminarPublicacionForo(@PathVariable Long publicacionId,
                                           @RequestParam("foroId") Long foroId,
                                           @AuthenticationPrincipal UsuarioDetails principal,
-                                          RedirectAttributes redirectAttributes) {
+                                          RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorForoService.eliminarPublicacion(principal.getUsuario(), publicacionId);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Publicación eliminada.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -281,10 +287,11 @@ public class ColaboradorViewController {
                                 @RequestParam("foroId") Long foroId,
                                 @RequestParam("contenido") String contenido,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes redirectAttributes) {
+                                RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorForoService.crearRespuesta(principal.getUsuario(), publicacionId, contenido);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Respuesta publicada.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -296,10 +303,11 @@ public class ColaboradorViewController {
     public String eliminarRespuestaForo(@PathVariable Long respuestaId,
                                         @RequestParam("foroId") Long foroId,
                                         @AuthenticationPrincipal UsuarioDetails principal,
-                                        RedirectAttributes redirectAttributes) {
+                                        RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorForoService.eliminarRespuesta(principal.getUsuario(), respuestaId);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Respuesta eliminada.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -311,7 +319,7 @@ public class ColaboradorViewController {
     public String likePublicacion(@PathVariable Long publicacionId,
                                   @RequestParam("foroId") Long foroId,
                                   @AuthenticationPrincipal UsuarioDetails principal,
-                                  RedirectAttributes redirectAttributes) {
+                                  RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorForoService.alternarLikePublicacion(principal.getUsuario(), publicacionId);
@@ -325,7 +333,7 @@ public class ColaboradorViewController {
     public String likeRespuesta(@PathVariable Long respuestaId,
                                 @RequestParam("foroId") Long foroId,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes redirectAttributes) {
+                                RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorForoService.alternarLikeRespuesta(principal.getUsuario(), respuestaId);
@@ -339,7 +347,7 @@ public class ColaboradorViewController {
     public String marcarRespuestaComoSolucion(@PathVariable Long respuestaId,
                                               @RequestParam("foroId") Long foroId,
                                               @AuthenticationPrincipal UsuarioDetails principal,
-                                              RedirectAttributes redirectAttributes) {
+                                              RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorForoService.alternarSolucion(principal.getUsuario(), respuestaId);
@@ -394,10 +402,11 @@ public class ColaboradorViewController {
                                          @RequestParam(required = false) Long habilidadId,
                                          @RequestParam(required = false) String mensaje,
                                          @RequestParam(required = false) String habilidadesRelevantes,
-                                         RedirectAttributes redirectAttributes) {
+                                         RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, habilidadId, mensaje, habilidadesRelevantes);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud fue enviada. Quedará pendiente de aprobación del PM y del RM.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -409,10 +418,11 @@ public class ColaboradorViewController {
     public String solicitarCurso(@AuthenticationPrincipal UsuarioDetails principal,
                                  @RequestParam Long cursoId,
                                  @RequestParam(required = false) String justificacion,
-                                 RedirectAttributes redirectAttributes) {
+                                 RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorCursoService.solicitarInscripcion(principal.getUsuario(), cursoId, justificacion);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud de inscripción fue enviada. Quedará pendiente de aprobación del Resource Manager.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -454,10 +464,11 @@ public class ColaboradorViewController {
     public String subirEvidenciaCurso(@AuthenticationPrincipal UsuarioDetails principal,
                                       @PathVariable Long inscripcionId,
                                       @RequestParam("evidencia") MultipartFile evidencia,
-                                      RedirectAttributes redirectAttributes) {
+                                      RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorCursoService.subirEvidencia(principal.getUsuario(), inscripcionId, evidencia);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Tu evidencia fue enviada. Quedará pendiente de revisión del Resource Manager.");
         } catch (IllegalArgumentException e) {
@@ -469,10 +480,11 @@ public class ColaboradorViewController {
     @PostMapping("/perfil/sobre-mi")
     public String actualizarSobreMi(@AuthenticationPrincipal UsuarioDetails principal,
                                     @RequestParam String descripcion,
-                                    RedirectAttributes redirectAttributes) {
+                                    RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.actualizarSobreMi(principal.getUsuario(), descripcion);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu descripción se actualizó correctamente.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -483,12 +495,13 @@ public class ColaboradorViewController {
     @PostMapping("/perfil/telefono")
     public String actualizarTelefono(@AuthenticationPrincipal UsuarioDetails principal,
                                      @RequestParam String telefono,
-                                     RedirectAttributes redirectAttributes) {
+                                     RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
 
         try {
             colaboradorPerfilService.actualizarTelefono(principal.getUsuario(), telefono);
 
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu teléfono se actualizó correctamente.");
 
         } catch (IllegalArgumentException e) {
@@ -502,10 +515,11 @@ public class ColaboradorViewController {
     @PostMapping("/perfil/foto")
     public String actualizarFoto(@AuthenticationPrincipal UsuarioDetails principal,
                                  @RequestParam("foto") MultipartFile foto,
-                                 RedirectAttributes redirectAttributes) {
+                                 RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.actualizarFoto(principal.getUsuario(), foto);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu foto de perfil se actualizó correctamente.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -516,10 +530,11 @@ public class ColaboradorViewController {
     @PostMapping("/perfil/cv")
     public String actualizarCv(@AuthenticationPrincipal UsuarioDetails principal,
                                @RequestParam("cv") MultipartFile cv,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.actualizarCv(principal.getUsuario(), cv);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Tu CV se subió correctamente y quedó pendiente de revisión del Administrador.");
         } catch (IllegalArgumentException e) {
@@ -530,10 +545,11 @@ public class ColaboradorViewController {
 
     @PostMapping("/perfil/foto/eliminar")
     public String eliminarFoto(@AuthenticationPrincipal UsuarioDetails principal,
-                               RedirectAttributes redirectAttributes) {
+                               RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.eliminarFoto(principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu foto de perfil se eliminó correctamente.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -546,10 +562,11 @@ public class ColaboradorViewController {
                                   @RequestParam String passwordActual,
                                   @RequestParam String passwordNueva,
                                   @RequestParam String passwordConfirmar,
-                                  RedirectAttributes redirectAttributes) {
+                                  RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.cambiarPassword(principal.getUsuario(), passwordActual, passwordNueva, passwordConfirmar);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu contraseña se actualizó correctamente.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -564,7 +581,7 @@ public class ColaboradorViewController {
                                    @RequestParam(required = false) String categoriaId,
                                    @RequestParam(required = false) String nivel,
                                    @RequestParam(value = "certificado", required = false) MultipartFile certificado,
-                                   RedirectAttributes redirectAttributes) {
+                                   RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.agregarHabilidad(
@@ -574,6 +591,7 @@ public class ColaboradorViewController {
                     parseIdOpcional(categoriaId),
                     parseNivel(nivel),
                     certificado);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Habilidad agregada. Quedará pendiente de revisión del Resource Manager.");
         } catch (IllegalArgumentException e) {
@@ -616,10 +634,11 @@ public class ColaboradorViewController {
     @PostMapping("/perfil/habilidades/{habilidadId}/eliminar")
     public String eliminarHabilidad(@AuthenticationPrincipal UsuarioDetails principal,
                                     @PathVariable Long habilidadId,
-                                    RedirectAttributes redirectAttributes) {
+                                    RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         colaboradorPerfilService.eliminarHabilidad(principal.getUsuario(), habilidadId);
-        redirectAttributes.addFlashAttribute("mensajeExito", "Habilidad eliminada de tu perfil.");
+        request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Habilidad eliminada de tu perfil.");
         return "redirect:/colaborador/perfil";
     }
 
@@ -628,11 +647,12 @@ public class ColaboradorViewController {
                                    @RequestParam Long habilidadId,
                                    @RequestParam(required = false) String nivel,
                                    @RequestParam("certificado") MultipartFile certificado,
-                                   RedirectAttributes redirectAttributes) {
+                                   RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.subirCertificado(
                     principal.getUsuario(), habilidadId, parseNivelOpcional(nivel), certificado);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Certificado enviado. El Resource Manager podrá revisarlo desde su bandeja.");
         } catch (IllegalArgumentException e) {
@@ -649,11 +669,12 @@ public class ColaboradorViewController {
                                    @RequestParam(required = false) String fechaInicio,
                                    @RequestParam(required = false) String fechaFin,
                                    @RequestParam("certificado") MultipartFile certificado,
-                                   RedirectAttributes redirectAttributes) {
+                                   RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.agregarEducacion(
                     principal.getUsuario(), institucion, titulo, fechaInicio, fechaFin, certificado);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica agregada. Quedará pendiente de revisión.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -664,10 +685,11 @@ public class ColaboradorViewController {
     @PostMapping("/perfil/educacion/{educacionId}/eliminar")
     public String eliminarEducacion(@AuthenticationPrincipal UsuarioDetails principal,
                                     @PathVariable Long educacionId,
-                                    RedirectAttributes redirectAttributes) {
+                                    RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorPerfilService.eliminarEducacion(principal.getUsuario(), educacionId);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica eliminada de tu perfil.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -681,10 +703,11 @@ public class ColaboradorViewController {
                                                    @RequestParam Long asignacionId,
                                                    @RequestParam(required = false) MultipartFile evidencia,
                                                    @RequestParam(required = false) String comentario,
-                                                   RedirectAttributes redirectAttributes) {
+                                                   RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             colaboradorProyectoService.marcarActividadListaParaRevision(principal.getUsuario(), actividadId, evidencia, comentario);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Actividad marcada como lista para revisión. El PM la revisará pronto.");
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());

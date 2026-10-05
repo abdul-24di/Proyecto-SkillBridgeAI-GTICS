@@ -19,6 +19,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import com.pucp.skillb_ia.dto.pm.*;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpServletRequest;
@@ -117,6 +121,7 @@ public class PmViewController {
 
     @GetMapping({"/proyectos/crear", "/pm-crear-proyecto.html"})
     public String crearProyectoForm(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        model.addAttribute("pmProyectoForm", new PmProyectoForm());
         model.addAttribute("habilidades", habilidadRepository.findByActivaTrue());
         model.addAttribute("pm", principal.getUsuario());
         return "pm/pm-crear-proyecto";
@@ -124,39 +129,22 @@ public class PmViewController {
 
     @PostMapping("/proyectos/crear")
     public String crearProyecto(
-            @RequestParam("nombre") String nombre,
-            @RequestParam(value = "descripcion", required = false) String descripcion,
-            @RequestParam(value = "fechaInicio", required = false) String fechaInicioStr,
-            @RequestParam(value = "fechaFinEstimada", required = false) String fechaFinStr,
-            @RequestParam("prioridad") String prioridad,
-            @RequestParam("justificacionPrioridad") String justificacionPrioridad,
-            @RequestParam(value = "presupuestoSolicitado", required = false) BigDecimal presupuesto,
-            @RequestParam(value = "justificacionPresupuesto", required = false) String justPresupuesto,
-            @RequestParam(value = "colaboradoresRequeridos", defaultValue = "1") int colaboradoresRequeridos,
-            @RequestParam(value = "horasSemanalesRequeridas", required = false) BigDecimal horasSemanales,
-            @RequestParam(value = "habilidadIds", required = false) List<Long> habilidadIds,
-            @RequestParam(value = "nivelesRequeridos", required = false) List<String> niveles,
-            @RequestParam(value = "cantidadesPersonas", required = false) List<Integer> cantidades,
-            @RequestParam(value = "horasSemanalesHab", required = false) List<BigDecimal> horasSemanalesHab,
-            @RequestParam(value = "documentoProyecto", required = false) MultipartFile documentoProyecto,
-            @RequestParam(value = "habilidadesExtra", required = false) String habilidadesExtra,
+            @Valid @ModelAttribute("pmProyectoForm") PmProyectoForm form,
+            BindingResult result,
             @AuthenticationPrincipal UsuarioDetails principal,
+            Model model,
             RedirectAttributes ra, HttpServletRequest request) {
+        if (result.hasErrors()) {
+            model.addAttribute("habilidades", habilidadRepository.findByActivaTrue());
+            model.addAttribute("pm", principal.getUsuario());
+            return "pm/pm-crear-proyecto";
+        }
         try {
-            LocalDate fechaInicio = (fechaInicioStr != null && !fechaInicioStr.isBlank())
-                    ? LocalDate.parse(fechaInicioStr) : null;
-            LocalDate fechaFin = (fechaFinStr != null && !fechaFinStr.isBlank())
-                    ? LocalDate.parse(fechaFinStr) : null;
-
-            // Concatenar las habilidades extra a la descripción si existen
-            String finalDescripcion = descripcion != null ? descripcion : "";
-            if (habilidadesExtra != null && !habilidadesExtra.isBlank()) {
-                finalDescripcion += "\n\nOtras habilidades requeridas: " + habilidadesExtra;
-            }
-
-            var nuevo = pmProyectoService.crear(nombre, finalDescripcion, fechaInicio, fechaFin,
-                    prioridad, justificacionPrioridad, presupuesto, justPresupuesto,
-                    colaboradoresRequeridos, horasSemanales, habilidadIds, niveles, cantidades, horasSemanalesHab,
+            com.pucp.skillb_ia.model.Proyecto nuevo = pmProyectoService.crear(
+                    form.getNombre(), form.getDescripcion(), form.getFechaInicio(), form.getFechaFinEstimada(),
+                    form.getPrioridad(), form.getJustificacionPrioridad(), form.getPresupuestoSolicitado(), form.getJustificacionPresupuesto(),
+                    form.getColaboradoresRequeridos(), null,
+                    form.getHabilidadIds(), form.getNivelesRequeridos(), form.getCantidadesPersonas(), form.getHorasSemanalesHab(),
                     principal.getUsuario());
             ra.addFlashAttribute("success", "Proyecto creado exitosamente. Está pendiente de revisión por el RM.");
             return "redirect:/pm/proyectos/detalle?id=" + nuevo.getId();
@@ -564,18 +552,23 @@ public class PmViewController {
     public String perfil(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
         model.addAttribute("pm", principal.getUsuario());
+        if (!model.containsAttribute("pmPerfilDatosForm")) model.addAttribute("pmPerfilDatosForm", new PmPerfilDatosForm());
+        if (!model.containsAttribute("pmPerfilPasswordForm")) model.addAttribute("pmPerfilPasswordForm", new PmPerfilPasswordForm());
         return "pm/pm-perfil";
     }
 
     @PostMapping("/perfil/datos")
     public String actualizarDatos(
-            @RequestParam("nombre") String nombre,
-            @RequestParam(value = "apellido", required = false) String apellido,
-            @RequestParam(value = "cargo", required = false) String cargo,
-            @AuthenticationPrincipal UsuarioDetails principal,
+            @Valid @ModelAttribute("pmPerfilDatosForm") PmPerfilDatosForm form, BindingResult result,
+            @AuthenticationPrincipal UsuarioDetails principal, Model model,
             RedirectAttributes ra, HttpServletRequest request) {
+        if (result.hasErrors()) {
+            model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
+            model.addAttribute("pm", principal.getUsuario());
+            return "pm/pm-perfil";
+        }
         try {
-            pmPerfilService.actualizarDatos(nombre, apellido, cargo, principal.getUsuario());
+            pmPerfilService.actualizarDatos(form.getNombre(), form.getApellido(), form.getCargo(), principal.getUsuario());
             ra.addFlashAttribute("success", "Datos actualizados correctamente.");
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {
@@ -600,16 +593,19 @@ public class PmViewController {
 
     @PostMapping("/perfil/password")
     public String actualizarPassword(
-            @RequestParam("passwordActual") String passwordActual,
-            @RequestParam("passwordNueva") String passwordNueva,
-            @RequestParam("passwordConfirm") String passwordConfirm,
-            @AuthenticationPrincipal UsuarioDetails principal,
+            @Valid @ModelAttribute("pmPerfilPasswordForm") PmPerfilPasswordForm form, BindingResult result,
+            @AuthenticationPrincipal UsuarioDetails principal, Model model,
             RedirectAttributes ra, HttpServletRequest request) {
+        if (result.hasErrors()) {
+            model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
+            model.addAttribute("pm", principal.getUsuario());
+            return "pm/pm-perfil";
+        }
         try {
-            if (!passwordNueva.equals(passwordConfirm)) {
+            if (!form.getPasswordNueva().equals(form.getPasswordConfirm())) {
                 throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
             }
-            pmPerfilService.actualizarPassword(passwordActual, passwordNueva, principal.getUsuario());
+            pmPerfilService.actualizarPassword(form.getPasswordActual(), form.getPasswordNueva(), principal.getUsuario());
             ra.addFlashAttribute("success", "Contraseña actualizada correctamente.");
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {

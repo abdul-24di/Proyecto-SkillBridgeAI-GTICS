@@ -217,7 +217,7 @@
             <div class="modal-header">
                 <div>
                     <h5 class="modal-title">Nueva publicación</h5>
-                    <div class="text-secondary small">Foro: <span th:text="${proyecto.proyecto.nombre}"></span></div>
+                    <div class="text-secondary small">Foro: <span th:text="${proyecto != null ? proyecto.proyecto.nombre : (foroBase != null ? foroBase.nombre : 'General')}"></span></div>
                 </div>
                 <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>

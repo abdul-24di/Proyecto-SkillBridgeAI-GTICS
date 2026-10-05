@@ -306,10 +306,11 @@ public class PmViewController {
     @PostMapping("/actividades/{id}/confirmar")
     public String confirmarActividad(@PathVariable("id") Long actividadId,
                                      @RequestParam("proyectoId") Long proyectoId,
+                                     @RequestParam(value = "aplicarStrike", defaultValue = "false") boolean aplicarStrike,
                                      @AuthenticationPrincipal UsuarioDetails principal,
                                      RedirectAttributes ra, HttpServletRequest request) {
         try {
-            pmActividadService.confirmar(actividadId, principal.getUsuario());
+            pmActividadService.confirmar(actividadId, aplicarStrike, principal.getUsuario());
             ra.addFlashAttribute("success", "Entrega confirmada exitosamente.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
@@ -321,13 +322,14 @@ public class PmViewController {
     public String devolverActividad(@PathVariable("id") Long actividadId,
                                     @RequestParam("proyectoId") Long proyectoId,
                                     @RequestParam(value = "comentario", required = false) String comentario,
+                                    @RequestParam(value = "aplicarStrike", defaultValue = "false") boolean aplicarStrike,
                                     @AuthenticationPrincipal UsuarioDetails principal,
                                     RedirectAttributes ra, HttpServletRequest request) {
         try {
             if (comentario == null || comentario.isBlank()) {
                 throw new IllegalArgumentException("Debes escribir un comentario para devolver la actividad.");
             }
-            pmActividadService.devolver(actividadId, comentario, principal.getUsuario());
+            pmActividadService.devolver(actividadId, comentario, aplicarStrike, principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad devuelta al colaborador.");
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(getClass()).error("Error al devolver actividad {}", actividadId, e);

@@ -55,6 +55,11 @@ public class PenalizacionService {
     }
 
     @Transactional
+    public void aplicarStrikeManual(Actividad actividad, String motivo) {
+        registrarStrike(actividad, motivo);
+    }
+
+    @Transactional
     public void aplicarStrikePorDevolucion(Actividad actividad) {
         registrarStrike(actividad, "El PM devolvió la actividad \"" + actividad.getTitulo()
                 + "\" por no estar bien hecha.");

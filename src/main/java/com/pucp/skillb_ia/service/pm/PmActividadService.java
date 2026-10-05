@@ -99,7 +99,7 @@ public class PmActividadService {
     }
 
     @Transactional
-    public void confirmar(Long actividadId, Usuario pm) {
+    public void confirmar(Long actividadId, boolean aplicarStrike, Usuario pm) {
         Actividad actividad = obtenerActividadDelPm(actividadId, pm);
 
         if (actividad.getEstado() != EstadoActividad.EN_REVISION) {
@@ -115,6 +115,11 @@ public class PmActividadService {
         auditoriaService.registrar(pm, "CONFIRMAR", "ACTIVIDAD", actividadId,
                 "PM confirmó la entrega de la actividad '" + actividad.getTitulo() + "'.");
 
+        if (aplicarStrike) {
+            penalizacionService.aplicarStrikeManual(actividad, "El PM aceptó la actividad \'" + actividad.getTitulo() + "\' pero aplicó un strike por tardanza o mala calidad.");
+            penalizacionService.verificarYNotificarPorStrikes(actividad.getColaborador(), actividad.getProyecto());
+        }
+
         notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_CONFIRMADA", CategoriaNotificacion.ACTIVIDAD,
                 "Actividad confirmada",
                 "El PM confirmó tu entrega de \"" + actividad.getTitulo() + "\".",
@@ -123,7 +128,7 @@ public class PmActividadService {
 
 
     @Transactional
-    public void devolver(Long actividadId, String comentario, Usuario pm) {
+    public void devolver(Long actividadId, String comentario, boolean aplicarStrike, Usuario pm) {
         Actividad actividad = obtenerActividadDelPm(actividadId, pm);
 
         if (actividad.getEstado() != EstadoActividad.EN_REVISION) {
@@ -140,9 +145,10 @@ public class PmActividadService {
                 "PM devolvió la actividad '" + actividad.getTitulo() + "': " + comentario);
 
 
-        //En caso de que el PM devuelva una actividad por no estar bien hecha se contará como un strike.
-        penalizacionService.aplicarStrikePorDevolucion(actividad);
-        penalizacionService.verificarYNotificarPorStrikes(actividad.getColaborador(), actividad.getProyecto());
+        if (aplicarStrike) {
+            penalizacionService.aplicarStrikePorDevolucion(actividad);
+            penalizacionService.verificarYNotificarPorStrikes(actividad.getColaborador(), actividad.getProyecto());
+        }
 
         notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_DEVUELTA", CategoriaNotificacion.ACTIVIDAD,
                 "Actividad devuelta",

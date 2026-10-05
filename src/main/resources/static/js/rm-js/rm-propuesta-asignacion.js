@@ -157,6 +157,33 @@ document.addEventListener("DOMContentLoaded", function () {
       el.textContent = textos[el.dataset.texto];
     });
 
+    var reqWrap = document.getElementById("propuestaRequisitosWrap");
+    var reqLista = document.getElementById("propuestaRequisitosLista");
+    if (reqWrap && reqLista) {
+      if (datos.proyectoRequisitos) {
+        try {
+          var reqs = JSON.parse(datos.proyectoRequisitos);
+          if (reqs && reqs.length > 0) {
+            var html = "";
+            reqs.forEach(function(r) {
+              html += '<div class="border rounded p-2 bg-light text-center flex-fill">' +
+                      '<div class="fw-semibold">' + r.habilidad + '</div>' +
+                      '<div class="small text-secondary">' + r.nivel + ' · ' + (r.horas !== null ? r.horas + ' h/sem' : 'Sin definir horas') + '</div>' +
+                      '</div>';
+            });
+            reqLista.innerHTML = html;
+            reqWrap.classList.remove("d-none");
+          } else {
+            reqWrap.classList.add("d-none");
+          }
+        } catch (e) {
+          reqWrap.classList.add("d-none");
+        }
+      } else {
+        reqWrap.classList.add("d-none");
+      }
+    }
+
     recalcular();
     Modal.getOrCreateInstance(propuestaModal).show();
   }

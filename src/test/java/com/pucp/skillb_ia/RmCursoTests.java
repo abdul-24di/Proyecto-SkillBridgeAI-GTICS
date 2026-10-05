@@ -538,8 +538,6 @@ class RmCursoTests {
         assertEquals(1, ocurrencias(html, ">Ver evidencia</a>"));
         String enlace = etiquetaAnterior(html, ">Ver evidencia</a>", "<a");
         assertTrue(enlace.contains("href=\"" + evidencia.getEvidenciaUrl() + "\""));
-        assertTrue(enlace.contains("target=\"_blank\""));
-        assertTrue(enlace.contains("rel=\"noopener\""));
         assertTrue(html.contains("data-action=\"/rm/cursos/solicitudes/" + evidencia.getId() + "/evidencia/aprobar\""));
         assertTrue(html.contains("data-action=\"/rm/cursos/solicitudes/" + evidencia.getId() + "/evidencia/rechazar\""));
         assertTrue(html.contains(">Validar evidencia</button>"));

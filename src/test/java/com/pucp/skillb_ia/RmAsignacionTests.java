@@ -1173,7 +1173,8 @@ class RmAsignacionTests {
         assertTrue(delColaborador.contains("data-origen=\"colaborador\""));
         assertTrue(delColaborador.contains("data-colaborador-id=\"" + colaborador.getId() + "\""));
         assertTrue(delColaborador.contains(proyecto.getNombre()));
-        assertTrue(delColaborador.contains("data-proyecto-requeridos=\"3\" data-proyecto-ocupados=\"0\""));
+        assertTrue(delColaborador.contains("data-proyecto-requeridos=\"3\""));
+        assertTrue(delColaborador.contains("data-proyecto-ocupados=\"0\""));
         assertTrue(delColaborador.contains("name=\"justificacionCupo\""));
         assertFalse(delColaborador.contains("data-buscar-url"));
 
@@ -1184,9 +1185,11 @@ class RmAsignacionTests {
                         .param("disponibilidad", "8"))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertTrue(busqueda.contains("data-proyecto-requeridos=\"3\" data-proyecto-ocupados=\"0\""
-                + " data-filtro-busqueda=\"Carla Colaboradora\" data-filtro-disponibilidad=\"8\""
-                + " data-filtro-pagina=\"1\""));
+        assertTrue(busqueda.contains("data-proyecto-requeridos=\"3\""));
+        assertTrue(busqueda.contains("data-proyecto-ocupados=\"0\""));
+        assertTrue(busqueda.contains("data-filtro-busqueda=\"Carla Colaboradora\""));
+        assertTrue(busqueda.contains("data-filtro-disponibilidad=\"8\""));
+        assertTrue(busqueda.contains("data-filtro-pagina=\"1\""));
         assertTrue(busqueda.contains("name=\"busqueda\" data-campo=\"filtroBusqueda\""));
         assertTrue(busqueda.contains("id=\"propuestaJustificacionCupo\" name=\"justificacionCupo\""));
     }

@@ -320,11 +320,15 @@ public class ColaboradorProyectoService {
         }
 
         boolean esActiva = asignacion.getEstado() == EstadoAsignacion.ACTIVA;
+        
+        EstadoProyecto estadoProyecto = asignacion.getProyecto().getEstado();
+        boolean proyectoTerminoParaTodos = estadoProyecto == EstadoProyecto.FINALIZADO
+                || estadoProyecto == EstadoProyecto.CANCELADO;
         boolean esFinalizadaNormal = asignacion.getEstado() == EstadoAsignacion.FINALIZADA
-                && asignacion.getMotivoFinalizacion() != com.pucp.skillb_ia.model.enums.MotivoFinalizacion.BAJO_DESEMPENO;
+                && proyectoTerminoParaTodos;
 
         if (!esActiva && !esFinalizadaNormal) {
-            throw new IllegalArgumentException("Ya no tienes acceso a este proyecto: fuiste removido por bajo desempeño.");
+            throw new IllegalArgumentException("Ya no tienes acceso a este proyecto: fuiste desasignado.");
         }
 
         Proyecto proyecto = asignacion.getProyecto();

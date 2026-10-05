@@ -62,18 +62,45 @@
               <h4 class="mb-2" th:text="${pub.publicacion.titulo}">Título</h4>
               <div th:utext="${pub.publicacion.contenido}"></div>
               
+              <div class="mt-2 mb-3">
+                <form method="POST" th:action="@{/admin/foros/publicacion/{id}/like(id=${pub.publicacion.id})}" class="d-inline">
+                  <input type="hidden" name="foroId" th:value="${foro.id}" />
+                  <button type="submit" class="btn btn-sm mt-1" th:classappend="${pub.meGusta} ? 'btn-red text-white' : 'btn-outline-secondary'">
+                      ❤️ <span th:text="${pub.totalLikes}"></span>
+                  </button>
+                </form>
+                <button type="button" class="btn btn-sm btn-outline-primary ms-2 mt-1" data-bs-toggle="modal" th:data-bs-target="'#replyModal' + ${pub.publicacion.id}">Responder</button>
+              </div>
+
               <!-- Respuestas -->
-              <div class="mt-4" th:if="${pub.respuestas.size() > 0}">
+              <div class="mt-4" th:if="${pub.totalRespuestas > 0}">
                 <h5 class="mb-2 border-bottom pb-1 text-secondary">Comentarios</h5>
-                <div th:each="resp : ${pub.respuestas}" class="mb-2 p-2 rounded bg-light d-flex gap-2">
-                  <span class="avatar avatar-sm bg-secondary-lt" th:text="${resp.autor.nombre.substring(0,1) + resp.autor.apellido.substring(0,1)}">US</span>
+                <div th:each="resp : ${pub.respuestas}" class="mb-2 p-2 rounded d-flex gap-2" th:classappend="${resp.esSolucion} ? 'bg-green-lt' : 'bg-light'">
+                  <span class="avatar avatar-sm bg-secondary-lt" th:text="${resp.autorIniciales}">US</span>
                   <div>
                     <div class="small fw-semibold d-flex align-items-center gap-2">
-                      <span th:text="${resp.autor.nombre + ' ' + resp.autor.apellido}">Autor</span>
+                      <span th:text="${resp.autorNombre}">Autor</span>
                       <span th:if="${resp.esSolucion}" class="badge bg-green-lt">✔️ Solución</span>
-                      <span class="text-secondary ms-2" th:text="${#temporals.format(resp.fechaCreacion, 'dd MMM HH:mm')}"></span>
+                      <span class="text-secondary ms-2" th:text="${#temporals.format(resp.respuesta.fechaCreacion, 'dd MMM HH:mm')}"></span>
                     </div>
-                    <div class="small mt-1" th:utext="${resp.contenido}"></div>
+                    <div class="small mt-1" th:utext="${resp.respuesta.contenido}"></div>
+                    
+                    <div class="mt-2">
+                      <form method="POST" th:action="@{/admin/foros/respuesta/{id}/like(id=${resp.respuesta.id})}" class="d-inline">
+                          <input type="hidden" name="foroId" th:value="${foro.id}" />
+                          <button type="submit" class="btn btn-sm mt-1" th:classappend="${resp.meGusta} ? 'btn-red text-white' : 'btn-outline-secondary'">
+                              ❤️ <span th:text="${resp.totalLikes}">0</span>
+                          </button>
+                      </form>
+                      <form th:if="${admin.id == resp.respuesta.autor.id}" method="POST" th:action="@{/admin/foros/respuesta/{id}/eliminar(id=${resp.respuesta.id})}" class="d-inline ms-1" onsubmit="return confirm('¿Seguro que deseas eliminar esta respuesta?');">
+                          <input type="hidden" name="foroId" th:value="${foro.id}" />
+                          <button type="submit" class="btn btn-sm btn-outline-danger mt-1">Eliminar</button>
+                      </form>
+                      <form th:if="${admin.id == pub.publicacion.autor.id and !pub.resuelta and !resp.esSolucion}" method="POST" th:action="@{/admin/foros/respuesta/{id}/marcar-solucion(id=${resp.respuesta.id})}" class="d-inline ms-1">
+                          <input type="hidden" name="foroId" th:value="${foro.id}" />
+                          <button type="submit" class="btn btn-sm btn-outline-success mt-1">Marcar Solución</button>
+                      </form>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -106,6 +133,29 @@
               </form>
             </div>
           </div>
+        </div>
+        
+        <!-- Modal Responder -->
+        <div class="modal modal-blur fade pm-modal" th:id="'replyModal' + ${pub.publicacion.id}" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Responder a: <span th:text="${pub.publicacion.titulo}"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <form method="POST" th:action="@{/admin/foros/responder}">
+                        <input type="hidden" name="foroId" th:value="${foro.id}" />
+                        <input type="hidden" name="publicacionId" th:value="${pub.publicacion.id}" />
+                        <div class="modal-body">
+                            <textarea name="contenido" class="form-control" rows="5" placeholder="Escribe tu respuesta..." required></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Publicar Respuesta</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
       </div>
     </div>

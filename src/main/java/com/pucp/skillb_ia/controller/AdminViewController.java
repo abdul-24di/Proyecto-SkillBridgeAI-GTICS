@@ -44,6 +44,7 @@ public class AdminViewController {
     private final AdminCursoService adminCursoService;
     private final ColaboradorPerfilService colaboradorPerfilService;
     private final com.pucp.skillb_ia.service.admin.AdminForoService adminForoService;
+    private final com.pucp.skillb_ia.service.pm.PmForoService pmForoService;
 
     public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
                                 AdminConfiguracionService adminConfiguracionService,
@@ -52,7 +53,8 @@ public class AdminViewController {
                                 AdminCargoService adminCargoService,
                                 AdminCursoService adminCursoService,
                                 ColaboradorPerfilService colaboradorPerfilService,
-                                com.pucp.skillb_ia.service.admin.AdminForoService adminForoService) {
+                                com.pucp.skillb_ia.service.admin.AdminForoService adminForoService,
+                                com.pucp.skillb_ia.service.pm.PmForoService pmForoService) {
         this.adminUsuarioService = adminUsuarioService;
         this.adminHabilidadService = adminHabilidadService;
         this.adminConfiguracionService = adminConfiguracionService;
@@ -62,6 +64,7 @@ public class AdminViewController {
         this.adminCursoService = adminCursoService;
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.adminForoService = adminForoService;
+        this.pmForoService = pmForoService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -712,9 +715,9 @@ public class AdminViewController {
     }
 
     @GetMapping("/foros/{id}/publicaciones")
-    public String foroDetalle(@PathVariable Long id, Model model) {
+    public String foroDetalle(@PathVariable Long id, @AuthenticationPrincipal UsuarioDetails principal, Model model) {
         model.addAttribute("foro", adminForoService.obtenerForo(id));
-        model.addAttribute("publicaciones", adminForoService.listarPublicaciones(id));
+        model.addAttribute("publicaciones", pmForoService.obtenerDetallePorForo(id, principal.getUsuario()));
         return "admin/admin-foro-detalle";
     }
 
@@ -741,6 +744,74 @@ public class AdminViewController {
             adminForoService.eliminarPublicacion(pubId);
             ra.addFlashAttribute("success", "Publicación eliminada.");
         } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/foros/" + foroId + "/publicaciones";
+    }
+
+    @PostMapping("/foros/responder")
+    public String responderForo(@RequestParam("publicacionId") Long publicacionId,
+                                @RequestParam(value = "foroId", required = false) Long foroId,
+                                @RequestParam("contenido") String contenido,
+                                @AuthenticationPrincipal UsuarioDetails principal,
+                                RedirectAttributes ra) {
+        try {
+            pmForoService.responder(publicacionId, contenido, principal.getUsuario());
+            ra.addFlashAttribute("success", "Respuesta publicada.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/foros/" + foroId + "/publicaciones";
+    }
+
+    @PostMapping("/foros/respuesta/{id}/marcar-solucion")
+    public String marcarSolucionForo(@PathVariable("id") Long respuestaId,
+                                     @RequestParam(value = "foroId", required = false) Long foroId,
+                                     @AuthenticationPrincipal UsuarioDetails principal,
+                                     RedirectAttributes ra) {
+        try {
+            pmForoService.alternarSolucion(principal.getUsuario(), respuestaId);
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/foros/" + foroId + "/publicaciones";
+    }
+
+    @PostMapping("/foros/publicacion/{publicacionId}/like")
+    public String likePublicacion(@PathVariable Long publicacionId,
+                                  @RequestParam(value = "foroId", required = false) Long foroId,
+                                  @AuthenticationPrincipal UsuarioDetails principal,
+                                  RedirectAttributes ra) {
+        try {
+            pmForoService.alternarLikePublicacion(principal.getUsuario(), publicacionId);
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/foros/" + foroId + "/publicaciones";
+    }
+
+    @PostMapping("/foros/respuesta/{respuestaId}/like")
+    public String likeRespuesta(@PathVariable Long respuestaId,
+                                @RequestParam(value = "foroId", required = false) Long foroId,
+                                @AuthenticationPrincipal UsuarioDetails principal,
+                                RedirectAttributes ra) {
+        try {
+            pmForoService.alternarLikeRespuesta(principal.getUsuario(), respuestaId);
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/admin/foros/" + foroId + "/publicaciones";
+    }
+
+    @PostMapping("/foros/respuesta/{respuestaId}/eliminar")
+    public String eliminarRespuestaForo(@PathVariable Long respuestaId,
+                                        @RequestParam(value = "foroId", required = false) Long foroId,
+                                        @AuthenticationPrincipal UsuarioDetails principal,
+                                        RedirectAttributes ra) {
+        try {
+            pmForoService.eliminarRespuesta(principal.getUsuario(), respuestaId);
+            ra.addFlashAttribute("success", "Respuesta eliminada.");
+        } catch (IllegalArgumentException e) {
             ra.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/admin/foros/" + foroId + "/publicaciones";

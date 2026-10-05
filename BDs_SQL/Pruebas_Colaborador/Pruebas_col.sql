@@ -2,6 +2,7 @@
 -- 0. ACTUALIZAR A CARLOS (col@skillbridge.com) CON SUELDO Y NIVEL
 --    (ya existe, solo le completamos los datos que faltaban)
 -- =====================================================================
+SET SQL_SAFE_UPDATES = 0;
 UPDATE usuario
 SET nivel_experiencia = 'SEMI_SENIOR',
     sueldo_base = 3500.00,

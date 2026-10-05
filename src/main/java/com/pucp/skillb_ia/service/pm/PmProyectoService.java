@@ -78,7 +78,7 @@ public class PmProyectoService {
                           BigDecimal presupuestoSolicitado, String justificacionPresupuesto,
                           int colaboradoresRequeridos, BigDecimal horasSemanalesRequeridas,
                           List<Long> habilidadIds, List<String> nivelesRequeridos,
-                          List<Integer> cantidadesPersonas,
+                          List<Integer> cantidadesPersonas, List<BigDecimal> horasSemanalesHab,
                           Usuario pm) {
         
         if (fechaInicio != null && fechaFinEstimada != null && fechaFinEstimada.isBefore(fechaInicio)) {
@@ -118,6 +118,9 @@ public class PmProyectoService {
                 if (cantidadesPersonas != null && i < cantidadesPersonas.size()
                         && cantidadesPersonas.get(i) != null) {
                     phr.setCantidadPersonas(cantidadesPersonas.get(i));
+                }
+                if (horasSemanalesHab != null && i < horasSemanalesHab.size() && horasSemanalesHab.get(i) != null) {
+                    phr.setHorasSemanales(horasSemanalesHab.get(i));
                 }
                 habilidadRequeridaRepository.save(phr);
             }

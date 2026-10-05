@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", function () {
             reqs.forEach(function(r) {
               html += '<div class="border rounded p-2 bg-light text-center flex-fill">' +
                       '<div class="fw-semibold">' + r.habilidad + '</div>' +
-                      '<div class="small text-secondary">' + r.nivel + ' · ' + (r.horas !== null ? r.horas + ' h/sem' : 'Sin definir horas') + '</div>' +
+                      '<div class="small text-secondary">' + r.nivel + ' · ' + r.cantidad + ' persona(s) · ' + (r.horas !== null ? r.horas + ' h/sem' : 'Sin definir horas') + '</div>' +
                       '</div>';
             });
             reqLista.innerHTML = html;

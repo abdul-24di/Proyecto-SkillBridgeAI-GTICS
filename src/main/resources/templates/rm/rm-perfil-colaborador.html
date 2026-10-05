@@ -16,6 +16,31 @@
         th:href="@{/css/rm-css/rm-asignacion-modales.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css"
         th:href="@{/css/rm-css/rm-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
 </head>
 
 <body>

@@ -64,15 +64,15 @@
 
                             <hr>
 
-                            <form th:action="@{/pm/perfil/datos}" method="post">
+                            <form th:action="@{/pm/perfil/datos}" method="post" th:object="">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Nombres <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" name="nombre" th:value="${pm.nombre}" required>
+                                        <input type="text" class="form-control" th:field="*{nombre}" th:classappend=" ? \'is-invalid\' : \'\'" th:value="${pm.nombre}" required><div class="invalid-feedback" th:if="" th:errors="*{nombre}"></div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Apellidos</label>
-                                        <input type="text" class="form-control" name="apellido" th:value="${pm.apellido}">
+                                        <input type="text" class="form-control" th:field="*{apellido}" th:classappend=" ? \'is-invalid\' : \'\'" th:value="${pm.apellido}"><div class="invalid-feedback" th:if="" th:errors="*{apellido}"></div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Cargo</label>
@@ -95,18 +95,18 @@
                                 <div class="hr-text mt-0 mb-3">Cambiar contraseña</div>
                             </div>
 
-                            <form th:action="@{/pm/perfil/password}" method="post" class="row g-3">
+                            <form th:action="@{/pm/perfil/password}" method="post" class="row g-3" th:object="">
                                 <div class="col-md-4">
                                     <label class="form-label">Contraseña actual</label>
-                                    <input type="password" class="form-control" name="passwordActual" required>
+                                    <input type="password" class="form-control" th:field="*{passwordActual}" th:classappend=" ? \'is-invalid\' : \'\'" required><div class="invalid-feedback" th:if="" th:errors="*{passwordActual}"></div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Nueva Contraseña</label>
-                                    <input type="password" class="form-control" name="passwordNueva" minlength="8" pattern="(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}" title="Debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." required>
+                                    <input type="password" class="form-control" th:field="*{passwordNueva}" th:classappend=" ? \'is-invalid\' : \'\'" minlength="8" pattern="(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}" title="Debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." required><div class="invalid-feedback" th:if="" th:errors="*{passwordNueva}"></div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Confirmar Contraseña</label>
-                                    <input type="password" class="form-control" name="passwordConfirm" minlength="8" required>
+                                    <input type="password" class="form-control" th:field="*{passwordConfirm}" th:classappend=" ? \'is-invalid\' : \'\'" minlength="8" required><div class="invalid-feedback" th:if="" th:errors="*{passwordConfirm}"></div>
                                 </div>
                                 <div class="col-12 d-flex justify-content-end">
                                     <button type="submit" class="btn btn-primary">Cambiar contraseña</button>

@@ -263,7 +263,7 @@
                                     <p class="text-secondary small" th:text="${act.descripcion != null ? act.descripcion : 'Sin descripción.'}">—</p>
 
                                     <div th:if="${act.evidenciaUrl != null}" class="mt-3">
-                                        <a th:href="@{${act.evidenciaUrl}}" target="_blank" class="btn btn-outline-secondary btn-sm">Ver evidencia entregada</a>
+                                        <a th:href="@{${act.evidenciaUrl}}" class="btn btn-outline-secondary btn-sm">Ver evidencia entregada</a>
                                     </div>
                                     <div th:if="${act.comentarioDevolucion != null}" class="alert alert-warning small mt-3 mb-0">
                                         <strong>Comentario del PM:</strong> <span th:text="${act.comentarioDevolucion}"></span>
@@ -644,7 +644,7 @@
 
                     <div class="info-label mb-1">Tu comentario</div>
                     <p class="text-secondary small" id="detalleActividadComentarioColaborador">—</p>
-                    <a href="#" target="_blank" id="detalleActividadEvidenciaLink" class="btn btn-outline-secondary btn-sm">Ver evidencia enviada</a>
+                    <a href="#" id="detalleActividadEvidenciaLink" class="btn btn-outline-secondary btn-sm">Ver evidencia enviada</a>
                 </div>
 
                 <div id="detalleActividadCompletadaBlock" style="display:none">

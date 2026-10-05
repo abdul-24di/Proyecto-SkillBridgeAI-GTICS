@@ -162,7 +162,7 @@
                         <p class="text-secondary small" th:text="${act.actividad.comentarioColaborador}">—</p>
                     </div>
                     <div th:if="${act.actividad.evidenciaUrl != null}" class="mb-3">
-                        <a th:href="@{${act.actividad.evidenciaUrl}}" target="_blank" class="btn btn-outline-secondary btn-sm">Ver evidencia adjuntada</a>
+                        <a th:href="@{${act.actividad.evidenciaUrl}}" class="btn btn-outline-secondary btn-sm">Ver evidencia adjuntada</a>
                     </div>
                     <div th:if="${act.actividad.comentarioDevolucion != null}" class="alert alert-warning small mb-0">
                         <div class="fw-semibold">Tú devolviste esta actividad antes:</div>

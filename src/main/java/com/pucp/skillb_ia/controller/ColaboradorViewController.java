@@ -444,8 +444,10 @@ public class ColaboradorViewController {
         model.addAttribute("experienciaProfesional", colaboradorPerfilService.listarExperienciaProfesional(colaborador));
         model.addAttribute("historialProyectos", colaboradorProyectoService.listarHistorialProyectos(colaborador));
         model.addAttribute("misCursosEnCurso", colaboradorCursoService.listarMisCursos(colaborador));
+        model.addAttribute("evaluaciones", evaluacionService.obtenerEvaluacionesPorColaborador(colaborador.getId()));
 
         return "col/col-perfil";
+
     }
 
     @PostMapping("/perfil/cursos/{inscripcionId}/evidencia")

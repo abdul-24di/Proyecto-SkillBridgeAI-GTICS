@@ -135,26 +135,29 @@
                         <p class="text-secondary small" th:text="${v.proyecto.descripcion}">Descripción del proyecto.</p>
                         <div class="profile-list-line"><strong>PM:</strong> <span th:text="${v.proyecto.pm.nombre} + ' ' + ${v.proyecto.pm.apellido}">Nombre PM</span></div>
                         <div class="profile-list-line"><strong>Equipo:</strong> <span th:text="${v.colaboradoresActivos} + ' / ' + ${v.proyecto.colaboradoresRequeridos} + ' colaboradores'">2 / 5 colaboradores</span></div>
-                        <div class="profile-list-line"><strong>Horas requeridas:</strong> <span th:text="${v.proyecto.horasSemanalesRequeridas} + ' horas/semana'">20 horas/semana</span></div>
-                        <div class="info-label mt-3 mb-1">Perfiles que busca</div>
+
+
+                        <div class="info-label mt-3 mb-1">Perfiles que busca (horas/semana por perfil)</div>
                         <div th:if="${v.perfiles.isEmpty()}" class="text-secondary small">No se especificaron habilidades para este proyecto.</div>
                         <div th:unless="${v.perfiles.isEmpty()}">
                             <span th:each="p : ${v.perfiles}" class="badge me-1 mb-1"
                                   th:classappend="${p.cuposDisponibles > 0} ? 'bg-blue-lt' : 'bg-secondary-lt'"
-                                  th:text="${p.etiqueta} + (${p.cuposDisponibles > 0} ? (' — ' + ${p.cuposDisponibles} + ' vacante(s)') : ' — agotado')">Java (Intermedio) — 1 vacante(s)</span>
+                                  th:text="${p.etiqueta} + ' — ' + ${p.horasSemanales} + 'h/sem' + (${p.cuposDisponibles > 0} ? (' — ' + ${p.cuposDisponibles} + ' vacante(s)') : ' — agotado')">Java (Intermedio) — 20h/sem — 1 vacante(s)</span>
                         </div>
                         <!-- Opciones de perfil para el modal de postulación de ESTE proyecto (solo lo lee el JS, no se muestra) -->
                         <template class="perfil-options-template">
                             <option th:each="p : ${v.perfiles}" th:if="${p.cuposDisponibles > 0}"
-                                    th:value="${p.habilidadId}" th:text="${p.etiqueta}"></option>
+                                    th:value="${p.habilidadId}" th:text="${p.etiqueta} + ' — ' + ${p.horasSemanales} + 'h/semana'"></option>
                         </template>
+
                         <div class="info-grid mt-3">
                             <div><div class="info-label">Fecha de inicio</div><div class="info-value" th:text="${v.proyecto.fechaInicio != null ? v.proyecto.fechaInicio : 'Por definir'}">01/09/2026</div></div>
                             <div><div class="info-label">Fin estimado</div><div class="info-value" th:text="${v.proyecto.fechaFinEstimada != null ? v.proyecto.fechaFinEstimada : 'Por definir'}">—</div></div>
                         </div>
                         <div class="action-bar mt-3 mb-0">
                             <span th:if="${v.yaTieneSolicitud}" class="badge bg-blue-lt">Ya te postulaste a este proyecto</span>
-                            <span th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas and !v.tieneHorasSuficientes}" class="badge bg-red-lt">Ojo: no tienes suficientes horas disponibles declaradas en tu perfil</span>
+
+                            <span th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas and !v.tieneHorasSuficientes}" class="badge bg-red-lt">No tienes horas disponibles suficientes para ninguno de los perfiles abiertos de este proyecto</span>
                             <span th:if="${!v.yaTieneSolicitud and !v.postulacionesAbiertas}" class="badge bg-secondary-lt">Postulaciones cerradas</span>
                             <button th:if="${!v.yaTieneSolicitud and v.postulacionesAbiertas}" type="button" class="btn btn-primary btn-sm" data-open-apply
                                     data-bs-toggle="modal" data-bs-target="#applyModal"

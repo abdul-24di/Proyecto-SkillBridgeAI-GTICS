@@ -44,6 +44,7 @@ public class ColaboradorProyectoService {
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
     private final ColaboradorExplorarService colaboradorExplorarService;
     private final NotificacionService notificacionService;
+    private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
 
     public ColaboradorProyectoService(ProyectoRepository proyectoRepository,
                                       AsignacionRepository asignacionRepository,
@@ -54,7 +55,8 @@ public class ColaboradorProyectoService {
                                       AuditoriaService auditoriaService,
                                       PenalizacionService penalizacionService,
                                       NotificacionService notificacionService,
-                                      ArchivoAlmacenamientoService archivoAlmacenamientoService) {
+                                      ArchivoAlmacenamientoService archivoAlmacenamientoService,
+                                      ColaboradorHabilidadRepository colaboradorHabilidadRepository) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.notificacionService = notificacionService;
@@ -65,6 +67,7 @@ public class ColaboradorProyectoService {
         this.auditoriaService = auditoriaService;
         this.penalizacionService = penalizacionService;
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
+        this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
     }
 
     // ============================================================
@@ -108,6 +111,7 @@ public class ColaboradorProyectoService {
         List<ProyectoHabilidadRequerida> requeridas = proyectoHabilidadRequeridaRepository.findByProyecto(proyecto);
         List<ColPerfilRequeridoView> perfiles = new ArrayList<>();
         boolean algunPerfilConCupo = false;
+        boolean algunPerfilConCupoYHorasSuficientes = false;
 
         for (ProyectoHabilidadRequerida requerida : requeridas) {
             int ocupadosDeEstePerfil = 0;
@@ -125,19 +129,25 @@ public class ColaboradorProyectoService {
                 algunPerfilConCupo = true;
             }
 
+
+            BigDecimal horasDeEstePerfil = requerida.getHorasSemanales() != null ? requerida.getHorasSemanales() : proyecto.getHorasSemanalesRequeridas();
+
+            if (cuposPerfil > 0 && tieneHorasSuficientes(colaborador, horasDeEstePerfil)) {
+                algunPerfilConCupoYHorasSuficientes = true;
+            }
+
             String nivel = requerida.getNivelRequerido() != null ? nombreNivel(requerida.getNivelRequerido()) : null;
             String etiqueta = requerida.getHabilidad().getNombre() + (nivel != null ? " (" + nivel + ")" : "");
-            perfiles.add(new ColPerfilRequeridoView(requerida.getHabilidad().getId(), etiqueta, cuposPerfil));
+            perfiles.add(new ColPerfilRequeridoView(requerida.getHabilidad().getId(), etiqueta, cuposPerfil, horasDeEstePerfil));
         }
 
         int cupos = proyecto.getColaboradoresRequeridos() - activos;
-        boolean tieneHorasSuficientes = tieneHorasSuficientes(colaborador, proyecto);
 
         // Postulaciones abiertas = proyecto activo Y al menos un perfil con cupo.
         boolean postulacionesAbiertas = proyecto.getEstado() == EstadoProyecto.ACTIVO && algunPerfilConCupo;
 
         return new ColProyectoDisponibleView(proyecto, activos, cupos, perfiles, yaTieneSolicitud,
-                tieneHorasSuficientes, postulacionesAbiertas);
+                algunPerfilConCupoYHorasSuficientes, postulacionesAbiertas);
     }
 
     private String nombreNivel(NivelDominio nivel) {
@@ -146,12 +156,12 @@ public class ColaboradorProyectoService {
         return "Básico";
     }
 
-    private boolean tieneHorasSuficientes(Usuario colaborador, Proyecto proyecto) {
+    private boolean tieneHorasSuficientes(Usuario colaborador, BigDecimal horasRequeridas) {
         BigDecimal disponibles = colaborador.getHorasDisponibles();
-        if (disponibles == null) {
+        if (disponibles == null || horasRequeridas == null) {
             return false;
         }
-        return disponibles.compareTo(proyecto.getHorasSemanalesRequeridas()) >= 0;
+        return disponibles.compareTo(horasRequeridas) >= 0;
     }
 
     public List<Asignacion> listarMisSolicitudes(Usuario colaborador) {
@@ -184,15 +194,12 @@ public class ColaboradorProyectoService {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("El proyecto seleccionado no existe."));
 
+
         if (proyecto.getEstado() != EstadoProyecto.ACTIVO) {
             throw new IllegalArgumentException("Este proyecto ya no está activo.");
         }
         if (habilidadId == null) {
             throw new IllegalArgumentException("Selecciona el perfil al que deseas postularte.");
-        }
-        if (!tieneHorasSuficientes(colaborador, proyecto)) {
-            throw new IllegalArgumentException("No tienes suficientes horas disponibles para este proyecto. Se requieren "
-                    + proyecto.getHorasSemanalesRequeridas() + " horas/semana.");
         }
 
         Habilidad habilidad = habilidadRepository.findById(habilidadId)
@@ -202,6 +209,24 @@ public class ColaboradorProyectoService {
                 .findByProyectoAndHabilidad(proyecto, habilidad)
                 .orElseThrow(() -> new IllegalArgumentException("Ese perfil no pertenece a este proyecto."));
 
+        boolean tieneLaHabilidadValidada = false;
+        for (ColaboradorHabilidad ch : colaboradorHabilidadRepository.findByColaboradorAndActivoTrue(colaborador)) {
+            if (ch.getHabilidad().getId().equals(habilidadId) && ch.getEstadoValidacion() == EstadoValidacion.VALIDADA) {
+                tieneLaHabilidadValidada = true;
+                break;
+            }
+        }
+        if (!tieneLaHabilidadValidada) {
+            throw new IllegalArgumentException(
+                    "No cuentas con la habilidad \"" + habilidad.getNombre() + "\" validada en tu perfil, así que no puedes postularte a ese perfil.");
+        }
+
+        BigDecimal horasDeEsePerfil = requerida.getHorasSemanales() != null
+                ? requerida.getHorasSemanales() : proyecto.getHorasSemanalesRequeridas();
+        if (!tieneHorasSuficientes(colaborador, horasDeEsePerfil)) {
+            throw new IllegalArgumentException("No tienes suficientes horas disponibles para este perfil. Se requieren "
+                    + horasDeEsePerfil + " horas/semana.");
+        }
         List<Asignacion> asignacionesDelProyecto = asignacionRepository.findByProyecto(proyecto);
 
         int ocupadosDeEsePerfil = 0;
@@ -232,7 +257,7 @@ public class ColaboradorProyectoService {
         Asignacion asignacion = new Asignacion();
         asignacion.setProyecto(proyecto);
         asignacion.setColaborador(colaborador);
-        asignacion.setHorasSemanales(proyecto.getHorasSemanalesRequeridas());
+        asignacion.setHorasSemanales(horasDeEsePerfil);
         asignacion.setOrigen(OrigenAsignacion.SOLICITADA_COLABORADOR);
         asignacion.setHabilidadSolicitada(habilidad);
         asignacion.setHabilidadesRelevantes(habilidadesRelevantes == null || habilidadesRelevantes.isBlank()

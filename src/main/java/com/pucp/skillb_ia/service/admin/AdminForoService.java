@@ -11,16 +11,23 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import com.pucp.skillb_ia.dto.AdminPublicacionView;
+import com.pucp.skillb_ia.repository.RespuestaForoRepository;
+import java.util.ArrayList;
+
 @Service
 public class AdminForoService {
 
     private final ForoRepository foroRepository;
     private final PublicacionForoRepository publicacionForoRepository;
+    private final RespuestaForoRepository respuestaForoRepository;
 
     public AdminForoService(ForoRepository foroRepository,
-                            PublicacionForoRepository publicacionForoRepository) {
+                            PublicacionForoRepository publicacionForoRepository,
+                            RespuestaForoRepository respuestaForoRepository) {
         this.foroRepository = foroRepository;
         this.publicacionForoRepository = publicacionForoRepository;
+        this.respuestaForoRepository = respuestaForoRepository;
     }
 
     @Transactional(readOnly = true)
@@ -52,9 +59,14 @@ public class AdminForoService {
     }
 
     @Transactional(readOnly = true)
-    public List<PublicacionForo> listarPublicaciones(Long foroId) {
+    public List<AdminPublicacionView> listarPublicaciones(Long foroId) {
         Foro foro = obtenerForo(foroId);
-        return publicacionForoRepository.findByForoAndActivoTrueOrderByFechaCreacionDesc(foro);
+        List<PublicacionForo> publicaciones = publicacionForoRepository.findByForoAndActivoTrueOrderByFechaCreacionDesc(foro);
+        List<AdminPublicacionView> vistas = new ArrayList<>();
+        for (PublicacionForo pub : publicaciones) {
+            vistas.add(new AdminPublicacionView(pub, respuestaForoRepository.findByPublicacionConAutor(pub)));
+        }
+        return vistas;
     }
 
     @Transactional

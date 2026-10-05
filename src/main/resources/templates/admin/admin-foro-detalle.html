@@ -52,21 +52,37 @@
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-start">
           <div class="d-flex gap-3 flex-grow-1">
-            <span class="avatar avatar-sm" th:text="${pub.autor.nombre.substring(0,1) + pub.autor.apellido.substring(0,1)}">AA</span>
+            <span class="avatar avatar-sm" th:text="${pub.publicacion.autor.nombre.substring(0,1) + pub.publicacion.autor.apellido.substring(0,1)}">AA</span>
             <div class="flex-grow-1">
               <div class="d-flex align-items-center gap-2 mb-1">
-                <strong th:text="${pub.autor.nombre + ' ' + pub.autor.apellido}">Autor</strong>
-                <span class="badge bg-purple-lt text-purple" th:text="${pub.autor.rol.nombre}">Rol</span>
-                <span class="text-secondary small" th:text="${#temporals.format(pub.fechaCreacion, 'dd MMM yyyy HH:mm')}">Fecha</span>
+                <strong th:text="${pub.publicacion.autor.nombre + ' ' + pub.publicacion.autor.apellido}">Autor</strong>
+                <span class="badge bg-purple-lt text-purple" th:text="${pub.publicacion.autor.rol.nombre}">Rol</span>
+                <span class="text-secondary small" th:text="${#temporals.format(pub.publicacion.fechaCreacion, 'dd MMM yyyy HH:mm')}">Fecha</span>
               </div>
-              <h4 class="mb-2" th:text="${pub.titulo}">Título</h4>
-              <div th:utext="${pub.contenido}"></div>
+              <h4 class="mb-2" th:text="${pub.publicacion.titulo}">Título</h4>
+              <div th:utext="${pub.publicacion.contenido}"></div>
+              
+              <!-- Respuestas -->
+              <div class="mt-4" th:if="${pub.respuestas.size() > 0}">
+                <h5 class="mb-2 border-bottom pb-1 text-secondary">Comentarios</h5>
+                <div th:each="resp : ${pub.respuestas}" class="mb-2 p-2 rounded bg-light d-flex gap-2">
+                  <span class="avatar avatar-sm bg-secondary-lt" th:text="${resp.autor.nombre.substring(0,1) + resp.autor.apellido.substring(0,1)}">US</span>
+                  <div>
+                    <div class="small fw-semibold d-flex align-items-center gap-2">
+                      <span th:text="${resp.autor.nombre + ' ' + resp.autor.apellido}">Autor</span>
+                      <span th:if="${resp.esSolucion}" class="badge bg-green-lt">✔️ Solución</span>
+                      <span class="text-secondary ms-2" th:text="${#temporals.format(resp.fechaCreacion, 'dd MMM HH:mm')}"></span>
+                    </div>
+                    <div class="small mt-1" th:utext="${resp.contenido}"></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           <div class="ms-3">
             <button type="button" class="btn btn-sm btn-outline-danger"
                     data-bs-toggle="modal"
-                    th:data-bs-target="'#modalEliminarPub-' + ${pub.id}">Eliminar</button>
+                    th:data-bs-target="'#modalEliminarPub-' + ${pub.publicacion.id}">Eliminar</button>
           </div>
         </div>
       </div>
@@ -74,14 +90,14 @@
 
     <!-- Modales de eliminación de publicaciones -->
     <div th:each="pub : ${publicaciones}">
-      <div class="modal modal-blur fade" th:id="'modalEliminarPub-' + ${pub.id}" tabindex="-1">
+      <div class="modal modal-blur fade" th:id="'modalEliminarPub-' + ${pub.publicacion.id}" tabindex="-1">
         <div class="modal-dialog modal-sm modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-body text-center py-4">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01"/><path d="M5 19h14a2 2 0 0 0 1.84-2.75l-7.1-12.25a2 2 0 0 0-3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75"/></svg>
               <h3>¿Eliminar publicación?</h3>
               <div class="text-secondary mb-4">Esta acción no se puede deshacer.</div>
-              <form th:action="@{/admin/foros/publicacion/{id}/eliminar(id=${pub.id})}" method="POST">
+              <form th:action="@{/admin/foros/publicacion/{id}/eliminar(id=${pub.publicacion.id})}" method="POST">
                 <input type="hidden" name="foroId" th:value="${foro.id}">
                 <div class="d-flex gap-2 w-100">
                   <button type="button" class="btn w-50" data-bs-dismiss="modal">Cancelar</button>

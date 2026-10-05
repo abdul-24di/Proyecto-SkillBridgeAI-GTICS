@@ -9,6 +9,31 @@
     <link rel="stylesheet" href="../../static/css/col-css/col-detalle-proyecto.css" th:href="@{/css/col-css/col-detalle-proyecto.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-foros.css" th:href="@{/css/col-css/col-foros.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
 </head>
 <body>
 <div class="app-shell">
@@ -263,7 +288,7 @@
                                     <p class="text-secondary small" th:text="${act.descripcion != null ? act.descripcion : 'Sin descripción.'}">—</p>
 
                                     <div th:if="${act.evidenciaUrl != null}" class="mt-3">
-                                        <a th:href="@{${act.evidenciaUrl}}" class="btn btn-outline-secondary btn-sm">Ver evidencia entregada</a>
+                                        <a th:onclick="'showEvidenciaModal(\'' + @{${act.evidenciaUrl}} + '\'); return false;'" href="#"  class="btn btn-outline-secondary btn-sm">Ver evidencia entregada</a>
                                     </div>
                                     <div th:if="${act.comentarioDevolucion != null}" class="alert alert-warning small mt-3 mb-0">
                                         <strong>Comentario del PM:</strong> <span th:text="${act.comentarioDevolucion}"></span>
@@ -755,5 +780,26 @@
         document.getElementById("abrirDetalleActividadModalBtn").click();
     }
 </script>
+
+<!-- Lightbox Modal -->
+<div class="modal modal-blur fade" id="evidenciaModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-content" style="background: transparent; border: none; box-shadow: none;">
+      <div class="modal-body text-center p-0" style="position: relative;">
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="position: absolute; right: -30px; top: -30px; z-index: 1050; filter: invert(1) grayscale(100%) brightness(200%);"></button>
+        <img id="modalImagePreview" src="" alt="Evidencia" style="max-width: 100%; max-height: 90vh; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showEvidenciaModal(url) {
+    document.getElementById('modalImagePreview').src = url;
+    var myModal = new bootstrap.Modal(document.getElementById('evidenciaModal'));
+    myModal.show();
+}
+</script>
+
 </body>
 </html>

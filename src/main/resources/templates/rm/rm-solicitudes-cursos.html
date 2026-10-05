@@ -112,7 +112,7 @@
           </div>
 
           <div th:if="${item.pendienteRevisionEvidencia}" class="d-flex flex-wrap gap-2 justify-content-end">
-            <a th:onclick="'showEvidenciaModal(\'' + ${item.evidenciaUrl} + '\'); return false;'" href="#" th:if="${!#strings.isEmpty(item.evidenciaUrl)}" class="btn btn-outline-primary btn-sm"
+            <a th:data-evidencia="${item.evidenciaUrl}" onclick="showEvidenciaModal(this.getAttribute('data-evidencia')); return false;" href="#" th:if="${!#strings.isEmpty(item.evidenciaUrl)}" class="btn btn-outline-primary btn-sm"
                >Ver evidencia</a>
             <button type="button" class="btn btn-success btn-sm"
                     data-bs-toggle="modal" data-bs-target="#approveEvidenceModal"

@@ -288,7 +288,7 @@
                                     <p class="text-secondary small" th:text="${act.descripcion != null ? act.descripcion : 'Sin descripción.'}">—</p>
 
                                     <div th:if="${act.evidenciaUrl != null}" class="mt-3">
-                                        <a th:onclick="'showEvidenciaModal(\'' + @{${act.evidenciaUrl}} + '\'); return false;'" href="#"  class="btn btn-outline-secondary btn-sm">Ver evidencia entregada</a>
+                                        <a th:data-evidencia="@{${act.evidenciaUrl}}" onclick="showEvidenciaModal(this.getAttribute('data-evidencia')); return false;" href="#"  class="btn btn-outline-secondary btn-sm">Ver evidencia entregada</a>
                                     </div>
                                     <div th:if="${act.comentarioDevolucion != null}" class="alert alert-warning small mt-3 mb-0">
                                         <strong>Comentario del PM:</strong> <span th:text="${act.comentarioDevolucion}"></span>

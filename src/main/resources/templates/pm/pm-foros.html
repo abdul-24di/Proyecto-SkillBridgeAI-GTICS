@@ -41,15 +41,15 @@
                             <div class="card card-link-pop">
                                 <div class="card-body">
                                     <div class="d-flex align-items-center mb-3">
-                                        <span class="avatar bg-blue-lt rounded" th:text="${foro.foro.nombre != null and foro.foro.nombre.length() >= 2 ? foro.foro.nombre.substring(0,2).toUpperCase() : 'CO'}">CO</span>
-                                        <h3 class="card-title m-0 ms-3" th:text="${foro.foro.nombre}">Comunidad</h3>
+                                        <span class="avatar bg-blue-lt rounded" th:text="${foro.foroNombre != null and foro.foroNombre.length() >= 2 ? foro.foroNombre.substring(0,2).toUpperCase() : 'CO'}">CO</span>
+                                        <h3 class="card-title m-0 ms-3" th:text="${foro.foroNombre}">Comunidad</h3>
                                     </div>
                                     <p class="text-secondary mb-3">Foro abierto a toda la organización.</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="text-secondary small">
                                             <span th:text="${foro.totalPublicaciones + ' Temas'}"></span>
                                         </div>
-                                        <a th:href="@{/pm/foro/detalle(foroId=${foro.foro.id})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                                        <a th:href="@{/pm/foro/detalle(foroId=${foro.foroId})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
                                     </div>
                                     <div class="mt-3 small text-secondary" th:if="${foro.tienePublicaciones}">
                                         Última act: <strong th:text="${foro.ultimaPublicacionTitulo}">Título</strong>

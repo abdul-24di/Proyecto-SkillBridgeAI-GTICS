@@ -39,6 +39,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -255,13 +257,14 @@ public class RmViewController {
             @RequestParam(name = "asignacionId", required = false) Long asignacionId,
             @RequestParam(name = "origen", required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             BigDecimal presupuesto = convertirDecimal(
                     presupuestoTexto, "El presupuesto debe ser un monto numérico válido.");
             EstadoProyecto estado = rmProyectoRevisionService.asignarPresupuesto(
                     proyectoId, presupuesto, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Presupuesto guardado correctamente.");
             String redireccionAsignacion = redireccionAsignacionDelProyecto(proyectoId, asignacionId, origen);
             if (redireccionAsignacion != null) return redireccionAsignacion;
@@ -283,7 +286,7 @@ public class RmViewController {
             @RequestParam(name = "fechaFin", required = false) String fechaFinTexto,
             @RequestParam(name = "origen", required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         String destino = "revision".equals(origen)
                 ? "redirect:/rm/proyectos/revision?id=" + proyectoId
                 : "redirect:/rm/proyectos/detalle?id=" + proyectoId;
@@ -291,6 +294,7 @@ public class RmViewController {
         try {
             rmProyectoRevisionService.cambiarFechas(proyectoId,
                     convertirFecha(fechaInicioTexto), convertirFecha(fechaFinTexto), principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Fechas del proyecto actualizadas correctamente.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
@@ -358,10 +362,11 @@ public class RmViewController {
             @RequestParam(name = "calificacion", required = false) Integer calificacion,
             @RequestParam(name = "feedback", required = false) String feedback,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmProyectoRevisionService.aprobar(proyectoId, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Proyecto aprobado y activado correctamente.");
             return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
         } catch (IllegalArgumentException ex) {
@@ -378,11 +383,12 @@ public class RmViewController {
             @PathVariable("id") Long proyectoId,
             @RequestParam("motivo") String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmProyectoRevisionService.rechazar(
                     proyectoId, motivo, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Proyecto rechazado correctamente.");
             return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
         } catch (IllegalArgumentException ex) {
@@ -401,11 +407,12 @@ public class RmViewController {
             @RequestParam(name = "motivo", required = false) String motivo,
             @RequestParam(name = "confirmacionNombre", required = false) String confirmacionNombre,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             var resultado = rmProyectoRevisionService.cancelar(
                     proyectoId, motivo, confirmacionNombre, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     CierreAsignacionesService.mensaje("cancelado", resultado));
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -420,11 +427,12 @@ public class RmViewController {
             @RequestParam(name = "motivo", required = false) String motivo,
             @RequestParam(name = "confirmacionNombre", required = false) String confirmacionNombre,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             var resultado = rmProyectoRevisionService.finalizar(
                     proyectoId, motivo, confirmacionNombre, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     CierreAsignacionesService.mensaje("finalizado", resultado));
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -458,7 +466,7 @@ public class RmViewController {
             @RequestParam(required = false) String carga,
             @RequestParam(required = false) String pagina,
             Model model,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (proyectoIdTexto == null || proyectoIdTexto.isBlank()) return "redirect:/rm/proyectos";
         Long proyectoId;
         try {
@@ -541,7 +549,7 @@ public class RmViewController {
             @RequestParam(required = false) String carga,
             @RequestParam(required = false) String pagina,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         // Orígenes cerrados del modal (TASK-034): buscar, perfil y colaborador (sus asignaciones).
         // Con "buscar", éxito y error vuelven a la misma búsqueda (filtros y página).
@@ -793,11 +801,12 @@ public class RmViewController {
             @RequestParam(name = "nivelHabilidad", required = false) NivelDominio nivelHabilidad,
             @RequestParam(name = "nivelGeneral", required = false) NivelExperiencia nivelGeneral,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmCertificadoService.aprobar(certificadoId, nivelHabilidad, nivelGeneral,
                     principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Certificado aprobado y perfil actualizado.");
             return "redirect:/rm/colaboradores/certificados";
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -811,10 +820,11 @@ public class RmViewController {
             @PathVariable("id") Long certificadoId,
             @RequestParam("motivo") String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmCertificadoService.rechazar(certificadoId, motivo, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Certificado rechazado; el motivo quedó guardado.");
             return "redirect:/rm/colaboradores/certificados";
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -851,7 +861,7 @@ public class RmViewController {
     public String educationReview(
             @RequestParam(name = "id", required = false) Long educacionId,
             Model model,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (educacionId == null) return "redirect:/rm/colaboradores/educacion";
         try {
             model.addAttribute("formacion", rmEducacionService.obtener(educacionId));
@@ -866,7 +876,7 @@ public class RmViewController {
     @GetMapping("/colaboradores/educacion/{id}/documento")
     public String educationDocument(
             @PathVariable("id") Long educacionId,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             return "redirect:" + rmEducacionService.obtenerUrlDocumento(educacionId);
         } catch (IllegalArgumentException ex) {
@@ -882,10 +892,11 @@ public class RmViewController {
     public String approveEducation(
             @PathVariable("id") Long educacionId,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmEducacionService.aprobar(educacionId, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica aprobada.");
             return "redirect:/rm/colaboradores/educacion";
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -899,10 +910,11 @@ public class RmViewController {
             @PathVariable("id") Long educacionId,
             @RequestParam(name = "motivo", required = false) String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmEducacionService.rechazar(educacionId, motivo, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Formación académica rechazada; el motivo quedó guardado.");
             return "redirect:/rm/colaboradores/educacion";
@@ -917,13 +929,14 @@ public class RmViewController {
             @PathVariable("id") Long colaboradorId,
             @RequestParam(name = "nivel", required = false) String nivelTexto,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             NivelExperiencia nivel = convertirEnum(
                     NivelExperiencia.class, nivelTexto, "Selecciona un nivel de experiencia válido.");
             rmCertificadoService.actualizarNivelExperiencia(
                     colaboradorId, nivel, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Nivel de experiencia actualizado.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
@@ -982,11 +995,12 @@ public class RmViewController {
             @RequestParam("cursoId") Long cursoId,
             @RequestParam("motivo") String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmCursoService.asignarDirectamente(
                     colaboradorId, cursoId, motivo, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Curso asignado correctamente; el colaborador fue notificado.");
             return "redirect:/rm/cursos/solicitudes?estado=EN_CURSO";
@@ -1001,10 +1015,11 @@ public class RmViewController {
             @PathVariable("id") Long inscripcionId,
             @RequestParam(name = "motivo", required = false) String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmCursoService.aprobar(inscripcionId, motivo, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Solicitud aprobada; el colaborador fue notificado.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -1018,10 +1033,11 @@ public class RmViewController {
             @PathVariable("id") Long inscripcionId,
             @RequestParam(name = "motivo", required = false) String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmCursoService.rechazar(inscripcionId, motivo, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Solicitud rechazada; el motivo quedó registrado y se notificó al colaborador.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -1034,10 +1050,11 @@ public class RmViewController {
     public String approveCourseEvidence(
             @PathVariable("id") Long inscripcionId,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmCursoService.aprobarEvidencia(inscripcionId, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Evidencia validada; el curso quedó marcado como completado y se notificó al colaborador.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -1051,10 +1068,11 @@ public class RmViewController {
             @PathVariable("id") Long inscripcionId,
             @RequestParam(name = "motivo", required = false) String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmCursoService.rechazarEvidencia(inscripcionId, motivo, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Evidencia rechazada; el colaborador fue notificado y puede volver a subirla.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
@@ -1214,10 +1232,11 @@ public class RmViewController {
             @PathVariable("id") Long asignacionId,
             @RequestParam(name = "motivoCapacidad", required = false) String motivoCapacidad,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmAsignacionService.aprobar(asignacionId, motivoCapacidad, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Asignación aprobada correctamente.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
@@ -1230,10 +1249,11 @@ public class RmViewController {
             @PathVariable("id") Long asignacionId,
             @RequestParam("motivo") String motivo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmAsignacionService.rechazar(asignacionId, motivo, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Asignación rechazada correctamente.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
@@ -1249,13 +1269,14 @@ public class RmViewController {
             @RequestParam(name = "calificacion", required = false) Integer calificacion,
             @RequestParam(name = "feedback", required = false) String feedback,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             MotivoFinalizacion motivo = convertirEnum(
                     MotivoFinalizacion.class, motivoTexto, "Selecciona un motivo de finalización válido.");
             rmAsignacionService.finalizar(
                     asignacionId, motivo, observacion, calificacion, feedback, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Asignación finalizada correctamente.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
@@ -1325,11 +1346,12 @@ public class RmViewController {
     public String startCollaboratorRequest(
             @PathVariable("id") Long solicitudId,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmSolicitudPersonalService.iniciarAtencion(solicitudId, principal.getUsuario().getId());
             RmSolicitudPersonalView solicitud = rmSolicitudPersonalService.obtener(solicitudId);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "La solicitud pasó a En atención.");
             return "redirect:/rm/proyectos/buscar-colaboradores?proyectoId="
                     + solicitud.getSolicitud().getProyecto().getId();
@@ -1343,10 +1365,11 @@ public class RmViewController {
     public String finishCollaboratorRequest(
             @PathVariable("id") Long solicitudId,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
             rmSolicitudPersonalService.marcarAtendida(solicitudId, principal.getUsuario().getId());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Solicitud marcada como atendida.");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
@@ -1543,9 +1566,10 @@ public class RmViewController {
     @PostMapping("/perfil/telefono")
     public String actualizarTelefonoRm(@RequestParam(value = "telefono", required = false) String telefono,
                                         @AuthenticationPrincipal UsuarioDetails principal,
-                                        RedirectAttributes redirectAttributes) {
+                                        RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             rmPerfilService.actualizarTelefono(telefono, principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Teléfono actualizado correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -1557,9 +1581,10 @@ public class RmViewController {
     @PostMapping("/perfil/foto")
     public String actualizarFotoRm(@RequestParam("foto") org.springframework.web.multipart.MultipartFile foto,
                                     @AuthenticationPrincipal UsuarioDetails principal,
-                                    RedirectAttributes redirectAttributes) {
+                                    RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             rmPerfilService.actualizarFoto(foto, principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Foto de perfil actualizada.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -1572,12 +1597,13 @@ public class RmViewController {
                                         @RequestParam("passwordNueva") String passwordNueva,
                                         @RequestParam("passwordConfirm") String passwordConfirm,
                                         @AuthenticationPrincipal UsuarioDetails principal,
-                                        RedirectAttributes redirectAttributes) {
+                                        RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             if (!passwordNueva.equals(passwordConfirm)) {
                 throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
             }
             rmPerfilService.actualizarPassword(passwordActual, passwordNueva, principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Contraseña actualizada correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());

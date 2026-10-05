@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -139,7 +141,7 @@ public class PmViewController {
             @RequestParam(value = "documentoProyecto", required = false) MultipartFile documentoProyecto,
             @RequestParam(value = "habilidadesExtra", required = false) String habilidadesExtra,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes ra) {
+            RedirectAttributes ra, HttpServletRequest request) {
         try {
             LocalDate fechaInicio = (fechaInicioStr != null && !fechaInicioStr.isBlank())
                     ? LocalDate.parse(fechaInicioStr) : null;
@@ -167,7 +169,7 @@ public class PmViewController {
     @PostMapping("/proyectos/{id}/cancelar")
     public String cancelarProyecto(@PathVariable("id") Long proyectoId,
                                    @AuthenticationPrincipal UsuarioDetails principal,
-                                   RedirectAttributes ra) {
+                                   RedirectAttributes ra, HttpServletRequest request) {
         try {
             var resultado = pmProyectoService.cancelar(proyectoId, principal.getUsuario());
             ra.addFlashAttribute("success", CierreAsignacionesService.mensaje("cancelado", resultado));
@@ -203,7 +205,7 @@ public class PmViewController {
             @RequestParam("horasSemanales") BigDecimal horasSemanales,
             @RequestParam(value = "mensajeSolicitud", required = false) String mensaje,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes ra) {
+            RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmAsignacionService.proponer(proyectoId, colaboradorId, horasSemanales, mensaje,
                     principal.getUsuario());
@@ -218,7 +220,7 @@ public class PmViewController {
     public String aprobarAsignacion(@PathVariable("id") Long asignacionId,
                                     @RequestParam("proyectoId") Long proyectoId,
                                     @AuthenticationPrincipal UsuarioDetails principal,
-                                    RedirectAttributes ra) {
+                                    RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmAsignacionService.aprobar(asignacionId, principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación aprobada.");
@@ -233,7 +235,7 @@ public class PmViewController {
                                      @RequestParam("proyectoId") Long proyectoId,
                                      @RequestParam(value = "motivo", required = false) String motivo,
                                      @AuthenticationPrincipal UsuarioDetails principal,
-                                     RedirectAttributes ra) {
+                                     RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmAsignacionService.rechazar(asignacionId, motivo, principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación rechazada.");
@@ -249,7 +251,7 @@ public class PmViewController {
                                       @RequestParam(name = "calificacion", required = false) Integer calificacion,
                                       @RequestParam(name = "feedback", required = false) String feedback,
                                       @AuthenticationPrincipal UsuarioDetails principal,
-                                      RedirectAttributes ra) {
+                                      RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmAsignacionService.finalizar(asignacionId, calificacion, feedback, principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación finalizada.");
@@ -289,7 +291,7 @@ public class PmViewController {
             @RequestParam("horasEstimadas") BigDecimal horasEstimadas,
             @RequestParam("fechaLimite") String fechaLimiteStr,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes ra) {
+            RedirectAttributes ra, HttpServletRequest request) {
         try {
             LocalDate fechaLimite = LocalDate.parse(fechaLimiteStr);
             pmActividadService.crear(proyectoId, colaboradorId, titulo, descripcion,
@@ -305,7 +307,7 @@ public class PmViewController {
     public String confirmarActividad(@PathVariable("id") Long actividadId,
                                      @RequestParam("proyectoId") Long proyectoId,
                                      @AuthenticationPrincipal UsuarioDetails principal,
-                                     RedirectAttributes ra) {
+                                     RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmActividadService.confirmar(actividadId, principal.getUsuario());
             ra.addFlashAttribute("success", "Entrega confirmada exitosamente.");
@@ -320,7 +322,7 @@ public class PmViewController {
                                     @RequestParam("proyectoId") Long proyectoId,
                                     @RequestParam(value = "comentario", required = false) String comentario,
                                     @AuthenticationPrincipal UsuarioDetails principal,
-                                    RedirectAttributes ra) {
+                                    RedirectAttributes ra, HttpServletRequest request) {
         try {
             if (comentario == null || comentario.isBlank()) {
                 throw new IllegalArgumentException("Debes escribir un comentario para devolver la actividad.");
@@ -342,7 +344,7 @@ public class PmViewController {
                                   @RequestParam("horasEstimadas") java.math.BigDecimal horasEstimadas,
                                   @RequestParam("fechaLimite") String fechaLimiteStr,
                                   @AuthenticationPrincipal UsuarioDetails principal,
-                                  RedirectAttributes ra) {
+                                  RedirectAttributes ra, HttpServletRequest request) {
         try {
             java.time.LocalDate fechaLimite = java.time.LocalDate.parse(fechaLimiteStr);
             pmActividadService.editar(actividadId, titulo, descripcion, horasEstimadas, fechaLimite, principal.getUsuario());
@@ -357,7 +359,7 @@ public class PmViewController {
     public String eliminarActividad(@PathVariable("id") Long actividadId,
                                     @RequestParam("proyectoId") Long proyectoId,
                                     @AuthenticationPrincipal UsuarioDetails principal,
-                                    RedirectAttributes ra) {
+                                    RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmActividadService.eliminar(actividadId, principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad eliminada correctamente.");
@@ -406,7 +408,7 @@ public class PmViewController {
                                @RequestParam("titulo") String titulo,
                                @RequestParam("contenido") String contenido,
                                @AuthenticationPrincipal UsuarioDetails principal,
-                               RedirectAttributes ra) {
+                               RedirectAttributes ra, HttpServletRequest request) {
         try {
             if (foroId != null) {
                 pmForoService.publicarEnForo(foroId, titulo, contenido, principal.getUsuario());
@@ -429,7 +431,7 @@ public class PmViewController {
                                 @RequestParam(value = "foroId", required = false) Long foroId,
                                 @RequestParam("contenido") String contenido,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes ra) {
+                                RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.responder(publicacionId, contenido, principal.getUsuario());
             ra.addFlashAttribute("success", "Respuesta publicada.");
@@ -445,7 +447,7 @@ public class PmViewController {
                                      @RequestParam(value = "proyectoId", required = false) Long proyectoId,
                                      @RequestParam(value = "foroId", required = false) Long foroId,
                                      @AuthenticationPrincipal UsuarioDetails principal,
-                                     RedirectAttributes ra) {
+                                     RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.alternarSolucion(principal.getUsuario(), respuestaId);
             ra.addFlashAttribute("success", "Estado de solución actualizado.");
@@ -461,7 +463,7 @@ public class PmViewController {
                                   @RequestParam(value = "proyectoId", required = false) Long proyectoId,
                                   @RequestParam(value = "foroId", required = false) Long foroId,
                                   @AuthenticationPrincipal UsuarioDetails principal,
-                                  RedirectAttributes ra) {
+                                  RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.alternarLikePublicacion(principal.getUsuario(), publicacionId);
         } catch (IllegalArgumentException e) {
@@ -476,7 +478,7 @@ public class PmViewController {
                                 @RequestParam(value = "proyectoId", required = false) Long proyectoId,
                                 @RequestParam(value = "foroId", required = false) Long foroId,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes ra) {
+                                RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.alternarLikeRespuesta(principal.getUsuario(), respuestaId);
         } catch (IllegalArgumentException e) {
@@ -491,7 +493,7 @@ public class PmViewController {
                                           @RequestParam(value = "proyectoId", required = false) Long proyectoId,
                                           @RequestParam(value = "foroId", required = false) Long foroId,
                                           @AuthenticationPrincipal UsuarioDetails principal,
-                                          RedirectAttributes ra) {
+                                          RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.eliminarPublicacion(principal.getUsuario(), publicacionId);
             ra.addFlashAttribute("success", "Publicación eliminada.");
@@ -507,7 +509,7 @@ public class PmViewController {
                                         @RequestParam(value = "proyectoId", required = false) Long proyectoId,
                                         @RequestParam(value = "foroId", required = false) Long foroId,
                                         @AuthenticationPrincipal UsuarioDetails principal,
-                                        RedirectAttributes ra) {
+                                        RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.eliminarRespuesta(principal.getUsuario(), respuestaId);
             ra.addFlashAttribute("success", "Respuesta eliminada.");
@@ -569,10 +571,11 @@ public class PmViewController {
             @RequestParam(value = "apellido", required = false) String apellido,
             @RequestParam(value = "cargo", required = false) String cargo,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes ra) {
+            RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmPerfilService.actualizarDatos(nombre, apellido, cargo, principal.getUsuario());
             ra.addFlashAttribute("success", "Datos actualizados correctamente.");
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
         }
@@ -582,10 +585,11 @@ public class PmViewController {
     @PostMapping("/perfil/foto")
     public String actualizarFoto(@RequestParam("foto") MultipartFile foto,
                                  @AuthenticationPrincipal UsuarioDetails principal,
-                                 RedirectAttributes ra) {
+                                 RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmPerfilService.actualizarFoto(foto, principal.getUsuario());
             ra.addFlashAttribute("success", "Foto de perfil actualizada.");
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
         }
@@ -598,13 +602,14 @@ public class PmViewController {
             @RequestParam("passwordNueva") String passwordNueva,
             @RequestParam("passwordConfirm") String passwordConfirm,
             @AuthenticationPrincipal UsuarioDetails principal,
-            RedirectAttributes ra) {
+            RedirectAttributes ra, HttpServletRequest request) {
         try {
             if (!passwordNueva.equals(passwordConfirm)) {
                 throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
             }
             pmPerfilService.actualizarPassword(passwordActual, passwordNueva, principal.getUsuario());
             ra.addFlashAttribute("success", "Contraseña actualizada correctamente.");
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
         }

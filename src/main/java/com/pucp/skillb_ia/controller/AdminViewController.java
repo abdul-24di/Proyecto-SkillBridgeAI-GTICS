@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.multipart.MultipartFile;
@@ -115,7 +117,7 @@ public class AdminViewController {
     @PostMapping("/usuarios/cargo")
     public String asignarCargoUsuario(@RequestParam Long usuarioId, @RequestParam Long cargoId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
-                                      RedirectAttributes redirectAttributes) {
+                                      RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminUsuarioService.asignarCargo(usuarioId, cargoId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el cargo del colaborador.");
@@ -128,7 +130,7 @@ public class AdminViewController {
     @PostMapping("/usuarios")
     public String crearUsuario(@RequestParam String correo, @RequestParam String rol,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes redirectAttributes) {
+                                RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminUsuarioService.crear(correo, rol, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el usuario " + correo + " y se envió su correo de invitación.");
@@ -141,7 +143,7 @@ public class AdminViewController {
     @PostMapping("/usuarios/carga-masiva")
     public String cargaMasivaUsuarios(@RequestParam("archivo") MultipartFile archivo,
                                        @AuthenticationPrincipal UsuarioDetails principal,
-                                       RedirectAttributes redirectAttributes) {
+                                       RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (archivo.isEmpty()) {
             redirectAttributes.addFlashAttribute("mensajeError", "Selecciona un archivo CSV para la carga masiva.");
             return "redirect:/admin/usuarios";
@@ -164,7 +166,7 @@ public class AdminViewController {
     @PostMapping("/usuarios/cambiar-rol")
     public String cambiarRolUsuario(@RequestParam Long usuarioId, @RequestParam String rol,
                                      @AuthenticationPrincipal UsuarioDetails principal,
-                                     RedirectAttributes redirectAttributes) {
+                                     RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminUsuarioService.cambiarRol(usuarioId, rol, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el rol del usuario.");
@@ -177,7 +179,7 @@ public class AdminViewController {
     @PostMapping("/usuarios/desactivar")
     public String desactivarUsuario(@RequestParam Long usuarioId,
                                      @AuthenticationPrincipal UsuarioDetails principal,
-                                     RedirectAttributes redirectAttributes) {
+                                     RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminUsuarioService.desactivar(usuarioId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó el usuario.");
@@ -190,7 +192,7 @@ public class AdminViewController {
     @PostMapping("/usuarios/reactivar")
     public String reactivarUsuario(@RequestParam Long usuarioId,
                                     @AuthenticationPrincipal UsuarioDetails principal,
-                                    RedirectAttributes redirectAttributes) {
+                                    RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminUsuarioService.reactivar(usuarioId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó el usuario.");
@@ -203,7 +205,7 @@ public class AdminViewController {
     @PostMapping("/usuarios/reenviar")
     public String reenviarActivacion(@RequestParam Long usuarioId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
-                                      RedirectAttributes redirectAttributes) {
+                                      RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminUsuarioService.reenviarActivacion(usuarioId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se reenvió el enlace de activación.");
@@ -231,7 +233,7 @@ public class AdminViewController {
     public String crearCategoria(@RequestParam String nombre,
                                   @RequestParam(required = false) String descripcion,
                                   @AuthenticationPrincipal UsuarioDetails principal,
-                                  RedirectAttributes redirectAttributes) {
+                                  RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminHabilidadService.crearCategoria(nombre, descripcion, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó la categoría \"" + nombre + "\".");
@@ -245,7 +247,7 @@ public class AdminViewController {
     public String editarCategoria(@RequestParam Long categoriaId, @RequestParam String nombre,
                                    @RequestParam(required = false) String descripcion,
                                    @AuthenticationPrincipal UsuarioDetails principal,
-                                   RedirectAttributes redirectAttributes) {
+                                   RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminHabilidadService.editarCategoria(categoriaId, nombre, descripcion, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó la categoría.");
@@ -258,7 +260,7 @@ public class AdminViewController {
     @PostMapping("/habilidades/categorias/desactivar")
     public String desactivarCategoria(@RequestParam Long categoriaId,
                                        @AuthenticationPrincipal UsuarioDetails principal,
-                                       RedirectAttributes redirectAttributes) {
+                                       RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminHabilidadService.desactivarCategoria(categoriaId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó la categoría.");
@@ -271,7 +273,7 @@ public class AdminViewController {
     @PostMapping("/habilidades/categorias/reactivar")
     public String reactivarCategoria(@RequestParam Long categoriaId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
-                                      RedirectAttributes redirectAttributes) {
+                                      RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminHabilidadService.reactivarCategoria(categoriaId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó la categoría.");
@@ -284,7 +286,7 @@ public class AdminViewController {
     @PostMapping("/habilidades")
     public String crearHabilidad(@RequestParam String nombre, @RequestParam Long categoriaId,
                                   @AuthenticationPrincipal UsuarioDetails principal,
-                                  RedirectAttributes redirectAttributes) {
+                                  RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminHabilidadService.crear(nombre, categoriaId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó la habilidad \"" + nombre + "\".");
@@ -298,7 +300,7 @@ public class AdminViewController {
     public String editarHabilidad(@RequestParam Long habilidadId, @RequestParam String nombre,
                                    @RequestParam Long categoriaId,
                                    @AuthenticationPrincipal UsuarioDetails principal,
-                                   RedirectAttributes redirectAttributes) {
+                                   RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminHabilidadService.editar(habilidadId, nombre, categoriaId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó la habilidad.");
@@ -311,7 +313,7 @@ public class AdminViewController {
     @PostMapping("/habilidades/desactivar")
     public String desactivarHabilidad(@RequestParam Long habilidadId,
                                        @AuthenticationPrincipal UsuarioDetails principal,
-                                       RedirectAttributes redirectAttributes) {
+                                       RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminHabilidadService.desactivar(habilidadId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó la habilidad.");
@@ -324,7 +326,7 @@ public class AdminViewController {
     @PostMapping("/habilidades/reactivar")
     public String reactivarHabilidad(@RequestParam Long habilidadId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
-                                      RedirectAttributes redirectAttributes) {
+                                      RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminHabilidadService.reactivar(habilidadId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó la habilidad.");
@@ -346,7 +348,7 @@ public class AdminViewController {
                              @RequestParam(required = false) BigDecimal sueldoSemiSenior,
                              @RequestParam(required = false) BigDecimal sueldoSenior,
                              @AuthenticationPrincipal UsuarioDetails principal,
-                             RedirectAttributes redirectAttributes) {
+                             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminCargoService.crear(nombre, sueldoJunior, sueldoSemiSenior, sueldoSenior, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el cargo \"" + nombre.strip() + "\".");
@@ -362,7 +364,7 @@ public class AdminViewController {
                               @RequestParam(required = false) BigDecimal sueldoSemiSenior,
                               @RequestParam(required = false) BigDecimal sueldoSenior,
                               @AuthenticationPrincipal UsuarioDetails principal,
-                              RedirectAttributes redirectAttributes) {
+                              RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             int recalculados = adminCargoService.editarTarifas(id, sueldoJunior, sueldoSemiSenior, sueldoSenior,
                     principal.getUsuario());
@@ -377,7 +379,7 @@ public class AdminViewController {
     @PostMapping("/cargos/alternar")
     public String alternarCargo(@RequestParam Long id,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes redirectAttributes) {
+                                RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             boolean activo = adminCargoService.alternarEstado(id, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", activo ? "Se reactivó el cargo." : "Se desactivó el cargo.");
@@ -402,7 +404,7 @@ public class AdminViewController {
     public String crearConfiguracion(@RequestParam String clave, @RequestParam(required = false) String descripcion,
                                       @RequestParam String valor,
                                       @AuthenticationPrincipal UsuarioDetails principal,
-                                      RedirectAttributes redirectAttributes) {
+                                      RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminConfiguracionService.crear(clave, descripcion, valor, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el parámetro.");
@@ -415,7 +417,7 @@ public class AdminViewController {
     @PostMapping("/configuracion/editar")
     public String editarConfiguracion(@RequestParam Long parametroId, @RequestParam String valor,
                                        @AuthenticationPrincipal UsuarioDetails principal,
-                                       RedirectAttributes redirectAttributes) {
+                                       RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminConfiguracionService.editar(parametroId, valor, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el parámetro.");
@@ -535,9 +537,10 @@ public class AdminViewController {
     @PostMapping("/perfil/telefono")
     public String actualizarTelefonoAdmin(@RequestParam(value = "telefono", required = false) String telefono,
                                            @AuthenticationPrincipal UsuarioDetails principal,
-                                           RedirectAttributes redirectAttributes) {
+                                           RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminPerfilService.actualizarTelefono(telefono, principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Teléfono actualizado correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -548,9 +551,10 @@ public class AdminViewController {
     @PostMapping("/perfil/foto")
     public String actualizarFotoAdmin(@RequestParam("foto") MultipartFile foto,
                                        @AuthenticationPrincipal UsuarioDetails principal,
-                                       RedirectAttributes redirectAttributes) {
+                                       RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             adminPerfilService.actualizarFoto(foto, principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Foto de perfil actualizada.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -563,12 +567,13 @@ public class AdminViewController {
                                            @RequestParam("passwordNueva") String passwordNueva,
                                            @RequestParam("passwordConfirm") String passwordConfirm,
                                            @AuthenticationPrincipal UsuarioDetails principal,
-                                           RedirectAttributes redirectAttributes) {
+                                           RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
             if (!passwordNueva.equals(passwordConfirm)) {
                 throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
             }
             adminPerfilService.actualizarPassword(passwordActual, passwordNueva, principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Contraseña actualizada correctamente.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -592,7 +597,7 @@ public class AdminViewController {
     @PostMapping("/cursos/crear")
     public String crearCurso(@ModelAttribute Curso curso,
                              @AuthenticationPrincipal UsuarioDetails principal,
-                             RedirectAttributes ra) {
+                             RedirectAttributes ra, HttpServletRequest request) {
         try {
             adminCursoService.crear(curso, principal.getUsuario());
             ra.addFlashAttribute("mensajeOk", "Se creó el curso exitosamente.");
@@ -606,7 +611,7 @@ public class AdminViewController {
     public String editarCurso(@RequestParam("cursoId") Long cursoId,
                               @ModelAttribute Curso curso,
                               @AuthenticationPrincipal UsuarioDetails principal,
-                              RedirectAttributes ra) {
+                              RedirectAttributes ra, HttpServletRequest request) {
         try {
             adminCursoService.editar(cursoId, curso, principal.getUsuario());
             ra.addFlashAttribute("mensajeOk", "Se guardaron los cambios del curso.");
@@ -619,7 +624,7 @@ public class AdminViewController {
     @PostMapping("/cursos/alternar")
     public String alternarEstadoCurso(@RequestParam("cursoId") Long cursoId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
-                                      RedirectAttributes ra) {
+                                      RedirectAttributes ra, HttpServletRequest request) {
         try {
             adminCursoService.alternarEstado(cursoId, principal.getUsuario());
             ra.addFlashAttribute("mensajeOk", "El estado del curso ha sido actualizado.");
@@ -656,7 +661,7 @@ public class AdminViewController {
     @PostMapping("/experiencia/{colaboradorId}/agregar")
     public String agregarExperiencia(@PathVariable Long colaboradorId,
                                      @ModelAttribute ExperienciaProfesional exp,
-                                     RedirectAttributes ra) {
+                                     RedirectAttributes ra, HttpServletRequest request) {
         try {
             Usuario colaborador = adminUsuarioService.obtenerUsuario(colaboradorId);
             colaboradorPerfilService.agregarExperiencia(colaborador, exp);
@@ -670,7 +675,7 @@ public class AdminViewController {
     @PostMapping("/experiencia/{colaboradorId}/revisar")
     public String marcarCvRevisado(@PathVariable Long colaboradorId,
                                    @AuthenticationPrincipal UsuarioDetails principal,
-                                   RedirectAttributes ra) {
+                                   RedirectAttributes ra, HttpServletRequest request) {
         try {
             adminUsuarioService.marcarCvRevisado(colaboradorId, principal.getUsuario());
             ra.addFlashAttribute("mensajeOk", "Se marcó el CV como revisado.");
@@ -693,9 +698,10 @@ public class AdminViewController {
     @PostMapping("/foros/crear")
     public String crearForo(@RequestParam String nombre,
                             @RequestParam(defaultValue = "true") boolean esPublico,
-                            RedirectAttributes ra) {
+                            RedirectAttributes ra, HttpServletRequest request) {
         try {
             adminForoService.crearForo(nombre.trim(), esPublico);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Foro \"" + nombre + "\" creado exitosamente.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
@@ -704,9 +710,10 @@ public class AdminViewController {
     }
 
     @PostMapping("/foros/{id}/eliminar")
-    public String eliminarForo(@PathVariable Long id, RedirectAttributes ra) {
+    public String eliminarForo(@PathVariable Long id, RedirectAttributes ra, HttpServletRequest request) {
         try {
             adminForoService.eliminarForo(id);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Foro eliminado correctamente.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "No se pudo eliminar el foro: " + e.getMessage());
@@ -726,9 +733,10 @@ public class AdminViewController {
                                  @RequestParam String titulo,
                                  @RequestParam String contenido,
                                  @AuthenticationPrincipal UsuarioDetails principal,
-                                 RedirectAttributes ra) {
+                                 RedirectAttributes ra, HttpServletRequest request) {
         try {
             adminForoService.publicar(id, titulo, contenido, principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Anuncio publicado correctamente.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
@@ -739,9 +747,10 @@ public class AdminViewController {
     @PostMapping("/foros/publicacion/{pubId}/eliminar")
     public String eliminarPublicacion(@PathVariable Long pubId,
                                       @RequestParam Long foroId,
-                                      RedirectAttributes ra) {
+                                      RedirectAttributes ra, HttpServletRequest request) {
         try {
             adminForoService.eliminarPublicacion(pubId);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Publicación eliminada.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
@@ -754,9 +763,10 @@ public class AdminViewController {
                                 @RequestParam(value = "foroId", required = false) Long foroId,
                                 @RequestParam("contenido") String contenido,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes ra) {
+                                RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.responder(publicacionId, contenido, principal.getUsuario());
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Respuesta publicada.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", e.getMessage());
@@ -768,7 +778,7 @@ public class AdminViewController {
     public String marcarSolucionForo(@PathVariable("id") Long respuestaId,
                                      @RequestParam(value = "foroId", required = false) Long foroId,
                                      @AuthenticationPrincipal UsuarioDetails principal,
-                                     RedirectAttributes ra) {
+                                     RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.alternarSolucion(principal.getUsuario(), respuestaId);
         } catch (Exception e) {
@@ -781,7 +791,7 @@ public class AdminViewController {
     public String likePublicacion(@PathVariable Long publicacionId,
                                   @RequestParam(value = "foroId", required = false) Long foroId,
                                   @AuthenticationPrincipal UsuarioDetails principal,
-                                  RedirectAttributes ra) {
+                                  RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.alternarLikePublicacion(principal.getUsuario(), publicacionId);
         } catch (IllegalArgumentException e) {
@@ -794,7 +804,7 @@ public class AdminViewController {
     public String likeRespuesta(@PathVariable Long respuestaId,
                                 @RequestParam(value = "foroId", required = false) Long foroId,
                                 @AuthenticationPrincipal UsuarioDetails principal,
-                                RedirectAttributes ra) {
+                                RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.alternarLikeRespuesta(principal.getUsuario(), respuestaId);
         } catch (IllegalArgumentException e) {
@@ -807,9 +817,10 @@ public class AdminViewController {
     public String eliminarRespuestaForo(@PathVariable Long respuestaId,
                                         @RequestParam(value = "foroId", required = false) Long foroId,
                                         @AuthenticationPrincipal UsuarioDetails principal,
-                                        RedirectAttributes ra) {
+                                        RedirectAttributes ra, HttpServletRequest request) {
         try {
             pmForoService.eliminarRespuesta(principal.getUsuario(), respuestaId);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Respuesta eliminada.");
         } catch (IllegalArgumentException e) {
             ra.addFlashAttribute("error", e.getMessage());

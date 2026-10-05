@@ -154,7 +154,7 @@ public class PmViewController {
 
             var nuevo = pmProyectoService.crear(nombre, finalDescripcion, fechaInicio, fechaFin,
                     prioridad, justificacionPrioridad, presupuesto, justPresupuesto,
-                    colaboradoresRequeridos, horasSemanales, habilidadIds, niveles, cantidades,
+                    colaboradoresRequeridos, horasSemanales, habilidadIds, niveles, cantidades, horasSemanalesHab,
                     principal.getUsuario());
             ra.addFlashAttribute("success", "Proyecto creado exitosamente. Está pendiente de revisión por el RM.");
             return "redirect:/pm/proyectos/detalle?id=" + nuevo.getId();

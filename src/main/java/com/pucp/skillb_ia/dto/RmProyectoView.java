@@ -54,7 +54,8 @@ public class RmProyectoView {
             sb.append("{")
               .append("\"habilidad\":\"").append(r.habilidad.replace("\"", "\\\"")).append("\",")
               .append("\"nivel\":\"").append(r.nivel.replace("\"", "\\\"")).append("\",")
-              .append("\"horas\":").append(r.horasSemanales != null ? r.horasSemanales : "null")
+              .append("\"horas\":").append(r.horasSemanales != null ? r.horasSemanales : "null").append(",")
+              .append("\"cantidad\":").append(r.cantidadPersonas)
               .append("}");
             if (i < requisitos.size() - 1) sb.append(",");
         }

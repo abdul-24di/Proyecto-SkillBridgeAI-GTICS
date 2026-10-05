@@ -17,23 +17,23 @@
 
 <div th:if="${error != null}" class="alert alert-danger" th:text="${error}"></div>
 
-<form method="POST" th:action="@{/pm/proyectos/crear}" enctype="multipart/form-data">
+<form method="POST" th:action="@{/pm/proyectos/crear}" th:object="${pmProyectoForm}" enctype="multipart/form-data">
 <div class="card section-card mb-4"><div class="card-header section-header"><div><h3 class="card-title mb-1">Información general</h3><div class="section-description">Define alcance, fechas y prioridad.</div></div></div>
 <div class="card-body form-section"><div class="row g-4">
-<div class="col-lg-8"><label class="form-label">Nombre del proyecto <span class="text-danger">*</span></label><input type="text" name="nombre" class="form-control" placeholder="Ej. Sistema de Inventario V2" required></div>
+<div class="col-lg-8"><label class="form-label">Nombre del proyecto <span class="text-danger">*</span></label><input type="text" th:field="*{nombre}" th:classappend="${#fields.hasErrors('nombre')} ? 'is-invalid' : ''" class="form-control" placeholder="Ej. Sistema de Inventario V2" required><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}"></div></div>
 <div class="col-lg-4"><label class="form-label">Prioridad <span class="text-danger">*</span></label>
-<select name="prioridad" class="form-select" required>
+<select th:field="*{prioridad}" th:classappend="${#fields.hasErrors('prioridad')} ? 'is-invalid' : ''" class="form-select" required>
 <option value="" disabled selected>Seleccionar</option>
 <option value="ALTA">Alta</option>
 <option value="MEDIA">Media</option>
 <option value="BAJA">Baja</option>
-</select>
+</select><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('prioridad')}" th:errors="*{prioridad}"></div>
 </div>
-<div class="col-12"><label class="form-label">Descripción <span class="text-danger">*</span></label><textarea name="descripcion" class="form-control" rows="3" placeholder="Describe los objetivos y alcance del proyecto" required></textarea></div>
-<div class="col-lg-4"><label class="form-label">Fecha de inicio <span class="text-danger">*</span></label><input type="date" name="fechaInicio" id="fechaInicio" class="form-control" required th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" onchange="document.getElementById('fechaFinEstimada').min = this.value;"></div>
-<div class="col-lg-4"><label class="form-label">Fecha de fin estimada <span class="text-danger">*</span></label><input type="date" name="fechaFinEstimada" id="fechaFinEstimada" class="form-control" required></div>
+<div class="col-12"><label class="form-label">Descripción <span class="text-danger">*</span></label><textarea th:field="*{descripcion}" th:classappend="${#fields.hasErrors('descripcion')} ? 'is-invalid' : ''" class="form-control" rows="3" placeholder="Describe los objetivos y alcance del proyecto" required></textarea><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('descripcion')}" th:errors="*{descripcion}"></div></div>
+<div class="col-lg-4"><label class="form-label">Fecha de inicio <span class="text-danger">*</span></label><input type="date" th:field="*{fechaInicio}" th:classappend="${#fields.hasErrors('fechaInicio')} ? 'is-invalid' : ''" id="fechaInicio" class="form-control" required th:min="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" onchange="document.getElementById('fechaFinEstimada').min = this.value;"><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('fechaInicio')}" th:errors="*{fechaInicio}"></div></div>
+<div class="col-lg-4"><label class="form-label">Fecha de fin estimada <span class="text-danger">*</span></label><input type="date" th:field="*{fechaFinEstimada}" th:classappend="${#fields.hasErrors('fechaFinEstimada')} ? 'is-invalid' : ''" id="fechaFinEstimada" class="form-control" required><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('fechaFinEstimada')}" th:errors="*{fechaFinEstimada}"></div></div>
 <div class="col-lg-4"><label class="form-label">Estado inicial</label><input type="text" class="form-control" value="En revisión" disabled><div class="form-hint">El RM debe aprobarlo para pasar a Activo.</div></div>
-<div class="col-12"><label class="form-label">Justificación de prioridad <span class="text-danger">*</span></label><textarea name="justificacionPrioridad" class="form-control" rows="2" placeholder="Explica por qué el proyecto tiene esta prioridad" required></textarea></div>
+<div class="col-12"><label class="form-label">Justificación de prioridad <span class="text-danger">*</span></label><textarea th:field="*{justificacionPrioridad}" th:classappend="${#fields.hasErrors('justificacionPrioridad')} ? 'is-invalid' : ''" class="form-control" rows="2" placeholder="Explica por qué el proyecto tiene esta prioridad" required></textarea><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('justificacionPrioridad')}" th:errors="*{justificacionPrioridad}"></div></div>
 <div class="col-lg-6">
     <label class="form-label">Presupuesto solicitado</label>
     <div class="input-group">
@@ -42,12 +42,13 @@
         <input type="hidden" name="presupuestoSolicitado" id="presupuestoReal">
     </div>
 </div>
-<div class="col-lg-6"><label class="form-label">Justificación de presupuesto</label><input type="text" name="justificacionPresupuesto" class="form-control" placeholder="Opcional"></div>
+<div class="col-lg-6"><label class="form-label">Justificación de presupuesto</label><input type="text" th:field="*{justificacionPresupuesto}" th:classappend="${#fields.hasErrors('justificacionPresupuesto')} ? 'is-invalid' : ''" class="form-control" placeholder="Opcional"><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('justificacionPresupuesto')}" th:errors="*{justificacionPresupuesto}"></div></div>
 </div></div></div>
 
 <div class="row row-cards mb-4">
-<div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3><div class="section-description">Información para que el RM encuentre colaboradores.</div></div></div><div class="card-body form-section">
-<div class="mb-3"><label class="form-label">N.º de colaboradores requeridos</label><input type="number" name="colaboradoresRequeridos" min="1" class="form-control" value="1"></div>
+<div class="col-lg-6"><div class="card section-card h-100"><div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3>
+<div class="alert alert-danger" th:if="${#fields.hasErrors('habilidadIds')}" th:errors="*{habilidadIds}"></div><div class="section-description">Información para que el RM encuentre colaboradores.</div></div></div><div class="card-body form-section">
+<div class="mb-3"><label class="form-label">N.º de colaboradores requeridos</label><input type="number" th:field="*{colaboradoresRequeridos}" th:classappend="${#fields.hasErrors('colaboradoresRequeridos')} ? 'is-invalid' : ''" min="1" class="form-control" value="1"><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('colaboradoresRequeridos')}" th:errors="*{colaboradoresRequeridos}"></div></div>
 
   <div class="mb-3">
     <label class="form-label">Habilidades Requeridas</label>
@@ -97,7 +98,7 @@
   </div>
   <div class="mb-3">
     <label class="form-label">¿Falta alguna habilidad en la lista?</label>
-    <textarea name="habilidadesExtra" class="form-control" rows="2" placeholder="Escribe aquí las habilidades que no encontraste (Ej: Rust, GraphQL...)"></textarea>
+    <textarea th:field="*{habilidadesExtra}" th:classappend="${#fields.hasErrors('habilidadesExtra')} ? 'is-invalid' : ''" class="form-control" rows="2" placeholder="Escribe aquí las habilidades que no encontraste (Ej: Rust, GraphQL...)"></textarea><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('habilidadesExtra')}" th:errors="*{habilidadesExtra}"></div>
     <div class="form-hint">Se agregarán automáticamente a la descripción del proyecto.</div>
   </div>
 
@@ -110,7 +111,7 @@
   <div class="form-hint">Sube un archivo (PDF, DOCX) con más detalle del proyecto para el RM.</div>
 </div>
 
-<div><label class="form-label">Notas para el Resource Manager (opcional)</label><textarea name="notasRM" class="form-control" rows="6" placeholder="Requisitos especiales, urgencia o experiencia deseada"></textarea></div>
+<div><label class="form-label">Notas para el Resource Manager (opcional)</label><textarea th:field="*{notasRM}" th:classappend="${#fields.hasErrors('notasRM')} ? 'is-invalid' : ''" class="form-control" rows="6" placeholder="Requisitos especiales, urgencia o experiencia deseada"></textarea><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('notasRM')}" th:errors="*{notasRM}"></div></div>
 </div></div></div>
 </div>
 

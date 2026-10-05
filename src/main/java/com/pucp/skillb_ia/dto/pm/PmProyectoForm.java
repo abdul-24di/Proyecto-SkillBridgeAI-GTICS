@@ -37,6 +37,7 @@ public class PmProyectoForm {
     @Min(value = 1, message = "Debe haber al menos 1 colaborador requerido")
     private int colaboradoresRequeridos = 1;
 
+    @NotEmpty(message = "Debes agregar al menos un requerimiento de talento (habilidad)")
     private List<Long> habilidadIds;
     private List<String> nivelesRequeridos;
     private List<Integer> cantidadesPersonas;

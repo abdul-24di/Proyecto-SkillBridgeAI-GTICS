@@ -89,7 +89,7 @@
 
                             <hr>
 
-                            <form th:action="@{/pm/perfil/datos}" method="post" th:object="">
+                            <form th:action="@{/pm/perfil/datos}" method="post" th:object="${pmPerfilDatosForm}">
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Nombres <span class="text-danger">*</span></label>
@@ -126,7 +126,7 @@
                                 <div class="hr-text mt-0 mb-3">Cambiar contraseña</div>
                             </div>
 
-                            <form th:action="@{/pm/perfil/password}" method="post" class="row g-3" th:object="">
+                            <form th:action="@{/pm/perfil/password}" method="post" class="row g-3" th:object="${pmPerfilPasswordForm}">
                                 <div class="col-md-4">
                                     <label class="form-label">Contraseña actual</label>
                                     <input type="password" class="form-control" th:field="*{passwordActual}" th:classappend="${#fields.hasErrors('passwordActual')} ? 'is-invalid' : ''"  required><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('passwordActual')}" th:errors="*{passwordActual}"></div>

@@ -99,7 +99,9 @@
         <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
         <td th:text="${#temporals.format(item.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
 
-        <td class="text-secondary small" th:text="${item.pendienteGestionRm} ? (${#strings.isEmpty(item.justificacion) ? 'Sin justificación' : item.justificacion}) : (${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta})">—</td>
+        <td class="text-secondary small"><span th:text="${item.pendienteGestionRm} ? (${#strings.isEmpty(item.justificacion) ? 'Sin justificación' : item.justificacion}) : (${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta})">—</span>
+          <div th:if="${item.evidenciaRevisadaPor != null}" class="evidencia-revision mt-1"
+               th:text="|Evidencia revisada por ${item.evidenciaRevisadaPor} · ${#temporals.format(item.fechaRevisionEvidencia, 'dd MMM yyyy HH:mm')}|">Evidencia revisada por</div></td>
         <td class="text-end">
           <div th:if="${item.pendienteGestionRm}" class="d-flex gap-2 justify-content-end">
             <button type="button" class="btn btn-success btn-sm"

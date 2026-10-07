@@ -50,6 +50,14 @@ public class ColaboradorCurso {
     @Column(name = "fecha_evidencia")
     private LocalDateTime fechaEvidencia;
 
+    //RM que aprobó o rechazó la última evidencia (asignadoPor es quien aprobó la inscripción).
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "evidencia_revisada_por")
+    private Usuario evidenciaRevisadaPor;
+
+    @Column(name = "fecha_revision_evidencia")
+    private LocalDateTime fechaRevisionEvidencia;
+
     //Motivo del rechazo o justificación de una asignación directa del RM.
     @Column(name = "motivo_respuesta", length = 500)
     private String motivoRespuesta;
@@ -111,4 +119,10 @@ public class ColaboradorCurso {
     public void setFechaEvidencia(LocalDateTime fechaEvidencia) {
         this.fechaEvidencia = fechaEvidencia;
     }
+
+    public Usuario getEvidenciaRevisadaPor() { return evidenciaRevisadaPor; }
+    public void setEvidenciaRevisadaPor(Usuario evidenciaRevisadaPor) { this.evidenciaRevisadaPor = evidenciaRevisadaPor; }
+
+    public LocalDateTime getFechaRevisionEvidencia() { return fechaRevisionEvidencia; }
+    public void setFechaRevisionEvidencia(LocalDateTime fechaRevisionEvidencia) { this.fechaRevisionEvidencia = fechaRevisionEvidencia; }
 }

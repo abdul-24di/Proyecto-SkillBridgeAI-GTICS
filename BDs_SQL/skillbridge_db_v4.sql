@@ -426,10 +426,13 @@ CREATE TABLE colaborador_curso (
     fecha_completado    DATETIME NULL,
     evidencia_url       VARCHAR(500) NULL,
     fecha_evidencia     DATETIME NULL,
+    evidencia_revisada_por      BIGINT NULL,
+    fecha_revision_evidencia    DATETIME NULL,
 
     CONSTRAINT fk_colcurso_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
     CONSTRAINT fk_colcurso_curso FOREIGN KEY (curso_id) REFERENCES curso(id),
     CONSTRAINT fk_colcurso_asignador FOREIGN KEY (asignado_por) REFERENCES usuario(id),
+    CONSTRAINT fk_colcurso_revisor_evidencia FOREIGN KEY (evidencia_revisada_por) REFERENCES usuario(id),
 
     CONSTRAINT chk_colcurso_origen
         CHECK (origen IN ('SOLICITUD_COLABORADOR','ASIGNADO_POR_RM')),

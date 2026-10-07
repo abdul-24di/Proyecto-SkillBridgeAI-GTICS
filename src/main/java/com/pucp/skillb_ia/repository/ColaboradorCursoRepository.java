@@ -23,6 +23,7 @@ public interface ColaboradorCursoRepository extends JpaRepository<ColaboradorCur
             join fetch colaborador.rol
             join fetch cc.curso curso
             left join fetch cc.asignadoPor
+            left join fetch cc.evidenciaRevisadaPor
             order by cc.fechaSolicitud desc, cc.id desc
             """)
     List<ColaboradorCurso> findAllConDetalle();
@@ -33,6 +34,7 @@ public interface ColaboradorCursoRepository extends JpaRepository<ColaboradorCur
             join fetch colaborador.rol
             join fetch cc.curso curso
             left join fetch cc.asignadoPor
+            left join fetch cc.evidenciaRevisadaPor
             where cc.id = :id
             """)
     Optional<ColaboradorCurso> findByIdConDetalle(@Param("id") Long id);

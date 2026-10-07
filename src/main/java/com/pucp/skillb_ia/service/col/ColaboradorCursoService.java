@@ -289,8 +289,9 @@ public class ColaboradorCursoService {
             throw new IllegalArgumentException("Solo puedes subir evidencia de un curso que esté \"En curso\".");
         }
         boolean esPrimerIntento = inscripcion.getEvidenciaUrl() == null;
+        //Misma regla que el paso a NO_COMPLETADO: el plazo vence el mismo día de la fecha fin (fechaFin <= hoy).
         if (esPrimerIntento && inscripcion.getCurso().getFechaFin() != null
-                && inscripcion.getCurso().getFechaFin().isBefore(LocalDate.now())) {
+                && !inscripcion.getCurso().getFechaFin().isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("El plazo para subir evidencia de este curso ya venció.");
         }
 

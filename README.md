@@ -46,66 +46,22 @@ demo, siguen siendo válidas para iniciar sesión.
 
 Una instalación nueva debe ejecutar [`BDs_SQL/skillbridge_db_v4.sql`](BDs_SQL/skillbridge_db_v4.sql).
 
-Desde TASK-048, `proyecto_habilidad_requerida.horas_semanales` y
-`proyecto.documento_contexto_url` se definen únicamente dentro de sus
-`CREATE TABLE`. El script ya no repite esas columnas mediante `ALTER TABLE` y
-puede usarse directamente en instalaciones nuevas. Las bases existentes
-anteriores a esas columnas siguen las sentencias de migración documentadas en
-[`CHANGELOG.md`](CHANGELOG.md).
-Si el entorno local o de nube ya tenía la versión anterior de la base, debe
-ejecutar una sola vez [`BDs_SQL/migracion_solicitud_personal.sql`](BDs_SQL/migracion_solicitud_personal.sql)
-antes de desplegar esta versión. La migración agrega la tabla
-`solicitud_personal` sin borrar ni modificar registros existentes.
+El proyecto **no usa scripts de migración**: `skillbridge_db_v4.sql` es la única
+fuente del esquema. Cada cambio de esquema se hace solo en ese archivo y la base
+se vuelve a crear desde él: en la nube, en cada despliegue; en local, después de
+cada cambio de esquema. Recrear la base borra sus datos, así que después se
+vuelven a cargar los datos demo o de prueba. Los antiguos `migracion_*.sql` se
+eliminaron el 2026-10-07 porque su contenido ya estaba en v4.
 
-Para incorporar el flujo de Cursos del RM en una base ya creada con una
-versión anterior de `skillbridge_db_v4.sql`, se debe ejecutar una sola vez
-[`BDs_SQL/migracion_cursos.sql`](BDs_SQL/migracion_cursos.sql). Esta migración
-añade el campo donde se conserva el motivo de rechazo o asignación directa y
-puede ejecutarse nuevamente sin duplicarlo. Una instalación nueva que ejecute
-el `skillbridge_db_v4.sql` actualizado no necesita esta migración.
-
-El flujo de evidencia de finalización de cursos agregó posteriormente
-`colaborador_curso.evidencia_url`, `fecha_evidencia`, el estado
-`EVIDENCIA_PENDIENTE` y amplió `estado` a `VARCHAR(25)`. El repositorio todavía
-no contiene una migración para esos cambios: en una base existente deben
-aplicarse antes de desplegar. La versión actual de `migracion_cursos.sql` **no**
-los incluye. El detalle y las limitaciones están en la sesión del 30 de
-septiembre de [`CHANGELOG.md`](CHANGELOG.md).
-
-El cargo del colaborador ahora es un catálogo (`cargo`) con tarifas por nivel
-(Junior / Semi-Senior / Senior) que administra el Admin en
-*Habilidades → Cargos y Matriz Salarial*. El `sueldo_base` se calcula con la
-tarifa del cargo según el nivel del colaborador y se recalcula al cambiar las
-tarifas, el cargo o el nivel. Una base creada antes de este cambio (con
-`usuario.cargo` como texto) debe ejecutar una sola vez
-[`BDs_SQL/migracion_cargos.sql`](BDs_SQL/migracion_cargos.sql); los textos de
-cargo existentes se conservan como cargos sin tarifa.
-
-La tabla `asignacion` solo impide duplicar asignaciones abiertas: un
-colaborador no puede tener dos `PENDIENTE` ni dos `ACTIVA` en el mismo
-proyecto, pero sí varias `RECHAZADA` o `FINALIZADA` (historial). Para ello usa
-la columna generada `estado_abierto` y la restricción `uq_asignacion_abierta`,
-que reemplaza a `uq_asignacion_proyecto_colaborador_estado`. Una base creada
-antes de este cambio debe ejecutar
-[`BDs_SQL/migracion_asignacion_unicidad_abierta.sql`](BDs_SQL/migracion_asignacion_unicidad_abierta.sql)
-(requiere MySQL 5.7 o superior). No borra ni modifica registros y puede
-ejecutarse nuevamente sin error. La aplicación no lee esa columna, así que
-funciona igual antes y después de migrar.
-
-Cada certificado guarda en `certificado.nivel_aprobado` el nivel de dominio con
-el que el RM lo aprobó, y el historial de validaciones muestra ese valor. Una
-base creada antes de este cambio debe ejecutar una sola vez, antes de desplegar,
-[`BDs_SQL/migracion_nivel_aprobado_certificado.sql`](BDs_SQL/migracion_nivel_aprobado_certificado.sql).
-Solo agrega la columna (nula), puede ejecutarse nuevamente sin error y no
-rellena los certificados existentes: los aprobados antes de migrar se muestran
-como "Sin registro".
-
-`skillbridge_db_v4.sql` incluye además la tabla `evaluacion` (calificación de
-1 a 5 y comentarios al finalizar una asignación) y las columnas
-`proyecto_habilidad_requerida.horas_semanales` y
-`proyecto.documento_contexto_url`. No hay un archivo de migración para estos
-cambios: una base creada antes debe ejecutar una sola vez las sentencias de la
-sección *Resumen de Scripts SQL necesarios* de [`CHANGELOG.md`](CHANGELOG.md).
+El script incluye, entre otros, el catálogo de cargos con tarifas por nivel
+(`cargo`), las solicitudes de personal, la evidencia de cursos
+(`colaborador_curso.evidencia_url`, `fecha_evidencia` y los estados
+`EVIDENCIA_PENDIENTE` y `NO_COMPLETADO`), la unicidad de asignaciones abiertas
+(`estado_abierto` y `uq_asignacion_abierta`, requiere MySQL 5.7 o superior), el
+nivel aprobado de cada certificado, la tabla `evaluacion`, el CV y el
+pre-registro del colaborador (`usuario.cv_*`, `registro_estado`,
+`motivo_rechazo`) y la baja lógica de actividades y experiencia profesional
+(`activo`).
 
 Las fotos y los certificados que suben los colaboradores se guardan en la
 carpeta indicada por `UPLOAD_DIR`. En la nube esta variable debe apuntar a un
@@ -125,7 +81,7 @@ seleccionado. Las actividades pendientes o en revisión no se contabilizan.
 Los reportes no exponen sueldo base, bonos ni pagos mensuales. La exportación
 a Excel usa Apache POI, por lo que el despliegue debe volver a construir el
 proyecto para descargar la dependencia declarada en `pom.xml`. Esta función no
-requiere una migración adicional de la base de datos.
+requiere cambios en la base de datos.
 
 ### Cursos del RM
 
@@ -154,9 +110,8 @@ La integración sigue parcial: la bandeja HTML del RM todavía no presenta el
 archivo ni los botones de aprobación/rechazo de evidencia, aunque los endpoints
 existen. Tampoco hay alerta automática por fecha final. Las horas de un curso
 completado durante el mes se suman a las horas mensuales del colaborador y, por
-esa vía, al cálculo informativo del bono. Antes de iniciar esta versión sobre
-una base existente, aplicar `migracion_cursos.sql` y además los cambios de
-evidencia descritos en `CHANGELOG.md`.
+esa vía, al cálculo informativo del bono. Antes de iniciar esta versión, recrear la
+base con el `skillbridge_db_v4.sql` actual.
 
 ## Pruebas
 

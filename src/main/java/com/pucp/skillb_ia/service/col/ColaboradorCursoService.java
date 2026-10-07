@@ -197,7 +197,8 @@ public class ColaboradorCursoService {
     }
 
     // ============================================================
-    // MIS CURSOS (perfil profesional). Listamos los cursos que se están llevando, con evidencia enviada o completados
+    // MIS CURSOS (perfil profesional). Listamos los cursos que se están llevando, con evidencia enviada,
+    // completados o no completados (vencidos sin evidencia)
     // ============================================================
     @Transactional
     public List<ColaboradorCurso> listarMisCursos(Usuario colaborador) {
@@ -209,7 +210,8 @@ public class ColaboradorCursoService {
         for (ColaboradorCurso registro : todos) {
             if (registro.getEstado() == EstadoColaboradorCurso.EN_CURSO
                     || registro.getEstado() == EstadoColaboradorCurso.EVIDENCIA_PENDIENTE
-                    || registro.getEstado() == EstadoColaboradorCurso.COMPLETADO) {
+                    || registro.getEstado() == EstadoColaboradorCurso.COMPLETADO
+                    || registro.getEstado() == EstadoColaboradorCurso.NO_COMPLETADO) {
                 misCursos.add(registro);
             }
         }
@@ -220,15 +222,25 @@ public class ColaboradorCursoService {
     }
 
     // ============================================================
-    // MARCAMOS COMO "NO COMPLETADO" LOS CURSOS (AUTODIDACTA O
+    // MARCAMOS COMO "NO COMPLETADO" LOS CURSOS (AUTODIDACTA O NO) "EN CURSO" CUYA FECHA FIN
+    // VENCIÓ SIN EVIDENCIA. Al cambiar el estado, una segunda ejecución ya no los vuelve a tocar.
     // ============================================================
     public void marcarCursosSinEvidenciaVencidos(Usuario colaborador) {
+        marcarSinEvidenciaVencidos(colaboradorCursoRepository.findByColaborador(colaborador));
+    }
 
-        List<ColaboradorCurso> todos = colaboradorCursoRepository.findByColaborador(colaborador);
+    //Misma regla para todos los colaboradores: el RM la ejecuta al abrir su dashboard y la bandeja de cursos,
+    //así no ve "En curso" un curso vencido aunque el colaborador no haya entrado.
+    @Transactional
+    public void marcarTodosLosCursosSinEvidenciaVencidos() {
+        marcarSinEvidenciaVencidos(colaboradorCursoRepository.findByEstado(EstadoColaboradorCurso.EN_CURSO));
+    }
+
+    private void marcarSinEvidenciaVencidos(List<ColaboradorCurso> inscripciones) {
 
         LocalDate hoy = LocalDate.now();
 
-        for (ColaboradorCurso registro : todos) {
+        for (ColaboradorCurso registro : inscripciones) {
             if (registro.getEstado() != EstadoColaboradorCurso.EN_CURSO) {
                 continue;
             }
@@ -253,6 +265,8 @@ public class ColaboradorCursoService {
             registro.setEstado(EstadoColaboradorCurso.NO_COMPLETADO);
 
             colaboradorCursoRepository.save(registro);
+
+            Usuario colaborador = registro.getColaborador();
 
             auditoriaService.registrar(colaborador, "CURSO_NO_COMPLETADO", "COLABORADOR_CURSO", registro.getId(),
                     "El curso \"" + curso.getNombre() + "\" quedó como no completado: venció su fecha fin sin una evidencia aprobada.");

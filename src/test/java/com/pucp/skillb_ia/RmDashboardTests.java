@@ -9,6 +9,7 @@ import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.Educacion;
+import com.pucp.skillb_ia.model.Notificacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
@@ -23,6 +24,7 @@ import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.CursoRepository;
 import com.pucp.skillb_ia.repository.EducacionRepository;
+import com.pucp.skillb_ia.repository.LogAuditoriaRepository;
 import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
@@ -70,6 +72,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -90,6 +93,7 @@ class RmDashboardTests {
     @Autowired private CursoRepository cursoRepository;
     @Autowired private ColaboradorCursoRepository colaboradorCursoRepository;
     @Autowired private NotificacionRepository notificacionRepository;
+    @Autowired private LogAuditoriaRepository logAuditoriaRepository;
     @Autowired private ProyectoRepository proyectoRepository;
     @Autowired private AsignacionRepository asignacionRepository;
     @Autowired private RmAsignacionService rmAsignacionService;
@@ -199,6 +203,58 @@ class RmDashboardTests {
                 .andExpect(model().attribute("totalCursosPendientes", 0L))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertFalse(sinPendientes.contains("solicitud(es) de curso pendiente(s)"));
+    }
+
+    // TASK-055: abrir el dashboard marca los cursos vencidos sin evidencia aunque el colaborador no haya entrado.
+    @Test
+    void dashboardMarcaCursosVencidosSinEvidenciaUnaSolaVez() throws Exception {
+        notificacionRepository.deleteAll();
+        colaboradorCursoRepository.deleteAll();
+        Usuario colaborador = usuarioDePrueba("col.dashboard.vencido@skillbridge.test", "Vera", "COLABORADOR");
+        Curso vencido = cursoDashboard("Curso vencido dashboard test", colaborador, LocalDate.now().minusDays(2));
+        Curso sinFecha = cursoDashboard("Curso sin fecha dashboard test", colaborador, null);
+        Curso vigente = cursoDashboard("Curso vigente dashboard test", colaborador, LocalDate.now().plusDays(5));
+        ColaboradorCurso paraMarcar = guardarInscripcion(colaborador, vencido, OrigenCurso.ASIGNADO_POR_RM,
+                EstadoColaboradorCurso.EN_CURSO);
+        ColaboradorCurso sinPlazo = guardarInscripcion(colaborador, sinFecha, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EN_CURSO);
+        ColaboradorCurso aTiempo = guardarInscripcion(colaborador, vigente, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EN_CURSO);
+        ColaboradorCurso conEvidencia = guardarInscripcion(colaborador, vencido, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EN_CURSO);
+        conEvidencia.setEvidenciaUrl("/uploads/cursos-evidencia/dashboard-rechazada.pdf");
+        colaboradorCursoRepository.save(conEvidencia);
+
+        mockMvc.perform(get("/rm/dashboard")).andExpect(status().isOk());
+        mockMvc.perform(get("/rm/dashboard")).andExpect(status().isOk());
+
+        ColaboradorCurso marcado = colaboradorCursoRepository.findById(paraMarcar.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.NO_COMPLETADO, marcado.getEstado());
+        assertNull(marcado.getFechaCompletado(), "No se fija fechaCompletado: sus horas no cuentan");
+        assertEquals(1, logAuditoriaRepository.findAll().stream()
+                .filter(log -> "CURSO_NO_COMPLETADO".equals(log.getAccion())
+                        && paraMarcar.getId().equals(log.getEntidadId()))
+                .count());
+        List<Notificacion> notificaciones = notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaborador);
+        assertEquals(1, notificaciones.size());
+        assertEquals("CURSO_NO_COMPLETADO", notificaciones.get(0).getTipo());
+        assertEquals(paraMarcar.getId(), notificaciones.get(0).getEntidadId());
+        for (ColaboradorCurso item : List.of(sinPlazo, aTiempo, conEvidencia)) {
+            assertEquals(EstadoColaboradorCurso.EN_CURSO,
+                    colaboradorCursoRepository.findById(item.getId()).orElseThrow().getEstado());
+        }
+
+        colaboradorCursoRepository.deleteAll();
+        cursoRepository.deleteAll(List.of(vencido, sinFecha, vigente));
+    }
+
+    private Curso cursoDashboard(String nombre, Usuario creador, LocalDate fechaFin) {
+        Curso curso = new Curso();
+        curso.setNombre(nombre);
+        curso.setHoras(new BigDecimal("10.00"));
+        curso.setCreadoPor(creador);
+        curso.setFechaFin(fechaFin);
+        return cursoRepository.save(curso);
     }
 
     // TASK-033: el dashboard solo toma asignaciones de proyectos ACTIVO, EN_ESPERA y EN_REVISION.
@@ -445,14 +501,14 @@ class RmDashboardTests {
         return false;
     }
 
-    private void guardarInscripcion(Usuario colaborador, Curso curso, OrigenCurso origen,
-                                    EstadoColaboradorCurso estado) {
+    private ColaboradorCurso guardarInscripcion(Usuario colaborador, Curso curso, OrigenCurso origen,
+                                                EstadoColaboradorCurso estado) {
         ColaboradorCurso inscripcion = new ColaboradorCurso();
         inscripcion.setColaborador(colaborador);
         inscripcion.setCurso(curso);
         inscripcion.setOrigen(origen);
         inscripcion.setEstado(estado);
-        colaboradorCursoRepository.save(inscripcion);
+        return colaboradorCursoRepository.save(inscripcion);
     }
 
     private void guardarEducacion(Usuario colaborador, EstadoCertificado estado, boolean activo) {

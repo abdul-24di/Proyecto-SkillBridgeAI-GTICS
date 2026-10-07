@@ -119,6 +119,7 @@ public class RmViewController {
 
     @GetMapping({"/dashboard", "/rm-dashboard.html"})
     public String dashboard(Model model) {
+        rmCursoService.marcarCursosSinEvidenciaVencidos();
         List<RmAsignacionView> asignaciones = rmAsignacionService.listarParaDashboard();
         List<RmAsignacionView> pendientes = asignaciones.stream()
                 .filter(item -> item.isRequiereDecisionRm() || item.isPendientePm())
@@ -967,6 +968,7 @@ public class RmViewController {
             @RequestParam(name = "origen", required = false) String origen,
             @RequestParam(name = "pagina", required = false) String pagina,
             Model model) {
+        rmCursoService.marcarCursosSinEvidenciaVencidos();
         var filtros = rmCursoService.normalizarFiltrosBandeja(busqueda, estado, origen);
         model.addAttribute("bandeja", rmCursoService.obtenerBandeja(filtros, pagina));
         model.addAttribute("tamanioPagina", RmCursoService.TAMANIO_PAGINA_BANDEJA);

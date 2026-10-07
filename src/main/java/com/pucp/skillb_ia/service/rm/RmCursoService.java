@@ -12,6 +12,7 @@ import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.CursoRepository;
 import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.service.AuditoriaService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,15 +50,18 @@ public class RmCursoService {
     private final ColaboradorCursoRepository colaboradorCursoRepository;
     private final UsuarioRepository usuarioRepository;
     private final NotificacionRepository notificacionRepository;
+    private final AuditoriaService auditoriaService;
 
     public RmCursoService(CursoRepository cursoRepository,
                           ColaboradorCursoRepository colaboradorCursoRepository,
                           UsuarioRepository usuarioRepository,
-                          NotificacionRepository notificacionRepository) {
+                          NotificacionRepository notificacionRepository,
+                          AuditoriaService auditoriaService) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.usuarioRepository = usuarioRepository;
         this.notificacionRepository = notificacionRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     /**
@@ -250,16 +254,24 @@ public class RmCursoService {
         return inscripcion;
     }
 
+    // TASK-054: el revisor y la fecha se guardan aparte; asignadoPor sigue siendo quien aprobó la inscripción.
     @Transactional
     public ColaboradorCurso aprobarEvidencia(Long inscripcionId, Long rmId) {
         Usuario rm = obtenerRm(rmId);
         ColaboradorCurso inscripcion = obtenerEvidenciaPendiente(inscripcionId);
+        LocalDateTime ahora = LocalDateTime.now();
         inscripcion.setEstado(EstadoColaboradorCurso.COMPLETADO);
-        inscripcion.setFechaCompletado(LocalDateTime.now());
-        inscripcion.setAsignadoPor(rm);
+        inscripcion.setFechaCompletado(ahora);
+        inscripcion.setEvidenciaRevisadaPor(rm);
+        inscripcion.setFechaRevisionEvidencia(ahora);
         inscripcion = colaboradorCursoRepository.save(inscripcion);
         notificar(inscripcion, "CURSO_COMPLETADO", "Curso completado",
                 "Tu evidencia para “" + inscripcion.getCurso().getNombre() + "” fue validada. ¡Curso completado!");
+        auditoriaService.registrar(rm, "APROBAR_EVIDENCIA_CURSO", "COLABORADOR_CURSO", inscripcion.getId(),
+                recortar(detalleAuditoria("Aprobó la evidencia del curso", inscripcion)
+                        + " Horas confirmadas: " + inscripcion.getCurso().getHoras().toPlainString()
+                        + " h, sumadas a " + YearMonth.from(ahora) + ".", 500),
+                EstadoColaboradorCurso.EVIDENCIA_PENDIENTE.name(), EstadoColaboradorCurso.COMPLETADO.name(), null);
         return inscripcion;
     }
 
@@ -269,13 +281,28 @@ public class RmCursoService {
         ColaboradorCurso inscripcion = obtenerEvidenciaPendiente(inscripcionId);
         String motivoValidado = validarMotivo(motivo, "El motivo del rechazo de la evidencia es obligatorio.");
         inscripcion.setEstado(EstadoColaboradorCurso.EN_CURSO);
-        inscripcion.setAsignadoPor(rm);
         inscripcion.setMotivoRespuesta(motivoValidado);
+        inscripcion.setEvidenciaRevisadaPor(rm);
+        inscripcion.setFechaRevisionEvidencia(LocalDateTime.now());
         inscripcion = colaboradorCursoRepository.save(inscripcion);
         notificar(inscripcion, "EVIDENCIA_CURSO_RECHAZADA", "Evidencia de curso rechazada",
                 "Tu evidencia para “" + inscripcion.getCurso().getNombre()
                         + "” fue rechazada. Motivo: " + motivoValidado + " Puedes volver a subirla.");
+        auditoriaService.registrar(rm, "RECHAZAR_EVIDENCIA_CURSO", "COLABORADOR_CURSO", inscripcion.getId(),
+                recortar(detalleAuditoria("Rechazó la evidencia del curso", inscripcion)
+                        + " Motivo: " + motivoValidado, 500),
+                EstadoColaboradorCurso.EVIDENCIA_PENDIENTE.name(), EstadoColaboradorCurso.EN_CURSO.name(), null);
         return inscripcion;
+    }
+
+    private String detalleAuditoria(String accion, ColaboradorCurso inscripcion) {
+        return accion + " “" + inscripcion.getCurso().getNombre() + "” (id " + inscripcion.getCurso().getId()
+                + ") de " + nombreCompleto(inscripcion.getColaborador())
+                + " (id " + inscripcion.getColaborador().getId() + ").";
+    }
+
+    private String recortar(String texto, int maximo) {
+        return texto.length() <= maximo ? texto : texto.substring(0, maximo - 3) + "...";
     }
 
     private ColaboradorCurso obtenerSolicitudPendiente(Long id) {
@@ -391,7 +418,9 @@ public class RmCursoService {
                 curso.getHoras(), item.getOrigen().name(), textoOrigen(item.getOrigen()),
                 item.getEstado().name(), textoEstado(item), claseEstado(item),
                 item.getFechaSolicitud(), item.getJustificacion(), item.getMotivoRespuesta(), esSolicitudPendiente(item),
-                item.getEvidenciaUrl(), esEvidenciaPendiente(item));
+                item.getEvidenciaUrl(), esEvidenciaPendiente(item),
+                item.getEvidenciaRevisadaPor() != null ? nombreCompleto(item.getEvidenciaRevisadaPor()) : null,
+                item.getFechaRevisionEvidencia());
     }
 
     private boolean esSolicitudPendiente(ColaboradorCurso item) {

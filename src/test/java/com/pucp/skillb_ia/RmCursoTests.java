@@ -4,6 +4,7 @@ import com.pucp.skillb_ia.dto.NotificacionView;
 import com.pucp.skillb_ia.dto.RmCursoView;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
+import com.pucp.skillb_ia.model.LogAuditoria;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.Cargo;
@@ -13,12 +14,15 @@ import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.CursoRepository;
+import com.pucp.skillb_ia.repository.LogAuditoriaRepository;
 import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.rm.RmCursoService;
+import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
+import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,9 +31,11 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -38,6 +44,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -45,6 +52,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -61,12 +71,17 @@ class RmCursoTests {
     @Autowired private NotificacionRepository notificacionRepository;
     @Autowired private RmCursoService cursoService;
     @Autowired private NotificacionService notificacionService;
+    @Autowired private ColaboradorCursoService colaboradorCursoService;
+    @Autowired private LogAuditoriaRepository logAuditoriaRepository;
+    // TASK-054: permite simular un fallo de la auditoría para comprobar que la decisión se revierte.
+    @MockitoSpyBean private AuditoriaService auditoriaService;
 
     private MockMvc mockMvc;
     private Usuario admin;
     private Usuario rm;
     private Usuario colaboradorUno;
     private Usuario colaboradorDos;
+    private Usuario rmInscripcion;
     private Curso spring;
     private Curso aws;
     private Curso inactivo;
@@ -645,6 +660,204 @@ class RmCursoTests {
                         "Esta inscripción no tiene una evidencia pendiente de revisión."));
     }
 
+    // TASK-054: revisor, fecha de revisión y auditoría de la decisión sobre la evidencia.
+    @Test
+    void aprobarEvidenciaGuardaRevisorYFechaCompletaElCursoYAuditaLasHoras() throws Exception {
+        ColaboradorCurso evidencia = evidenciaAprobadaPorOtroRm();
+        autenticarRm();
+        LocalDateTime antes = LocalDateTime.now().minusSeconds(1);
+
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/aprobar", evidencia.getId()))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attributeExists("mensajeExito"));
+
+        ColaboradorCurso completada = colaboradorCursoRepository.findByIdConDetalle(evidencia.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.COMPLETADO, completada.getEstado());
+        assertEquals(rm.getId(), completada.getEvidenciaRevisadaPor().getId(), "El revisor es el RM autenticado");
+        assertNotNull(completada.getFechaRevisionEvidencia());
+        assertFalse(completada.getFechaRevisionEvidencia().isBefore(antes));
+        assertEquals(completada.getFechaCompletado(), completada.getFechaRevisionEvidencia());
+        assertEquals(rmInscripcion.getId(), completada.getAsignadoPor().getId(),
+                "asignadoPor sigue siendo el RM que aprobó la inscripción");
+        assertEquals("CURSO_COMPLETADO",
+                notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno).get(0).getTipo());
+
+        List<LogAuditoria> auditorias = auditorias("APROBAR_EVIDENCIA_CURSO", evidencia.getId());
+        assertEquals(1, auditorias.size());
+        LogAuditoria log = auditorias.get(0);
+        assertEquals(rm.getId(), log.getUsuario().getId());
+        assertEquals("COLABORADOR_CURSO", log.getEntidad());
+        assertTrue(log.getDetalle().contains("Spring Boot avanzado test"), log.getDetalle());
+        assertTrue(log.getDetalle().contains("Ana Torres"), log.getDetalle());
+        assertTrue(log.getDetalle().contains("Horas confirmadas: 20.00 h, sumadas a "
+                + YearMonth.from(completada.getFechaCompletado())), log.getDetalle());
+        assertEquals("EVIDENCIA_PENDIENTE", log.getValorAnterior());
+        assertEquals("COMPLETADO", log.getValorNuevo());
+        assertTrue(auditorias("RECHAZAR_EVIDENCIA_CURSO", evidencia.getId()).isEmpty());
+    }
+
+    @Test
+    void rechazarEvidenciaGuardaRevisorFechaMotivoYAuditoriaSinTocarAsignadoPor() throws Exception {
+        ColaboradorCurso evidencia = evidenciaAprobadaPorOtroRm();
+        autenticarRm();
+
+        mockMvc.perform(post("/rm/cursos/solicitudes/{id}/evidencia/rechazar", evidencia.getId())
+                        .param("motivo", "La constancia no muestra tu nombre."))
+                .andExpect(redirectedUrl(URL_EVIDENCIAS))
+                .andExpect(flash().attributeExists("mensajeExito"));
+
+        ColaboradorCurso rechazada = colaboradorCursoRepository.findByIdConDetalle(evidencia.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.EN_CURSO, rechazada.getEstado());
+        assertEquals("La constancia no muestra tu nombre.", rechazada.getMotivoRespuesta());
+        assertEquals(rm.getId(), rechazada.getEvidenciaRevisadaPor().getId());
+        assertNotNull(rechazada.getFechaRevisionEvidencia());
+        assertNull(rechazada.getFechaCompletado());
+        assertEquals(rmInscripcion.getId(), rechazada.getAsignadoPor().getId());
+        assertNotNull(rechazada.getEvidenciaUrl(), "La evidencia rechazada se conserva");
+
+        List<LogAuditoria> auditorias = auditorias("RECHAZAR_EVIDENCIA_CURSO", evidencia.getId());
+        assertEquals(1, auditorias.size());
+        LogAuditoria log = auditorias.get(0);
+        assertEquals(rm.getId(), log.getUsuario().getId());
+        assertEquals("COLABORADOR_CURSO", log.getEntidad());
+        assertTrue(log.getDetalle().contains("Spring Boot avanzado test"), log.getDetalle());
+        assertTrue(log.getDetalle().contains("Ana Torres"), log.getDetalle());
+        assertTrue(log.getDetalle().endsWith("Motivo: La constancia no muestra tu nombre."), log.getDetalle());
+        assertEquals("EN_CURSO", log.getValorNuevo());
+    }
+
+    @Test
+    void rechazoConMotivoMaximoSeAuditaSinSuperarLaColumna() {
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+
+        cursoService.rechazarEvidencia(evidencia.getId(), "m".repeat(500), rm.getId());
+
+        assertEquals("m".repeat(500),
+                colaboradorCursoRepository.findById(evidencia.getId()).orElseThrow().getMotivoRespuesta());
+        String detalle = auditorias("RECHAZAR_EVIDENCIA_CURSO", evidencia.getId()).get(0).getDetalle();
+        assertEquals(500, detalle.length());
+        assertTrue(detalle.endsWith("..."));
+    }
+
+    @Test
+    void reenviarEvidenciaRechazadaLimpiaLaRevisionAnterior() throws Exception {
+        ColaboradorCurso evidencia = evidenciaAprobadaPorOtroRm();
+        cursoService.rechazarEvidencia(evidencia.getId(), "Archivo ilegible.", rm.getId());
+
+        colaboradorCursoService.subirEvidencia(colaboradorUno, evidencia.getId(),
+                new MockMultipartFile("evidencia", "constancia.pdf", "application/pdf", new byte[]{1, 2, 3}));
+
+        ColaboradorCurso reenviada = colaboradorCursoRepository.findByIdConDetalle(evidencia.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE, reenviada.getEstado());
+        assertNull(reenviada.getEvidenciaRevisadaPor());
+        assertNull(reenviada.getFechaRevisionEvidencia());
+        assertEquals(rmInscripcion.getId(), reenviada.getAsignadoPor().getId());
+        assertEquals(1, auditorias("RECHAZAR_EVIDENCIA_CURSO", evidencia.getId()).size(),
+                "El rechazo anterior queda en la auditoría");
+
+        String html = mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", "EVIDENCIA_PENDIENTE"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(html.contains("Evidencia revisada por"), "Vuelve a revisión sin revisor");
+    }
+
+    @Test
+    void segundaDecisionOEstadoInvalidoNoCambiaDatosNiAudita() {
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+        cursoService.aprobarEvidencia(evidencia.getId(), rm.getId());
+        ColaboradorCurso decidida = colaboradorCursoRepository.findByIdConDetalle(evidencia.getId()).orElseThrow();
+
+        assertThrows(IllegalStateException.class,
+                () -> cursoService.aprobarEvidencia(evidencia.getId(), rm.getId()));
+        assertThrows(IllegalStateException.class,
+                () -> cursoService.rechazarEvidencia(evidencia.getId(), "Tarde.", rm.getId()));
+
+        ColaboradorCurso despues = colaboradorCursoRepository.findByIdConDetalle(evidencia.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.COMPLETADO, despues.getEstado());
+        assertEquals(decidida.getFechaRevisionEvidencia(), despues.getFechaRevisionEvidencia());
+        assertEquals(decidida.getFechaCompletado(), despues.getFechaCompletado());
+        assertNull(despues.getMotivoRespuesta());
+        assertEquals(1, auditorias("APROBAR_EVIDENCIA_CURSO", evidencia.getId()).size());
+        assertTrue(auditorias("RECHAZAR_EVIDENCIA_CURSO", evidencia.getId()).isEmpty());
+        assertEquals(1, notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno).size());
+
+        for (EstadoColaboradorCurso estado : List.of(EstadoColaboradorCurso.SOLICITADO,
+                EstadoColaboradorCurso.EN_CURSO, EstadoColaboradorCurso.RECHAZADO,
+                EstadoColaboradorCurso.NO_COMPLETADO)) {
+            ColaboradorCurso otra = inscripcion(colaboradorDos, aws, OrigenCurso.SOLICITUD_COLABORADOR, estado);
+            assertThrows(IllegalStateException.class,
+                    () -> cursoService.aprobarEvidencia(otra.getId(), rm.getId()), estado.name());
+            assertThrows(IllegalStateException.class,
+                    () -> cursoService.rechazarEvidencia(otra.getId(), "Motivo.", rm.getId()), estado.name());
+            ColaboradorCurso sinCambios = colaboradorCursoRepository.findById(otra.getId()).orElseThrow();
+            assertEquals(estado, sinCambios.getEstado());
+            assertNull(sinCambios.getEvidenciaRevisadaPor());
+            assertNull(sinCambios.getFechaRevisionEvidencia());
+            assertTrue(auditorias("APROBAR_EVIDENCIA_CURSO", otra.getId()).isEmpty());
+            assertTrue(auditorias("RECHAZAR_EVIDENCIA_CURSO", otra.getId()).isEmpty());
+        }
+
+        ColaboradorCurso sinMotivo = evidenciaPendiente(colaboradorDos, spring, "luis.pdf", null);
+        assertThrows(IllegalArgumentException.class,
+                () -> cursoService.rechazarEvidencia(sinMotivo.getId(), "  ", rm.getId()));
+        assertNull(colaboradorCursoRepository.findById(sinMotivo.getId()).orElseThrow().getFechaRevisionEvidencia());
+        assertTrue(auditorias("RECHAZAR_EVIDENCIA_CURSO", sinMotivo.getId()).isEmpty());
+        assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorDos).isEmpty());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"APROBAR_EVIDENCIA_CURSO", "RECHAZAR_EVIDENCIA_CURSO"})
+    void unFalloDuranteLaDecisionRevierteTodosLosCambios(String accion) {
+        ColaboradorCurso evidencia = evidenciaAprobadaPorOtroRm();
+        doThrow(new IllegalStateException("Fallo simulado de auditoría")).when(auditoriaService)
+                .registrar(any(), eq(accion), any(), any(), any(), any(), any(), any());
+
+        assertThrows(IllegalStateException.class, () -> {
+            if (accion.startsWith("APROBAR")) cursoService.aprobarEvidencia(evidencia.getId(), rm.getId());
+            else cursoService.rechazarEvidencia(evidencia.getId(), "Archivo ilegible.", rm.getId());
+        });
+
+        ColaboradorCurso sinCambios = colaboradorCursoRepository.findByIdConDetalle(evidencia.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE, sinCambios.getEstado());
+        assertNull(sinCambios.getEvidenciaRevisadaPor());
+        assertNull(sinCambios.getFechaRevisionEvidencia());
+        assertNull(sinCambios.getFechaCompletado());
+        assertNull(sinCambios.getMotivoRespuesta());
+        assertEquals(rmInscripcion.getId(), sinCambios.getAsignadoPor().getId());
+        assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno).isEmpty());
+        assertTrue(auditorias(accion, evidencia.getId()).isEmpty());
+    }
+
+    @Test
+    void bandejaMuestraRevisorYFechaDeLaEvidenciaRevisada() throws Exception {
+        ColaboradorCurso aprobada = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+        ColaboradorCurso rechazada = evidenciaPendiente(colaboradorDos, aws, "luis.pdf", null);
+        ColaboradorCurso pendiente = evidenciaPendiente(colaboradorDos, spring, "luis2.pdf", null);
+        cursoService.aprobarEvidencia(aprobada.getId(), rm.getId());
+        cursoService.rechazarEvidencia(rechazada.getId(), "Falta la fecha.", rm.getId());
+        LocalDateTime fecha = colaboradorCursoRepository.findById(aprobada.getId()).orElseThrow()
+                .getFechaRevisionEvidencia();
+
+        RmCursoView.Bandeja bandeja = cursoService.obtenerBandeja(
+                cursoService.normalizarFiltrosBandeja("", "", ""), null);
+        RmCursoView.InscripcionItem itemAprobada = bandeja.getInscripciones().stream()
+                .filter(item -> item.getId().equals(aprobada.getId())).findFirst().orElseThrow();
+        assertEquals("Rosa Mendoza", itemAprobada.getEvidenciaRevisadaPor());
+        assertEquals(fecha, itemAprobada.getFechaRevisionEvidencia());
+        assertNull(bandeja.getInscripciones().stream().filter(item -> item.getId().equals(pendiente.getId()))
+                .findFirst().orElseThrow().getEvidenciaRevisadaPor());
+
+        String html = mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", ""))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertEquals(2, html.split("Evidencia revisada por Rosa Mendoza", -1).length - 1,
+                "Solo las evidencias revisadas muestran revisor");
+        assertTrue(html.contains("Evidencia revisada por Rosa Mendoza · "
+                + String.format("%02d", fecha.getDayOfMonth())), "Muestra la fecha de revisión");
+        assertTrue(html.contains(String.format("%d %02d:%02d<", fecha.getYear(), fecha.getHour(), fecha.getMinute())),
+                "Muestra la hora de revisión");
+    }
+
     @Test
     void notificacionDeEvidenciaAbreLaBandejaFiltradaYLasDemasConservanSuEnlace() {
         ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
@@ -706,6 +919,24 @@ class RmCursoTests {
         item.setFechaEvidencia(LocalDateTime.now());
         if (fechaSolicitud != null) item.setFechaSolicitud(fechaSolicitud);
         return colaboradorCursoRepository.save(item);
+    }
+
+    // Evidencia de una inscripción aprobada por otro RM (ya inactivo), distinto del que revisa la evidencia.
+    private ColaboradorCurso evidenciaAprobadaPorOtroRm() {
+        rmInscripcion = usuario("rm.inscripcion.cursos@skillbridge.test", "Iris", "Salas",
+                rol("RESOURCE_MANAGER"), null);
+        rmInscripcion.setActivo(false);
+        rmInscripcion = usuarioRepository.save(rmInscripcion);
+        ColaboradorCurso item = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+        item.setAsignadoPor(rmInscripcion);
+        return colaboradorCursoRepository.save(item);
+    }
+
+    private List<LogAuditoria> auditorias(String accion, Long inscripcionId) {
+        return logAuditoriaRepository.findAllConUsuario().stream()
+                .filter(log -> accion.equals(log.getAccion()) && "COLABORADOR_CURSO".equals(log.getEntidad())
+                        && inscripcionId.equals(log.getEntidadId()))
+                .toList();
     }
 
     private void autenticarRm() {

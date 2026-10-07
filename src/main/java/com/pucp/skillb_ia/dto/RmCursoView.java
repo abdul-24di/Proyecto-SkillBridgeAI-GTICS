@@ -132,6 +132,8 @@ public final class RmCursoView {
         private final boolean pendienteGestionRm;
         private final String evidenciaUrl;
         private final boolean pendienteRevisionEvidencia;
+        private final String evidenciaRevisadaPor;
+        private final LocalDateTime fechaRevisionEvidencia;
 
         public InscripcionItem(Long id, Long colaboradorId, String colaborador,
                                String iniciales, String cargo, Long cursoId,
@@ -139,7 +141,8 @@ public final class RmCursoView {
                                String origenCodigo, String origenTexto,
                                String estadoCodigo, String estadoTexto, String estadoClase,
                                LocalDateTime fechaSolicitud, String justificacion, String motivoRespuesta,
-                               boolean pendienteGestionRm, String evidenciaUrl, boolean pendienteRevisionEvidencia) {
+                               boolean pendienteGestionRm, String evidenciaUrl, boolean pendienteRevisionEvidencia,
+                               String evidenciaRevisadaPor, LocalDateTime fechaRevisionEvidencia) {
             this.id = id;
             this.colaboradorId = colaboradorId;
             this.colaborador = colaborador;
@@ -160,6 +163,8 @@ public final class RmCursoView {
             this.pendienteGestionRm = pendienteGestionRm;
             this.evidenciaUrl = evidenciaUrl;
             this.pendienteRevisionEvidencia = pendienteRevisionEvidencia;
+            this.evidenciaRevisadaPor = evidenciaRevisadaPor;
+            this.fechaRevisionEvidencia = fechaRevisionEvidencia;
         }
 
         public Long getId() { return id; }
@@ -182,6 +187,8 @@ public final class RmCursoView {
         public boolean isPendienteGestionRm() { return pendienteGestionRm; }
         public String getEvidenciaUrl() { return evidenciaUrl; }
         public boolean isPendienteRevisionEvidencia() { return pendienteRevisionEvidencia; }
+        public String getEvidenciaRevisadaPor() { return evidenciaRevisadaPor; }
+        public LocalDateTime getFechaRevisionEvidencia() { return fechaRevisionEvidencia; }
     }
 
     public static class ColaboradorOpcion {

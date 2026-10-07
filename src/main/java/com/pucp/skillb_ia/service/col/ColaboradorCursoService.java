@@ -303,6 +303,9 @@ public class ColaboradorCursoService {
         inscripcion.setEvidenciaUrl(evidenciaUrl);
         inscripcion.setFechaEvidencia(LocalDateTime.now());
         inscripcion.setEstado(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
+        // Al reenviar tras un rechazo, la revisión anterior deja de aplicar (queda en la auditoría).
+        inscripcion.setEvidenciaRevisadaPor(null);
+        inscripcion.setFechaRevisionEvidencia(null);
         colaboradorCursoRepository.save(inscripcion);
 
         auditoriaService.registrar(colaborador, "SUBIR_EVIDENCIA_CURSO", "COLABORADOR_CURSO", inscripcion.getId(),

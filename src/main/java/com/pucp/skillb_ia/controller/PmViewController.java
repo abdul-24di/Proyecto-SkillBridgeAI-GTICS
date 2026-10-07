@@ -13,6 +13,7 @@ import com.pucp.skillb_ia.service.pm.PmForoService;
 import com.pucp.skillb_ia.service.pm.PmPerfilService;
 import com.pucp.skillb_ia.service.pm.PmProyectoService;
 import com.pucp.skillb_ia.service.pm.PmReporteService;
+import com.pucp.skillb_ia.service.pm.PmSolicitudPersonalService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -49,6 +50,7 @@ public class PmViewController {
     private final HabilidadRepository habilidadRepository;
     private final UsuarioRepository usuarioRepository;
     private final com.pucp.skillb_ia.service.pm.PmDashboardService pmDashboardService;
+    private final PmSolicitudPersonalService pmSolicitudPersonalService;
 
     public PmViewController(PmProyectoService pmProyectoService,
                             PmActividadService pmActividadService,
@@ -59,7 +61,8 @@ public class PmViewController {
                             PmChatService pmChatService,
                             HabilidadRepository habilidadRepository,
                             UsuarioRepository usuarioRepository,
-                            com.pucp.skillb_ia.service.pm.PmDashboardService pmDashboardService) {
+                            com.pucp.skillb_ia.service.pm.PmDashboardService pmDashboardService,
+                            PmSolicitudPersonalService pmSolicitudPersonalService) {
         this.pmProyectoService = pmProyectoService;
         this.pmActividadService = pmActividadService;
         this.pmAsignacionService = pmAsignacionService;
@@ -70,6 +73,7 @@ public class PmViewController {
         this.habilidadRepository = habilidadRepository;
         this.usuarioRepository = usuarioRepository;
         this.pmDashboardService = pmDashboardService;
+        this.pmSolicitudPersonalService = pmSolicitudPersonalService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -114,9 +118,73 @@ public class PmViewController {
                                   @AuthenticationPrincipal UsuarioDetails principal,
                                   Model model) {
         Usuario pm = principal.getUsuario();
-        model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
+        var proyecto = pmProyectoService.obtener(proyectoId, pm);
+        model.addAttribute("proyecto", proyecto);
         model.addAttribute("pm", pm);
+        // Habilidades del proyecto con sus cupos libres para el modal de solicitud de personal.
+        model.addAttribute("cuposSolicitud", pmSolicitudPersonalService.listarCupos(proyecto.getProyecto()));
+        // Tras un error, el flash trae los valores ingresados en el modal de solicitud de personal.
+        if (!model.containsAttribute("pmSolicitudPersonalForm")) {
+            model.addAttribute("pmSolicitudPersonalForm", new PmSolicitudPersonalForm());
+        }
         return "pm/pm-detalle-proyecto";
+    }
+
+    // TASK-058: el PM pide personal al RM, con desglose por habilidad del proyecto.
+    // Las reglas están en PmSolicitudPersonalService y RmSolicitudPersonalService.crearDesdePm.
+    @PostMapping("/proyectos/{id}/solicitudes-personal")
+    public String solicitarPersonal(@PathVariable("id") Long proyectoId,
+                                    @Valid @ModelAttribute("pmSolicitudPersonalForm") PmSolicitudPersonalForm form,
+                                    BindingResult result,
+                                    @AuthenticationPrincipal UsuarioDetails principal,
+                                    RedirectAttributes ra) {
+        String destino = "redirect:/pm/proyectos/detalle?id=" + proyectoId;
+        if (result.hasErrors()) {
+            return reabrirSolicitudPersonal(destino, mensajesSolicitudPersonal(result), form, ra);
+        }
+        try {
+            pmSolicitudPersonalService.solicitar(proyectoId, form.getCantidad(), form.getCantidadesPorHabilidad(),
+                    form.getPerfiles(), form.getMensaje(), principal.getUsuario());
+            ra.addFlashAttribute("success", "Solicitud de personal enviada. Los Resource Managers fueron notificados.");
+        } catch (IllegalArgumentException e) {
+            // Datos del formulario (desglose, perfiles): se corrigen en el mismo modal.
+            return reabrirSolicitudPersonal(destino, e.getMessage(), form, ra);
+        } catch (IllegalStateException e) {
+            // Estado del proyecto o solicitud abierta: no se corrige en el modal.
+            ra.addFlashAttribute("error", e.getMessage());
+        } catch (SecurityException e) {
+            ra.addFlashAttribute("error", e.getMessage());
+            return "redirect:/pm/proyectos";
+        }
+        return destino;
+    }
+
+    private static String reabrirSolicitudPersonal(String destino, String mensaje, PmSolicitudPersonalForm form,
+                                                   RedirectAttributes ra) {
+        ra.addFlashAttribute("error", mensaje);
+        ra.addFlashAttribute("pmSolicitudPersonalForm", form);
+        ra.addFlashAttribute("abrirSolicitudPersonal", true);
+        // El fragmento reabre el modal también sin JavaScript (CSS :target).
+        return destino + "#requestStaffModal";
+    }
+
+    private static String mensajesSolicitudPersonal(BindingResult result) {
+        return result.getFieldErrors().stream()
+                .sorted(java.util.Comparator.comparingInt(error -> ordenCampoSolicitud(error.getField())))
+                .map(error -> {
+                    if (!error.isBindingFailure()) return error.getDefaultMessage();
+                    return error.getField().startsWith("cantidadesPorHabilidad")
+                            ? "La cantidad por habilidad debe ser un número entero mayor o igual que cero."
+                            : "La cantidad debe ser un número entero mayor que cero.";
+                })
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(" "));
+    }
+
+    private static int ordenCampoSolicitud(String campo) {
+        if (campo.equals("cantidad")) return 0;
+        if (campo.startsWith("cantidadesPorHabilidad")) return 1;
+        return campo.equals("perfiles") ? 2 : 3;
     }
 
     @GetMapping({"/proyectos/crear", "/pm-crear-proyecto.html"})

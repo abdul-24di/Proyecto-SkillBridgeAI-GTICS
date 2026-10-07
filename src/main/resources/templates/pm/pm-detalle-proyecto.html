@@ -46,6 +46,15 @@
       <span class="text-secondary" th:text="${proyecto.proyecto.nombre}">Sistema de Inventario</span>
     </div>
 
+    <div th:if="${success != null}" class="alert alert-success alert-dismissible" role="alert">
+      <div class="d-flex"><div><h4 class="alert-title">¡Éxito!</h4><div class="text-secondary" th:text="${success}"></div></div></div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+    <div th:if="${error != null}" class="alert alert-danger alert-dismissible" role="alert">
+      <div class="d-flex"><div><h4 class="alert-title">Error</h4><div class="text-secondary" th:text="${error}"></div></div></div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+
     <div class="page-head page-head-stack-mobile">
       <div>
         <h1 class="page-title" th:text="${proyecto.proyecto.nombre}">Sistema de Inventario</h1>
@@ -58,6 +67,7 @@
         <a th:href="@{/pm/chat(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Chat</a>
         <a th:href="@{/pm/reportes/detalle(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Ver reporte</a>
         <a th:href="@{/pm/proyectos/asignaciones(proyectoId=${proyecto.proyecto.id})}" class="btn btn-primary">Gestionar asignaciones</a>
+        <a th:if="${proyecto.proyecto.estado.name() == 'ACTIVO' or proyecto.proyecto.estado.name() == 'EN_ESPERA'}" href="#requestStaffModal" data-bs-toggle="modal" data-bs-target="#requestStaffModal" class="btn btn-outline-primary">Solicitar personal</a>
         <a th:if="${proyecto.puedeCancelar}" href="#" data-bs-toggle="modal" data-bs-target="#cancelProjectModal" class="btn btn-outline-danger">Cancelar proyecto</a>
       </div>
     </div>
@@ -165,6 +175,65 @@
   </div>
 </div>
 
+<!--/* TASK-058: sin JavaScript, el enlace al fragmento lo abre con CSS :target y "Cerrar" vuelve a "#". */-->
+<div th:if="${proyecto.proyecto.estado.name() == 'ACTIVO' or proyecto.proyecto.estado.name() == 'EN_ESPERA'}"
+     class="modal modal-blur fade pm-modal" id="requestStaffModal" tabindex="-1" aria-hidden="true" aria-labelledby="requestStaffTitle">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><h5 class="modal-title" id="requestStaffTitle">Solicitar personal</h5><div class="text-secondary small">Los Resource Managers recibirán la solicitud.</div></div>
+        <a href="#" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></a>
+      </div>
+      <form method="POST" th:action="@{/pm/proyectos/{id}/solicitudes-personal(id=${proyecto.proyecto.id})}" th:object="${pmSolicitudPersonalForm}">
+        <div class="modal-body">
+          <div th:if="${abrirSolicitudPersonal != null and error != null}" class="alert alert-danger" role="alert" th:text="${error}">Error</div>
+          <div class="mb-3">
+            <label class="form-label required" for="staffQuantity">Cantidad total de colaboradores</label>
+            <input id="staffQuantity" type="number" class="form-control" th:field="*{cantidad}" min="1" step="1" required
+                   th:max="${proyecto.proyecto.colaboradoresRequeridos}">
+            <div class="form-hint" th:text="|Máximo ${proyecto.proyecto.colaboradoresRequeridos} (colaboradores requeridos del proyecto). Incluye a los de las habilidades del proyecto y a los de otros perfiles.|">Máximo 3.</div>
+          </div>
+          <div class="mb-3">
+            <div class="form-label">Por habilidad del proyecto</div>
+            <div th:if="${#lists.isEmpty(cuposSolicitud)}" class="text-secondary small">El proyecto no tiene habilidades registradas. Describe lo que necesitas en Perfiles requeridos.</div>
+            <div th:unless="${#lists.isEmpty(cuposSolicitud)}" class="staff-skill-list">
+              <div th:each="cupo : ${cuposSolicitud}" class="staff-skill-row">
+                <div class="staff-skill-info">
+                  <div class="fw-medium"><span th:text="${cupo.habilidad}">Java</span> <span class="badge bg-blue-lt ms-1" th:text="${cupo.nivel}">Avanzado</span></div>
+                  <div class="text-secondary small" th:text="|Exigidos: ${cupo.exigidos} · Activos: ${cupo.ocupados} · Disponibles: ${cupo.disponibles}|">Exigidos: 2 · Activos: 0 · Disponibles: 2</div>
+                </div>
+                <input type="number" class="form-control staff-skill-input" min="0" step="1"
+                       th:id="|staffSkill${cupo.habilidadId}|"
+                       th:name="|cantidadesPorHabilidad[${cupo.habilidadId}]|"
+                       th:value="${pmSolicitudPersonalForm.cantidadPara(cupo.habilidadId)}"
+                       th:max="${cupo.disponibles}" th:readonly="${cupo.disponibles == 0}"
+                       th:aria-label="|Colaboradores de ${cupo.habilidad}|">
+              </div>
+            </div>
+            <div class="form-hint">Activos = colaboradores con asignación activa en esa habilidad. La suma no puede superar la cantidad total.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="staffProfiles">Perfiles requeridos (otras habilidades)</label>
+            <textarea id="staffProfiles" class="form-control" rows="3" th:field="*{perfiles}" maxlength="1000"
+                      placeholder="Ej.: 1 diseñador UX con experiencia en Figma"></textarea>
+            <div class="form-hint">Obligatorio si la cantidad total supera la suma por habilidad. Máximo 1000 caracteres.</div>
+          </div>
+          <div>
+            <label class="form-label" for="staffMessage">Mensaje para el RM (opcional)</label>
+            <textarea id="staffMessage" class="form-control" rows="3" th:field="*{mensaje}" maxlength="1000"></textarea>
+            <div class="form-hint">Máximo 1000 caracteres.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <a href="#" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</a>
+          <button class="btn btn-primary" type="submit">Enviar solicitud</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/pm-js/pm-detalle-proyecto.js" th:src="@{/js/pm-js/pm-detalle-proyecto.js}"></script>
 </body>
 </html>

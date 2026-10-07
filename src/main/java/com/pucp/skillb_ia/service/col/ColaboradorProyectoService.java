@@ -320,7 +320,7 @@ public class ColaboradorProyectoService {
         }
 
         boolean esActiva = asignacion.getEstado() == EstadoAsignacion.ACTIVA;
-        
+
         EstadoProyecto estadoProyecto = asignacion.getProyecto().getEstado();
         boolean proyectoTerminoParaTodos = estadoProyecto == EstadoProyecto.FINALIZADO
                 || estadoProyecto == EstadoProyecto.CANCELADO;

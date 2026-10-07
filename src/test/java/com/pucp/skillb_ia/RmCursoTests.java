@@ -21,6 +21,7 @@ import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.rm.RmCursoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.EmailService;
 import com.pucp.skillb_ia.service.NotificacionService;
 import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
 import org.junit.jupiter.api.AfterEach;
@@ -31,10 +32,12 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.mail.MailSendException;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -56,6 +59,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -76,6 +81,8 @@ class RmCursoTests {
     @Autowired private LogAuditoriaRepository logAuditoriaRepository;
     // TASK-054: permite simular un fallo de la auditoría para comprobar que la decisión se revierte.
     @MockitoSpyBean private AuditoriaService auditoriaService;
+    // TASK-056: simulado para no tocar SMTP y poder verificar o hacer fallar el correo de aprobación.
+    @MockitoBean private EmailService emailService;
 
     private MockMvc mockMvc;
     private Usuario admin;
@@ -187,6 +194,74 @@ class RmCursoTests {
         ColaboradorCurso aprobada = colaboradorCursoRepository.findById(solicitud.getId()).orElseThrow();
         assertEquals(EstadoColaboradorCurso.EN_CURSO, aprobada.getEstado());
         assertEquals("Necesario para el proyecto Cloud.", aprobada.getMotivoRespuesta());
+    }
+
+    // TASK-056: la aprobación informa curso, fechas y horas por la campana y por correo.
+    @Test
+    void aprobarNotificaYEnviaCorreoConCursoFechasYHoras() {
+        spring.setFechaInicio(LocalDate.of(2026, 11, 2));
+        spring.setFechaFin(LocalDate.of(2026, 11, 27));
+        spring = cursoRepository.save(spring);
+        ColaboradorCurso solicitud = inscripcion(colaboradorUno, spring,
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+
+        cursoService.aprobar(solicitud.getId(), "Aporta al proyecto actual.", rm.getId());
+
+        assertEquals(EstadoColaboradorCurso.EN_CURSO,
+                colaboradorCursoRepository.findById(solicitud.getId()).orElseThrow().getEstado());
+        var notificaciones = notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno);
+        assertEquals(1, notificaciones.size());
+        assertEquals("CURSO_APROBADO", notificaciones.get(0).getTipo());
+        assertEquals("Tu solicitud para “Spring Boot avanzado test” fue aprobada. Inicio: 02/11/2026"
+                + " · Fin: 27/11/2026 · Duración: 20 h.", notificaciones.get(0).getDescripcion());
+        assertEquals("/colaborador/perfil#mis-cursos", urlPorTitulo(
+                notificacionService.listar(colaboradorUno.getId()), "Solicitud de curso aprobada"));
+        verify(emailService).enviarInscripcionAprobada("ana.cursos@skillbridge.test",
+                "Spring Boot avanzado test", "02/11/2026", "27/11/2026", "20 h");
+    }
+
+    @Test
+    void aprobarSinFechasUsaTextoSeguroEnNotificacionYCorreo() {
+        ColaboradorCurso solicitud = inscripcion(colaboradorUno, spring,
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+
+        cursoService.aprobar(solicitud.getId(), "Aporta al proyecto actual.", rm.getId());
+
+        String descripcion = notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaboradorUno)
+                .get(0).getDescripcion();
+        assertTrue(descripcion.contains("Inicio: Por confirmar · Fin: Por confirmar · Duración: 20 h."), descripcion);
+        assertFalse(descripcion.contains("null"));
+        verify(emailService).enviarInscripcionAprobada("ana.cursos@skillbridge.test",
+                "Spring Boot avanzado test", "Por confirmar", "Por confirmar", "20 h");
+    }
+
+    @Test
+    void unFalloDelCorreoNoRevierteLaAprobacionNiLaNotificacion() {
+        ColaboradorCurso solicitud = inscripcion(colaboradorUno, spring,
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        doThrow(new MailSendException("SMTP no disponible")).when(emailService)
+                .enviarInscripcionAprobada(any(), any(), any(), any(), any());
+
+        assertDoesNotThrow(() -> cursoService.aprobar(solicitud.getId(), "Aporta al proyecto actual.", rm.getId()));
+
+        ColaboradorCurso aprobada = colaboradorCursoRepository.findById(solicitud.getId()).orElseThrow();
+        assertEquals(EstadoColaboradorCurso.EN_CURSO, aprobada.getEstado());
+        assertEquals("Aporta al proyecto actual.", aprobada.getMotivoRespuesta());
+        assertEquals(List.of("CURSO_APROBADO"), notificacionRepository
+                .findByUsuarioOrderByFechaCreacionDesc(colaboradorUno).stream().map(item -> item.getTipo()).toList());
+    }
+
+    @Test
+    void rechazoAsignacionDirectaYEvidenciaNoEnvianElCorreoDeAprobacion() {
+        ColaboradorCurso solicitud = inscripcion(colaboradorUno, spring,
+                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorDos, spring, "luis.pdf", null);
+
+        cursoService.rechazar(solicitud.getId(), "Primero debe completar el curso básico.", rm.getId());
+        cursoService.asignarDirectamente(colaboradorUno.getId(), aws.getId(), "Fortalecer cloud.", rm.getId());
+        cursoService.aprobarEvidencia(evidencia.getId(), rm.getId());
+
+        verify(emailService, never()).enviarInscripcionAprobada(any(), any(), any(), any(), any());
     }
 
     @Test

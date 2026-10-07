@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.EvaluacionService;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Foro;
@@ -36,6 +37,7 @@ public class ColaboradorViewController {
     private final ColaboradorCursoService colaboradorCursoService;
     private final ColaboradorActividadService colaboradorActividadService;
     private final ColaboradorDocumentoService colaboradorDocumentoService;
+    private final UsuarioRepository usuarioRepository;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
                                      ColaboradorProyectoService colaboradorProyectoService,
@@ -45,6 +47,7 @@ public class ColaboradorViewController {
                                      ColaboradorForoService colaboradorForoService,
                                      ColaboradorActividadService colaboradorActividadService,
                                      ColaboradorDocumentoService colaboradorDocumentoService,
+                                     UsuarioRepository usuarioRepository,
                                      EvaluacionService evaluacionService) {
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
@@ -55,6 +58,7 @@ public class ColaboradorViewController {
         this.colaboradorActividadService = colaboradorActividadService;
         this.colaboradorDocumentoService = colaboradorDocumentoService;
         this.evaluacionService = evaluacionService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @GetMapping({"", "/"})
@@ -67,7 +71,7 @@ public class ColaboradorViewController {
         if (principal == null) {
             return "redirect:/login";
         }
-        Usuario colaborador = principal.getUsuario();
+        Usuario colaborador = usuarioRepository.findById(principal.getUsuario().getId()).orElseThrow();
 
         List<Asignacion> misAsignaciones = colaboradorProyectoService.listarMisAsignaciones(colaborador);
         int proyectosActivos = 0;
@@ -439,7 +443,7 @@ public class ColaboradorViewController {
         if (principal == null) {
             return "redirect:/login";
         }
-        Usuario colaborador = principal.getUsuario();
+        Usuario colaborador = usuarioRepository.findById(principal.getUsuario().getId()).orElseThrow();
 
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("habilidadesColaborador", colaboradorPerfilService.listarHabilidades(colaborador));

@@ -43,6 +43,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
@@ -909,6 +910,104 @@ class RmCursoTests {
                 colaboradorCursoRepository.findById(paraRechazar.getId()).orElseThrow().getEstado());
         assertEquals(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE,
                 colaboradorCursoRepository.findById(evidencia.getId()).orElseThrow().getEstado());
+    }
+
+    // TASK-055: el colaborador ve sus cursos NO_COMPLETADO en "Mis cursos".
+    @Test
+    void misCursosIncluyeLosNoCompletados() {
+        ColaboradorCurso noCompletado = inscripcion(colaboradorUno, spring, OrigenCurso.ASIGNADO_POR_RM,
+                EstadoColaboradorCurso.NO_COMPLETADO);
+        ColaboradorCurso enCurso = inscripcion(colaboradorUno, aws, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EN_CURSO);
+        inscripcion(colaboradorUno, aws, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.RECHAZADO);
+        inscripcion(colaboradorUno, spring, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+
+        List<ColaboradorCurso> misCursos = colaboradorCursoService.listarMisCursos(colaboradorUno);
+
+        assertEquals(List.of(noCompletado.getId(), enCurso.getId()).stream().sorted().toList(),
+                misCursos.stream().map(ColaboradorCurso::getId).sorted().toList());
+        assertEquals(EstadoColaboradorCurso.NO_COMPLETADO, misCursos.stream()
+                .filter(item -> item.getId().equals(noCompletado.getId())).findFirst().orElseThrow().getEstado());
+    }
+
+    // TASK-055: abrir la bandeja marca los vencidos de todos los colaboradores, una sola vez, sin completar el curso.
+    @Test
+    void bandejaMarcaVencidosSinEvidenciaUnaSolaVezAunqueElColaboradorNoHayaEntrado() throws Exception {
+        Curso venceHoy = cursoConFechaFin("Curso vence hoy test", LocalDate.now());
+        Curso vencido = cursoConFechaFin("Curso vencido test", LocalDate.now().minusDays(3));
+        Curso vigente = cursoConFechaFin("Curso vigente test", LocalDate.now().plusDays(1));
+        ColaboradorCurso vencidoHoy = inscripcion(colaboradorUno, venceHoy, OrigenCurso.ASIGNADO_POR_RM,
+                EstadoColaboradorCurso.EN_CURSO);
+        ColaboradorCurso vencidoAntes = inscripcion(colaboradorDos, vencido, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EN_CURSO);
+        ColaboradorCurso sinFecha = inscripcion(colaboradorDos, spring, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EN_CURSO);
+        ColaboradorCurso noVencido = inscripcion(colaboradorUno, vigente, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EN_CURSO);
+        ColaboradorCurso rechazada = inscripcion(colaboradorUno, vencido, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.EN_CURSO);
+        rechazada.setEvidenciaUrl("/uploads/cursos-evidencia/rechazada.pdf");
+        rechazada = colaboradorCursoRepository.save(rechazada);
+        ColaboradorCurso enRevision = evidenciaPendiente(colaboradorDos, vencido, "luis.pdf", null);
+
+        mockMvc.perform(get("/rm/cursos/solicitudes")).andExpect(status().isOk());
+        mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", "")).andExpect(status().isOk());
+
+        for (ColaboradorCurso item : List.of(vencidoHoy, vencidoAntes)) {
+            ColaboradorCurso actual = colaboradorCursoRepository.findById(item.getId()).orElseThrow();
+            assertEquals(EstadoColaboradorCurso.NO_COMPLETADO, actual.getEstado());
+            assertNull(actual.getFechaCompletado(), "No se fija fechaCompletado: sus horas no cuentan");
+            assertEquals(1, auditorias("CURSO_NO_COMPLETADO", item.getId()).size());
+            assertTrue(auditorias("APROBAR_EVIDENCIA_CURSO", item.getId()).isEmpty());
+        }
+        assertEquals(1, notificacionesNoCompletado(colaboradorUno, vencidoHoy.getId()));
+        assertEquals(1, notificacionesNoCompletado(colaboradorDos, vencidoAntes.getId()));
+
+        for (ColaboradorCurso item : List.of(sinFecha, noVencido, rechazada)) {
+            assertEquals(EstadoColaboradorCurso.EN_CURSO,
+                    colaboradorCursoRepository.findById(item.getId()).orElseThrow().getEstado());
+            assertTrue(auditorias("CURSO_NO_COMPLETADO", item.getId()).isEmpty());
+        }
+        assertEquals(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE,
+                colaboradorCursoRepository.findById(enRevision.getId()).orElseThrow().getEstado());
+        assertEquals(2, notificacionRepository.findAll().stream()
+                .filter(item -> "CURSO_NO_COMPLETADO".equals(item.getTipo())).count());
+    }
+
+    // TASK-055: el filtro "No completados" muestra el curso marcado al abrir la bandeja.
+    @Test
+    void filtroNoCompletadoMuestraElCursoVencidoMarcadoAlAbrirLaBandeja() throws Exception {
+        Curso vencido = cursoConFechaFin("Curso vencido filtro test", LocalDate.now().minusDays(1));
+        ColaboradorCurso item = inscripcion(colaboradorUno, vencido, OrigenCurso.ASIGNADO_POR_RM,
+                EstadoColaboradorCurso.EN_CURSO);
+        inscripcion(colaboradorDos, aws, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.EN_CURSO);
+
+        MvcResult resultado = mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", "NO_COMPLETADO"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("estadoSeleccionado", "NO_COMPLETADO"))
+                .andReturn();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        RmCursoView.Bandeja bandeja = (RmCursoView.Bandeja) resultado.getModelAndView().getModel().get("bandeja");
+
+        assertEquals(List.of(item.getId()),
+                bandeja.getInscripciones().stream().map(RmCursoView.InscripcionItem::getId).toList());
+        assertTrue(html.contains("<option value=\"NO_COMPLETADO\" selected=\"selected\">No completados</option>"));
+        assertTrue(html.contains("Ana Torres"));
+        assertTrue(html.contains("bg-secondary-lt text-secondary"), "Insignia de No completado en la fila");
+        assertFalse(html.contains("Luis Ramos"), "Un curso sin fecha fin sigue en curso");
+    }
+
+    private Curso cursoConFechaFin(String nombre, LocalDate fechaFin) {
+        Curso curso = curso(nombre, "Técnico", "12.00", true);
+        curso.setFechaFin(fechaFin);
+        return cursoRepository.save(curso);
+    }
+
+    private long notificacionesNoCompletado(Usuario colaborador, Long inscripcionId) {
+        return notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaborador).stream()
+                .filter(item -> "CURSO_NO_COMPLETADO".equals(item.getTipo())
+                        && inscripcionId.equals(item.getEntidadId()))
+                .count();
     }
 
     private ColaboradorCurso evidenciaPendiente(Usuario colaborador, Curso curso, String archivo,

@@ -13,6 +13,7 @@ import com.pucp.skillb_ia.repository.CursoRepository;
 import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,17 +52,20 @@ public class RmCursoService {
     private final UsuarioRepository usuarioRepository;
     private final NotificacionRepository notificacionRepository;
     private final AuditoriaService auditoriaService;
+    private final ColaboradorCursoService colaboradorCursoService;
 
     public RmCursoService(CursoRepository cursoRepository,
                           ColaboradorCursoRepository colaboradorCursoRepository,
                           UsuarioRepository usuarioRepository,
                           NotificacionRepository notificacionRepository,
-                          AuditoriaService auditoriaService) {
+                          AuditoriaService auditoriaService,
+                          ColaboradorCursoService colaboradorCursoService) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.usuarioRepository = usuarioRepository;
         this.notificacionRepository = notificacionRepository;
         this.auditoriaService = auditoriaService;
+        this.colaboradorCursoService = colaboradorCursoService;
     }
 
     /**
@@ -126,6 +130,14 @@ public class RmCursoService {
                 inscripciones.stream()
                         .filter(item -> item.getOrigen() == OrigenCurso.ASIGNADO_POR_RM)
                         .filter(item -> perteneceAlMes(item.getFechaSolicitud(), mesActual)).count());
+    }
+
+    /**
+     * Pasa a NO_COMPLETADO los cursos EN_CURSO vencidos sin evidencia de todos los colaboradores, con la
+     * misma regla, auditoría y notificación que usa el colaborador. Se llama antes de consultar.
+     */
+    public void marcarCursosSinEvidenciaVencidos() {
+        colaboradorCursoService.marcarTodosLosCursosSinEvidenciaVencidos();
     }
 
     /** Solicitudes de colaboradores en estado SOLICITADO (para el dashboard del RM). */

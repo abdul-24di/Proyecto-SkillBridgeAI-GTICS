@@ -13,6 +13,7 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.Cargo;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.model.enums.EstadoRegistro;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -65,12 +67,14 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -410,6 +414,110 @@ class RmColaboradorViewTests {
         assertTrue(html.contains("id=\"filtersForm\" method=\"get\""));
         assertTrue(html.contains("Mostrando 1-1 de 1 colaboradores"));
         assertFalse(html.contains("id=\"pagination\""));
+    }
+
+    // ---- TASK-053: solo registros aprobados o NULL (anteriores al pre-registro) ----
+
+    @Test
+    void directorioYContadoresExcluyenRegistrosPendientesYRechazados() throws Exception {
+        crearLote();
+        // Aprobados y NULL conviven en el lote: C01..C06 aprobados, C07..C12 sin registro.
+        loteCreado.subList(0, 6).forEach(usuario -> {
+            usuario.setRegistroEstado(EstadoRegistro.APROBADO);
+            usuarioRepository.save(usuario);
+        });
+        MvcResult antes = mockMvc.perform(get("/rm/colaboradores")).andExpect(status().isOk()).andReturn();
+
+        // 16 h, Junior y sin asignaciones: si contaran, cambiarían las 4 tarjetas.
+        Usuario pendiente = colaboradorConRegistro("C13", EstadoRegistro.PENDIENTE);
+        Usuario rechazado = colaboradorConRegistro("C14", EstadoRegistro.RECHAZADO);
+
+        MvcResult despues = mockMvc.perform(get("/rm/colaboradores")).andExpect(status().isOk()).andReturn();
+        for (String contador : List.of("totalColaboradores", "totalDisponibles",
+                "totalSinAsignaciones", "totalCargaMaxima")) {
+            assertEquals(antes.getModelAndView().getModel().get(contador),
+                    despues.getModelAndView().getModel().get(contador), contador);
+        }
+
+        // Mismo lote, orden, filtros y páginas.
+        assertEquals(List.of("C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11", "C12"),
+                codigosDeTodasLasPaginas("busqueda=lote029"));
+        assertEquals(List.of("C06", "C07", "C08", "C09", "C10", "C11"),
+                codigosDeTodasLasPaginas("busqueda=lote029&disponibilidad=16"));
+        assertEquals(List.of("C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C12"),
+                codigosDeTodasLasPaginas("busqueda=lote029&carga=0"));
+        assertEquals(List.of("C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08"),
+                codigosDeTodasLasPaginas("busqueda=lote029&nivel=Junior"));
+        mockMvc.perform(get("/rm/colaboradores").param("busqueda", "lote029").param("pagina", "2"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 2))
+                .andExpect(model().attribute("totalPaginas", 2))
+                .andExpect(model().attribute("totalRegistros", 12L));
+
+        // Ni buscándolos por nombre aparecen.
+        for (String codigo : List.of("c13", "c14")) {
+            String html = mockMvc.perform(get("/rm/colaboradores").param("busqueda", "lote029 " + codigo))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attribute("totalRegistros", 0L))
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+            assertTrue(html.contains("No se encontraron colaboradores con los filtros seleccionados."));
+        }
+        List<Long> visibles = consultaService.listarColaboradoresActivos().stream()
+                .map(RmColaboradorResumen::getId).toList();
+        assertFalse(visibles.contains(pendiente.getId()));
+        assertFalse(visibles.contains(rechazado.getId()));
+        assertTrue(visibles.containsAll(loteCreado.subList(0, 12).stream().map(Usuario::getId).toList()));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @ValueSource(strings = {"PENDIENTE", "RECHAZADO"})
+    void perfilPorUrlDirectaDeUnRegistroSinAprobarVuelveAlDirectorioConAviso(String estado) throws Exception {
+        Usuario sinAprobar = colaboradorConRegistro("C15", EstadoRegistro.valueOf(estado));
+        String id = sinAprobar.getId().toString();
+
+        for (String ruta : List.of("/rm/colaboradores/perfil", "/rm/colaboradores/asignaciones",
+                "/rm/colaboradores/historial-validaciones")) {
+            mockMvc.perform(get(ruta).param("id", id))
+                    .andExpect(redirectedUrl("/rm/colaboradores?noEncontrado=true"));
+        }
+        assertThrows(IllegalArgumentException.class, () -> consultaService.obtenerDetalle(sinAprobar.getId()));
+
+        String html = mockMvc.perform(get("/rm/colaboradores").param("noEncontrado", "true"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("colaboradorNoEncontrado", true))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("El colaborador solicitado no existe"));
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @ValueSource(strings = {"APROBADO", "NULL"})
+    void perfilYDirectorioMuestranRegistrosAprobadosYAnterioresAlPreRegistro(String estado) throws Exception {
+        Usuario visible = colaboradorConRegistro("C16",
+                "NULL".equals(estado) ? null : EstadoRegistro.valueOf(estado));
+
+        mockMvc.perform(get("/rm/colaboradores/perfil").param("id", visible.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-perfil-colaborador"))
+                .andExpect(model().attributeExists("colaborador"));
+        assertEquals(List.of("C16"), codigosDeTodasLasPaginas("busqueda=lote029 c16"));
+    }
+
+    // Colaborador activo del lote (16 h, Junior, sin asignaciones) con el estado de registro indicado.
+    private Usuario colaboradorConRegistro(String codigo, EstadoRegistro estado) {
+        String correo = "lote029." + codigo.toLowerCase() + "@skillbridge.test";
+        Usuario usuario = usuarioRepository.findByCorreo(correo).orElseGet(Usuario::new);
+        usuario.setCorreo(correo);
+        usuario.setNombre(LOTE);
+        usuario.setApellido(codigo);
+        usuario.setRol(rolRepository.findByNombre("COLABORADOR").orElseThrow());
+        usuario.setActivo(true);
+        usuario.setCargo(cargoDePrueba("Backend Developer"));
+        usuario.setHorasDisponibles(BigDecimal.valueOf(16));
+        usuario.setNivelExperiencia(NivelExperiencia.JUNIOR);
+        usuario.setRegistroEstado(estado);
+        usuario = usuarioRepository.save(usuario);
+        loteCreado.add(usuario);
+        return usuario;
     }
 
     /**

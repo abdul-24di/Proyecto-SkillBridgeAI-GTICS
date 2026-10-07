@@ -31,7 +31,6 @@ import java.util.function.Predicate;
 @Service
 public class RmColaboradorConsultaService {
 
-    private static final String ROL_COLABORADOR = "COLABORADOR";
     private static final String CLAVE_MAX_ASIGNACIONES = "MAX_ASIGNACIONES_POR_COLABORADOR";
     private static final int MAX_ASIGNACIONES_POR_DEFECTO = 3;
 
@@ -118,7 +117,7 @@ public class RmColaboradorConsultaService {
     // vivo en el navegador (JS) al elegir colaborador + horas.
     @Transactional(readOnly = true)
     public java.util.Map<Long, BigDecimal> mapaSueldosBase() {
-        return usuarioRepository.findActivosByRolNombre(ROL_COLABORADOR).stream()
+        return usuarioRepository.findColaboradoresVisiblesRm().stream()
                 .collect(java.util.stream.Collectors.toMap(Usuario::getId,
                         u -> u.getSueldoBase() == null ? BigDecimal.ZERO : u.getSueldoBase()));
     }
@@ -149,8 +148,9 @@ public class RmColaboradorConsultaService {
     }
 
     /**
-     * Filtra, cuenta y pagina el directorio en el orden de findActivosByRolNombre (nombre y
-     * apellido). Los contadores se calculan sobre todos los colaboradores activos.
+     * Filtra, cuenta y pagina el directorio en el orden de findColaboradoresVisiblesRm (nombre y
+     * apellido). Los contadores se calculan sobre todos los colaboradores visibles (activos y con el
+     * registro aprobado o NULL).
      */
     @Transactional(readOnly = true)
     public PaginaColaboradores listarPaginaDirectorio(FiltrosColaborador filtros, String pagina) {
@@ -183,7 +183,7 @@ public class RmColaboradorConsultaService {
         BigDecimal minimo = new BigDecimal(filtros.disponibilidad() == null ? "0" : filtros.disponibilidad());
         Predicate<RmColaboradorResumen> busqueda = coincideBusqueda(filtros.busqueda());
 
-        List<ColaboradorConResumen> filtrados = usuarioRepository.findActivosByRolNombre(ROL_COLABORADOR).stream()
+        List<ColaboradorConResumen> filtrados = usuarioRepository.findColaboradoresVisiblesRm().stream()
                 .map(colaborador -> new ColaboradorConResumen(colaborador, crearResumen(colaborador, maxAsignaciones)))
                 .filter(item -> busqueda.test(item.resumen()))
                 .filter(item -> item.resumen().getHorasDisponibles().compareTo(minimo) >= 0)
@@ -210,7 +210,7 @@ public class RmColaboradorConsultaService {
     public List<RmColaboradorResumen> listarColaboradoresActivos() {
         int maxAsignaciones = obtenerMaxAsignaciones();
 
-        return usuarioRepository.findActivosByRolNombre(ROL_COLABORADOR)
+        return usuarioRepository.findColaboradoresVisiblesRm()
                 .stream()
                 .map(colaborador -> crearResumen(colaborador, maxAsignaciones))
                 .toList();
@@ -218,9 +218,8 @@ public class RmColaboradorConsultaService {
 
     @Transactional(readOnly = true)
     public RmColaboradorDetalle obtenerDetalle(Long colaboradorId) {
-        Usuario colaborador = usuarioRepository.findById(colaboradorId)
-                .filter(Usuario::isActivo)
-                .filter(usuario -> ROL_COLABORADOR.equals(usuario.getRol().getNombre()))
+        // Misma regla que el directorio (TASK-053): un registro pendiente o rechazado no se encuentra.
+        Usuario colaborador = usuarioRepository.findColaboradorVisibleRmById(colaboradorId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el colaborador solicitado."));
 
         int maxAsignaciones = obtenerMaxAsignaciones();

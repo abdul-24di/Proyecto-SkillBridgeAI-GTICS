@@ -3,24 +3,28 @@ package com.pucp.skillb_ia.service.rm;
 import com.pucp.skillb_ia.dto.RmCursoView;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
-import com.pucp.skillb_ia.model.Notificacion;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.CursoRepository;
-import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.EmailService;
+import com.pucp.skillb_ia.service.NotificacionService;
 import com.pucp.skillb_ia.service.col.ColaboradorCursoService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -28,6 +32,7 @@ import java.util.Objects;
 
 @Service
 public class RmCursoService {
+    private static final Logger log = LoggerFactory.getLogger(RmCursoService.class);
     private static final String ROL_RM = "RESOURCE_MANAGER";
     private static final String ROL_COLABORADOR = "COLABORADOR";
     private static final List<EstadoColaboradorCurso> ESTADOS_DUPLICADOS =
@@ -38,6 +43,8 @@ public class RmCursoService {
     public static final int TAMANIO_PAGINA_BANDEJA = 10;
     public static final List<String> OPCIONES_DURACION = List.of("corta", "media", "larga");
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
+    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final String SIN_DATO = "Por confirmar";
 
     /** Filtros del catálogo ya validados: los valores nulos significan "Todas". */
     public record FiltrosCatalogo(String busqueda, String categoria, String duracion) {
@@ -50,20 +57,23 @@ public class RmCursoService {
     private final CursoRepository cursoRepository;
     private final ColaboradorCursoRepository colaboradorCursoRepository;
     private final UsuarioRepository usuarioRepository;
-    private final NotificacionRepository notificacionRepository;
+    private final NotificacionService notificacionService;
+    private final EmailService emailService;
     private final AuditoriaService auditoriaService;
     private final ColaboradorCursoService colaboradorCursoService;
 
     public RmCursoService(CursoRepository cursoRepository,
                           ColaboradorCursoRepository colaboradorCursoRepository,
                           UsuarioRepository usuarioRepository,
-                          NotificacionRepository notificacionRepository,
+                          NotificacionService notificacionService,
+                          EmailService emailService,
                           AuditoriaService auditoriaService,
                           ColaboradorCursoService colaboradorCursoService) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.usuarioRepository = usuarioRepository;
-        this.notificacionRepository = notificacionRepository;
+        this.notificacionService = notificacionService;
+        this.emailService = emailService;
         this.auditoriaService = auditoriaService;
         this.colaboradorCursoService = colaboradorCursoService;
     }
@@ -245,8 +255,21 @@ public class RmCursoService {
         inscripcion.setFechaRespuesta(LocalDateTime.now());
         inscripcion.setMotivoRespuesta(motivoValidado);
         inscripcion = colaboradorCursoRepository.save(inscripcion);
+        Curso curso = inscripcion.getCurso();
+        String fechaInicio = textoFecha(curso.getFechaInicio());
+        String fechaFin = textoFecha(curso.getFechaFin());
+        String horas = textoHoras(curso.getHoras());
         notificar(inscripcion, "CURSO_APROBADO", "Solicitud de curso aprobada",
-                "Tu solicitud para “" + inscripcion.getCurso().getNombre() + "” fue aprobada.");
+                "Tu solicitud para “" + curso.getNombre() + "” fue aprobada. Inicio: " + fechaInicio
+                        + " · Fin: " + fechaFin + " · Duración: " + horas + ".");
+        // TASK-056: el correo es informativo; si falla, la aprobación y la notificación se conservan.
+        try {
+            emailService.enviarInscripcionAprobada(inscripcion.getColaborador().getCorreo(),
+                    curso.getNombre(), fechaInicio, fechaFin, horas);
+        } catch (Exception ex) {
+            log.warn("[EMAIL] No se pudo enviar la aprobación de la inscripción {}: {}",
+                    inscripcion.getId(), ex.getMessage());
+        }
         return inscripcion;
     }
 
@@ -356,16 +379,16 @@ public class RmCursoService {
 
     private void notificar(ColaboradorCurso inscripcion, String tipo,
                            String titulo, String descripcion) {
-        Notificacion notificacion = new Notificacion();
-        notificacion.setUsuario(inscripcion.getColaborador());
-        notificacion.setTipo(tipo);
-        notificacion.setCategoria(CategoriaNotificacion.CURSO);
-        notificacion.setTitulo(titulo);
-        notificacion.setDescripcion(descripcion.length() <= 400
-                ? descripcion : descripcion.substring(0, 397) + "...");
-        notificacion.setEntidad("COLABORADOR_CURSO");
-        notificacion.setEntidadId(inscripcion.getId());
-        notificacionRepository.save(notificacion);
+        notificacionService.crear(inscripcion.getColaborador(), tipo, CategoriaNotificacion.CURSO, titulo,
+                recortar(descripcion, 400), "COLABORADOR_CURSO", inscripcion.getId());
+    }
+
+    private String textoFecha(LocalDate fecha) {
+        return fecha == null ? SIN_DATO : fecha.format(FORMATO_FECHA);
+    }
+
+    private String textoHoras(BigDecimal horas) {
+        return horas == null ? SIN_DATO : horas.stripTrailingZeros().toPlainString() + " h";
     }
 
     private List<String> categoriasDisponibles(List<Curso> cursosActivos) {

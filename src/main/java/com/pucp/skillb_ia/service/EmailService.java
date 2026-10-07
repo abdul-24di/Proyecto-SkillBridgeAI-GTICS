@@ -59,6 +59,25 @@ public class EmailService {
         }
     }
 
+    // TASK-056: misma información que la notificación CURSO_APROBADO (fechas y horas ya formateadas).
+    public void enviarInscripcionAprobada(String correo, String curso, String fechaInicio,
+                                          String fechaFin, String horas) {
+        String asunto = "Tu inscripción al curso “" + curso + "” fue aprobada — SkillBridge AI";
+        String cuerpo = "Hola,\n\n"
+                + "El Resource Manager aprobó tu solicitud para el curso “" + curso + "”.\n\n"
+                + "Fecha de inicio: " + fechaInicio + "\n"
+                + "Fecha de fin: " + fechaFin + "\n"
+                + "Duración: " + horas + "\n\n"
+                + "Al terminar, sube la evidencia de finalización desde \"Mis cursos\" en tu perfil:\n\n"
+                + baseUrl + "/colaborador/perfil#mis-cursos\n\n"
+                + "— SkillBridge AI";
+
+        if (!enviar(correo, asunto, cuerpo)) {
+            log.info("[EMAIL] Inscripción aprobada -> {} | curso: {} | inicio: {} | fin: {} | duración: {}",
+                    correo, curso, fechaInicio, fechaFin, horas);
+        }
+    }
+
     public void enviarCodigoRecuperacion(String correo, String codigo) {
         String asunto = "Código de recuperación de contraseña — SkillBridge AI";
         String cuerpo = "Hola,\n\n"

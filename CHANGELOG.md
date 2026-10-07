@@ -1,5 +1,56 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 6 de Octubre 2026
+
+---
+
+## 1. Pre-registro del colaborador por invitación (aprobar / rechazar)
+
+### Descripción
+El Admin crea el usuario y el correo lleva al formulario de activación. Si el rol es Colaborador, ahí completa sus datos personales (teléfono de 9 dígitos, descripción), sube su CV en PDF y, opcionalmente, su experiencia profesional, certificados de habilidades y formación académica (filas dinámicas, hasta 10 por sección). Todo se guarda directo en su perfil reutilizando `agregarExperiencia`, `agregarHabilidad` y `agregarEducacion`; el Admin no digita nada. Su registro queda `PENDIENTE` y, mientras tanto, solo ve la pantalla "Registro en revisión" (`/colaborador/registro`).
+
+El Admin revisa en `/admin/experiencia` (pestañas Pendientes, Aprobados y Rechazados): **Aprobar** deja el acceso completo; **Rechazar** exige un motivo, avisa por correo y notificación, y el colaborador sube un CV corregido (vuelve a `PENDIENTE`). Rechazar no borra nada. El Admin también puede eliminar experiencias que no pueda verificar. Los demás roles activan sin CV ni aprobación.
+
+El RM ve los certificados y la formación del colaborador **solo después de que el Admin aprueba**: sus bandejas excluyen colaboradores con registro sin aprobar y se le notifica al aprobar.
+
+### Archivos
+- Nuevos: `PreRegistroColaboradorService`, `ColaboradorRegistroController`, `RegistroPendienteInterceptor` (+ registro en `WebMvcConfig`), `EstadoRegistro`, DTOs en `dto/auth/` (`ActivarCuentaForm`, `ExperienciaForm`, `CertificadoPreRegistroForm`, `EstudioPreRegistroForm`, `PoliticaPassword`, `PoliticaTelefono`, etc.), `col/col-registro.html`, `static/js/auth-js/preregistro-filas.js`.
+- Modificados: `AuthService` (activación guarda datos, valida el correo al invitar y avisa al Admin), `AuthViewController`, `AdminUsuarioService` (aprobar/rechazar), `AdminViewController`, `ColaboradorPerfilService`, `EmailService`, `NotificacionService`, `activar-cuenta.html`, `admin-experiencia*.html`, `CertificadoRepository` y `EducacionRepository` (filtro del estado del registro en las bandejas del RM).
+- BD: `usuario.registro_estado` y `usuario.motivo_rechazo` (en `skillbridge_db_v4.sql` y `migracion_cv_colaborador.sql`, idempotente) y `cv_estado` admite `RECHAZADO`.
+
+### Alcance pendiente
+- Si un archivo del pre-registro falla al guardarse después de crear la cuenta, solo se registra en el log; el CV sí se puede reenviar desde "Registro en revisión".
+- El directorio de colaboradores del RM no filtra todavía a quienes tienen el registro pendiente.
+
+---
+
+## 2. Validación en servidor (clase 5.2) y mensajes propios en vez de los del navegador
+
+### Descripción
+Activar cuenta, nueva contraseña, contraseña y teléfono del perfil del Admin validan con `@Valid` + `BindingResult` + `th:errors`. Contraseña fuerte única (8 caracteres, mayúscula, número y símbolo) y teléfono de 9 dígitos en el Admin y el pre-registro. `messages.properties` traduce los errores de conversión (`typeMismatch`). Un script compartido (`validacion-formularios.js`) reemplaza los cuadros nativos del navegador por un mensaje debajo del campo en Admin, PM, RM y Colaborador; la validación real sigue en el servidor.
+
+Correcciones de validación encontradas en la prueba profunda: horas de curso (>0, ≤1000, 2 decimales), correo al invitar, clave y valor de parámetros, nombre de foro, campos y fechas de la experiencia, y errores 400 del Admin convertidos en mensaje (`AdminErrorAdvice`). Los mensajes de error del Admin ya no filtran texto técnico de la BD. Subir el total por petición a 60 MB y `max-part-count` a 300 para el pre-registro.
+
+### Alcance pendiente
+- El teléfono del RM y del PM sigue siendo de 7 a 20 caracteres (TASK-012).
+- La contraseña mínima del PM sigue en 6 caracteres y sus mensajes perdieron las tildes (`PmProyectoForm`, `PmPerfilPasswordForm`).
+
+---
+
+## 3. Cursos del Admin: En curso y Caducados, paginación, y catálogo del colaborador
+
+### Descripción
+`/admin/cursos` separa los cursos **En curso** (fecha de fin futura o sin fecha) de los **Caducados** (fecha de fin pasada, con insignia), cada sección con su paginación. El estado se deriva de la fecha, sin columna nueva. Un colaborador ya no ve ni puede solicitar un curso caducado (salvo que ya tenga algo con él), y el RM no puede asignarlo directamente.
+
+---
+
+## 4. Seguridad de vistas, sesión, logo y otros
+
+### Descripción
+`sec:authorize` en los 4 topbars; Spring Session JDBC; envío real de correo (Gmail SMTP con `MAIL_USERNAME` y `MAIL_PASSWORD` solo por variables de entorno); logo e ícono en las pantallas de acceso, los topbars y como favicon; el topbar del Admin muestra la foto de perfil; notificación al Admin cuando una cuenta de otro rol se activa.
+
+---
+
 ## Sesión 1 de Octubre 2026
 
 ---

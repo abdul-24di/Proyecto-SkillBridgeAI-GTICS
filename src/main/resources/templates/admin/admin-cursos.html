@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI - Catálogo de Cursos</title>
     <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
@@ -72,6 +73,11 @@
         </div>
 
         <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">En curso</h3>
+                <span class="badge bg-green-lt text-green ms-2" th:text="${#lists.size(cursosVigentes)}">0</span>
+                <span class="text-secondary small ms-2">Cursos cuya fecha de fin aún no pasó (o sin fecha de fin).</span>
+            </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table table-hover">
                     <thead>
@@ -85,42 +91,50 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:if="${#lists.isEmpty(cursos)}">
-                        <td colspan="6" class="text-center text-muted py-4">No hay cursos registrados en el sistema.</td>
+                    <tr th:if="${#lists.isEmpty(cursosVigentes)}">
+                        <td colspan="6" class="text-center text-muted py-4">No hay cursos en curso.</td>
                     </tr>
-                    <tr th:each="curso : ${cursos}">
-                        <td>
-                            <div class="fw-bold" th:text="${curso.nombre}">Nombre</div>
-                            <div class="text-muted small text-truncate" style="max-width:300px;" th:text="${curso.descripcion}">Desc</div>
-                        </td>
-                        <td th:text="${curso.categoria}">Categoría</td>
-                        <td>
-                            <span class="badge bg-blue-lt" th:text="${curso.modalidad}">ONLINE</span>
-                            <span th:if="${curso.autodidacta}" class="badge bg-purple-lt ms-1">Autodidacta</span>
-                        </td>
-                        <td th:text="${curso.horas != null ? curso.horas + ' h' : '0 h'}">10 h</td>
-                        <td>
-                            <span th:if="${curso.activo}" class="badge bg-green text-green-fg">Activo</span>
-                            <span th:unless="${curso.activo}" class="badge bg-secondary text-secondary-fg">Inactivo</span>
-                        </td>
-                        <td>
-                            <div class="btn-list flex-nowrap">
-                                <button class="btn btn-sm btn-outline-secondary"
-                                        data-bs-toggle="modal"
-                                        th:data-bs-target="|#modalEditarCurso${curso.id}|">
-                                    Editar
-                                </button>
-                                <form th:action="@{/admin/cursos/alternar}" method="post" style="display:inline;">
-                                    <input type="hidden" name="cursoId" th:value="${curso.id}"/>
-                                    <button type="submit" class="btn btn-sm" th:classappend="${curso.activo} ? 'btn-outline-danger' : 'btn-outline-success'"
-                                            th:text="${curso.activo} ? 'Desactivar' : 'Activar'">
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
+                    <th:block th:each="curso : ${cursosVigentes}">
+                        <tr th:replace="~{fragments/admin-curso-fila :: fila(${curso}, 'curso-vigente-row', false)}"></tr>
+                    </th:block>
                     </tbody>
                 </table>
+            </div>
+            <div class="pagination-wrap" th:if="${!#lists.isEmpty(cursosVigentes)}">
+                <div id="cursosVigentesPaginationInfo" class="text-secondary small">Mostrando cursos en curso</div>
+                <ul id="cursosVigentesPagination" class="pagination pagination-sm m-0"></ul>
+            </div>
+
+            <div class="card-header border-top mt-2">
+                <h3 class="card-title">Caducados</h3>
+                <span class="badge bg-secondary-lt ms-2" th:text="${#lists.size(cursosFinalizados)}">0</span>
+                <span class="text-secondary small ms-2">Cursos cuya fecha de fin ya pasó.</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Modalidad</th>
+                        <th>Horas</th>
+                        <th>Estado</th>
+                        <th class="w-1">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(cursosFinalizados)}">
+                        <td colspan="6" class="text-center text-muted py-4">Todavía no hay cursos caducados.</td>
+                    </tr>
+                    <th:block th:each="curso : ${cursosFinalizados}">
+                        <tr th:replace="~{fragments/admin-curso-fila :: fila(${curso}, 'curso-finalizado-row', true)}"></tr>
+                    </th:block>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-wrap" th:if="${!#lists.isEmpty(cursosFinalizados)}">
+                <div id="cursosFinalizadosPaginationInfo" class="text-secondary small">Mostrando cursos caducados</div>
+                <ul id="cursosFinalizadosPagination" class="pagination pagination-sm m-0"></ul>
             </div>
         </div>
     </main>
@@ -256,6 +270,9 @@
 </th:block>
 
 <script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/admin-js/admin-table-pagination.js}"></script>
+<script th:src="@{/js/admin-js/admin-cursos.js}"></script>
 <script>
     // Si el curso es autodidacta, la fecha de inicio/fin dejan de ser obligatorias
     // (ya tiene "horas" como su duración). Aplica tanto al modal de creación como a

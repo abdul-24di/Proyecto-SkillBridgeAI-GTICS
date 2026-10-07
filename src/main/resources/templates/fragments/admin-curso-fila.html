@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Fila de la tabla de cursos del Admin (se reutiliza en "Vigentes" y "Finalizados"). -->
+<tr th:fragment="fila(curso, claseFila, caducado)" th:class="${claseFila}">
+    <td>
+        <div class="fw-bold" th:text="${curso.nombre}">Nombre</div>
+        <div class="text-muted small text-truncate" style="max-width:300px;" th:text="${curso.descripcion}">Desc</div>
+    </td>
+    <td th:text="${curso.categoria}">Categoría</td>
+    <td>
+        <span class="badge bg-blue-lt" th:text="${curso.modalidad}">ONLINE</span>
+        <span th:if="${curso.autodidacta}" class="badge bg-purple-lt ms-1">Autodidacta</span>
+    </td>
+    <td th:text="${curso.horas != null ? curso.horas + ' h' : '0 h'}">10 h</td>
+    <td>
+        <span th:if="${caducado}" class="badge bg-orange-lt text-orange">Caducado</span>
+        <span th:if="${curso.activo and !caducado}" class="badge bg-green text-green-fg">Activo</span>
+        <span th:if="${!curso.activo}" class="badge bg-secondary text-secondary-fg">Inactivo</span>
+    </td>
+    <td>
+        <div class="btn-list flex-nowrap">
+            <button class="btn btn-sm btn-outline-secondary"
+                    data-bs-toggle="modal"
+                    th:data-bs-target="|#modalEditarCurso${curso.id}|">
+                Editar
+            </button>
+            <form th:action="@{/admin/cursos/alternar}" method="post" style="display:inline;">
+                <input type="hidden" name="cursoId" th:value="${curso.id}"/>
+                <button type="submit" class="btn btn-sm" th:classappend="${curso.activo} ? 'btn-outline-danger' : 'btn-outline-success'"
+                        th:text="${curso.activo} ? 'Desactivar' : 'Activar'">
+                </button>
+            </form>
+        </div>
+    </td>
+</tr>
+</body>
+</html>

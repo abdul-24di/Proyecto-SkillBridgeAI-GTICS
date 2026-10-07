@@ -16,7 +16,11 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
+import com.pucp.skillb_ia.dto.auth.PasswordPerfilForm;
+import com.pucp.skillb_ia.dto.auth.TelefonoPerfilForm;
+import jakarta.validation.Valid;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -36,6 +40,9 @@ import java.util.List;
 @Controller
 @RequestMapping("/admin")
 public class AdminViewController {
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.context.MessageSource messageSource;
 
     private final AdminUsuarioService adminUsuarioService;
     private final AdminHabilidadService adminHabilidadService;
@@ -122,7 +129,7 @@ public class AdminViewController {
             adminUsuarioService.asignarCargo(usuarioId, cargoId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el cargo del colaborador.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/usuarios";
     }
@@ -135,7 +142,7 @@ public class AdminViewController {
             adminUsuarioService.crear(correo, rol, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el usuario " + correo + " y se envió su correo de invitación.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/usuarios";
     }
@@ -171,7 +178,7 @@ public class AdminViewController {
             adminUsuarioService.cambiarRol(usuarioId, rol, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el rol del usuario.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/usuarios";
     }
@@ -184,7 +191,7 @@ public class AdminViewController {
             adminUsuarioService.desactivar(usuarioId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó el usuario.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/usuarios";
     }
@@ -197,7 +204,7 @@ public class AdminViewController {
             adminUsuarioService.reactivar(usuarioId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó el usuario.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/usuarios";
     }
@@ -210,7 +217,7 @@ public class AdminViewController {
             adminUsuarioService.reenviarActivacion(usuarioId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se reenvió el enlace de activación.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/usuarios";
     }
@@ -238,7 +245,7 @@ public class AdminViewController {
             adminHabilidadService.crearCategoria(nombre, descripcion, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó la categoría \"" + nombre + "\".");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/habilidades";
     }
@@ -252,7 +259,7 @@ public class AdminViewController {
             adminHabilidadService.editarCategoria(categoriaId, nombre, descripcion, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó la categoría.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/habilidades";
     }
@@ -265,7 +272,7 @@ public class AdminViewController {
             adminHabilidadService.desactivarCategoria(categoriaId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó la categoría.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/habilidades";
     }
@@ -278,7 +285,7 @@ public class AdminViewController {
             adminHabilidadService.reactivarCategoria(categoriaId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó la categoría.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/habilidades";
     }
@@ -291,7 +298,7 @@ public class AdminViewController {
             adminHabilidadService.crear(nombre, categoriaId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó la habilidad \"" + nombre + "\".");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/habilidades";
     }
@@ -305,7 +312,7 @@ public class AdminViewController {
             adminHabilidadService.editar(habilidadId, nombre, categoriaId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó la habilidad.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/habilidades";
     }
@@ -318,7 +325,7 @@ public class AdminViewController {
             adminHabilidadService.desactivar(habilidadId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se desactivó la habilidad.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/habilidades";
     }
@@ -331,7 +338,7 @@ public class AdminViewController {
             adminHabilidadService.reactivar(habilidadId, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se reactivó la habilidad.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/habilidades";
     }
@@ -353,7 +360,7 @@ public class AdminViewController {
             adminCargoService.crear(nombre, sueldoJunior, sueldoSemiSenior, sueldoSenior, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el cargo \"" + nombre.strip() + "\".");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return REDIRECT_CARGOS;
     }
@@ -371,7 +378,7 @@ public class AdminViewController {
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizaron las tarifas del cargo"
                     + (recalculados > 0 ? " y se recalculó el sueldo de " + recalculados + " colaborador(es)." : "."));
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return REDIRECT_CARGOS;
     }
@@ -384,7 +391,7 @@ public class AdminViewController {
             boolean activo = adminCargoService.alternarEstado(id, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", activo ? "Se reactivó el cargo." : "Se desactivó el cargo.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return REDIRECT_CARGOS;
     }
@@ -409,7 +416,7 @@ public class AdminViewController {
             adminConfiguracionService.crear(clave, descripcion, valor, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el parámetro.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/configuracion";
     }
@@ -422,7 +429,7 @@ public class AdminViewController {
             adminConfiguracionService.editar(parametroId, valor, principal.getUsuario());
             redirectAttributes.addFlashAttribute("mensajeOk", "Se actualizó el parámetro.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/configuracion";
     }
@@ -530,20 +537,37 @@ public class AdminViewController {
     // ============================================================
 
     @GetMapping({"/perfil", "/admin-perfil.html"})
-    public String perfil() {
+    public String perfil(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        completarModeloPerfil(model, principal);
         return "admin/admin-perfil";
     }
 
+    // Los dos formularios de la pantalla (teléfono y contraseña) necesitan su objeto en el modelo
+    // aunque se haya enviado solo uno; el que falló conserva lo escrito y sus errores.
+    private void completarModeloPerfil(Model model, UsuarioDetails principal) {
+        if (!model.containsAttribute("telefonoPerfilForm")) {
+            model.addAttribute("telefonoPerfilForm", new TelefonoPerfilForm(principal.getUsuario().getTelefono()));
+        }
+        if (!model.containsAttribute("passwordPerfilForm")) {
+            model.addAttribute("passwordPerfilForm", new PasswordPerfilForm());
+        }
+    }
+
     @PostMapping("/perfil/telefono")
-    public String actualizarTelefonoAdmin(@RequestParam(value = "telefono", required = false) String telefono,
+    public String actualizarTelefonoAdmin(@Valid @ModelAttribute("telefonoPerfilForm") TelefonoPerfilForm form,
+                                           BindingResult result, Model model,
                                            @AuthenticationPrincipal UsuarioDetails principal,
                                            RedirectAttributes redirectAttributes, HttpServletRequest request) {
+        if (result.hasErrors()) {
+            completarModeloPerfil(model, principal);
+            return "admin/admin-perfil";
+        }
         try {
-            adminPerfilService.actualizarTelefono(telefono, principal.getUsuario());
+            adminPerfilService.actualizarTelefono(form.getTelefono(), principal.getUsuario());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Teléfono actualizado correctamente.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/perfil";
     }
@@ -557,28 +581,44 @@ public class AdminViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Foto de perfil actualizada.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/perfil";
     }
 
     @PostMapping("/perfil/password")
-    public String actualizarPasswordAdmin(@RequestParam("passwordActual") String passwordActual,
-                                           @RequestParam("passwordNueva") String passwordNueva,
-                                           @RequestParam("passwordConfirm") String passwordConfirm,
+    public String actualizarPasswordAdmin(@Valid @ModelAttribute("passwordPerfilForm") PasswordPerfilForm form,
+                                           BindingResult result, Model model,
                                            @AuthenticationPrincipal UsuarioDetails principal,
                                            RedirectAttributes redirectAttributes, HttpServletRequest request) {
+        if (result.hasErrors()) {
+            completarModeloPerfil(model, principal);
+            return "admin/admin-perfil";
+        }
         try {
-            if (!passwordNueva.equals(passwordConfirm)) {
-                throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
-            }
-            adminPerfilService.actualizarPassword(passwordActual, passwordNueva, principal.getUsuario());
+            adminPerfilService.actualizarPassword(form.getPasswordActual(), form.getPasswordNueva(), principal.getUsuario());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Contraseña actualizada correctamente.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/perfil";
+    }
+
+    // Valor que no se pudo convertir (p. ej. texto en un campo numérico): mensaje de messages.properties.
+    private String primerErrorDeBinding(BindingResult resultado) {
+        var error = resultado.getFieldError();
+        return error == null ? "Revisa los datos ingresados."
+                : messageSource.getMessage(error, org.springframework.context.i18n.LocaleContextHolder.getLocale());
+    }
+
+    // Los mensajes de negocio (IllegalArgumentException / IllegalStateException) están escritos para el
+    // usuario; cualquier otro error (p. ej. de la base de datos) no debe filtrar detalles técnicos.
+    private static String mensajeSeguro(Exception e) {
+        if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) {
+            return e.getMessage();
+        }
+        return "No se pudo completar la operación. Revisa los datos e inténtalo de nuevo.";
     }
 
     private String csvEscapar(String valor) {
@@ -590,33 +630,43 @@ public class AdminViewController {
     @GetMapping({"/cursos", "/admin-cursos.html"})
     public String cursos(Model model) {
         model.addAttribute("cursos", adminCursoService.listarTodos());
+        model.addAttribute("cursosVigentes", adminCursoService.listarVigentes());
+        model.addAttribute("cursosFinalizados", adminCursoService.listarFinalizados());
         model.addAttribute("modalidades", com.pucp.skillb_ia.model.enums.ModalidadCurso.values());
         return "admin/admin-cursos";
     }
 
     @PostMapping("/cursos/crear")
-    public String crearCurso(@ModelAttribute Curso curso,
+    public String crearCurso(@ModelAttribute Curso curso, BindingResult bindingResult,
                              @AuthenticationPrincipal UsuarioDetails principal,
                              RedirectAttributes ra, HttpServletRequest request) {
+        if (bindingResult.hasErrors()) {
+            ra.addFlashAttribute("mensajeError", primerErrorDeBinding(bindingResult));
+            return "redirect:/admin/cursos";
+        }
         try {
             adminCursoService.crear(curso, principal.getUsuario());
             ra.addFlashAttribute("mensajeOk", "Se creó el curso exitosamente.");
         } catch (Exception e) {
-            ra.addFlashAttribute("mensajeError", e.getMessage());
+            ra.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/cursos";
     }
 
     @PostMapping("/cursos/editar")
     public String editarCurso(@RequestParam("cursoId") Long cursoId,
-                              @ModelAttribute Curso curso,
+                              @ModelAttribute Curso curso, BindingResult bindingResult,
                               @AuthenticationPrincipal UsuarioDetails principal,
                               RedirectAttributes ra, HttpServletRequest request) {
+        if (bindingResult.hasErrors()) {
+            ra.addFlashAttribute("mensajeError", primerErrorDeBinding(bindingResult));
+            return "redirect:/admin/cursos";
+        }
         try {
             adminCursoService.editar(cursoId, curso, principal.getUsuario());
             ra.addFlashAttribute("mensajeOk", "Se guardaron los cambios del curso.");
         } catch (Exception e) {
-            ra.addFlashAttribute("mensajeError", e.getMessage());
+            ra.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/cursos";
     }
@@ -629,7 +679,7 @@ public class AdminViewController {
             adminCursoService.alternarEstado(cursoId, principal.getUsuario());
             ra.addFlashAttribute("mensajeOk", "El estado del curso ha sido actualizado.");
         } catch (Exception e) {
-            ra.addFlashAttribute("mensajeError", e.getMessage());
+            ra.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/cursos";
     }
@@ -642,6 +692,7 @@ public class AdminViewController {
     public String experiencia(Model model) {
         model.addAttribute("cvsPendientes", adminUsuarioService.listarCvsPendientes());
         model.addAttribute("cvsRevisados", adminUsuarioService.listarCvsRevisados());
+        model.addAttribute("cvsRechazados", adminUsuarioService.listarCvsRechazados());
         return "admin/admin-experiencia";
     }
 
@@ -651,8 +702,14 @@ public class AdminViewController {
     // igual (incluidos los @PathVariable), hacendo que el repository intente
     // actualizar una fila ajena en vez de crear una nueva.
     @GetMapping("/experiencia/{colaboradorId}")
-    public String experienciaDetalle(@PathVariable Long colaboradorId, Model model) {
-        Usuario colaborador = adminUsuarioService.obtenerUsuario(colaboradorId);
+    public String experienciaDetalle(@PathVariable Long colaboradorId, Model model, RedirectAttributes ra) {
+        Usuario colaborador;
+        try {
+            colaborador = adminUsuarioService.obtenerUsuario(colaboradorId);
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("mensajeError", e.getMessage());
+            return "redirect:/admin/experiencia";
+        }
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("experiencias", colaboradorPerfilService.listarExperienciaProfesional(colaborador));
         return "admin/admin-experiencia-detalle";
@@ -660,27 +717,62 @@ public class AdminViewController {
 
     @PostMapping("/experiencia/{colaboradorId}/agregar")
     public String agregarExperiencia(@PathVariable Long colaboradorId,
-                                     @ModelAttribute ExperienciaProfesional exp,
+                                     @ModelAttribute ExperienciaProfesional exp, BindingResult bindingResult,
                                      RedirectAttributes ra, HttpServletRequest request) {
+        if (bindingResult.hasErrors()) {
+            ra.addFlashAttribute("mensajeError", primerErrorDeBinding(bindingResult));
+            return "redirect:/admin/experiencia/" + colaboradorId;
+        }
         try {
             Usuario colaborador = adminUsuarioService.obtenerUsuario(colaboradorId);
             colaboradorPerfilService.agregarExperiencia(colaborador, exp);
             ra.addFlashAttribute("mensajeOk", "Se agregó la experiencia profesional.");
         } catch (Exception e) {
-            ra.addFlashAttribute("mensajeError", e.getMessage());
+            ra.addFlashAttribute("mensajeError", mensajeSeguro(e));
+        }
+        return "redirect:/admin/experiencia/" + colaboradorId;
+    }
+
+    // El Admin descarta una experiencia que no pudo verificar con el CV.
+    @PostMapping("/experiencia/{colaboradorId}/eliminar/{experienciaId}")
+    public String eliminarExperiencia(@PathVariable Long colaboradorId, @PathVariable Long experienciaId,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
+                                      RedirectAttributes ra) {
+        try {
+            Usuario colaborador = adminUsuarioService.obtenerUsuario(colaboradorId);
+            colaboradorPerfilService.eliminarExperiencia(colaborador, experienciaId, principal.getUsuario());
+            ra.addFlashAttribute("mensajeOk", "Se eliminó la experiencia profesional.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/admin/experiencia/" + colaboradorId;
     }
 
     @PostMapping("/experiencia/{colaboradorId}/revisar")
-    public String marcarCvRevisado(@PathVariable Long colaboradorId,
+    public String aprobarRegistro(@PathVariable Long colaboradorId,
+                                  @AuthenticationPrincipal UsuarioDetails principal,
+                                  RedirectAttributes ra, HttpServletRequest request) {
+        try {
+            adminUsuarioService.aprobarRegistro(colaboradorId, principal.getUsuario());
+            ra.addFlashAttribute("mensajeOk", "Se aprobó el registro del colaborador.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("mensajeError", mensajeSeguro(e));
+            return "redirect:/admin/experiencia/" + colaboradorId;
+        }
+        return "redirect:/admin/experiencia";
+    }
+
+    @PostMapping("/experiencia/{colaboradorId}/rechazar")
+    public String rechazarRegistro(@PathVariable Long colaboradorId,
+                                   @RequestParam("motivo") String motivo,
                                    @AuthenticationPrincipal UsuarioDetails principal,
                                    RedirectAttributes ra, HttpServletRequest request) {
         try {
-            adminUsuarioService.marcarCvRevisado(colaboradorId, principal.getUsuario());
-            ra.addFlashAttribute("mensajeOk", "Se marcó el CV como revisado.");
+            adminUsuarioService.rechazarRegistro(colaboradorId, motivo, principal.getUsuario());
+            ra.addFlashAttribute("mensajeOk", "Se devolvió el registro al colaborador con tus observaciones.");
         } catch (Exception e) {
-            ra.addFlashAttribute("mensajeError", e.getMessage());
+            ra.addFlashAttribute("mensajeError", mensajeSeguro(e));
+            return "redirect:/admin/experiencia/" + colaboradorId;
         }
         return "redirect:/admin/experiencia";
     }
@@ -704,7 +796,7 @@ public class AdminViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Foro \"" + nombre + "\" creado exitosamente.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/admin/foros";
     }
@@ -739,7 +831,7 @@ public class AdminViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Anuncio publicado correctamente.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/admin/foros/" + id + "/publicaciones";
     }
@@ -753,7 +845,7 @@ public class AdminViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Publicación eliminada.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
@@ -769,7 +861,7 @@ public class AdminViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Respuesta publicada.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
@@ -782,7 +874,7 @@ public class AdminViewController {
         try {
             pmForoService.alternarSolucion(principal.getUsuario(), respuestaId);
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
@@ -795,7 +887,7 @@ public class AdminViewController {
         try {
             pmForoService.alternarLikePublicacion(principal.getUsuario(), publicacionId);
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
@@ -808,7 +900,7 @@ public class AdminViewController {
         try {
             pmForoService.alternarLikeRespuesta(principal.getUsuario(), respuestaId);
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
@@ -823,7 +915,7 @@ public class AdminViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Respuesta eliminada.");
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }

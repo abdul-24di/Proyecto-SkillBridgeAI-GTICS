@@ -48,3 +48,31 @@ SET @sql_cv_fecha := IF(@columna_cv_fecha_existe = 0,
 PREPARE stmt_cv_fecha FROM @sql_cv_fecha;
 EXECUTE stmt_cv_fecha;
 DEALLOCATE PREPARE stmt_cv_fecha;
+
+-- ----------------------------------------------------------------------------
+-- Pre-registro del colaborador invitado (aprobar / rechazar):
+--   usuario.registro_estado (PENDIENTE, APROBADO o RECHAZADO; NULL = anterior al
+--   pre-registro, se considera aprobado) y usuario.motivo_rechazo (VARCHAR 500,
+--   motivo que escribe el Admin al rechazar el registro o el CV).
+-- ----------------------------------------------------------------------------
+SET @columna_registro_existe := (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'usuario' AND column_name = 'registro_estado'
+);
+SET @sql_registro := IF(@columna_registro_existe = 0,
+    'ALTER TABLE usuario ADD COLUMN registro_estado VARCHAR(20) NULL AFTER cv_fecha_subida',
+    'SELECT ''La columna registro_estado ya existe.'' AS informacion');
+PREPARE stmt_registro FROM @sql_registro;
+EXECUTE stmt_registro;
+DEALLOCATE PREPARE stmt_registro;
+
+SET @columna_motivo_existe := (
+    SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'usuario' AND column_name = 'motivo_rechazo'
+);
+SET @sql_motivo := IF(@columna_motivo_existe = 0,
+    'ALTER TABLE usuario ADD COLUMN motivo_rechazo VARCHAR(500) NULL AFTER registro_estado',
+    'SELECT ''La columna motivo_rechazo ya existe.'' AS informacion');
+PREPARE stmt_motivo FROM @sql_motivo;
+EXECUTE stmt_motivo;
+DEALLOCATE PREPARE stmt_motivo;

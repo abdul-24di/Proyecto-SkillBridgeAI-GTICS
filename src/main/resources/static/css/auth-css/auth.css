@@ -404,3 +404,11 @@ input[type="password"]::-ms-clear {
         grid-template-columns: 1fr;
     }
 }
+/* Logo completo de SkillBridge AI sobre las pantallas de acceso */
+.auth-logo-img {
+    display: block;
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    margin: 0 auto 10px;
+}

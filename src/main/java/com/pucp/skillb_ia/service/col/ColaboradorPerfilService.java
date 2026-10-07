@@ -5,6 +5,7 @@ import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.EstadoCertificado;
 import com.pucp.skillb_ia.model.enums.EstadoCv;
+import com.pucp.skillb_ia.model.enums.EstadoRegistro;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
@@ -214,8 +215,9 @@ public class ColaboradorPerfilService {
     // ============================================================
     // TELÉFONO
     // ============================================================
-    @Transactional
-    public void actualizarTelefono(Usuario colaborador, String telefono) {
+    // Regla del teléfono del colaborador; también la usa el pre-registro para que el número que guarda
+    // sea uno que su propio perfil acepte después. Devuelve el teléfono ya limpio.
+    public String validarTelefono(String telefono) {
         if (telefono == null || telefono.isBlank()) {
             throw new IllegalArgumentException("Indica tu número de teléfono.");
         }
@@ -224,6 +226,12 @@ public class ColaboradorPerfilService {
         if (!limpio.matches("\\d{9}")) {
             throw new IllegalArgumentException("El teléfono debe tener exactamente 9 dígitos numéricos, sin letras ni otros caracteres.");
         }
+        return limpio;
+    }
+
+    @Transactional
+    public void actualizarTelefono(Usuario colaborador, String telefono) {
+        String limpio = validarTelefono(telefono);
 
         colaborador.setTelefono(limpio);
         usuarioRepository.save(colaborador);
@@ -270,8 +278,8 @@ public class ColaboradorPerfilService {
     // profesional del colaborador basado en lo que diga el documento.
     // ============================================================
 
-    @Transactional
-    public void actualizarCv(Usuario colaborador, MultipartFile cv) {
+    // También la usa el pre-registro (activación de cuenta) para validar antes de crear la cuenta.
+    public void validarCv(MultipartFile cv) {
         if (cv == null || cv.isEmpty()) {
             throw new IllegalArgumentException("Selecciona un archivo PDF para subir.");
         }
@@ -281,6 +289,11 @@ public class ColaboradorPerfilService {
         if (cv.getSize() > TAMANO_MAXIMO_CV_BYTES) {
             throw new IllegalArgumentException("El archivo supera el máximo de 5MB.");
         }
+    }
+
+    @Transactional
+    public void actualizarCv(Usuario colaborador, MultipartFile cv) {
+        validarCv(cv);
 
         String nombreArchivo = "cv-" + colaborador.getId() + "-" + UUID.randomUUID() + ".pdf";
         String cvUrl = archivoAlmacenamientoService.guardar(cv, "cv", nombreArchivo);
@@ -288,6 +301,11 @@ public class ColaboradorPerfilService {
         colaborador.setCvUrl(cvUrl);
         colaborador.setCvEstado(EstadoCv.PENDIENTE);
         colaborador.setCvFechaSubida(LocalDateTime.now());
+        colaborador.setMotivoRechazo(null);
+        // Un registro rechazado vuelve a revisión al subir un CV corregido.
+        if (colaborador.getRegistroEstado() == EstadoRegistro.RECHAZADO) {
+            colaborador.setRegistroEstado(EstadoRegistro.PENDIENTE);
+        }
         usuarioRepository.save(colaborador);
 
         auditoriaService.registrar(colaborador, "SUBIR_CV", "USUARIO", colaborador.getId(),
@@ -459,6 +477,25 @@ public class ColaboradorPerfilService {
     }
 
 
+    // Reglas de archivo de un certificado (PDF/JPG/PNG, máx. 10 MB). También las usa el pre-registro
+    // para validar antes de crear la cuenta.
+    public void validarArchivoCertificado(MultipartFile archivo) {
+        if (archivo == null || archivo.isEmpty()) {
+            throw new IllegalArgumentException("Debes adjuntar un certificado.");
+        }
+        if (!TIPOS_CERTIFICADO_PERMITIDOS.contains(archivo.getContentType())) {
+            throw new IllegalArgumentException("El certificado debe estar en formato PDF, JPG o PNG.");
+        }
+        if (archivo.getSize() > TAMANO_MAXIMO_CERTIFICADO_BYTES) {
+            throw new IllegalArgumentException("El certificado supera el máximo de 10MB.");
+        }
+    }
+
+    // Habilidades del catálogo que un colaborador puede elegir (pre-registro).
+    public List<Habilidad> listarHabilidadesActivas() {
+        return habilidadRepository.findByActivaTrue();
+    }
+
     //Guardamos certificado
     private String guardarCertificado(MultipartFile archivo, String carpeta, String prefijoArchivo) {
         if (archivo == null || archivo.isEmpty()) {
@@ -590,10 +627,42 @@ public class ColaboradorPerfilService {
         return experienciaProfesionalRepository.findByColaboradorAndActivoTrueOrderByFechaInicioDesc(colaborador);
     }
 
+    // Misma regla que el formulario del pre-registro; la usan también el Admin y el propio colaborador.
+    private void validarExperiencia(ExperienciaProfesional exp) {
+        if (exp.getCargo() == null || exp.getCargo().isBlank()) {
+            throw new IllegalArgumentException("El cargo es obligatorio.");
+        }
+        if (exp.getCargo().length() > 100) {
+            throw new IllegalArgumentException("El cargo no puede superar los 100 caracteres.");
+        }
+        if (exp.getEmpresa() == null || exp.getEmpresa().isBlank()) {
+            throw new IllegalArgumentException("La empresa es obligatoria.");
+        }
+        if (exp.getEmpresa().length() > 150) {
+            throw new IllegalArgumentException("La empresa no puede superar los 150 caracteres.");
+        }
+        if (exp.getDescripcion() == null || exp.getDescripcion().isBlank()) {
+            throw new IllegalArgumentException("Describe brevemente las funciones del cargo.");
+        }
+        if (exp.getDescripcion().length() > 500) {
+            throw new IllegalArgumentException("La descripción no puede superar los 500 caracteres.");
+        }
+        if (exp.getFechaInicio() == null) {
+            throw new IllegalArgumentException("La fecha de inicio es obligatoria.");
+        }
+        if (exp.getFechaInicio().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser futura.");
+        }
+        if (!exp.isActual() && exp.getFechaFin() == null) {
+            throw new IllegalArgumentException("Indica la fecha de fin o marca que trabaja ahí actualmente.");
+        }
+    }
+
     @Transactional
     public void agregarExperiencia(Usuario colaborador, ExperienciaProfesional exp) {
+        validarExperiencia(exp);
         exp.setColaborador(colaborador);
-        
+
         // Si dice que es actual, limpiamos la fecha de fin por seguridad
         if (exp.isActual()) {
             exp.setFechaFin(null);
@@ -613,13 +682,19 @@ public class ColaboradorPerfilService {
 
     @Transactional
     public void eliminarExperiencia(Usuario colaborador, Long id) {
+        eliminarExperiencia(colaborador, id, colaborador);
+    }
+
+    // "actor" es quien la elimina (el propio colaborador o el Admin al revisar su registro).
+    @Transactional
+    public void eliminarExperiencia(Usuario colaborador, Long id, Usuario actor) {
         experienciaProfesionalRepository.findById(id).ifPresent(exp -> {
             // Verificamos que esta experiencia pertenezca realmente al colaborador
             if (exp.getColaborador().getId().equals(colaborador.getId())) {
                 exp.setActivo(false);
                 experienciaProfesionalRepository.save(exp);
 
-                auditoriaService.registrar(colaborador, "ELIMINAR", "EXPERIENCIA", id,
+                auditoriaService.registrar(actor, "ELIMINAR", "EXPERIENCIA", id,
                         "Eliminó experiencia profesional en: " + exp.getEmpresa());
             }
         });
@@ -639,6 +714,15 @@ public class ColaboradorPerfilService {
     public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
                                  String fechaInicioTexto, String fechaFinTexto,
                                  MultipartFile certificado) {
+        agregarEducacion(colaborador, institucion, titulo, fechaInicioTexto, fechaFinTexto, certificado, true);
+    }
+
+    // "notificarRm" es false en el pre-registro: el RM todavía no ve al colaborador (su bandeja
+    // excluye registros sin aprobar) y se le avisa recién cuando el Admin aprueba el registro.
+    @Transactional
+    public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
+                                 String fechaInicioTexto, String fechaFinTexto,
+                                 MultipartFile certificado, boolean notificarRm) {
         if (institucion == null || institucion.isBlank()) {
             throw new IllegalArgumentException("Indica la institución.");
         }
@@ -673,11 +757,27 @@ public class ColaboradorPerfilService {
                 "Agregó la formación académica \"" + titulo.trim() + "\" (" + institucion.trim()
                         + ") a su perfil y adjuntó un certificado.");
 
+        if (notificarRm) {
+            notificarRmEducacionPendiente(educacion);
+        }
+    }
+
+    private void notificarRmEducacionPendiente(Educacion educacion) {
+        Usuario colaborador = educacion.getColaborador();
         notificacionService.crearParaTodosLosRm("EDUCACION_PENDIENTE", CategoriaNotificacion.HABILIDAD,
                 "Formación académica pendiente de revisión",
                 colaborador.getNombre() + " " + colaborador.getApellido()
-                        + " agregó \"" + titulo.trim() + "\" (" + institucion.trim() + ") a su perfil.",
+                        + " agregó \"" + educacion.getTitulo() + "\" (" + educacion.getInstitucion() + ") a su perfil.",
                 "EDUCACION", educacion.getId());
+    }
+
+    // Se llama cuando el Admin aprueba el pre-registro: desde ese momento el RM ya ve las
+    // formaciones y los certificados que el colaborador cargó, así que se le avisa de las pendientes.
+    @Transactional
+    public void avisarAlRmDelRegistroAprobado(Usuario colaborador) {
+        listarEducacion(colaborador).stream()
+                .filter(e -> e.getEstado() == EstadoCertificado.PENDIENTE)
+                .forEach(this::notificarRmEducacionPendiente);
     }
 
     //Convertimos el texto del input type="date" a LocalDate, exigiendo que venga lleno y con formato válido

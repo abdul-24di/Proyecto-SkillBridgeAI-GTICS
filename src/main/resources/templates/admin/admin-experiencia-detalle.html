@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI - Revisar Experiencia</title>
     <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
@@ -52,11 +53,15 @@
             </div>
             <div>
                 <a th:if="${colaborador.cvUrl != null}" th:href="@{${colaborador.cvUrl}}" target="_blank" rel="noopener" class="btn btn-outline-primary">Ver CV</a>
-                <form th:if="${colaborador.cvEstado == null or colaborador.cvEstado.name() != 'REVISADO'}"
-                      th:action="@{/admin/experiencia/{id}/revisar(id=${colaborador.id})}" method="post" class="d-inline">
-                    <button type="submit" class="btn btn-success">Marcar CV como revisado</button>
-                </form>
-                <span th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'REVISADO'}" class="badge bg-green-lt text-green">Revisado</span>
+                <span th:if="${colaborador.cvUrl == null}" class="badge bg-yellow-lt text-yellow">Sin CV subido</span>
+                <th:block th:if="${colaborador.cvUrl != null and (colaborador.cvEstado == null or colaborador.cvEstado.name() == 'PENDIENTE')}">
+                    <form th:action="@{/admin/experiencia/{id}/revisar(id=${colaborador.id})}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-success">Aprobar</button>
+                    </form>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalRechazar">Rechazar</button>
+                </th:block>
+                <span th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'REVISADO'}" class="badge bg-green-lt text-green">Aprobado</span>
+                <span th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'RECHAZADO'}" class="badge bg-red-lt text-red">Rechazado</span>
             </div>
         </div>
 
@@ -71,6 +76,37 @@
 
         <div class="row">
             <div class="col-lg-7">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title">Datos del pre-registro</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="text-secondary small">Nombre</div>
+                                <div th:text="|${colaborador.nombre} ${colaborador.apellido}|">Nombre</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-secondary small">Correo</div>
+                                <div th:text="${colaborador.correo}">correo</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-secondary small">Teléfono</div>
+                                <div th:text="${colaborador.telefono != null ? colaborador.telefono : 'No indicado'}">999999999</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="text-secondary small">Sobre sí mismo</div>
+                                <div th:text="${colaborador.descripcion != null ? colaborador.descripcion : 'No indicado'}">Descripción</div>
+                            </div>
+                        </div>
+                        <div class="form-hint mt-3">Al aprobar el registro, estos datos quedan en el perfil del colaborador.</div>
+                        <div th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'RECHAZADO' and colaborador.motivoRechazo != null}"
+                             class="alert alert-danger mt-3 mb-0">
+                            <strong>Motivo del rechazo:</strong> <span th:text="${colaborador.motivoRechazo}">Motivo</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Experiencia profesional registrada</h3>
@@ -87,6 +123,10 @@
                                 <span th:text="${exp.actual} ? 'Actualidad' : (${exp.fechaFin != null} ? ${#temporals.format(exp.fechaFin, 'MM/yyyy')} : '¿?')">Actualidad</span>
                             </div>
                             <div th:text="${exp.descripcion}">Descripción</div>
+                            <form th:action="@{/admin/experiencia/{cid}/eliminar/{eid}(cid=${colaborador.id}, eid=${exp.id})}" method="post"
+                                  class="mt-2" onsubmit="return confirm('¿Eliminar esta experiencia?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -137,6 +177,29 @@
         </div>
     </main>
 </div>
+<div class="modal fade" id="modalRechazar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form th:action="@{/admin/experiencia/{id}/rechazar(id=${colaborador.id})}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rechazar registro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label" for="motivoRechazo">Motivo <span class="text-danger">*</span></label>
+                    <textarea id="motivoRechazo" name="motivo" class="form-control" rows="4" maxlength="500" required
+                              placeholder="Explica qué debe corregir el colaborador (se le enviará por correo)"></textarea>
+                    <div class="form-hint mt-2">No se borra nada: el colaborador corrige y vuelve a subir su CV.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Rechazar y notificar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 <script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
 </body>
 </html>

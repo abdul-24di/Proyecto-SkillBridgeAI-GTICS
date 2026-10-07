@@ -30,6 +30,8 @@ public interface CertificadoRepository extends JpaRepository<Certificado, Long> 
             join fetch c.habilidad h
             left join fetch c.revisadoPor
             where c.estado = :estado
+              and (u.registroEstado is null
+                   or u.registroEstado = com.pucp.skillb_ia.model.enums.EstadoRegistro.APROBADO)
             order by c.fechaSubida asc
             """)
     List<Certificado> findByEstadoConDetalle(@Param("estado") EstadoCertificado estado);

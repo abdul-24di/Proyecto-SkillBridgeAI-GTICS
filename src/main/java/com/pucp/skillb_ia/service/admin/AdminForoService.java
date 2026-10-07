@@ -39,8 +39,15 @@ public class AdminForoService {
 
     @Transactional
     public Foro crearForo(String nombre, boolean esPublico) {
+        String nombreLimpio = nombre == null ? "" : nombre.strip();
+        if (nombreLimpio.isEmpty()) {
+            throw new IllegalArgumentException("El nombre del foro es obligatorio.");
+        }
+        if (nombreLimpio.length() > 150) {
+            throw new IllegalArgumentException("El nombre del foro no puede superar los 150 caracteres.");
+        }
         Foro foro = new Foro();
-        foro.setNombre(nombre);
+        foro.setNombre(nombreLimpio);
         foro.setTipo(TipoForo.GENERAL);
         foro.setEsPublico(esPublico);
         foro.setProyecto(null);

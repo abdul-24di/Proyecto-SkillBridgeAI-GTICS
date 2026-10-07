@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>SkillBridge AI — Configuración</title>
@@ -43,7 +44,7 @@
 
   <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('configuracion')}">
     <div class="container-xl">
-      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
       <nav class="main-nav" aria-label="Navegación principal">
         <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
         <a href="admin-usuarios.html" th:href="@{/admin/usuarios}">Usuarios</a>
@@ -233,6 +234,7 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
 <script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
 <script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
 </body>

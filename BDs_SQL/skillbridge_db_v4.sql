@@ -59,6 +59,8 @@ CREATE TABLE usuario (
     cv_url                      VARCHAR(500)  NULL,
     cv_estado                   VARCHAR(20)   NULL,
     cv_fecha_subida             DATETIME      NULL,
+    registro_estado             VARCHAR(20)   NULL,
+    motivo_rechazo              VARCHAR(500)  NULL,
     rol_id                      BIGINT        NOT NULL,
     activo                      BOOLEAN       NOT NULL DEFAULT TRUE,
     fecha_creacion              DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -26,3 +26,18 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  const filasRechazados = Array.from(document.querySelectorAll("#tab-rechazados .cv-rechazado-row"));
+  if (filasRechazados.length) {
+    crearPaginacionTabla({
+      filas: filasRechazados,
+      filtroFn: () => true,
+      paginationEl: document.getElementById("cvRechazadosPagination"),
+      infoEl: document.getElementById("cvRechazadosPaginationInfo"),
+      noResultsEl: document.getElementById("cvRechazadosNoResults"),
+      pageSize: 10,
+      etiqueta: "registro(s) rechazado(s)"
+    });
+  }
+});

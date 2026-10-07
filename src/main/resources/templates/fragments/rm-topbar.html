@@ -4,7 +4,7 @@
 
 <header class="topbar" th:fragment="topbar(activeSection)">
   <div class="container-xl">
-    <a href="../rm/rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
+    <a href="../rm/rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
 
     <nav class="main-nav" aria-label="Navegacion principal" sec:authorize="hasRole('RESOURCE_MANAGER')">
       <a href="../rm/rm-dashboard.html"

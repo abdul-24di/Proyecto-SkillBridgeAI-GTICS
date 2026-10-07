@@ -23,6 +23,8 @@ public interface EducacionRepository extends JpaRepository<Educacion, Long> {
             left join fetch u.cargo
             left join fetch e.revisadoPor
             where e.estado = :estado and e.activo = true
+              and (u.registroEstado is null
+                   or u.registroEstado = com.pucp.skillb_ia.model.enums.EstadoRegistro.APROBADO)
             order by e.fechaCreacion asc, e.id asc
             """)
     List<Educacion> findActivasByEstadoConDetalle(@Param("estado") EstadoCertificado estado);
@@ -37,7 +39,15 @@ public interface EducacionRepository extends JpaRepository<Educacion, Long> {
             """)
     Optional<Educacion> findByIdConDetalle(@Param("id") Long id);
 
-    long countByEstadoAndActivoTrue(EstadoCertificado estado);
+    // Contador de la bandeja del RM: misma regla que la lista (no cuenta colaboradores con el
+    // pre-registro todavía sin aprobar).
+    @Query("""
+            select count(e) from Educacion e
+            where e.estado = :estado and e.activo = true
+              and (e.colaborador.registroEstado is null
+                   or e.colaborador.registroEstado = com.pucp.skillb_ia.model.enums.EstadoRegistro.APROBADO)
+            """)
+    long countByEstadoAndActivoTrue(@Param("estado") EstadoCertificado estado);
 
     long countByColaboradorAndEstadoAndActivoTrue(Usuario colaborador, EstadoCertificado estado);
 }

@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Activar cuenta | SkillBridge AI</title>
     <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
@@ -36,12 +37,7 @@
 <div class="auth-shell">
 
     <div class="auth-brand">
-        <div class="auth-logo">
-            <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/>
-            </svg>
-        </div>
-        <h1>SkillBridge AI</h1>
+        <img class="auth-logo-img" src="../../static/img/skillbridge-logo.webp" th:src="@{/img/skillbridge-logo.webp}" alt="SkillBridge AI">
         <p>Gestión inteligente de talento y proyectos</p>
     </div>
 
@@ -55,10 +51,11 @@
         <h2 class="auth-title">Activa tu cuenta</h2>
         <p class="auth-subtitle">Fuiste invitado a SkillBridge AI como <strong th:text="${rolNombre}">Colaborador</strong>. Completa tus datos para acceder por primera vez.</p>
 
-        <div class="auth-alert error" th:if="${param.error}">Revisa los datos ingresados e intenta nuevamente.</div>
+        <div class="auth-alert error" th:if="${#fields.hasErrors('${activarCuentaForm.*}')}">Revisa los datos ingresados e intenta nuevamente.</div>
+        <div class="auth-alert error" th:if="${mensajeError}" th:text="${mensajeError}">Mensaje</div>
 
-        <form class="auth-form" th:action="@{/activar-cuenta}" method="post" novalidate data-custom-validate>
-            <input type="hidden" name="token" th:value="${token}">
+        <form class="auth-form" th:action="@{/activar-cuenta}" method="post" enctype="multipart/form-data" th:object="${activarCuentaForm}" novalidate>
+            <input type="hidden" th:field="*{token}">
 
             <div class="mb-3">
                 <label class="form-label" for="activationEmail">Correo electrónico</label>
@@ -76,9 +73,153 @@
                     <span class="auth-input-icon-addon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
                     </span>
-                    <input id="activationName" name="nombreCompleto" type="text" class="form-control" placeholder="Nombres y apellidos" autocomplete="name" minlength="3" required>
+                    <input id="activationName" th:field="*{nombreCompleto}" type="text" class="form-control" placeholder="Nombres y apellidos" autocomplete="name">
                 </div>
-                <div class="auth-field-error" data-error-for="activationName">Ingresa tu nombre completo (mínimo 3 caracteres).</div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('nombreCompleto')}" th:errors="*{nombreCompleto}"></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="activationPhone">Teléfono</label>
+                <input id="activationPhone" th:field="*{telefono}" type="tel" class="form-control" placeholder="Ejemplo: +51987654321" autocomplete="tel" maxlength="20">
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('telefono')}" th:errors="*{telefono}"></div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="activationDescription">Sobre ti <span class="text-secondary">(opcional)</span></label>
+                <textarea id="activationDescription" th:field="*{descripcion}" class="form-control" rows="3" maxlength="500" placeholder="Cuéntanos brevemente sobre tu perfil profesional"></textarea>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('descripcion')}" th:errors="*{descripcion}"></div>
+            </div>
+
+            <div class="mb-3" th:if="${rolNombre == 'COLABORADOR'}">
+                <label class="form-label" for="activationCv">Tu CV (PDF, máximo 5 MB)</label>
+                <input id="activationCv" name="cv" type="file" class="form-control" accept="application/pdf">
+                <div class="form-hint">El Administrador lo revisará antes de aprobar tu registro.</div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('cv')}" th:errors="*{cv}"></div>
+            </div>
+
+            <div class="mb-3" th:if="${rolNombre == 'COLABORADOR'}" data-filas-wrap="experiencias">
+                <label class="form-label">Experiencia profesional <span class="text-secondary">(opcional)</span></label>
+                <div class="form-hint mb-2">Se guardará en tu perfil. El Administrador la revisará junto con tu CV.</div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('experiencias')}" th:errors="*{experiencias}"></div>
+
+                <div class="border rounded p-3 mb-2" data-fila th:each="exp, st : *{experiencias}">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small">Cargo</label>
+                            <input type="text" class="form-control" th:field="*{experiencias[__${st.index}__].cargo}" maxlength="100" placeholder="Ej.: Analista de datos">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('experiencias[__${st.index}__].cargo')}" th:errors="*{experiencias[__${st.index}__].cargo}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Empresa</label>
+                            <input type="text" class="form-control" th:field="*{experiencias[__${st.index}__].empresa}" maxlength="150">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('experiencias[__${st.index}__].empresa')}" th:errors="*{experiencias[__${st.index}__].empresa}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Fecha de inicio</label>
+                            <input type="date" class="form-control" th:field="*{experiencias[__${st.index}__].fechaInicio}">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('experiencias[__${st.index}__].fechaInicio')}" th:errors="*{experiencias[__${st.index}__].fechaInicio}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Fecha de fin</label>
+                            <input type="date" class="form-control" th:field="*{experiencias[__${st.index}__].fechaFin}">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('experiencias[__${st.index}__].fechaFin')}" th:errors="*{experiencias[__${st.index}__].fechaFin}"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-check">
+                                <input type="checkbox" class="form-check-input" th:field="*{experiencias[__${st.index}__].actual}">
+                                <span class="form-check-label small">Trabajo aquí actualmente</span>
+                            </label>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Funciones principales</label>
+                            <textarea class="form-control" rows="2" maxlength="500" th:field="*{experiencias[__${st.index}__].descripcion}"></textarea>
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('experiencias[__${st.index}__].descripcion')}" th:errors="*{experiencias[__${st.index}__].descripcion}"></div>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn btn-link link-danger btn-sm p-0" data-fila-quitar>Quitar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-outline-primary btn-sm" data-fila-agregar="experiencias">+ Agregar otra experiencia</button>
+            </div>
+
+            <div class="mb-3" th:if="${rolNombre == 'COLABORADOR'}" data-filas-wrap="certificados">
+                <label class="form-label">Certificados de habilidades <span class="text-secondary">(opcional)</span></label>
+                <div class="form-hint mb-2">Elige una habilidad, tu nivel y adjunta el certificado (PDF, JPG o PNG, máx. 10 MB). El Resource Manager los validará.</div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('certificados')}" th:errors="*{certificados}"></div>
+
+                <div class="border rounded p-3 mb-2" data-fila th:each="cert, st : *{certificados}">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small">Habilidad</label>
+                            <select class="form-select" th:field="*{certificados[__${st.index}__].habilidadId}">
+                                <option value="">Selecciona…</option>
+                                <option th:each="h : ${habilidadesCatalogo}" th:value="${h.id}" th:text="${h.nombre}">Java</option>
+                            </select>
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('certificados[__${st.index}__].habilidadId')}" th:errors="*{certificados[__${st.index}__].habilidadId}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Nivel</label>
+                            <select class="form-select" th:field="*{certificados[__${st.index}__].nivel}">
+                                <option value="">Selecciona…</option>
+                                <option th:each="n : ${niveles}" th:value="${n}" th:text="${n}">BASICO</option>
+                            </select>
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('certificados[__${st.index}__].nivel')}" th:errors="*{certificados[__${st.index}__].nivel}"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Archivo del certificado</label>
+                            <input type="file" class="form-control" th:name="|certificados[${st.index}].archivo|" accept="application/pdf,image/png,image/jpeg">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('certificados[__${st.index}__].archivo')}" th:errors="*{certificados[__${st.index}__].archivo}"></div>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn btn-link link-danger btn-sm p-0" data-fila-quitar>Quitar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-outline-primary btn-sm" data-fila-agregar="certificados">+ Agregar otro certificado</button>
+            </div>
+
+            <div class="mb-3" th:if="${rolNombre == 'COLABORADOR'}" data-filas-wrap="estudios">
+                <label class="form-label">Formación académica <span class="text-secondary">(opcional)</span></label>
+                <div class="form-hint mb-2">Estudios con su constancia o título adjunto (PDF, JPG o PNG, máx. 10 MB). El Resource Manager los validará.</div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('estudios')}" th:errors="*{estudios}"></div>
+
+                <div class="border rounded p-3 mb-2" data-fila th:each="est, st : *{estudios}">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small">Institución</label>
+                            <input type="text" class="form-control" th:field="*{estudios[__${st.index}__].institucion}" maxlength="150">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('estudios[__${st.index}__].institucion')}" th:errors="*{estudios[__${st.index}__].institucion}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Título o carrera</label>
+                            <input type="text" class="form-control" th:field="*{estudios[__${st.index}__].titulo}" maxlength="150">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('estudios[__${st.index}__].titulo')}" th:errors="*{estudios[__${st.index}__].titulo}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Fecha de inicio</label>
+                            <input type="date" class="form-control" th:field="*{estudios[__${st.index}__].fechaInicio}">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('estudios[__${st.index}__].fechaInicio')}" th:errors="*{estudios[__${st.index}__].fechaInicio}"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Fecha de fin</label>
+                            <input type="date" class="form-control" th:field="*{estudios[__${st.index}__].fechaFin}">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('estudios[__${st.index}__].fechaFin')}" th:errors="*{estudios[__${st.index}__].fechaFin}"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Constancia o título</label>
+                            <input type="file" class="form-control" th:name="|estudios[${st.index}].archivo|" accept="application/pdf,image/png,image/jpeg">
+                            <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('estudios[__${st.index}__].archivo')}" th:errors="*{estudios[__${st.index}__].archivo}"></div>
+                        </div>
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn btn-link link-danger btn-sm p-0" data-fila-quitar>Quitar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-outline-primary btn-sm" data-fila-agregar="estudios">+ Agregar otra formación</button>
             </div>
 
             <div class="mb-3">
@@ -87,12 +228,12 @@
                     <span class="auth-input-icon-addon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                     </span>
-                    <input id="activationPassword" name="password" type="password" class="form-control" placeholder="Mínimo 8 caracteres, con mayúscula, número y símbolo" minlength="8" pattern="(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}" autocomplete="new-password" required>
+                    <input id="activationPassword" th:field="*{password}" type="password" class="form-control" placeholder="Mínimo 8 caracteres, con mayúscula, número y símbolo" autocomplete="new-password">
                     <button type="button" class="auth-toggle-visibility" data-toggle-password="activationPassword" aria-label="Mostrar contraseña">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
                 </div>
-                <div class="auth-field-error" data-error-for="activationPassword">Debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo.</div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
             </div>
 
             <div class="mb-3">
@@ -101,18 +242,19 @@
                     <span class="auth-input-icon-addon">
                         <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
                     </span>
-                    <input id="activationConfirmPassword" name="confirmarPassword" type="password" class="form-control" placeholder="Repite la contraseña" minlength="8" autocomplete="new-password" required>
+                    <input id="activationConfirmPassword" th:field="*{confirmarPassword}" type="password" class="form-control" placeholder="Repite la contraseña" autocomplete="new-password">
                     <button type="button" class="auth-toggle-visibility" data-toggle-password="activationConfirmPassword" aria-label="Mostrar contraseña">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </button>
                 </div>
-                <div class="auth-field-error" data-error-for="activationConfirmPassword">Debe coincidir con la contraseña ingresada arriba.</div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('confirmarPassword')}" th:errors="*{confirmarPassword}"></div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('passwordsCoinciden')}" th:errors="*{passwordsCoinciden}"></div>
             </div>
 
             <div class="auth-check mb-3">
-                <input type="checkbox" class="form-check-input" id="activationTerms" name="aceptaPolitica" required>
+                <input type="checkbox" class="form-check-input" id="activationTerms" th:field="*{aceptaPolitica}">
                 <label for="activationTerms">Acepto la política de tratamiento de datos de SkillBridge AI.</label>
-                <div class="auth-field-error" data-error-for="activationTerms">Debes aceptar la política para continuar.</div>
+                <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('aceptaPolitica')}" th:errors="*{aceptaPolitica}"></div>
             </div>
 
             <button type="submit" class="auth-submit">Activar cuenta</button>
@@ -157,5 +299,6 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/auth-js/auth.js" th:src="@{/js/auth-js/auth.js}"></script>
+<script src="../../static/js/auth-js/preregistro-filas.js" th:src="@{/js/auth-js/preregistro-filas.js}"></script>
 </body>
 </html>

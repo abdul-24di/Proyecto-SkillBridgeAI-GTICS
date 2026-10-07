@@ -4,7 +4,7 @@
 
 <header class="topbar" th:fragment="topbar(activeSection)">
   <div class="container-xl">
-    <a href="../pm/pm-proyectos.html" class="brand" th:href="@{/pm/proyectos}">SkillBridge AI</a>
+    <a href="../pm/pm-proyectos.html" class="brand" th:href="@{/pm/proyectos}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
 
     <nav class="main-nav" aria-label="Navegacion principal PM" sec:authorize="hasRole('PROJECT_MANAGER')">
       <a href="../pm/pm-dashboard.html"

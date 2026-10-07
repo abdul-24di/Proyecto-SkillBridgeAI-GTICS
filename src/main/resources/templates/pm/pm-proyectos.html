@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SkillBridge AI — Mis Proyectos</title>
   <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
@@ -38,7 +39,7 @@
 <div class="app-shell">
   <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('proyectos')}">
     <div class="container-xl">
-      <a href="pm-proyectos.html" class="brand">SkillBridge AI</a>
+      <a href="pm-proyectos.html" class="brand"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
       <nav class="main-nav" aria-label="Navegación principal PM">
       <a href="pm-proyectos.html" class="active">Mis Proyectos</a>
       <a href="pm-crear-proyecto.html">Crear Proyecto</a>

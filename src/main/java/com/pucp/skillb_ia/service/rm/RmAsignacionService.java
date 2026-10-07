@@ -341,7 +341,7 @@ public class RmAsignacionService {
             Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = obtenerProyectoAsignable(proyectoId);
-        Usuario colaborador = obtenerColaborador(colaboradorId);
+        Usuario colaborador = obtenerColaboradorAsignable(colaboradorId);
         validarHoras(horasSemanales);
         // A20 / sección 13: nunca se propone sin presupuesto suficiente — el RM
         // reserva el costo de inmediato porque proponerDesdeRm() auto-aprueba por el RM.
@@ -623,6 +623,12 @@ public class RmAsignacionService {
                 .filter(Usuario::isActivo)
                 .filter(usuario -> usuario.getRol() != null
                         && ROL_COLABORADOR.equals(usuario.getRol().getNombre()))
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró un colaborador activo válido."));
+    }
+
+    // Proponer (TASK-053): misma regla que el directorio; un registro pendiente o rechazado no se asigna.
+    private Usuario obtenerColaboradorAsignable(Long colaboradorId) {
+        return usuarioRepository.findColaboradorVisibleRmById(colaboradorId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró un colaborador activo válido."));
     }
 

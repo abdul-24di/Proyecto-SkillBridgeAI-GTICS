@@ -20,6 +20,7 @@ import com.pucp.skillb_ia.model.LogAuditoria;
 import com.pucp.skillb_ia.service.rm.RmColaboradorConsultaService;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.model.enums.EstadoRegistro;
 import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import com.pucp.skillb_ia.model.enums.Prioridad;
@@ -1385,6 +1386,118 @@ class RmAsignacionTests {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertEquals(1, contar(html, ">Ya en el proyecto</span>"));
         assertEquals(5, contar(html, "data-abrir-propuesta"));
+    }
+
+    // ---- TASK-053: solo registros aprobados o NULL (anteriores al pre-registro) ----
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void candidatosYSelectorDePropuestaExcluyenRegistrosPendientesYRechazados() throws Exception {
+        List<Usuario> lote = crearLoteCandidatos();
+        // Aprobados y NULL conviven: K01..K04 aprobados, K05..K09 sin registro.
+        lote.subList(0, 4).forEach(usuario -> {
+            usuario.setRegistroEstado(EstadoRegistro.APROBADO);
+            usuarioRepository.save(usuario);
+        });
+        Usuario pendiente = candidatoConRegistro("K10", EstadoRegistro.PENDIENTE);
+        Usuario rechazado = candidatoConRegistro("K11", EstadoRegistro.RECHAZADO);
+
+        // Mismos candidatos, orden, filtros y páginas que sin ellos.
+        assertEquals(List.of("K01", "K02", "K03", "K04", "K05", "K06", "K07", "K08", "K09"),
+                codigosDeTodasLasPaginas("busqueda=cand029"));
+        assertEquals(List.of("K06", "K07", "K08"), codigosDeTodasLasPaginas("busqueda=cand029&disponibilidad=24"));
+        assertEquals(List.of("K01", "K02", "K03", "K04", "K05", "K07", "K09"),
+                codigosDeTodasLasPaginas("busqueda=cand029&carga=available"));
+        mockMvc.perform(get(BUSCAR).param("proyectoId", proyecto.getId().toString())
+                        .param("busqueda", "cand029").param("pagina", "2"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("paginaActual", 2))
+                .andExpect(model().attribute("totalPaginas", 2))
+                .andExpect(model().attribute("totalRegistros", 9L));
+        for (String codigo : List.of("k10", "k11")) {
+            mockMvc.perform(get(BUSCAR).param("proyectoId", proyecto.getId().toString())
+                            .param("busqueda", "cand029 " + codigo))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attribute("totalRegistros", 0L));
+        }
+
+        // Pantalla "Proponer asignación": selector de colaboradores y sueldos.
+        Map<String, Object> modelo = mockMvc.perform(get("/rm/proyectos/proponer-asignacion"))
+                .andExpect(status().isOk())
+                .andReturn().getModelAndView().getModel();
+        List<Long> seleccionables = ((List<RmColaboradorResumen>) modelo.get("colaboradores")).stream()
+                .map(RmColaboradorResumen::getId).toList();
+        Map<Long, BigDecimal> sueldos = (Map<Long, BigDecimal>) modelo.get("sueldosPorColaborador");
+        List<Long> idsLote = lote.stream().map(Usuario::getId).toList();
+        assertTrue(seleccionables.containsAll(idsLote));
+        assertTrue(sueldos.keySet().containsAll(idsLote));
+        for (Usuario oculto : List.of(pendiente, rechazado)) {
+            assertFalse(seleccionables.contains(oculto.getId()));
+            assertFalse(sueldos.containsKey(oculto.getId()));
+            // Modal "Ver perfil" de la búsqueda.
+            mockMvc.perform(get("/rm/colaboradores/perfil-modal").param("id", oculto.getId().toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attribute("perfilError", "No se encontró el colaborador solicitado."))
+                    .andExpect(model().attributeDoesNotExist("colaborador"));
+        }
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @ValueSource(strings = {"PENDIENTE", "RECHAZADO"})
+    void propuestaManipuladaAUnRegistroSinAprobarEsRechazadaEnElServidor(String estado) throws Exception {
+        Usuario sinAprobar = candidatoConRegistro("K12", EstadoRegistro.valueOf(estado));
+        long auditorias = contarAuditoriasDePropuesta();
+        autenticarRm();
+        try {
+            mockMvc.perform(post(PROPONER)
+                            .param("proyectoId", proyecto.getId().toString())
+                            .param("colaboradorId", sinAprobar.getId().toString())
+                            .param("horasSemanales", "8")
+                            .param("justificacion", "Encaja con el proyecto.")
+                            .param("origen", "buscar"))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + proyecto.getId()))
+                    .andExpect(flash().attribute("mensajeError", "No se encontró un colaborador activo válido."));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertThrows(IllegalArgumentException.class, () -> asignacionService.proponerDesdeRm(
+                proyecto.getId(), sinAprobar.getId(), new BigDecimal("8"), "Encaja.", null, null, rm.getId()));
+        assertEquals(0, asignacionRepository.count());
+        assertEquals(auditorias, contarAuditoriasDePropuesta());
+    }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @ValueSource(strings = {"APROBADO", "NULL"})
+    void propuestaAUnRegistroAprobadoOAnteriorAlPreRegistroSigueFuncionando(String estado) throws Exception {
+        Usuario visible = candidatoConRegistro("K13", "NULL".equals(estado) ? null : EstadoRegistro.valueOf(estado));
+        autenticarRm();
+        try {
+            mockMvc.perform(post(PROPONER)
+                            .param("proyectoId", proyecto.getId().toString())
+                            .param("colaboradorId", visible.getId().toString())
+                            .param("horasSemanales", "8")
+                            .param("justificacion", "Encaja con el proyecto.")
+                            .param("origen", "buscar"))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + proyecto.getId()))
+                    .andExpect(flash().attribute("mensajeExito", MENSAJE_EXITO));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertEquals(1, asignacionRepository.count());
+    }
+
+    // Candidato activo del lote (24 h, sueldo y horas contratadas) con el estado de registro indicado.
+    private Usuario candidatoConRegistro(String codigo, EstadoRegistro estado) {
+        Usuario usuario = obtenerUsuario("cand029." + codigo.toLowerCase() + "@skillbridge.test",
+                "Cand029", codigo, obtenerRol("COLABORADOR"));
+        usuario.setActivo(true);
+        usuario.setHorasDisponibles(new BigDecimal("24"));
+        usuario.setHorasContratadasSemana(new BigDecimal("40.00"));
+        usuario.setSueldoBase(new BigDecimal("4000.00"));
+        usuario.setRegistroEstado(estado);
+        usuario = usuarioRepository.save(usuario);
+        loteCandidatos.add(usuario);
+        return usuario;
     }
 
     @ParameterizedTest(name = "[{index}] {0}")

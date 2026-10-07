@@ -24,6 +24,32 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             """)
     List<Usuario> findActivosByRolNombre(@Param("rolNombre") String rolNombre);
 
+    // Colaboradores que el RM puede ver y asignar (TASK-053): activos y con el pre-registro
+    // aprobado; NULL (anterior al pre-registro) cuenta como aprobado.
+    @Query("""
+            select u
+            from Usuario u
+            join fetch u.rol r
+            where r.nombre = 'COLABORADOR'
+              and u.activo = true
+              and (u.registroEstado is null
+                   or u.registroEstado = com.pucp.skillb_ia.model.enums.EstadoRegistro.APROBADO)
+            order by u.nombre asc, u.apellido asc
+            """)
+    List<Usuario> findColaboradoresVisiblesRm();
+
+    @Query("""
+            select u
+            from Usuario u
+            join fetch u.rol r
+            where u.id = :id
+              and r.nombre = 'COLABORADOR'
+              and u.activo = true
+              and (u.registroEstado is null
+                   or u.registroEstado = com.pucp.skillb_ia.model.enums.EstadoRegistro.APROBADO)
+            """)
+    Optional<Usuario> findColaboradorVisibleRmById(@Param("id") Long id);
+
     @Query("""
             select u
             from Usuario u

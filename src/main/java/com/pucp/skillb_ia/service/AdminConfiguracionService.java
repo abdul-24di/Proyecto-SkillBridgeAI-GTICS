@@ -80,6 +80,15 @@ public class AdminConfiguracionService {
         if (valorLimpio.isEmpty()) {
             throw new IllegalArgumentException("El valor no puede estar vacío.");
         }
+        if (claveLimpia.length() > 60) {
+            throw new IllegalArgumentException("La clave no puede superar los 60 caracteres.");
+        }
+        if (!claveLimpia.matches("[A-Z0-9_]+")) {
+            throw new IllegalArgumentException("La clave solo puede contener letras, números, espacios y guiones bajos.");
+        }
+        if (valorLimpio.length() > 255) {
+            throw new IllegalArgumentException("El valor no puede superar los 255 caracteres.");
+        }
         if (configuracionRepository.findByClave(claveLimpia).isPresent()) {
             throw new IllegalArgumentException("Ya existe un parámetro con la clave \"" + claveLimpia + "\".");
         }

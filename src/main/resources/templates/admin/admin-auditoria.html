@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>SkillBridge AI — Log de Auditoría</title>
@@ -43,7 +44,7 @@
 
   <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('auditoria')}">
     <div class="container-xl">
-      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
       <nav class="main-nav" aria-label="Navegación principal">
         <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
         <a href="admin-usuarios.html" th:href="@{/admin/usuarios}">Usuarios</a>

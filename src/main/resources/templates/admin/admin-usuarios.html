@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>SkillBridge AI — Usuarios</title>
@@ -43,7 +44,7 @@
 
   <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('usuarios')}">
     <div class="container-xl">
-      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}">SkillBridge AI</a>
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
       <nav class="main-nav" aria-label="Navegación principal">
         <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
         <a href="admin-usuarios.html" class="active" th:href="@{/admin/usuarios}">Usuarios</a>
@@ -288,7 +289,7 @@
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label" for="newUserEmail">Correo electrónico</label>
-            <input id="newUserEmail" name="correo" type="email" class="form-control" placeholder="nombre@empresa.com">
+            <input id="newUserEmail" name="correo" type="email" class="form-control" placeholder="nombre@empresa.com" required>
           </div>
           <div class="mb-1">
             <label class="form-label" for="newUserRole">Rol</label>
@@ -323,7 +324,7 @@
       <div class="modal-body">
         <div class="mb-3">
           <label class="form-label" for="bulkFile">Archivo</label>
-          <input id="bulkFile" name="archivo" type="file" class="form-control" accept=".csv,.xlsx,.xls">
+          <input id="bulkFile" name="archivo" type="file" class="form-control" accept=".csv,.xlsx,.xls" required>
           <div class="form-hint">Formatos aceptados: .csv, .xlsx. Columnas requeridas: <code>correo</code>, <code>rol</code> (el rol va como número, no como texto — ver tabla abajo).</div>
         </div>
         <div class="mb-3">
@@ -459,6 +460,7 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
 <script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
 <script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
 <script src="../../static/js/admin-js/admin-table-pagination.js" th:src="@{/js/admin-js/admin-table-pagination.js}"></script>

@@ -1,6 +1,7 @@
 package com.pucp.skillb_ia.model;
 
 import com.pucp.skillb_ia.model.enums.EstadoCv;
+import com.pucp.skillb_ia.model.enums.EstadoRegistro;
 import com.pucp.skillb_ia.model.enums.NivelExperiencia;
 import jakarta.persistence.*;
 
@@ -61,6 +62,14 @@ public class Usuario implements Serializable {
 
     @Column(name = "cv_fecha_subida")
     private LocalDateTime cvFechaSubida;
+
+    // Pre-registro del colaborador invitado: lo aprueba o rechaza el Admin (ver EstadoRegistro).
+    @Enumerated(EnumType.STRING)
+    @Column(name = "registro_estado", length = 20)
+    private EstadoRegistro registroEstado;
+
+    @Column(name = "motivo_rechazo", length = 500)
+    private String motivoRechazo;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "rol_id", nullable = false)
@@ -137,6 +146,12 @@ public class Usuario implements Serializable {
 
     public LocalDateTime getCvFechaSubida() { return cvFechaSubida; }
     public void setCvFechaSubida(LocalDateTime cvFechaSubida) { this.cvFechaSubida = cvFechaSubida; }
+
+    public EstadoRegistro getRegistroEstado() { return registroEstado; }
+    public void setRegistroEstado(EstadoRegistro registroEstado) { this.registroEstado = registroEstado; }
+
+    public String getMotivoRechazo() { return motivoRechazo; }
+    public void setMotivoRechazo(String motivoRechazo) { this.motivoRechazo = motivoRechazo; }
 
     public String getDescripcion() {
         return descripcion;

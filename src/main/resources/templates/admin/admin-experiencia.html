@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI - Experiencia Profesional</title>
     <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
@@ -69,8 +70,14 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-revisados" type="button">
-                    Revisados
+                    Aprobados
                     <span class="badge bg-green-lt text-green ms-1" th:text="${#lists.size(cvsRevisados)}">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-rechazados" type="button">
+                    Rechazados
+                    <span class="badge bg-red-lt text-red ms-1" th:text="${#lists.size(cvsRechazados)}">0</span>
                 </button>
             </li>
         </ul>
@@ -98,7 +105,8 @@
                                 <td th:text="${cv.correo()}">correo@skillbridge.com</td>
                                 <td th:text="${cv.fechaSubida()}">01 ene 2026</td>
                                 <td>
-                                    <a th:href="@{${cv.cvUrl()}}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Ver CV</a>
+                                    <a th:if="${cv.cvUrl() != null}" th:href="@{${cv.cvUrl()}}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Ver CV</a>
+                                    <span th:unless="${cv.cvUrl() != null}" class="text-secondary">Sin CV</span>
                                 </td>
                                 <td>
                                     <a th:href="@{/admin/experiencia/{id}(id=${cv.id()})}" class="btn btn-primary btn-sm">Revisar</a>
@@ -132,7 +140,7 @@
                             </thead>
                             <tbody>
                             <tr th:if="${#lists.isEmpty(cvsRevisados)}">
-                                <td colspan="5" class="text-center text-muted py-4">Todavía no hay CVs revisados.</td>
+                                <td colspan="5" class="text-center text-muted py-4">Todavía no hay registros aprobados.</td>
                             </tr>
                             <tr th:each="cv : ${cvsRevisados}" class="cv-revisado-row">
                                 <td th:text="${cv.nombreCompleto()}">Nombre</td>
@@ -152,8 +160,50 @@
                         </table>
                     </div>
                     <div class="pagination-wrap" th:if="${!#lists.isEmpty(cvsRevisados)}">
-                        <div id="cvRevisadosPaginationInfo" class="text-secondary small">Mostrando CVs revisados</div>
+                        <div id="cvRevisadosPaginationInfo" class="text-secondary small">Mostrando registros aprobados</div>
                         <ul id="cvRevisadosPagination" class="pagination pagination-sm m-0"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-rechazados">
+                <div class="card">
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-hover">
+                            <thead>
+                            <tr>
+                                <th>Colaborador</th>
+                                <th>Correo</th>
+                                <th>Fecha de subida</th>
+                                <th>CV</th>
+                                <th class="w-1">Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${#lists.isEmpty(cvsRechazados)}">
+                                <td colspan="5" class="text-center text-muted py-4">No hay registros rechazados.</td>
+                            </tr>
+                            <tr th:each="cv : ${cvsRechazados}" class="cv-rechazado-row">
+                                <td th:text="${cv.nombreCompleto()}">Nombre</td>
+                                <td th:text="${cv.correo()}">correo@skillbridge.com</td>
+                                <td th:text="${cv.fechaSubida()}">01 ene 2026</td>
+                                <td>
+                                    <a th:if="${cv.cvUrl() != null}" th:href="@{${cv.cvUrl()}}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">Ver CV</a>
+                                    <span th:unless="${cv.cvUrl() != null}" class="text-secondary">Sin CV</span>
+                                </td>
+                                <td>
+                                    <a th:href="@{/admin/experiencia/{id}(id=${cv.id()})}" class="btn btn-outline-secondary btn-sm">Ver detalle</a>
+                                </td>
+                            </tr>
+                            <tr id="cvRechazadosNoResults" class="d-none" th:if="${!#lists.isEmpty(cvsRechazados)}">
+                                <td colspan="5" class="text-center text-secondary py-4">Ningún registro coincide con los filtros aplicados.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination-wrap" th:if="${!#lists.isEmpty(cvsRechazados)}">
+                        <div id="cvRechazadosPaginationInfo" class="text-secondary small">Mostrando registros rechazados</div>
+                        <ul id="cvRechazadosPagination" class="pagination pagination-sm m-0"></ul>
                     </div>
                 </div>
             </div>

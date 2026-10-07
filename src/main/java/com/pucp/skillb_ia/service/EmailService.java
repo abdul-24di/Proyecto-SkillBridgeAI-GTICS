@@ -32,7 +32,7 @@ public class EmailService {
         String enlaceCompleto = baseUrl + enlaceActivacion;
         String asunto = "Activa tu cuenta en SkillBridge AI";
         String cuerpo = "Hola,\n\n"
-                + "Se creó una cuenta para ti en SkillBridge AI. Para activarla y elegir tu contraseña, "
+                + "Se creó una cuenta para ti en SkillBridge AI. Para activarla, completar tus datos (y subir tu CV si eres colaborador) y elegir tu contraseña, "
                 + "entra al siguiente enlace (válido por 48 horas):\n\n"
                 + enlaceCompleto + "\n\n"
                 + "Si no esperabas este correo, puedes ignorarlo.\n\n"
@@ -40,6 +40,22 @@ public class EmailService {
 
         if (!enviar(correo, asunto, cuerpo)) {
             log.info("[EMAIL] Activación de cuenta -> {} | enlace: {}", correo, enlaceCompleto);
+        }
+    }
+
+    // Se avisa por correo porque, mientras su registro está en revisión, el colaborador
+    // no tiene el sistema abierto para ver la notificación.
+    public void enviarRechazoRegistro(String correo, String motivo) {
+        String asunto = "Tu registro en SkillBridge AI necesita correcciones";
+        String cuerpo = "Hola,\n\n"
+                + "El Administrador revisó tu registro y lo devolvió con la siguiente observación:\n\n"
+                + motivo + "\n\n"
+                + "Inicia sesión, corrige lo indicado y vuelve a subir tu CV en PDF para que lo revise de nuevo:\n\n"
+                + baseUrl + "/login\n\n"
+                + "— SkillBridge AI";
+
+        if (!enviar(correo, asunto, cuerpo)) {
+            log.info("[EMAIL] Registro rechazado -> {} | motivo: {}", correo, motivo);
         }
     }
 

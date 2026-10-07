@@ -2,6 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI — Explorar</title>
     <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
@@ -40,7 +41,7 @@
 
     <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('explorar')}">
         <div class="container-xl">
-            <a href="col-dashboard.html" class="brand">SkillBridge AI</a>
+            <a href="col-dashboard.html" class="brand"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
             <nav class="main-nav" aria-label="Navegación principal">
                 <a href="col-dashboard.html">Dashboard</a>
                 <a href="col-proyectos.html">Mis proyectos</a>

@@ -5,6 +5,7 @@ import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoCv;
+import com.pucp.skillb_ia.model.enums.EstadoRegistro;
 import com.pucp.skillb_ia.repository.CargoRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.Map;
 import java.util.Set;
 
@@ -86,7 +88,7 @@ public class AdminUsuarioService {
     }
 
     public record CvFila(Long id, String nombreCompleto, String correo, String cvUrl,
-                          boolean revisado, String fechaSubida) {
+                          String fechaSubida) {
     }
 
     private final UsuarioRepository usuarioRepository;
@@ -95,17 +97,22 @@ public class AdminUsuarioService {
     private final AuthService authService;
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
+    private final EmailService emailService;
+    private final com.pucp.skillb_ia.service.col.ColaboradorPerfilService colaboradorPerfilService;
 
     public AdminUsuarioService(UsuarioRepository usuarioRepository, RolRepository rolRepository,
                                 CargoRepository cargoRepository,
                                 AuthService authService, AuditoriaService auditoriaService,
-                                NotificacionService notificacionService) {
+                                NotificacionService notificacionService, EmailService emailService,
+                                com.pucp.skillb_ia.service.col.ColaboradorPerfilService colaboradorPerfilService) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.cargoRepository = cargoRepository;
         this.authService = authService;
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
+        this.emailService = emailService;
+        this.colaboradorPerfilService = colaboradorPerfilService;
     }
 
     public static List<String> etiquetasRoles() {
@@ -393,38 +400,90 @@ public class AdminUsuarioService {
 
     @Transactional(readOnly = true)
     public List<CvFila> listarCvsPendientes() {
-        return listarCvs(false);
+        return listarCvs(u -> u.getRegistroEstado() == EstadoRegistro.PENDIENTE
+                || u.getCvEstado() == EstadoCv.PENDIENTE);
+    }
+
+    // "Aprobados": el Admin ya revisó su CV (cv_estado REVISADO).
+    @Transactional(readOnly = true)
+    public List<CvFila> listarCvsRevisados() {
+        return listarCvs(u -> u.getCvEstado() == EstadoCv.REVISADO
+                && u.getRegistroEstado() != EstadoRegistro.PENDIENTE
+                && u.getRegistroEstado() != EstadoRegistro.RECHAZADO);
     }
 
     @Transactional(readOnly = true)
-    public List<CvFila> listarCvsRevisados() {
-        return listarCvs(true);
+    public List<CvFila> listarCvsRechazados() {
+        return listarCvs(u -> u.getCvEstado() == EstadoCv.RECHAZADO
+                && u.getRegistroEstado() != EstadoRegistro.PENDIENTE);
     }
 
-    private List<CvFila> listarCvs(boolean revisados) {
+    private List<CvFila> listarCvs(Predicate<Usuario> filtro) {
         return usuarioRepository.findActivosByRolNombre("COLABORADOR").stream()
-                .filter(u -> u.getCvUrl() != null && !u.getCvUrl().isBlank())
-                .filter(u -> revisados == (u.getCvEstado() == EstadoCv.REVISADO))
+                .filter(filtro)
                 .map(u -> new CvFila(u.getId(), nombreCompletoCv(u), u.getCorreo(), u.getCvUrl(),
-                        u.getCvEstado() == EstadoCv.REVISADO,
                         u.getCvFechaSubida() != null ? u.getCvFechaSubida().format(FECHA_FORMATO) : ""))
                 .toList();
     }
 
+    // Aprueba el pre-registro (o el CV de reemplazo) del colaborador. Los datos personales que escribió
+    // ya están en su perfil; lo que falta es la experiencia profesional, que el Admin completa antes.
     @Transactional
-    public void marcarCvRevisado(Long colaboradorId, Usuario admin) {
+    public void aprobarRegistro(Long colaboradorId, Usuario admin) {
         Usuario colaborador = usuarioRepository.findById(colaboradorId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el colaborador."));
+        if (colaborador.getCvUrl() == null || colaborador.getCvUrl().isBlank()) {
+            throw new IllegalArgumentException("El colaborador todavía no subió su CV.");
+        }
         colaborador.setCvEstado(EstadoCv.REVISADO);
+        colaborador.setMotivoRechazo(null);
+        // Si venía de un pre-registro sin aprobar, desde ahora el RM ya ve lo que cargó
+        // (certificados y formación) y se le avisa de lo pendiente.
+        boolean eraRegistroSinAprobar = colaborador.getRegistroEstado() == EstadoRegistro.PENDIENTE
+                || colaborador.getRegistroEstado() == EstadoRegistro.RECHAZADO;
+        if (colaborador.getRegistroEstado() != null) {
+            colaborador.setRegistroEstado(EstadoRegistro.APROBADO);
+        }
         usuarioRepository.save(colaborador);
+        if (eraRegistroSinAprobar) {
+            colaboradorPerfilService.avisarAlRmDelRegistroAprobado(colaborador);
+        }
 
         auditoriaService.registrar(admin, "REVISAR_CV", "USUARIO", colaborador.getId(),
-                "Revisó el CV de " + nombreCompletoCv(colaborador) + " y completó su experiencia profesional.");
+                "Aprobó el registro/CV de " + nombreCompletoCv(colaborador) + ".");
 
         notificacionService.crear(colaborador, "CV_REVISADO", CategoriaNotificacion.SISTEMA,
-                "Tu experiencia profesional fue actualizada",
-                "El Administrador revisó tu CV y actualizó tu experiencia profesional.",
+                "Tu registro fue aprobado",
+                "El Administrador revisó tu CV y aprobó tu registro. Ya tienes acceso completo.",
                 "USUARIO", colaborador.getId());
+    }
+
+    // Rechazar = devolver con observaciones: no borra nada, el colaborador corrige y vuelve a subir su CV.
+    @Transactional
+    public void rechazarRegistro(Long colaboradorId, String motivo, Usuario admin) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new IllegalArgumentException("Escribe el motivo del rechazo.");
+        }
+        String motivoLimpio = motivo.strip();
+        if (motivoLimpio.length() > 500) {
+            throw new IllegalArgumentException("El motivo no puede superar los 500 caracteres.");
+        }
+        Usuario colaborador = usuarioRepository.findById(colaboradorId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el colaborador."));
+        colaborador.setCvEstado(EstadoCv.RECHAZADO);
+        colaborador.setMotivoRechazo(motivoLimpio);
+        if (colaborador.getRegistroEstado() == EstadoRegistro.PENDIENTE) {
+            colaborador.setRegistroEstado(EstadoRegistro.RECHAZADO);
+        }
+        usuarioRepository.save(colaborador);
+
+        auditoriaService.registrar(admin, "RECHAZAR_CV", "USUARIO", colaborador.getId(),
+                "Rechazó el registro/CV de " + nombreCompletoCv(colaborador) + ": " + motivoLimpio);
+
+        notificacionService.crear(colaborador, "CV_RECHAZADO", CategoriaNotificacion.SISTEMA,
+                "Tu registro fue devuelto con observaciones", motivoLimpio,
+                "USUARIO", colaborador.getId());
+        emailService.enviarRechazoRegistro(colaborador.getCorreo(), motivoLimpio);
     }
 
     private String nombreCompletoCv(Usuario u) {

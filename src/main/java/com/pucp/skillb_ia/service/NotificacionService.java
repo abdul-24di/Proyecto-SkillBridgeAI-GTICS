@@ -152,8 +152,14 @@ public class NotificacionService {
             if ("CV_PENDIENTE".equals(item.getTipo()) && rolNombre.equals("ADMINISTRADOR")) {
                 return "/admin/experiencia/" + item.getEntidadId();
             }
+            if ("CUENTA_ACTIVADA".equals(item.getTipo()) && rolNombre.equals("ADMINISTRADOR")) {
+                return "/admin/usuarios";
+            }
             if ("CV_REVISADO".equals(item.getTipo()) && esColaborador) {
                 return "/colaborador/perfil";
+            }
+            if ("CV_RECHAZADO".equals(item.getTipo()) && esColaborador) {
+                return "/colaborador/registro";
             }
         }
 

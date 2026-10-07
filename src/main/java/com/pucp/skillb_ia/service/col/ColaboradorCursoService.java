@@ -84,6 +84,13 @@ public class ColaboradorCursoService {
                 }
             }
 
+            // Un curso caducado (su fecha de fin ya pasó) no se ofrece como disponible; solo se sigue
+            // mostrando si el colaborador ya tiene algo con él (para ver su estado o subir su evidencia).
+            if (masReciente == null && curso.getFechaFin() != null
+                    && curso.getFechaFin().isBefore(LocalDate.now())) {
+                continue;
+            }
+
             boolean puedeSolicitar = true;
             String estadoTexto = null;
             String estadoClase = null;
@@ -150,6 +157,9 @@ public class ColaboradorCursoService {
 
         if (!curso.isActivo()) {
             throw new IllegalArgumentException("Este curso ya no está disponible.");
+        }
+        if (curso.getFechaFin() != null && curso.getFechaFin().isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Este curso ya terminó: su fecha de fin ya pasó.");
         }
 
         //Si ya llegó al tope de horas que cuentan para el bono este mes, un curso más no le

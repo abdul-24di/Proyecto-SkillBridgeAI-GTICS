@@ -3,6 +3,8 @@ package com.pucp.skillb_ia.service;
 import com.pucp.skillb_ia.model.Rol;
 import com.pucp.skillb_ia.model.TokenUsuario;
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
+import com.pucp.skillb_ia.model.enums.EstadoRegistro;
 import com.pucp.skillb_ia.model.enums.TipoToken;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.TokenUsuarioRepository;
@@ -39,26 +41,49 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final AuditoriaService auditoriaService;
+    private final NotificacionService notificacionService;
 
     public AuthService(UsuarioRepository usuarioRepository, RolRepository rolRepository,
                         TokenUsuarioRepository tokenUsuarioRepository, PasswordEncoder passwordEncoder,
-                        EmailService emailService, AuditoriaService auditoriaService) {
+                        EmailService emailService, AuditoriaService auditoriaService,
+                        NotificacionService notificacionService) {
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.tokenUsuarioRepository = tokenUsuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.auditoriaService = auditoriaService;
+        this.notificacionService = notificacionService;
     }
 
     // ============================================================
     // ACTIVACIÓN DE CUENTA (A6)
     // ============================================================
 
+    private static final java.util.regex.Pattern CORREO_VALIDO =
+            java.util.regex.Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$");
+
+    // El correo es el identificador de acceso y a donde llega la invitación: se limpia (espacios) y
+    // se exige un formato mínimo válido antes de crear el usuario.
+    private String validarCorreo(String correo) {
+        String limpio = correo == null ? "" : correo.strip();
+        if (limpio.isEmpty()) {
+            throw new IllegalArgumentException("El correo es obligatorio.");
+        }
+        if (limpio.length() > 150) {
+            throw new IllegalArgumentException("El correo no puede superar los 150 caracteres.");
+        }
+        if (!CORREO_VALIDO.matcher(limpio).matches()) {
+            throw new IllegalArgumentException("El correo \"" + limpio + "\" no tiene un formato válido.");
+        }
+        return limpio;
+    }
+
     // A5 solo llama a este método (correo + rol) — el nombre y la contraseña
     // los define el propio usuario al activar (ver C1).
     @Transactional
     public Usuario invitarUsuario(String correo, String nombreRol, Usuario creadoPorAdmin) {
+        correo = validarCorreo(correo);
         if (usuarioRepository.existsByCorreo(correo)) {
             throw new IllegalArgumentException("Ya existe un usuario con el correo " + correo);
         }
@@ -113,7 +138,12 @@ public class AuthService {
 
     // C3: la activación completada queda en el log de auditoría.
     @Transactional
-    public void activarCuenta(String token, String nombreCompleto, String password) {
+    // Es también el pre-registro: guarda directo en el perfil del usuario los datos personales que
+    // escribió (nombre, teléfono, descripción), así quedan en "Mi perfil" sin copiarlos después. Un
+    // colaborador queda con el registro PENDIENTE hasta que el Admin lo apruebe. Devuelve el usuario
+    // para que el controlador pueda subir su CV.
+    public Usuario activarCuenta(String token, String nombreCompleto, String telefono,
+                                 String descripcion, String password) {
         ResultadoToken resultado = validarTokenActivacion(token);
         if (!resultado.esValido()) {
             throw new IllegalStateException("El enlace de activación no es válido.");
@@ -130,7 +160,12 @@ public class AuthService {
         } else {
             usuario.setNombre(nombre);
         }
+        usuario.setTelefono(telefono != null ? telefono.strip() : null);
+        usuario.setDescripcion(descripcion != null && !descripcion.isBlank() ? descripcion.strip() : null);
         usuario.setPasswordHash(passwordEncoder.encode(password));
+        if ("COLABORADOR".equals(usuario.getRol().getNombre())) {
+            usuario.setRegistroEstado(EstadoRegistro.PENDIENTE);
+        }
         usuarioRepository.save(usuario);
 
         tokenUsuario.setUsado(true);
@@ -138,6 +173,16 @@ public class AuthService {
 
         auditoriaService.registrar(usuario, "ACTIVACION_CUENTA", "USUARIO", usuario.getId(),
                 "Completó la activación de su cuenta y estableció su contraseña.");
+
+        // Un colaborador avisa al Admin con su CV pendiente; los demás roles no tienen revisión,
+        // así que se avisa solo de que la invitación se completó.
+        if (!"COLABORADOR".equals(usuario.getRol().getNombre())) {
+            notificacionService.crearParaTodosLosAdmins("CUENTA_ACTIVADA", CategoriaNotificacion.SISTEMA,
+                    "Cuenta activada",
+                    nombre + " activó su cuenta como " + usuario.getRol().getNombre() + ".",
+                    "USUARIO", usuario.getId());
+        }
+        return usuario;
     }
 
     // ============================================================

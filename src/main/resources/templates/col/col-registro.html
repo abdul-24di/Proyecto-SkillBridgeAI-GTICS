@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registro | SkillBridge AI</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/auth-css/auth.css" th:href="@{/css/auth-css/auth.css}">
+</head>
+<body class="auth-page">
+<div class="auth-shell">
+
+    <div class="auth-brand">
+        <img class="auth-logo-img" src="../../static/img/skillbridge-logo.webp" th:src="@{/img/skillbridge-logo.webp}" alt="SkillBridge AI">
+    </div>
+
+    <div class="auth-card">
+
+        <!-- Aprobado (o colaborador anterior al pre-registro): nada pendiente -->
+        <th:block th:if="${usuario.registroEstado == null or usuario.registroEstado.name() == 'APROBADO'}">
+            <h2 class="auth-title centered">Tu registro está aprobado</h2>
+            <p class="auth-subtitle centered" th:if="${usuario.cvEstado != null and usuario.cvEstado.name() == 'RECHAZADO'}">
+                El Administrador devolvió tu último CV con observaciones.
+            </p>
+            <div class="auth-alert error" th:if="${usuario.cvEstado != null and usuario.cvEstado.name() == 'RECHAZADO' and usuario.motivoRechazo != null}"
+                 th:text="${usuario.motivoRechazo}">Motivo</div>
+            <a th:href="@{/colaborador/dashboard}" class="auth-submit" style="text-decoration:none">Ir a mi panel</a>
+        </th:block>
+
+        <!-- En revisión: ya envió su CV -->
+        <th:block th:if="${usuario.registroEstado != null and usuario.registroEstado.name() == 'PENDIENTE' and usuario.cvUrl != null}">
+            <h2 class="auth-title centered">Tu registro está en revisión</h2>
+            <p class="auth-subtitle centered">El Administrador está revisando tus datos y tu CV. Te avisaremos cuando tengas acceso completo.</p>
+        </th:block>
+
+        <!-- Rechazado o sin CV: debe subir uno -->
+        <th:block th:if="${usuario.registroEstado != null and (usuario.registroEstado.name() == 'RECHAZADO' or (usuario.registroEstado.name() == 'PENDIENTE' and usuario.cvUrl == null))}">
+            <h2 class="auth-title centered" th:text="${usuario.registroEstado.name() == 'RECHAZADO'} ? 'Tu registro necesita correcciones' : 'Falta tu CV'">Registro</h2>
+            <div class="auth-alert error" th:if="${usuario.motivoRechazo != null}" th:text="${usuario.motivoRechazo}">Motivo</div>
+            <p class="auth-subtitle centered">Sube tu CV en PDF (máximo 5 MB) para que el Administrador lo revise.</p>
+        </th:block>
+
+        <div class="auth-alert error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+        <div class="auth-alert success" th:if="${mensajeOk}" th:text="${mensajeOk}"></div>
+
+        <form class="auth-form" th:action="@{/colaborador/registro/cv}" method="post" enctype="multipart/form-data"
+              th:if="${usuario.registroEstado != null and (usuario.registroEstado.name() == 'RECHAZADO' or (usuario.registroEstado.name() == 'PENDIENTE' and usuario.cvUrl == null))}">
+            <div class="mb-3">
+                <label class="form-label" for="registroCv">Tu CV (PDF)</label>
+                <input id="registroCv" name="cv" type="file" class="form-control" accept="application/pdf" required>
+            </div>
+            <button type="submit" class="auth-submit">Enviar CV</button>
+        </form>
+
+        <div class="auth-note" th:if="${usuario.registroEstado != null and usuario.registroEstado.name() == 'PENDIENTE' and usuario.cvUrl != null}">
+            Mientras tanto no puedes usar el resto del sistema.
+        </div>
+
+        <a th:href="@{/logout}" class="auth-back" style="margin-top:18px; display:inline-block">Cerrar sesión</a>
+    </div>
+
+    <div class="auth-copyright">© 2026 SkillBridge AI — TEL137 PUCP</div>
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+</body>
+</html>

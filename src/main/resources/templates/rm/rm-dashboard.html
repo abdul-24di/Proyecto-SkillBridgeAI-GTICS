@@ -4,6 +4,7 @@
 
 <head>
   <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>SkillBridge AI — Dashboard RM</title>
@@ -59,7 +60,7 @@
   <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('dashboard')}">
     <!-- Fallback para previsualización sin Thymeleaf -->
     <div class="container-xl">
-      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}">SkillBridge AI</a>
+      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
 
       <nav class="main-nav" aria-label="Navegación principal">
         <a href="rm-dashboard.html" class="active" th:href="@{/rm/dashboard}">Dashboard</a>

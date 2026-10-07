@@ -1,31 +1,44 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.dto.auth.ActivarCuentaForm;
+import com.pucp.skillb_ia.dto.auth.CertificadoPreRegistroForm;
+import com.pucp.skillb_ia.dto.auth.EstudioPreRegistroForm;
+import com.pucp.skillb_ia.dto.auth.ExperienciaForm;
+import com.pucp.skillb_ia.dto.auth.NuevaContrasenaForm;
 import com.pucp.skillb_ia.model.TokenUsuario;
+import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.service.AuthService;
+import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
+import com.pucp.skillb_ia.service.col.PreRegistroColaboradorService;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 // Épica 2 — Autenticación. El login en sí lo maneja Spring Security
 // (SecurityConfig.formLogin, sin método en este controller) — acá va todo lo
 // demás del flujo: activación de cuenta (A6) y recuperación de contraseña.
+// Los formularios de activación y nueva contraseña validan con Bean Validation
+// (@Valid + BindingResult), igual que el resto del sistema.
 @Controller
 public class AuthViewController {
 
-    // Al menos 8 caracteres, una mayúscula, un número y un símbolo — misma regla que
-    // el cambio de contraseña desde el perfil de cada rol.
-    private static final Pattern PASSWORD_VALIDA =
-            Pattern.compile("(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9\\s]).{8,}");
-
     private final AuthService authService;
+    private final PreRegistroColaboradorService preRegistroColaboradorService;
+    private final ColaboradorPerfilService colaboradorPerfilService;
 
-    public AuthViewController(AuthService authService) {
+    public AuthViewController(AuthService authService,
+                              PreRegistroColaboradorService preRegistroColaboradorService,
+                              ColaboradorPerfilService colaboradorPerfilService) {
         this.authService = authService;
+        this.preRegistroColaboradorService = preRegistroColaboradorService;
+        this.colaboradorPerfilService = colaboradorPerfilService;
     }
 
     @GetMapping({"/", ""})
@@ -39,11 +52,56 @@ public class AuthViewController {
     }
 
     // ============================================================
-    // ACTIVACIÓN DE CUENTA
+    // ACTIVACIÓN DE CUENTA (y pre-registro del colaborador)
     // ============================================================
 
     @GetMapping({"/activar-cuenta", "/activar-cuenta.html"})
     public String activarCuentaForm(@RequestParam(required = false) String token, Model model) {
+        ActivarCuentaForm form = new ActivarCuentaForm();
+        form.setToken(token);
+        agregarFilasEnBlanco(form);
+        model.addAttribute("activarCuentaForm", form);
+        cargarDatosActivacion(token, model);
+        return "auth/activar-cuenta";
+    }
+
+    @PostMapping("/activar-cuenta")
+    public String activarCuentaSubmit(@Valid @ModelAttribute("activarCuentaForm") ActivarCuentaForm form,
+                                       BindingResult result, Model model) {
+        // Pre-registro: CV, experiencia, certificados y formación solo se piden a los colaboradores.
+        AuthService.ResultadoToken resultado = authService.validarTokenActivacion(form.getToken());
+        boolean esColaborador = resultado.token() != null
+                && "COLABORADOR".equals(resultado.token().getUsuario().getRol().getNombre());
+        if (esColaborador) {
+            preRegistroColaboradorService.validar(form, result);
+        }
+        if (result.hasErrors()) {
+            cargarDatosActivacion(form.getToken(), model);
+            agregarFilasEnBlanco(form);
+            return "auth/activar-cuenta";
+        }
+        try {
+            Usuario usuario = authService.activarCuenta(form.getToken(), form.getNombreCompleto(),
+                    form.getTelefono(), form.getDescripcion(), form.getPassword());
+            if (esColaborador) {
+                preRegistroColaboradorService.guardar(usuario, form);
+            }
+        } catch (IllegalStateException e) {
+            // El enlace expiró o ya se usó entre que se abrió el form y se envió:
+            // el GET vuelve a mostrar el estado correcto.
+            return "redirect:/activar-cuenta?token=" + form.getToken();
+        }
+        return "redirect:/login?activado";
+    }
+
+    // Cada sección dinámica del formulario necesita al menos una fila para mostrarse.
+    private void agregarFilasEnBlanco(ActivarCuentaForm form) {
+        if (form.getExperiencias().isEmpty()) form.getExperiencias().add(new ExperienciaForm());
+        if (form.getCertificados().isEmpty()) form.getCertificados().add(new CertificadoPreRegistroForm());
+        if (form.getEstudios().isEmpty()) form.getEstudios().add(new EstudioPreRegistroForm());
+    }
+
+    private void cargarDatosActivacion(String token, Model model) {
         AuthService.ResultadoToken resultado = authService.validarTokenActivacion(token);
         model.addAttribute("estado", resultado.estado());
         model.addAttribute("token", token);
@@ -51,25 +109,9 @@ public class AuthViewController {
             model.addAttribute("correo", resultado.token().getUsuario().getCorreo());
             model.addAttribute("rolNombre", resultado.token().getUsuario().getRol().getNombre());
         }
-        return "auth/activar-cuenta";
-    }
-
-    @PostMapping("/activar-cuenta")
-    public String activarCuentaSubmit(@RequestParam String token,
-                                       @RequestParam String nombreCompleto,
-                                       @RequestParam String password,
-                                       @RequestParam String confirmarPassword,
-                                       @RequestParam(required = false) String aceptaPolitica) {
-        if (nombreCompleto.trim().length() < 3 || !PASSWORD_VALIDA.matcher(password).matches()
-                || !password.equals(confirmarPassword) || aceptaPolitica == null) {
-            return "redirect:/activar-cuenta?token=" + token + "&error";
-        }
-        try {
-            authService.activarCuenta(token, nombreCompleto, password);
-        } catch (IllegalStateException e) {
-            return "redirect:/activar-cuenta?token=" + token + "&error";
-        }
-        return "redirect:/login?activado";
+        // Catálogo para el selector de habilidades de los certificados.
+        model.addAttribute("habilidadesCatalogo", colaboradorPerfilService.listarHabilidadesActivas());
+        model.addAttribute("niveles", com.pucp.skillb_ia.model.enums.NivelDominio.values());
     }
 
     // ============================================================
@@ -106,21 +148,22 @@ public class AuthViewController {
 
     @GetMapping({"/nueva-contrasena", "/nueva-contrasena.html"})
     public String nuevaContrasenaForm(@RequestParam String token, Model model) {
-        model.addAttribute("token", token);
+        NuevaContrasenaForm form = new NuevaContrasenaForm();
+        form.setToken(token);
+        model.addAttribute("nuevaContrasenaForm", form);
         return "auth/nueva-contrasena";
     }
 
     @PostMapping("/nueva-contrasena")
-    public String nuevaContrasenaSubmit(@RequestParam String token,
-                                         @RequestParam String password,
-                                         @RequestParam String confirmarPassword) {
-        if (!PASSWORD_VALIDA.matcher(password).matches() || !password.equals(confirmarPassword)) {
-            return "redirect:/nueva-contrasena?token=" + token + "&error";
+    public String nuevaContrasenaSubmit(@Valid @ModelAttribute("nuevaContrasenaForm") NuevaContrasenaForm form,
+                                         BindingResult result) {
+        if (result.hasErrors()) {
+            return "auth/nueva-contrasena";
         }
         try {
-            authService.restablecerContrasena(token, password);
+            authService.restablecerContrasena(form.getToken(), form.getPassword());
         } catch (IllegalStateException e) {
-            return "redirect:/nueva-contrasena?token=" + token + "&error";
+            return "redirect:/nueva-contrasena?token=" + form.getToken() + "&error";
         }
         return "redirect:/login?recuperado";
     }

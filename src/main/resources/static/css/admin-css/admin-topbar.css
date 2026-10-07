@@ -164,3 +164,17 @@
     min-height: 42px;
   }
 }
+
+/* Logo de SkillBridge junto al nombre */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+}
+
+.brand-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .9);
+}

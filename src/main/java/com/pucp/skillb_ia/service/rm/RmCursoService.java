@@ -190,6 +190,9 @@ public class RmCursoService {
         Usuario rm = obtenerRm(rmId);
         Usuario colaborador = obtenerColaborador(colaboradorId);
         Curso curso = obtenerCursoActivo(cursoId);
+        if (curso.getFechaFin() != null && curso.getFechaFin().isBefore(java.time.LocalDate.now())) {
+            throw new IllegalStateException("Este curso ya terminó: su fecha de fin ya pasó.");
+        }
         if (colaboradorCursoRepository.existsByColaboradorAndCursoAndEstadoIn(
                 colaborador, curso, ESTADOS_DUPLICADOS)) {
             throw new IllegalStateException(

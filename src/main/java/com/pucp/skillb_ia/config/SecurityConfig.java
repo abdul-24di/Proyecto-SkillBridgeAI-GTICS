@@ -50,6 +50,9 @@ public class SecurityConfig {
             // cuando se agregue CSRF a todos los forms del proyecto, no solo a Auth.
             .csrf(csrf -> csrf.disable())
 
+            // Permite abrir evidencias propias (PDF, TXT) en el iframe del visor; sigue bloqueando sitios externos
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")

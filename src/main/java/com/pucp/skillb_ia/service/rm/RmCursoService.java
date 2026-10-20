@@ -51,7 +51,55 @@ public class RmCursoService {
     }
 
     /** Filtros de la bandeja ya validados: los valores nulos significan "Todos". */
-    public record FiltrosBandeja(String busqueda, EstadoColaboradorCurso estado, OrigenCurso origen) {
+    public record FiltrosBandeja(String busqueda, FiltroEstadoBandeja estado, OrigenCurso origen) {
+    }
+
+    /**
+     * Situación que ve el RM. Es la única regla para la etiqueta y para el filtro: una evidencia
+     * rechazada sigue EN_CURSO en la base (para que el colaborador pueda reenviarla), pero se
+     * muestra y filtra como rechazo, no como "En curso".
+     */
+    public enum SituacionInscripcion {
+        SOLICITADO("Pendiente", "bg-yellow-lt text-yellow"),
+        EN_CURSO("En curso", "bg-blue-lt text-blue"),
+        EVIDENCIA_PENDIENTE("Evidencia en revisión", "bg-purple-lt text-purple"),
+        EVIDENCIA_RECHAZADA("Evidencia rechazada", "bg-red-lt text-red"),
+        SOLICITUD_RECHAZADA("Solicitud rechazada", "bg-red-lt text-red"),
+        COMPLETADO("Completado", "bg-green-lt text-green"),
+        NO_COMPLETADO("No completado", "bg-secondary-lt text-secondary");
+
+        private final String texto;
+        private final String clase;
+
+        SituacionInscripcion(String texto, String clase) {
+            this.texto = texto;
+            this.clase = clase;
+        }
+
+        public String getTexto() { return texto; }
+        public String getClase() { return clase; }
+    }
+
+    /** Opciones del filtro "Estado". RECHAZADO agrupa los dos tipos de rechazo. */
+    public enum FiltroEstadoBandeja {
+        SOLICITADO(SituacionInscripcion.SOLICITADO),
+        EVIDENCIA_PENDIENTE(SituacionInscripcion.EVIDENCIA_PENDIENTE),
+        EN_CURSO(SituacionInscripcion.EN_CURSO),
+        COMPLETADO(SituacionInscripcion.COMPLETADO),
+        RECHAZADO(SituacionInscripcion.SOLICITUD_RECHAZADA, SituacionInscripcion.EVIDENCIA_RECHAZADA),
+        SOLICITUD_RECHAZADA(SituacionInscripcion.SOLICITUD_RECHAZADA),
+        EVIDENCIA_RECHAZADA(SituacionInscripcion.EVIDENCIA_RECHAZADA),
+        NO_COMPLETADO(SituacionInscripcion.NO_COMPLETADO);
+
+        private final List<SituacionInscripcion> situaciones;
+
+        FiltroEstadoBandeja(SituacionInscripcion... situaciones) {
+            this.situaciones = List.of(situaciones);
+        }
+
+        public boolean incluye(SituacionInscripcion situacion) {
+            return situaciones.contains(situacion);
+        }
     }
 
     private final CursoRepository cursoRepository;
@@ -98,9 +146,9 @@ public class RmCursoService {
      * (SOLICITADO); vacío o desconocido significa "Todos". Origen vacío o desconocido: "Todos".
      */
     public FiltrosBandeja normalizarFiltrosBandeja(String busqueda, String estado, String origen) {
-        EstadoColaboradorCurso estadoValido = estado == null
-                ? EstadoColaboradorCurso.SOLICITADO
-                : enumSeguro(EstadoColaboradorCurso.class, estado.trim());
+        FiltroEstadoBandeja estadoValido = estado == null
+                ? FiltroEstadoBandeja.SOLICITADO
+                : enumSeguro(FiltroEstadoBandeja.class, estado.trim());
         return new FiltrosBandeja(busquedaLimpia(busqueda), estadoValido,
                 enumSeguro(OrigenCurso.class, origen == null ? null : origen.trim()));
     }
@@ -164,12 +212,12 @@ public class RmCursoService {
     @Transactional(readOnly = true)
     public RmCursoView.Bandeja obtenerBandeja(FiltrosBandeja filtros, String pagina) {
         List<ColaboradorCurso> todas = colaboradorCursoRepository.findAllConDetalle();
-        EstadoColaboradorCurso estado = filtros.estado();
+        FiltroEstadoBandeja estado = filtros.estado();
         OrigenCurso origen = filtros.origen();
         String textoBusqueda = normalizar(filtros.busqueda());
 
         List<ColaboradorCurso> filtradas = todas.stream()
-                .filter(item -> estado == null || item.getEstado() == estado)
+                .filter(item -> estado == null || estado.incluye(situacion(item)))
                 .filter(item -> origen == null || item.getOrigen() == origen)
                 .filter(item -> textoBusqueda.isBlank() || textoBusqueda(item).contains(textoBusqueda))
                 .toList();
@@ -188,7 +236,7 @@ public class RmCursoService {
                         .filter(item -> perteneceAlMes(item.getFechaRespuesta(), mesActual)).count(),
                 todas.stream().filter(item -> item.getEstado() == EstadoColaboradorCurso.RECHAZADO)
                         .filter(item -> perteneceAlMes(item.getFechaRespuesta(), mesActual)).count(),
-                todas.stream().filter(item -> item.getEstado() == EstadoColaboradorCurso.EN_CURSO).count(),
+                todas.stream().filter(item -> situacion(item) == SituacionInscripcion.EN_CURSO).count(),
                 todas.stream().filter(this::esEvidenciaPendiente).count());
     }
 
@@ -315,6 +363,8 @@ public class RmCursoService {
         Usuario rm = obtenerRm(rmId);
         ColaboradorCurso inscripcion = obtenerEvidenciaPendiente(inscripcionId);
         String motivoValidado = validarMotivo(motivo, "El motivo del rechazo de la evidencia es obligatorio.");
+        //El motivo de la aprobación se sobrescribe; queda en la auditoría para no perderlo.
+        String motivoAnterior = inscripcion.getMotivoRespuesta();
         inscripcion.setEstado(EstadoColaboradorCurso.EN_CURSO);
         inscripcion.setMotivoRespuesta(motivoValidado);
         inscripcion.setEvidenciaRevisadaPor(rm);
@@ -325,6 +375,8 @@ public class RmCursoService {
                         + "” fue rechazada. Motivo: " + motivoValidado + " Puedes volver a subirla.");
         auditoriaService.registrar(rm, "RECHAZAR_EVIDENCIA_CURSO", "COLABORADOR_CURSO", inscripcion.getId(),
                 recortar(detalleAuditoria("Rechazó la evidencia del curso", inscripcion)
+                        + (motivoAnterior == null || motivoAnterior.isBlank() ? ""
+                        : " Motivo previo de la inscripción: " + motivoAnterior + ".")
                         + " Motivo: " + motivoValidado, 500),
                 EstadoColaboradorCurso.EVIDENCIA_PENDIENTE.name(), EstadoColaboradorCurso.EN_CURSO.name(), null);
         return inscripcion;
@@ -446,16 +498,19 @@ public class RmCursoService {
     private RmCursoView.InscripcionItem crearInscripcionItem(ColaboradorCurso item) {
         Usuario colaborador = item.getColaborador();
         Curso curso = item.getCurso();
+        SituacionInscripcion situacion = situacion(item);
         return new RmCursoView.InscripcionItem(
                 item.getId(), colaborador.getId(), nombreCompleto(colaborador),
                 iniciales(colaborador), valor(colaborador.getCargo() != null ? colaborador.getCargo().getNombre() : null, "Cargo sin registrar"),
                 curso.getId(), curso.getNombre(), valor(curso.getCategoria(), "Sin categoría"),
                 curso.getHoras(), item.getOrigen().name(), textoOrigen(item.getOrigen()),
-                item.getEstado().name(), textoEstado(item), claseEstado(item),
+                item.getEstado().name(), situacion.getTexto(), situacion.getClase(),
                 item.getFechaSolicitud(), item.getJustificacion(), item.getMotivoRespuesta(), esSolicitudPendiente(item),
                 item.getEvidenciaUrl(), esEvidenciaPendiente(item),
                 item.getEvidenciaRevisadaPor() != null ? nombreCompleto(item.getEvidenciaRevisadaPor()) : null,
-                item.getFechaRevisionEvidencia());
+                item.getFechaRevisionEvidencia(),
+                situacion.name(), motivoEtiqueta(item, situacion), revisionTexto(item, situacion),
+                item.getFechaEvidencia());
     }
 
     private boolean esSolicitudPendiente(ColaboradorCurso item) {
@@ -509,33 +564,41 @@ public class RmCursoService {
                 ? "Solicitud del colaborador" : "Asignado por RM";
     }
 
-    private String textoEstado(ColaboradorCurso item) {
+    private SituacionInscripcion situacion(ColaboradorCurso item) {
         //Si volvió a "En curso" pero ya tenía una evidencia guardada, es porque el RM
         //la rechazó y está esperando que el colaborador vuelva a subir una nueva.
         if (item.getEstado() == EstadoColaboradorCurso.EN_CURSO && item.getEvidenciaUrl() != null) {
-            return "Evidencia rechazada";
+            return SituacionInscripcion.EVIDENCIA_RECHAZADA;
         }
         return switch (item.getEstado()) {
-            case SOLICITADO -> "Pendiente";
-            case EN_CURSO -> "En curso";
-            case EVIDENCIA_PENDIENTE -> "Evidencia en revisión";
-            case COMPLETADO -> "Completado";
-            case RECHAZADO -> "Rechazado";
-            case NO_COMPLETADO -> "No completado";
+            case SOLICITADO -> SituacionInscripcion.SOLICITADO;
+            case EN_CURSO -> SituacionInscripcion.EN_CURSO;
+            case EVIDENCIA_PENDIENTE -> SituacionInscripcion.EVIDENCIA_PENDIENTE;
+            case COMPLETADO -> SituacionInscripcion.COMPLETADO;
+            case RECHAZADO -> SituacionInscripcion.SOLICITUD_RECHAZADA;
+            case NO_COMPLETADO -> SituacionInscripcion.NO_COMPLETADO;
         };
     }
 
-    private String claseEstado(ColaboradorCurso item) {
-        if (item.getEstado() == EstadoColaboradorCurso.EN_CURSO && item.getEvidenciaUrl() != null) {
-            return "bg-red-lt text-red";
-        }
-        return switch (item.getEstado()) {
-            case SOLICITADO -> "bg-yellow-lt text-yellow";
-            case EN_CURSO -> "bg-blue-lt text-blue";
-            case EVIDENCIA_PENDIENTE -> "bg-purple-lt text-purple";
-            case COMPLETADO -> "bg-green-lt text-green";
-            case RECHAZADO -> "bg-red-lt text-red";
-            case NO_COMPLETADO -> "bg-secondary-lt text-secondary";
+    //Rótulo del motivo según la decisión que lo originó. En revisión no se muestra el motivo
+    //anterior para no confundirlo con una decisión sobre el archivo nuevo.
+    private String motivoEtiqueta(ColaboradorCurso item, SituacionInscripcion situacion) {
+        return switch (situacion) {
+            case SOLICITADO -> "Justificación";
+            case SOLICITUD_RECHAZADA -> "Motivo del rechazo de la solicitud";
+            case EVIDENCIA_RECHAZADA -> "Motivo del rechazo de la evidencia";
+            case EVIDENCIA_PENDIENTE, COMPLETADO -> null;
+            case EN_CURSO, NO_COMPLETADO -> item.getOrigen() == OrigenCurso.ASIGNADO_POR_RM
+                    ? "Motivo de la asignación" : "Motivo de la aprobación";
+        };
+    }
+
+    private String revisionTexto(ColaboradorCurso item, SituacionInscripcion situacion) {
+        if (item.getEvidenciaRevisadaPor() == null) return null;
+        return switch (situacion) {
+            case COMPLETADO -> "Evidencia validada por";
+            case EVIDENCIA_RECHAZADA -> "Evidencia rechazada por";
+            default -> null;
         };
     }
 

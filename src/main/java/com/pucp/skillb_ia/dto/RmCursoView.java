@@ -134,6 +134,18 @@ public final class RmCursoView {
         private final boolean pendienteRevisionEvidencia;
         private final String evidenciaRevisadaPor;
         private final LocalDateTime fechaRevisionEvidencia;
+        //Situación mostrada y filtrada (misma regla en RmCursoService.situacion).
+        private final String situacion;
+        //Rótulo del motivo según la decisión a la que pertenece; null si no se muestra motivo.
+        private final String motivoEtiqueta;
+        //"Evidencia validada por" o "Evidencia rechazada por"; null si no hay revisión vigente.
+        private final String revisionTexto;
+        private final LocalDateTime fechaEvidencia;
+
+        public String getSituacion() { return situacion; }
+        public String getMotivoEtiqueta() { return motivoEtiqueta; }
+        public String getRevisionTexto() { return revisionTexto; }
+        public LocalDateTime getFechaEvidencia() { return fechaEvidencia; }
 
         public InscripcionItem(Long id, Long colaboradorId, String colaborador,
                                String iniciales, String cargo, Long cursoId,
@@ -142,7 +154,13 @@ public final class RmCursoView {
                                String estadoCodigo, String estadoTexto, String estadoClase,
                                LocalDateTime fechaSolicitud, String justificacion, String motivoRespuesta,
                                boolean pendienteGestionRm, String evidenciaUrl, boolean pendienteRevisionEvidencia,
-                               String evidenciaRevisadaPor, LocalDateTime fechaRevisionEvidencia) {
+                               String evidenciaRevisadaPor, LocalDateTime fechaRevisionEvidencia,
+                               String situacion, String motivoEtiqueta, String revisionTexto,
+                               LocalDateTime fechaEvidencia) {
+            this.situacion = situacion;
+            this.motivoEtiqueta = motivoEtiqueta;
+            this.revisionTexto = revisionTexto;
+            this.fechaEvidencia = fechaEvidencia;
             this.id = id;
             this.colaboradorId = colaboradorId;
             this.colaborador = colaborador;

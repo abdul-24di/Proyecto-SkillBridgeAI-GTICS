@@ -448,6 +448,7 @@ public class ColaboradorViewController {
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("habilidadesColaborador", colaboradorPerfilService.listarHabilidades(colaborador));
         model.addAttribute("certificadosPorHabilidad", colaboradorPerfilService.mapaCertificadosPorHabilidad(colaborador));
+        model.addAttribute("motivosRechazoPorHabilidad", colaboradorPerfilService.mapaMotivosRechazoPorHabilidad(colaborador));
         model.addAttribute("certificadosColaborador", colaboradorPerfilService.listarCertificados(colaborador));
         model.addAttribute("habilidadesDisponibles", colaboradorPerfilService.listarHabilidadesDisponibles(colaborador));
         model.addAttribute("nivelesDominio", NivelDominio.values());

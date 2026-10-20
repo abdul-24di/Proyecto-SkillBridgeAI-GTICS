@@ -163,6 +163,14 @@
 
                                         <div class="skill-item-cert" th:classappend="${ch.estadoValidacion.name() == 'VALIDADA' ? 'text-green' : (ch.estadoValidacion.name() == 'RECHAZADA' ? 'text-red' : '')}"
                                              th:text="${ch.estadoValidacion.name() == 'VALIDADA' ? 'Validada por el RM' : (ch.estadoValidacion.name() == 'RECHAZADA' ? 'Rechazada por el RM' : 'Pendiente de validación')}">Pendiente de validación</div>
+                                        <div th:if="${ch.estadoValidacion.name() == 'RECHAZADA' and motivosRechazoPorHabilidad.get(ch.habilidad.id) != null}"
+                                             class="edu-rm-comment">
+                                            <div class="edu-rm-comment-label">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9h8M8 13h6"/><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-5l-5 3v-3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/></svg>
+                                                Comentario del RM
+                                            </div>
+                                            <div class="edu-rm-comment-text" th:text="${motivosRechazoPorHabilidad.get(ch.habilidad.id)}">Motivo del rechazo</div>
+                                        </div>
                                         <a th:if="${certificadosPorHabilidad.get(ch.habilidad.id) != null}"
                                            th:href="@{${certificadosPorHabilidad.get(ch.habilidad.id)}}"
                                            target="_blank" rel="noopener" class="skill-item-doc-link">

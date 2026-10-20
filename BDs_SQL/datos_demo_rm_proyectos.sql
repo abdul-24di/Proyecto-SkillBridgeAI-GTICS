@@ -215,47 +215,47 @@ ON DUPLICATE KEY UPDATE
 
 -- Certificados visibles en la bandeja y el historial de validaciones del RM.
 INSERT INTO certificado (
-    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo,
+    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo, nivel_aprobado,
     revisado_por, fecha_subida, fecha_revision
 )
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
      WHERE h.nombre = 'Java' AND c.nombre = '[DEMO] Tecnologia'),
-    '/documentos/certificado-demo-java.txt', 'PENDIENTE', NULL, NULL,
+    '/documentos/certificado-demo-java.txt', 'PENDIENTE', NULL, NULL, NULL,
     CURRENT_TIMESTAMP - INTERVAL 2 DAY, NULL
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM certificado WHERE archivo_url = '/documentos/certificado-demo-java.txt');
 
 INSERT INTO certificado (
-    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo,
+    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo, nivel_aprobado,
     revisado_por, fecha_subida, fecha_revision
 )
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
      WHERE h.nombre = 'AWS' AND c.nombre = '[DEMO] Tecnologia'),
-    '/documentos/certificado-demo-aws.txt', 'PENDIENTE', NULL, NULL,
+    '/documentos/certificado-demo-aws.txt', 'PENDIENTE', NULL, NULL, NULL,
     CURRENT_TIMESTAMP - INTERVAL 1 DAY, NULL
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM certificado WHERE archivo_url = '/documentos/certificado-demo-aws.txt');
 
 INSERT INTO certificado (
-    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo,
+    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo, nivel_aprobado,
     revisado_por, fecha_subida, fecha_revision
 )
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
      WHERE h.nombre = 'Spring Boot' AND c.nombre = '[DEMO] Tecnologia'),
-    '/documentos/certificado-demo-spring.txt', 'APROBADO', NULL,
+    '/documentos/certificado-demo-spring.txt', 'APROBADO', NULL, 'AVANZADO',
     (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
     CURRENT_TIMESTAMP - INTERVAL 12 DAY, CURRENT_TIMESTAMP - INTERVAL 10 DAY
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM certificado WHERE archivo_url = '/documentos/certificado-demo-spring.txt');
 
 INSERT INTO certificado (
-    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo,
+    colaborador_id, habilidad_id, archivo_url, estado, motivo_rechazo, nivel_aprobado,
     revisado_por, fecha_subida, fecha_revision
 )
 SELECT
@@ -263,11 +263,35 @@ SELECT
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
      WHERE h.nombre = 'Python' AND c.nombre = '[DEMO] Tecnologia'),
     '/documentos/certificado-demo-python.txt', 'RECHAZADO',
-    'El documento de demostracion no identifica claramente a la entidad emisora.',
+    'El documento de demostracion no identifica claramente a la entidad emisora.', NULL,
     (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
     CURRENT_TIMESTAMP - INTERVAL 9 DAY, CURRENT_TIMESTAMP - INTERVAL 8 DAY
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM certificado WHERE archivo_url = '/documentos/certificado-demo-python.txt');
+
+-- Devuelve los cuatro certificados demo a su estado inicial para repetir la aprobacion y el rechazo.
+-- La habilidad del perfil y el nivel general ya se restauran con ON DUPLICATE KEY UPDATE.
+SET @demo_cert_rm_id := (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local');
+SET @demo_cert_java_id := (SELECT MIN(id) FROM certificado WHERE archivo_url = '/documentos/certificado-demo-java.txt');
+SET @demo_cert_aws_id := (SELECT MIN(id) FROM certificado WHERE archivo_url = '/documentos/certificado-demo-aws.txt');
+SET @demo_cert_spring_id := (SELECT MIN(id) FROM certificado WHERE archivo_url = '/documentos/certificado-demo-spring.txt');
+SET @demo_cert_python_id := (SELECT MIN(id) FROM certificado WHERE archivo_url = '/documentos/certificado-demo-python.txt');
+
+UPDATE certificado SET estado = 'PENDIENTE', motivo_rechazo = NULL, nivel_aprobado = NULL,
+    revisado_por = NULL, fecha_subida = CURRENT_TIMESTAMP - INTERVAL 2 DAY, fecha_revision = NULL
+WHERE id = @demo_cert_java_id;
+UPDATE certificado SET estado = 'PENDIENTE', motivo_rechazo = NULL, nivel_aprobado = NULL,
+    revisado_por = NULL, fecha_subida = CURRENT_TIMESTAMP - INTERVAL 1 DAY, fecha_revision = NULL
+WHERE id = @demo_cert_aws_id;
+UPDATE certificado SET estado = 'APROBADO', motivo_rechazo = NULL, nivel_aprobado = 'AVANZADO',
+    revisado_por = @demo_cert_rm_id, fecha_subida = CURRENT_TIMESTAMP - INTERVAL 12 DAY,
+    fecha_revision = CURRENT_TIMESTAMP - INTERVAL 10 DAY
+WHERE id = @demo_cert_spring_id;
+UPDATE certificado SET estado = 'RECHAZADO',
+    motivo_rechazo = 'El documento de demostracion no identifica claramente a la entidad emisora.',
+    nivel_aprobado = NULL, revisado_por = @demo_cert_rm_id,
+    fecha_subida = CURRENT_TIMESTAMP - INTERVAL 9 DAY, fecha_revision = CURRENT_TIMESTAMP - INTERVAL 8 DAY
+WHERE id = @demo_cert_python_id;
 
 -- --------------------------------------------------------------------------
 -- 4. Proyectos de demostracion

@@ -115,6 +115,7 @@ class RmProyectoCierreTests {
         assertEquals(1, resultado.pendientesRechazadas());
         assertEquals(1, resultado.activasFinalizadas());
         assertEquals(EstadoProyecto.CANCELADO, estadoActual());
+        assertEquals(MOTIVO, motivoCierreActual());
         Asignacion finalizada = asignacionRepository.findById(activa.getId()).orElseThrow();
         assertEquals(EstadoAsignacion.FINALIZADA, finalizada.getEstado());
         assertEquals(MotivoFinalizacion.PROYECTO_CANCELADO, finalizada.getMotivoFinalizacion());
@@ -166,9 +167,10 @@ class RmProyectoCierreTests {
         assertEquals(1, resultado.pendientesRechazadas());
         assertEquals(1, resultado.activasFinalizadas());
         assertEquals(EstadoProyecto.FINALIZADO, estadoActual());
+        assertEquals(MOTIVO, motivoCierreActual());
         Asignacion finalizada = asignacionRepository.findById(activa.getId()).orElseThrow();
         assertEquals(EstadoAsignacion.FINALIZADA, finalizada.getEstado());
-        assertEquals(MotivoFinalizacion.OTRO, finalizada.getMotivoFinalizacion());
+        assertEquals(MotivoFinalizacion.PROYECTO_FINALIZADO, finalizada.getMotivoFinalizacion());
         assertEquals("Proyecto finalizado",
                 asignacionRepository.findById(pendiente.getId()).orElseThrow().getMotivoRechazo());
         assertEquals(0, new BigDecimal("40").compareTo(horasDisponibles(colActivo)));
@@ -240,8 +242,10 @@ class RmProyectoCierreTests {
         }
         assertSinCambios();
         // Los espacios alrededor se ignoran.
-        service.cancelar(proyecto.getId(), MOTIVO, "  " + proyecto.getNombre() + " ", rm.getId());
+        service.cancelar(proyecto.getId(), "  " + MOTIVO + "  ", "  " + proyecto.getNombre() + " ", rm.getId());
         assertEquals(EstadoProyecto.CANCELADO, estadoActual());
+        // El motivo se guarda sin los espacios alrededor.
+        assertEquals(MOTIVO, motivoCierreActual());
     }
 
     @Test
@@ -272,7 +276,7 @@ class RmProyectoCierreTests {
     @Test
     void postCancelarYFinalizarVuelvenAlDetalleConMensaje() throws Exception {
         String detalle = "/rm/proyectos/detalle?id=" + proyecto.getId();
-        autenticarRm();
+        autenticar(rm, "RESOURCE_MANAGER");
         try {
             mockMvc.perform(post("/rm/proyectos/" + proyecto.getId() + "/cancelar")
                             .param("motivo", MOTIVO).param("confirmacionNombre", "nombre equivocado"))
@@ -334,6 +338,36 @@ class RmProyectoCierreTests {
                 .andExpect(content().string(containsString("disabled=\"disabled\">Finalizar proyecto</button>")));
     }
 
+    @ParameterizedTest
+    @EnumSource(value = EstadoProyecto.class, names = {"CANCELADO", "FINALIZADO"})
+    void detallesRmYPmMuestranElMotivoDelCierre(EstadoProyecto estado) throws Exception {
+        if (estado == EstadoProyecto.CANCELADO) {
+            service.cancelar(proyecto.getId(), MOTIVO, proyecto.getNombre(), rm.getId());
+        } else {
+            service.finalizar(proyecto.getId(), MOTIVO, proyecto.getNombre(), rm.getId());
+        }
+        String etiqueta = estado == EstadoProyecto.CANCELADO ? "Motivo de cancelación:" : "Motivo de finalización:";
+
+        mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyecto.getId().toString()))
+                .andExpect(content().string(containsString(etiqueta)))
+                .andExpect(content().string(containsString(MOTIVO)));
+        autenticar(pm, "PROJECT_MANAGER");
+        try {
+            mockMvc.perform(get("/pm/proyectos/detalle").param("id", proyecto.getId().toString()))
+                    .andExpect(content().string(containsString(etiqueta)))
+                    .andExpect(content().string(containsString(MOTIVO)));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
+    void detalleSinMotivoDeCierreEnProyectoAbierto() throws Exception {
+        mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyecto.getId().toString()))
+                .andExpect(content().string(not(containsString("Motivo de cancelación:"))))
+                .andExpect(content().string(not(containsString("Motivo de finalización:"))));
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private void assertSinCambios() {
@@ -345,6 +379,11 @@ class RmProyectoCierreTests {
         assertTrue(auditorias("CANCELAR_PROYECTO").isEmpty());
         assertTrue(auditorias("FINALIZAR_PROYECTO").isEmpty());
         assertTrue(notificacionesDeProyecto(pm).isEmpty());
+        assertNull(motivoCierreActual());
+    }
+
+    private String motivoCierreActual() {
+        return proyectoRepository.findById(proyecto.getId()).orElseThrow().getMotivoCierre();
     }
 
     private EstadoProyecto estadoActual() {
@@ -391,9 +430,9 @@ class RmProyectoCierreTests {
         return lista.get(0);
     }
 
-    private void autenticarRm() {
-        UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER")
-                .stream().filter(u -> u.getId().equals(rm.getId())).findFirst().orElseThrow());
+    private void autenticar(Usuario usuario, String rol) {
+        UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre(rol)
+                .stream().filter(u -> u.getId().equals(usuario.getId())).findFirst().orElseThrow());
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities()));
     }

@@ -42,6 +42,9 @@ public class Proyecto {
     @Column(name = "motivo_rechazo", length = 500)
     private String motivoRechazo;
 
+    @Column(name = "motivo_cierre", length = 500)
+    private String motivoCierre;
+
     @Column(name = "presupuesto_solicitado", precision = 12, scale = 2)
     private BigDecimal presupuestoSolicitado;
 
@@ -103,6 +106,9 @@ public class Proyecto {
 
     public String getMotivoRechazo() { return motivoRechazo; }
     public void setMotivoRechazo(String motivoRechazo) { this.motivoRechazo = motivoRechazo; }
+
+    public String getMotivoCierre() { return motivoCierre; }
+    public void setMotivoCierre(String motivoCierre) { this.motivoCierre = motivoCierre; }
 
     public BigDecimal getPresupuestoSolicitado() { return presupuestoSolicitado; }
     public void setPresupuestoSolicitado(BigDecimal presupuestoSolicitado) { this.presupuestoSolicitado = presupuestoSolicitado; }

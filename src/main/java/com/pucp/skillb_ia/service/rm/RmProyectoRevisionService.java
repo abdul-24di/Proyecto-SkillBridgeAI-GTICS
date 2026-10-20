@@ -250,11 +250,11 @@ public class RmProyectoRevisionService {
         EstadoProyecto nuevo = finalizar ? EstadoProyecto.FINALIZADO : EstadoProyecto.CANCELADO;
         String cierre = finalizar ? "finalizado" : "cancelado";
         proyecto.setEstado(nuevo);
+        proyecto.setMotivoCierre(motivoValidado);
         proyectoRepository.save(proyecto);
 
-        // El enum no tiene PROYECTO_FINALIZADO (agregarlo exige cambiar el CHECK del esquema): se usa OTRO.
         CierreAsignacionesService.Resultado resultado = cierreAsignacionesService.cerrarAbiertas(proyecto, rm, cierre,
-                finalizar ? MotivoFinalizacion.OTRO : MotivoFinalizacion.PROYECTO_CANCELADO);
+                finalizar ? MotivoFinalizacion.PROYECTO_FINALIZADO : MotivoFinalizacion.PROYECTO_CANCELADO);
 
         notificacionService.crear(proyecto.getPm(), finalizar ? "PROYECTO_FINALIZADO" : "PROYECTO_CANCELADO",
                 CategoriaNotificacion.PROYECTO, finalizar ? "Proyecto finalizado" : "Proyecto cancelado",

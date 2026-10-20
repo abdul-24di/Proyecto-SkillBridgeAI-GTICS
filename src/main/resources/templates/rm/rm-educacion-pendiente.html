@@ -36,7 +36,7 @@
 <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}"></header>
 <main class="page-wrap">
   <nav class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/colaboradores}">Colaboradores</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Formación académica pendiente</span></nav>
-  <div class="page-head page-head-button-mobile"><div><h1 class="page-title">Formación académica pendiente</h1><div class="text-secondary">Revisa los documentos antes de validar la formación declarada por los colaboradores.</div></div><a class="btn btn-outline-secondary" th:href="@{/rm/colaboradores}">Volver a colaboradores</a></div>
+  <div class="page-head page-head-button-mobile"><div><h1 class="page-title">Formación académica pendiente</h1><div class="text-secondary">Revisa los documentos antes de validar la formación declarada por los colaboradores.</div></div><div class="d-flex gap-2 flex-wrap"><a class="btn btn-outline-primary" th:href="@{/rm/colaboradores/educacion/historial}">Ver historial</a><a class="btn btn-outline-secondary" th:href="@{/rm/colaboradores}">Volver a colaboradores</a></div></div>
   <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
   <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
   <div class="row row-cards mb-4">

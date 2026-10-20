@@ -481,6 +481,66 @@ class RmNavegacionTests {
 
     // --- utilidades ---
 
+    // TASK-062: aprobar, rechazar y finalizar vuelven a la vista desde la que se abrió la asignación.
+    @Test
+    void decisionesDesdeElColaboradorVuelvenASusAsignaciones() throws Exception {
+        autenticarRm();
+        String asignacionesColaborador = "/rm/colaboradores/asignaciones?id=" + colaborador.getId();
+        // El colaborador y el proyecto salen de la asignación; los ids enviados por el navegador se ignoran.
+        mockMvc.perform(post("/rm/asignaciones/{id}/aprobar", revision.getId())
+                        .param("origen", "colaborador").param("proyectoId", "999").param("id", "999"))
+                .andExpect(redirectedUrl(asignacionesColaborador));
+        mockMvc.perform(post("/rm/asignaciones/{id}/rechazar", postulacion.getId())
+                        .param("motivo", "No cumple el perfil requerido.").param("origen", "colaborador"))
+                .andExpect(redirectedUrl(asignacionesColaborador));
+        mockMvc.perform(post("/rm/asignaciones/{id}/finalizar", activa.getId())
+                        .param("motivo", "no-es-motivo").param("origen", "colaborador"))
+                .andExpect(redirectedUrl(asignacionesColaborador));
+    }
+
+    @Test
+    void decisionesConservanSoloLosFiltrosValidosDeLaBandeja() throws Exception {
+        autenticarRm();
+        String filtros = "&grupo=history&busqueda=Nora&origen=PM&estado=Rechazada&pagina=2";
+        mockMvc.perform(post("/rm/asignaciones/{id}/rechazar", postulacion.getId())
+                        .param("motivo", "No cumple el perfil requerido.").param("origen", "proyecto")
+                        .param("proyectoId", "999").param("grupo", "history").param("busqueda", "Nora")
+                        .param("origenBandeja", "PM").param("estado", "Rechazada").param("pagina", "2"))
+                .andExpect(redirectedUrl(BANDEJA + "?proyectoId=" + proyecto.getId() + filtros));
+        // Valores desconocidos se descartan; un origen que no es de la lista cerrada usa la bandeja.
+        mockMvc.perform(post("/rm/asignaciones/{id}/finalizar", activa.getId())
+                        .param("motivo", "no-es-motivo").param("origen", "https://malicioso.example")
+                        .param("grupo", "desconocido").param("origenBandeja", "Otro")
+                        .param("estado", "Activa").param("pagina", "abc"))
+                .andExpect(redirectedUrl(BANDEJA));
+        mockMvc.perform(post("/rm/asignaciones/{id}/aprobar", revision.getId())
+                        .param("origen", "asignaciones").param("grupo", "active").param("pagina", "3"))
+                .andExpect(redirectedUrl(BANDEJA + "?grupo=active&pagina=3"));
+    }
+
+    @Test
+    void laBandejaPasaSusFiltrosAlDetalleYSusFormulariosLosReenvian() throws Exception {
+        List<String> detalles = enlaces(html(BANDEJA + "?busqueda=Nora&origen=PM"),
+                "/rm/asignaciones/[a-z-]+\\?id=\\d+[^\"]*");
+        assertFalse(detalles.isEmpty());
+        assertTrue(detalles.stream().allMatch(url -> url.endsWith("&origen=asignaciones&busqueda=Nora&origenBandeja=PM")
+                        || url.endsWith("&amp;origen=asignaciones&amp;busqueda=Nora&amp;origenBandeja=PM")),
+                detalles.toString());
+
+        String revisionHtml = html("/rm/asignaciones/revision?id=" + revision.getId()
+                + "&origen=proyecto&busqueda=Nora&origenBandeja=PM&pagina=abc");
+        assertTrue(revisionHtml.contains("name=\"origen\" value=\"proyecto\""));
+        assertTrue(revisionHtml.contains("name=\"busqueda\" value=\"Nora\""));
+        assertTrue(revisionHtml.contains("name=\"origenBandeja\" value=\"PM\""));
+        assertFalse(revisionHtml.contains("name=\"pagina\""));
+        String volverProyecto = BANDEJA + "?proyectoId=" + proyecto.getId() + "&busqueda=Nora&origen=PM";
+        assertTrue(volver(revisionHtml).replace("&amp;", "&").equals(volverProyecto), volver(revisionHtml));
+
+        String activaHtml = html("/rm/asignaciones/activa?id=" + activa.getId() + "&origen=colaborador&grupo=active");
+        assertTrue(activaHtml.contains("name=\"origen\" value=\"colaborador\""));
+        assertTrue(activaHtml.contains("name=\"grupo\" value=\"active\""));
+    }
+
     private String html(String url) throws Exception {
         return mockMvc.perform(get(url))
                 .andExpect(status().isOk())

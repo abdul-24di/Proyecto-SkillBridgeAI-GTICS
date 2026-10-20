@@ -214,6 +214,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <form method="post" th:action="@{/rm/asignaciones/{id}/aprobar(id=${asignacion.asignacion.id})}">
+        <!-- TASK-062: origen y filtros cerrados de la bandeja para volver a la vista de origen -->
+        <input th:if="${navegacion.origen != null}" type="hidden" name="origen" th:value="${navegacion.origen}"><input th:each="filtro : ${filtrosBandeja}" type="hidden" th:name="${filtro.key}" th:value="${filtro.value}">
         <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <div class="modal-body">
           <div class="rm-modal-context">
@@ -252,6 +254,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <form method="post" th:action="@{/rm/asignaciones/{id}/rechazar(id=${asignacion.asignacion.id})}">
+        <!-- TASK-062: origen y filtros cerrados de la bandeja para volver a la vista de origen -->
+        <input th:if="${navegacion.origen != null}" type="hidden" name="origen" th:value="${navegacion.origen}"><input th:each="filtro : ${filtrosBandeja}" type="hidden" th:name="${filtro.key}" th:value="${filtro.value}">
         <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
         <div class="modal-body">
           <div class="rm-modal-context">

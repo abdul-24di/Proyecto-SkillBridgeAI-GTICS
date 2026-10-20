@@ -360,8 +360,6 @@ public class RmViewController {
     @PostMapping("/proyectos/{id}/aprobar")
     public String approveProject(
             @PathVariable("id") Long proyectoId,
-            @RequestParam(name = "calificacion", required = false) Integer calificacion,
-            @RequestParam(name = "feedback", required = false) String feedback,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
@@ -675,6 +673,8 @@ public class RmViewController {
                     rmAsignacionService.proyectosConAsignacionVigente(colaboradorId));
             model.addAttribute("sueldoColaborador",
                     rmColaboradorConsultaService.mapaSueldosBase().get(colaboradorId));
+            model.addAttribute("evaluaciones",
+                    evaluacionService.obtenerEvaluacionesPorColaborador(colaboradorId));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/colaboradores?noEncontrado=true";
         }

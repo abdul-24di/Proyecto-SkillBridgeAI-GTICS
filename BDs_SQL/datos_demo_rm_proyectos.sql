@@ -19,6 +19,7 @@
 --   * catalogo, solicitudes e inscripciones de cursos
 --   * evidencias de finalizacion de cursos por revisar, su notificacion
 --     y un curso ya completado (seccion 10.1)
+--   * formacion academica pendiente, aprobada y rechazada (seccion 10.2)
 --
 -- SEGURIDAD
 --   * No elimina tablas ni registros normales.
@@ -204,7 +205,8 @@ INSERT INTO colaborador_habilidad (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
      WHERE h.nombre = 'Python' AND c.nombre = '[DEMO] Tecnologia'),
-    'INTERMEDIO', 'PENDIENTE', TRUE
+    -- RECHAZADA porque su unico certificado de Python (seccion siguiente) esta rechazado.
+    'INTERMEDIO', 'RECHAZADA', TRUE
 ) AS nuevo
 ON DUPLICATE KEY UPDATE
     nivel_dominio = nuevo.nivel_dominio,
@@ -447,6 +449,11 @@ ON DUPLICATE KEY UPDATE
 
 -- --------------------------------------------------------------------------
 -- 6. Solicitudes de personal: ejemplos de sus tres estados visibles
+-- La PENDIENTE es la de Analitica Comercial: tiene presupuesto libre y a Carla,
+-- Elena y Mateo sin asignacion en el proyecto, asi que permite recorrer el
+-- flujo completo (iniciar atencion, proponer y marcar como atendida).
+-- Migracion Cloud no sirve para ese flujo: sus cuatro colaboradores ya estan
+-- asignados y su presupuesto supera el 90 %; por eso queda EN_ATENCION.
 -- --------------------------------------------------------------------------
 INSERT INTO solicitud_personal (
     proyecto_id, cantidad_colaboradores, perfiles_requeridos, mensaje_pm,
@@ -458,7 +465,11 @@ SELECT
     1,
     'Cloud Engineer con experiencia intermedia o avanzada en AWS y Docker.',
     'Se necesita completar el equipo para la siguiente fase de migracion.',
-    'PENDIENTE', NULL, CURRENT_TIMESTAMP - INTERVAL 3 DAY, NULL, NULL
+    'EN_ATENCION',
+    (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
+    CURRENT_TIMESTAMP - INTERVAL 3 DAY,
+    CURRENT_TIMESTAMP - INTERVAL 2 DAY,
+    NULL
 FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1 FROM solicitud_personal
@@ -475,11 +486,7 @@ SELECT
     2,
     'Data Analyst con Python y especialista en visualizacion con Power BI.',
     'Priorizar disponibilidad para iniciar durante este mes.',
-    'EN_ATENCION',
-    (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
-    CURRENT_TIMESTAMP - INTERVAL 6 DAY,
-    CURRENT_TIMESTAMP - INTERVAL 5 DAY,
-    NULL
+    'PENDIENTE', NULL, CURRENT_TIMESTAMP - INTERVAL 6 DAY, NULL, NULL
 FROM DUAL
 WHERE NOT EXISTS (
     SELECT 1 FROM solicitud_personal
@@ -522,15 +529,15 @@ SET @demo_sol_finalizada_id := (
 );
 
 UPDATE solicitud_personal
-SET estado = 'PENDIENTE', rm_responsable_id = NULL,
-    fecha_inicio_atencion = NULL, fecha_atencion = NULL
+SET estado = 'EN_ATENCION', rm_responsable_id = @demo_rm_id,
+    fecha_inicio_atencion = CURRENT_TIMESTAMP - INTERVAL 2 DAY,
+    fecha_atencion = NULL
 WHERE id = @demo_sol_migracion_id
 LIMIT 1;
 
 UPDATE solicitud_personal
-SET estado = 'EN_ATENCION', rm_responsable_id = @demo_rm_id,
-    fecha_inicio_atencion = CURRENT_TIMESTAMP - INTERVAL 5 DAY,
-    fecha_atencion = NULL
+SET estado = 'PENDIENTE', rm_responsable_id = NULL,
+    fecha_inicio_atencion = NULL, fecha_atencion = NULL
 WHERE id = @demo_sol_analitica_id
 LIMIT 1;
 
@@ -1260,11 +1267,190 @@ UPDATE notificacion SET leida = FALSE
 WHERE usuario_id = @demo_rm_id AND tipo = 'EVIDENCIA_CURSO_PENDIENTE'
   AND entidad_id IN (@demo_cc_evid_validar_id, @demo_cc_evid_rechazar_id);
 
+-- --------------------------------------------------------------------------
+-- 10.2 Formacion academica de los colaboradores
+-- Ver en: RM -> Colaboradores -> Formacion academica pendiente
+--         /rm/colaboradores/educacion
+--   * 7 formaciones PENDIENTES de 4 colaboradores y 4 instituciones: la bandeja
+--     muestra 6 por pagina, asi que hay dos paginas y el filtro por institucion
+--     tiene opciones.
+--   * Carla Rojas tiene dos pendientes: una para aprobar y otra para rechazar.
+--     Ambas tienen notificacion del RM que abre su revision.
+--   * Diego Salazar / Diplomado en Arquitectura Cloud no tiene documento
+--     (la revision no muestra "Ver documento").
+--   * Elena Torres tiene una formacion APROBADA y otra RECHAZADA con motivo,
+--     visibles en su perfil y al abrir su revision.
+-- Los archivos son ficticios y se sirven desde static/documentos.
+-- Al volver a ejecutar el script, las nueve formaciones regresan a este estado.
+-- --------------------------------------------------------------------------
+SET @demo_colaborador4_id := (SELECT id FROM usuario WHERE correo = 'demo.colaborador4@skillbridge.local');
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador1_id, 'Pontificia Universidad Católica del Perú', 'Ingeniería Informática',
+       '/documentos/formacion-demo-informatica.txt', '2012-03-01', '2017-12-15',
+       FALSE, 'PENDIENTE', NULL, NULL, TRUE, CURRENT_TIMESTAMP - INTERVAL 2 DAY, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador1_id AND titulo = 'Ingeniería Informática'
+);
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador1_id, 'Universidad Nacional de Ingeniería', 'Maestría en Ingeniería de Software',
+       '/documentos/formacion-demo-maestria-software.txt', '2025-03-01', NULL,
+       TRUE, 'PENDIENTE', NULL, NULL, TRUE, CURRENT_TIMESTAMP - INTERVAL 1 DAY, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador1_id AND titulo = 'Maestría en Ingeniería de Software'
+);
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador2_id, 'Universidad Nacional de Ingeniería', 'Ingeniería Electrónica',
+       '/documentos/formacion-demo-electronica.txt', '2013-03-01', '2018-07-20',
+       FALSE, 'PENDIENTE', NULL, NULL, TRUE, CURRENT_TIMESTAMP - INTERVAL 5 DAY, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador2_id AND titulo = 'Ingeniería Electrónica'
+);
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador2_id, 'Pontificia Universidad Católica del Perú', 'Diplomado en Arquitectura Cloud',
+       NULL, '2024-04-01', '2024-11-30',
+       FALSE, 'PENDIENTE', NULL, NULL, TRUE, CURRENT_TIMESTAMP - INTERVAL 4 DAY, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador2_id AND titulo = 'Diplomado en Arquitectura Cloud'
+);
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador3_id, 'Universidad de Ingeniería y Tecnología', 'Especialización en Ciencia de Datos',
+       '/documentos/formacion-demo-ciencia-datos.txt', '2023-08-01', '2024-06-30',
+       FALSE, 'PENDIENTE', NULL, NULL, TRUE, CURRENT_TIMESTAMP - INTERVAL 6 HOUR, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador3_id AND titulo = 'Especialización en Ciencia de Datos'
+);
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador4_id, 'Pontificia Universidad Católica del Perú', 'Ingeniería de las Telecomunicaciones',
+       '/documentos/formacion-demo-telecomunicaciones.txt', '2010-03-01', '2015-12-18',
+       FALSE, 'PENDIENTE', NULL, NULL, TRUE, CURRENT_TIMESTAMP - INTERVAL 7 DAY, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador4_id AND titulo = 'Ingeniería de las Telecomunicaciones'
+);
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador4_id, 'Universidad ESAN', 'Maestría en Gestión de Tecnologías de la Información',
+       '/documentos/formacion-demo-gestion-ti.txt', '2023-03-01', '2025-02-28',
+       FALSE, 'PENDIENTE', NULL, NULL, TRUE, CURRENT_TIMESTAMP - INTERVAL 3 DAY, NULL
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador4_id
+      AND titulo = 'Maestría en Gestión de Tecnologías de la Información'
+);
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador3_id, 'Universidad Nacional Mayor de San Marcos', 'Estadística',
+       '/documentos/formacion-demo-estadistica.txt', '2016-03-01', '2021-12-10',
+       FALSE, 'APROBADO', NULL, @demo_rm_id, TRUE,
+       CURRENT_TIMESTAMP - INTERVAL 30 DAY, CURRENT_TIMESTAMP - INTERVAL 28 DAY
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador3_id AND titulo = 'Estadística'
+);
+
+INSERT INTO educacion (
+    colaborador_id, institucion, titulo, archivo_url, fecha_inicio, fecha_fin,
+    actual, estado, motivo_rechazo, revisado_por, activo, fecha_creacion, fecha_revision
+)
+SELECT @demo_colaborador3_id, 'Instituto de Educación Superior IDAT', 'Curso de Power BI',
+       '/documentos/formacion-demo-power-bi.txt', '2022-01-10', '2022-03-15',
+       FALSE, 'RECHAZADO',
+       'Es un curso corto, no una formación académica. Regístralo como certificado de habilidad.',
+       @demo_rm_id, TRUE, CURRENT_TIMESTAMP - INTERVAL 20 DAY, CURRENT_TIMESTAMP - INTERVAL 19 DAY
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM educacion
+    WHERE colaborador_id = @demo_colaborador3_id AND titulo = 'Curso de Power BI'
+);
+
+SET @demo_edu_aprobar_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador1_id AND titulo = 'Ingeniería Informática');
+SET @demo_edu_rechazar_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador1_id AND titulo = 'Maestría en Ingeniería de Software');
+SET @demo_edu_electronica_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador2_id AND titulo = 'Ingeniería Electrónica');
+SET @demo_edu_sin_documento_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador2_id AND titulo = 'Diplomado en Arquitectura Cloud');
+SET @demo_edu_ciencia_datos_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador3_id AND titulo = 'Especialización en Ciencia de Datos');
+SET @demo_edu_telecom_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador4_id AND titulo = 'Ingeniería de las Telecomunicaciones');
+SET @demo_edu_gestion_ti_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador4_id AND titulo = 'Maestría en Gestión de Tecnologías de la Información');
+SET @demo_edu_aprobada_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador3_id AND titulo = 'Estadística');
+SET @demo_edu_rechazada_id := (SELECT MIN(id) FROM educacion WHERE colaborador_id = @demo_colaborador3_id AND titulo = 'Curso de Power BI');
+
+-- Devuelve las siete pendientes a PENDIENTE para repetir la aprobacion y el rechazo.
+UPDATE educacion SET estado = 'PENDIENTE', motivo_rechazo = NULL, revisado_por = NULL,
+    fecha_revision = NULL, activo = TRUE
+WHERE id IN (@demo_edu_aprobar_id, @demo_edu_rechazar_id, @demo_edu_electronica_id,
+             @demo_edu_sin_documento_id, @demo_edu_ciencia_datos_id, @demo_edu_telecom_id,
+             @demo_edu_gestion_ti_id);
+UPDATE educacion SET estado = 'APROBADO', motivo_rechazo = NULL, revisado_por = @demo_rm_id,
+    fecha_revision = CURRENT_TIMESTAMP - INTERVAL 28 DAY, activo = TRUE
+WHERE id = @demo_edu_aprobada_id;
+UPDATE educacion SET estado = 'RECHAZADO',
+    motivo_rechazo = 'Es un curso corto, no una formación académica. Regístralo como certificado de habilidad.',
+    revisado_por = @demo_rm_id, fecha_revision = CURRENT_TIMESTAMP - INTERVAL 19 DAY, activo = TRUE
+WHERE id = @demo_edu_rechazada_id;
+
+-- Notificaciones del RM demo: al abrirlas llevan a la revision de cada formacion.
+INSERT INTO notificacion (usuario_id, tipo, categoria, titulo, descripcion, entidad, entidad_id, leida, fecha_creacion)
+SELECT @demo_rm_id, 'EDUCACION_PENDIENTE', 'HABILIDAD', 'Formación académica pendiente de revisión',
+       'Carla Rojas agregó "Ingeniería Informática" (Pontificia Universidad Católica del Perú) a su perfil.',
+       'EDUCACION', @demo_edu_aprobar_id, FALSE, CURRENT_TIMESTAMP - INTERVAL 2 DAY
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM notificacion
+    WHERE usuario_id = @demo_rm_id AND tipo = 'EDUCACION_PENDIENTE'
+      AND entidad_id = @demo_edu_aprobar_id
+);
+
+INSERT INTO notificacion (usuario_id, tipo, categoria, titulo, descripcion, entidad, entidad_id, leida, fecha_creacion)
+SELECT @demo_rm_id, 'EDUCACION_PENDIENTE', 'HABILIDAD', 'Formación académica pendiente de revisión',
+       'Carla Rojas agregó "Maestría en Ingeniería de Software" (Universidad Nacional de Ingeniería) a su perfil.',
+       'EDUCACION', @demo_edu_rechazar_id, FALSE, CURRENT_TIMESTAMP - INTERVAL 1 DAY
+FROM DUAL WHERE NOT EXISTS (
+    SELECT 1 FROM notificacion
+    WHERE usuario_id = @demo_rm_id AND tipo = 'EDUCACION_PENDIENTE'
+      AND entidad_id = @demo_edu_rechazar_id
+);
+
+UPDATE notificacion SET leida = FALSE
+WHERE usuario_id = @demo_rm_id AND tipo = 'EDUCACION_PENDIENTE'
+  AND entidad_id IN (@demo_edu_aprobar_id, @demo_edu_rechazar_id);
+
 COMMIT;
 
 -- --------------------------------------------------------------------------
 -- 11. Comprobacion rapida
--- Debe devolver proyectos, costos, foros, actividades y cursos de demostracion.
+-- Debe devolver proyectos, costos, foros, actividades, cursos y formacion academica de demostracion.
 -- --------------------------------------------------------------------------
 SELECT
     p.id,
@@ -1382,3 +1568,17 @@ ORDER BY c.nombre, colaborador;
 
 
 
+
+SELECT
+    e.id,
+    CONCAT(u.nombre, ' ', u.apellido) AS colaborador,
+    e.titulo,
+    e.institucion,
+    e.estado,
+    e.archivo_url,
+    e.motivo_rechazo,
+    e.fecha_revision
+FROM educacion e
+JOIN usuario u ON u.id = e.colaborador_id
+WHERE u.correo LIKE 'demo.colaborador%@skillbridge.local'
+ORDER BY e.estado, colaborador, e.titulo;

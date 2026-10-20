@@ -14,6 +14,8 @@ import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.dto.RmReporteView;
 import com.pucp.skillb_ia.dto.RmCursoView;
+import com.pucp.skillb_ia.dto.RmEducacionView;
+import com.pucp.skillb_ia.model.enums.EstadoCertificado;
 import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
@@ -856,6 +858,38 @@ public class RmViewController {
         model.addAttribute("totalColaboradores", formaciones.stream()
                 .map(item -> item.getEducacion().getColaborador().getId()).distinct().count());
         return "rm/rm-educacion-pendiente";
+    }
+
+    // Historial de formaciones ya revisadas (TASK-061): filtros y paginación en el servidor.
+    @GetMapping("/colaboradores/educacion/historial")
+    public String educationHistory(
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String institucion,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String colaborador,
+            @RequestParam(required = false) String pagina,
+            Model model) {
+        var revisadas = rmEducacionService.listarRevisadas();
+        var filtros = rmEducacionService.normalizarFiltrosHistorial(busqueda, institucion, estado, colaborador, revisadas);
+        var paginaEducacion = rmEducacionService.paginarRevisadas(revisadas, filtros, pagina);
+        model.addAttribute("formaciones", paginaEducacion.filas());
+        model.addAttribute("paginaActual", paginaEducacion.paginaActual());
+        model.addAttribute("totalPaginas", paginaEducacion.totalPaginas());
+        model.addAttribute("totalRegistros", paginaEducacion.totalRegistros());
+        model.addAttribute("tamanioPagina", RmEducacionService.TAMANIO_PAGINA);
+        model.addAttribute("instituciones", rmEducacionService.institucionesDisponibles(revisadas));
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("institucion", filtros.institucion());
+        model.addAttribute("estado", filtros.estado() == null ? null : filtros.estado().name());
+        model.addAttribute("colaborador", filtros.colaboradorId());
+        model.addAttribute("colaboradorNombre", filtros.colaboradorId() == null ? null : revisadas.stream()
+                .filter(item -> filtros.colaboradorId().equals(item.getEducacion().getColaborador().getId()))
+                .map(RmEducacionView::getColaboradorNombre).findFirst().orElse(null));
+        model.addAttribute("totalAprobadas", revisadas.stream()
+                .filter(item -> item.getEducacion().getEstado() == EstadoCertificado.APROBADO).count());
+        model.addAttribute("totalRechazadas", revisadas.stream()
+                .filter(item -> item.getEducacion().getEstado() == EstadoCertificado.RECHAZADO).count());
+        return "rm/rm-educacion-historial";
     }
 
     @GetMapping("/colaboradores/educacion/revision")

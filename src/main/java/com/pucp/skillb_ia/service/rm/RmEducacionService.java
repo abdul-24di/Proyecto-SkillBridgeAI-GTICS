@@ -30,7 +30,12 @@ public class RmEducacionService {
 
     public static final int TAMANIO_PAGINA = 6;
 
-    public record FiltrosEducacion(String busqueda, String institucion) {
+    /** Filtros GET. {@code estado} y {@code colaboradorId} solo se usan en el historial (TASK-061). */
+    public record FiltrosEducacion(String busqueda, String institucion,
+                                   EstadoCertificado estado, Long colaboradorId) {
+        public FiltrosEducacion(String busqueda, String institucion) {
+            this(busqueda, institucion, null, null);
+        }
     }
 
     public record PaginaEducacion(List<RmEducacionView> filas, int paginaActual,
@@ -55,6 +60,14 @@ public class RmEducacionService {
     @Transactional(readOnly = true)
     public List<RmEducacionView> listarPendientes() {
         return educacionRepository.findActivasByEstadoConDetalle(EstadoCertificado.PENDIENTE).stream()
+                .map(educacion -> crearVista(educacion, 0))
+                .toList();
+    }
+
+    /** Historial: formaciones aprobadas o rechazadas, la revisión más reciente primero (TASK-061). */
+    @Transactional(readOnly = true)
+    public List<RmEducacionView> listarRevisadas() {
+        return educacionRepository.findActivasRevisadasConDetalle().stream()
                 .map(educacion -> crearVista(educacion, 0))
                 .toList();
     }
@@ -86,14 +99,54 @@ public class RmEducacionService {
         return new FiltrosEducacion(busquedaLimpia.isEmpty() ? null : busquedaLimpia, institucionValida);
     }
 
+    /**
+     * Normaliza los filtros del historial: además de búsqueda e institución, acepta solo los estados
+     * APROBADO/RECHAZADO y un colaborador que tenga formaciones en el historial.
+     */
+    public FiltrosEducacion normalizarFiltrosHistorial(String busqueda, String institucion, String estado,
+                                                       String colaborador, List<RmEducacionView> revisadas) {
+        FiltrosEducacion base = normalizarFiltros(busqueda, institucion, institucionesDisponibles(revisadas));
+        EstadoCertificado estadoValido = null;
+        if (estado != null) {
+            String valor = estado.trim().toUpperCase(Locale.ROOT);
+            if (EstadoCertificado.APROBADO.name().equals(valor)) estadoValido = EstadoCertificado.APROBADO;
+            if (EstadoCertificado.RECHAZADO.name().equals(valor)) estadoValido = EstadoCertificado.RECHAZADO;
+        }
+        Long colaboradorValido = null;
+        if (colaborador != null) {
+            try {
+                Long id = Long.valueOf(colaborador.trim());
+                boolean existe = revisadas.stream()
+                        .anyMatch(item -> id.equals(item.getEducacion().getColaborador().getId()));
+                colaboradorValido = existe ? id : null;
+            } catch (NumberFormatException ex) {
+                colaboradorValido = null;
+            }
+        }
+        return new FiltrosEducacion(base.busqueda(), base.institucion(), estadoValido, colaboradorValido);
+    }
+
     /** Filtra (búsqueda e institución) y pagina la bandeja de formaciones pendientes. */
     public PaginaEducacion paginarPendientes(List<RmEducacionView> pendientes,
                                              FiltrosEducacion filtros, String pagina) {
+        return paginar(pendientes, filtros, pagina);
+    }
+
+    /** Filtra (búsqueda, institución, estado y colaborador) y pagina el historial de formaciones revisadas. */
+    public PaginaEducacion paginarRevisadas(List<RmEducacionView> revisadas,
+                                            FiltrosEducacion filtros, String pagina) {
+        return paginar(revisadas, filtros, pagina);
+    }
+
+    private PaginaEducacion paginar(List<RmEducacionView> formaciones, FiltrosEducacion filtros, String pagina) {
         String busqueda = textoComparable(filtros.busqueda());
-        List<RmEducacionView> filtrados = pendientes.stream()
+        List<RmEducacionView> filtrados = formaciones.stream()
                 .filter(item -> busqueda.isEmpty() || textoComparable(item.getTextoBusqueda()).contains(busqueda))
                 .filter(item -> filtros.institucion() == null
                         || filtros.institucion().equals(item.getEducacion().getInstitucion()))
+                .filter(item -> filtros.estado() == null || filtros.estado() == item.getEducacion().getEstado())
+                .filter(item -> filtros.colaboradorId() == null
+                        || filtros.colaboradorId().equals(item.getEducacion().getColaborador().getId()))
                 .toList();
 
         int totalPaginas = Math.max(1, (int) Math.ceil(filtrados.size() / (double) TAMANIO_PAGINA));

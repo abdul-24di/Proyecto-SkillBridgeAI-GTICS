@@ -366,6 +366,8 @@
               <h3 class="card-title mb-1">Educación</h3>
               <div class="section-description">Formación académica activa en el perfil.</div>
             </div>
+            <a class="btn btn-outline-secondary btn-sm"
+               th:href="@{/rm/colaboradores/educacion/historial(colaborador=${colaborador.resumen.id})}">Historial de revisiones</a>
           </div>
           <div th:if="${!#lists.isEmpty(colaborador.educacion)}">
             <div class="timeline-item" th:each="estudio : ${colaborador.educacion}">

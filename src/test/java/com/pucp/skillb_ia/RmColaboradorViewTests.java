@@ -105,12 +105,14 @@ class RmColaboradorViewTests {
     @Autowired private RmColaboradorConsultaService consultaService;
     @Autowired private ProyectoRepository proyectoRepository;
     @Autowired private AsignacionRepository asignacionRepository;
+    @Autowired private com.pucp.skillb_ia.repository.EvaluacionRepository evaluacionRepository;
 
     private MockMvc mockMvc;
     private Long colaboradorId;
     private final List<Usuario> loteCreado = new ArrayList<>();
     private final List<Long> asignacionesCreadas = new ArrayList<>();
     private final List<Long> proyectosCreados = new ArrayList<>();
+    private final List<Long> evaluacionesCreadas = new ArrayList<>();
 
     @BeforeEach
     void prepararDatos() {
@@ -149,6 +151,8 @@ class RmColaboradorViewTests {
     // El lote no debe alterar a las demás clases: se borran sus asignaciones y proyectos y se desactiva.
     @AfterEach
     void limpiarLote() {
+        evaluacionRepository.deleteAllById(evaluacionesCreadas);
+        evaluacionesCreadas.clear();
         asignacionRepository.deleteAllById(asignacionesCreadas);
         proyectoRepository.deleteAllById(proyectosCreados);
         loteCreado.forEach(usuario -> {
@@ -976,6 +980,35 @@ class RmColaboradorViewTests {
         asignacion.setAprobadoPorPm(true);
         asignacion.setAprobadoPorRm(true);
         asignacionesCreadas.add(asignacionRepository.save(asignacion).getId());
+    }
+
+    // TASK-059: la tarjeta "Historial de Desempeño" lista las evaluaciones registradas del colaborador.
+    @Test
+    void perfilMuestraLasEvaluacionesRegistradasDelColaborador() throws Exception {
+        Usuario colaborador = colaboradorDeTask050();
+        crearAsignacionT050(colaborador, "Proyecto Evaluado T059", EstadoAsignacion.FINALIZADA);
+        Asignacion asignacion = asignacionRepository.findById(asignacionesCreadas.get(0)).orElseThrow();
+
+        com.pucp.skillb_ia.model.Evaluacion evaluacion = new com.pucp.skillb_ia.model.Evaluacion();
+        evaluacion.setColaborador(colaborador);
+        evaluacion.setEvaluador(usuarioRepository.findById(colaboradorId).orElseThrow());
+        evaluacion.setAsignacion(asignacion);
+        evaluacion.setCalificacion(4);
+        evaluacion.setComentarios("Buen trabajo en el backend T059");
+        evaluacion = evaluacionRepository.save(evaluacion);
+        evaluacionesCreadas.add(evaluacion.getId());
+
+        String html = mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("evaluaciones"))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("Proyecto Evaluado T059"));
+        assertTrue(html.contains("Buen trabajo en el backend T059"));
+        assertTrue(html.contains(">4</span> ⭐"));
+        assertTrue(html.contains(evaluacion.getFechaCreacion()
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))));
+        assertFalse(html.contains("Sin evaluaciones"));
     }
 
     private static int contar(String texto, String fragmento) {

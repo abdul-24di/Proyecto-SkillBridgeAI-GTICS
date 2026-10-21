@@ -398,7 +398,7 @@ class RmNavegacionTests {
         assertTrue(listado.contains("id=\"propuestaContexto\" class=\"d-none\" data-origen=\"colaborador\""));
         assertTrue(listado.contains("id=\"propuestaModal\""));
         // Topbar compartido, Tabler, modal de propuesta y el JS visual de la vista; sin scripts en línea.
-        assertEquals(List.of("/js/notificaciones.js", "/tabler/js/tabler.min.js", "/js/rm-js/rm-propuesta-asignacion.js",
+        assertEquals(List.of("/js/csrf.js", "/js/notificaciones.js", "/tabler/js/tabler.min.js", "/js/rm-js/rm-propuesta-asignacion.js",
                 "/js/rm-js/rm-asignaciones-colaborador.js"), scripts(listado));
         // Sin enlaces vacíos en el contenido de la vista (el topbar compartido queda fuera).
         assertFalse(listado.substring(listado.indexOf("<nav class=\"breadcrumb-wrap\""), listado.indexOf("</main>"))

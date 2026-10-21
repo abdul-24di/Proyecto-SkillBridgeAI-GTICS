@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         fetch('/pm/foro/upload-imagen', {
             method: 'POST',
+            headers: csrfHeaders(),
             body: fd
         })
         .then(response => {

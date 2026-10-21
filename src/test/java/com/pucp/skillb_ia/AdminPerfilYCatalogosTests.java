@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -61,6 +62,9 @@ class AdminPerfilYCatalogosTests {
     @Autowired private com.pucp.skillb_ia.service.admin.AdminForoService adminForoService;
     @Autowired private com.pucp.skillb_ia.service.col.ColaboradorPerfilService colaboradorPerfilService;
     @Autowired private AuthService authService;
+    @Autowired private com.pucp.skillb_ia.security.RegistroAccesoDenegadoHandler registroAccesoDenegadoHandler;
+    @Autowired private com.pucp.skillb_ia.repository.LogAuditoriaRepository logAuditoriaRepository;
+    @Autowired private com.pucp.skillb_ia.service.AdminUsuarioService adminUsuarioService;
     @Autowired private NotificacionService notificacionService;
     private MockMvc mockMvc;
     private Usuario admin;
@@ -277,6 +281,232 @@ class AdminPerfilYCatalogosTests {
                     .andExpect(content().string(not(containsString("class=\"avatar avatar-sm user-avatar\">AA</span>"))));
         }
         admin.setFotoUrl(null);
+    }
+
+    @Test
+    void elAdminPuedeReenviarUnaInvitacionVencidaYElNuevoEnlaceFunciona() {
+        String correo = "vencida." + UUID.randomUUID() + "@test.local";
+        Usuario invitado = authService.invitarUsuario(correo, "PROJECT_MANAGER", admin);
+        TokenUsuario viejo = tokenUsuarioRepository.findAll().stream()
+                .filter(t -> t.getUsuario().getId().equals(invitado.getId())).findFirst().orElseThrow();
+
+        // La invitación vence: el enlace deja de servir.
+        viejo.setFechaExpiracion(java.time.LocalDateTime.now().minusDays(1));
+        tokenUsuarioRepository.save(viejo);
+        assertThat(authService.validarTokenActivacion(viejo.getToken()).estado())
+                .isEqualTo(AuthService.EstadoToken.EXPIRADO);
+
+        // El Admin reenvía: se crea un enlace nuevo, válido y por 48 horas.
+        authService.reenviarActivacion(invitado, admin);
+        TokenUsuario nuevo = tokenUsuarioRepository.findAll().stream()
+                .filter(t -> t.getUsuario().getId().equals(invitado.getId()) && !t.getToken().equals(viejo.getToken()))
+                .findFirst().orElseThrow();
+        assertThat(authService.validarTokenActivacion(nuevo.getToken()).estado())
+                .isEqualTo(AuthService.EstadoToken.VALIDO);
+        assertThat(nuevo.getFechaExpiracion()).isAfter(java.time.LocalDateTime.now().plusHours(47));
+
+        // Con el enlace nuevo el usuario completa la activación.
+        authService.activarCuenta(nuevo.getToken(), "Vera Vencida", "987654321", null, "Segura#123");
+        assertThat(usuarioRepository.findByCorreo(correo).orElseThrow().getPasswordHash()).isNotBlank();
+        assertThat(authService.validarTokenActivacion(nuevo.getToken()).estado())
+                .isEqualTo(AuthService.EstadoToken.USADO);
+    }
+
+    @Test
+    void noSePuedeDegradarAlUltimoAdministradorActivo() throws Exception {
+        // Deja a "admin" como único Administrador activo durante la prueba.
+        List<Usuario> otros = usuarioRepository.findActivosByRolNombre("ADMINISTRADOR").stream()
+                .filter(u -> !u.getId().equals(admin.getId())).toList();
+        otros.forEach(u -> { u.setActivo(false); usuarioRepository.save(u); });
+        try {
+            assertThat(usuarioRepository.countByRol_NombreAndActivoTrue("ADMINISTRADOR")).isEqualTo(1);
+
+            assertThatThrownBy(() -> adminUsuarioService.cambiarRol(admin.getId(), "Colaborador", admin))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("al menos un Administrador activo");
+
+            // También si la petición se envía a mano, sin pasar por la pantalla.
+            mockMvc.perform(post("/admin/usuarios/cambiar-rol")
+                            .param("usuarioId", String.valueOf(admin.getId())).param("rol", "Colaborador"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(flash().attribute("mensajeError", "Debe quedar al menos un Administrador activo."));
+
+            assertThat(usuarioRepository.countByRol_NombreAndActivoTrue("ADMINISTRADOR")).isEqualTo(1);
+        } finally {
+            otros.forEach(u -> { u.setActivo(true); usuarioRepository.save(u); });
+        }
+    }
+
+    @Test
+    void conOtroAdministradorActivoSiSePuedeCambiarElRolDeUnAdministrador() {
+        Usuario segundo = new Usuario();
+        segundo.setCorreo("admin.segundo." + UUID.randomUUID() + "@test.local");
+        segundo.setNombre("Sara");
+        segundo.setApellido("Segunda");
+        segundo.setRol(obtenerRol("ADMINISTRADOR"));
+        segundo.setActivo(true);
+        segundo = usuarioRepository.save(segundo);
+        long adminsAntes = usuarioRepository.countByRol_NombreAndActivoTrue("ADMINISTRADOR");
+
+        adminUsuarioService.cambiarRol(segundo.getId(), "Colaborador", admin);
+
+        Long idSegundo = segundo.getId();
+        assertThat(usuarioRepository.countByRol_NombreAndActivoTrue("ADMINISTRADOR")).isEqualTo(adminsAntes - 1);
+        assertThat(usuarioRepository.findActivosByRolNombre("COLABORADOR"))
+                .anyMatch(u -> u.getId().equals(idSegundo));
+    }
+
+    @Test
+    void unAccesoDenegadoResponde403YQuedaRegistradoEnLaAuditoria() throws Exception {
+        String ruta = "/rm/talent-matching-" + UUID.randomUUID();
+        org.springframework.mock.web.MockHttpServletRequest peticion =
+                new org.springframework.mock.web.MockHttpServletRequest("GET", ruta);
+        org.springframework.mock.web.MockHttpServletResponse respuesta =
+                new org.springframework.mock.web.MockHttpServletResponse();
+
+        registroAccesoDenegadoHandler.handle(peticion, respuesta,
+                new org.springframework.security.access.AccessDeniedException("rol equivocado"));
+
+        assertThat(respuesta.getStatus()).isEqualTo(403);
+        assertThat(logAuditoriaRepository.findAll())
+                .anySatisfy(log -> {
+                    assertThat(log.getAccion()).isEqualTo("ACCESO_DENEGADO");
+                    assertThat(log.getDetalle()).contains("GET " + ruta);
+                    assertThat(log.getUsuario().getId()).isEqualTo(admin.getId());
+                });
+    }
+
+    @Test
+    void sinSesionElAccesoDenegadoNoRegistraNada() throws Exception {
+        SecurityContextHolder.clearContext();
+        String ruta = "/admin/anonimo-" + UUID.randomUUID();
+        org.springframework.mock.web.MockHttpServletResponse respuesta =
+                new org.springframework.mock.web.MockHttpServletResponse();
+
+        registroAccesoDenegadoHandler.handle(
+                new org.springframework.mock.web.MockHttpServletRequest("GET", ruta), respuesta,
+                new org.springframework.security.access.AccessDeniedException("sin sesión"));
+
+        assertThat(respuesta.getStatus()).isEqualTo(403);
+        assertThat(logAuditoriaRepository.findAll())
+                .noneMatch(log -> log.getDetalle() != null && log.getDetalle().contains(ruta));
+    }
+
+    @Test
+    void unaAccionHechaDesdeElNavegadorGuardaLaIpEnLaAuditoria() throws Exception {
+        String nombre = "Curso IP " + UUID.randomUUID();
+        mockMvc.perform(post("/admin/cursos/crear")
+                        .param("nombre", nombre).param("categoria", "Tec")
+                        .param("modalidad", "VIRTUAL").param("horas", "4").param("autodidacta", "true")
+                        .with(peticion -> { peticion.setRemoteAddr("203.0.113.7"); return peticion; }))
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(logAuditoriaRepository.findAll())
+                .anySatisfy(log -> {
+                    assertThat(log.getDetalle()).isEqualTo("Creó el curso: " + nombre);
+                    assertThat(log.getIp()).isEqualTo("203.0.113.7");
+                });
+    }
+
+    @Test
+    void unaAccionFueraDeUnaPeticionWebQuedaSinIp() {
+        // Spring Test deja una petición simulada en el hilo; se quita para imitar una tarea programada.
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+        Curso curso = cursoAutodidacta("Curso sin IP " + UUID.randomUUID());
+        curso.setHoras(new BigDecimal("4"));
+        adminCursoService.crear(curso, admin);
+
+        assertThat(logAuditoriaRepository.findAll())
+                .anySatisfy(log -> {
+                    assertThat(log.getDetalle()).isEqualTo("Creó el curso: " + curso.getNombre());
+                    assertThat(log.getIp()).isNull();
+                });
+    }
+
+    @Test
+    void conSesionActivaElLoginRedirigeAlPanelEnVezDeAbrirOtraSesion() throws Exception {
+        com.pucp.skillb_ia.security.SesionActivaLoginFilter filtro = new com.pucp.skillb_ia.security.SesionActivaLoginFilter();
+        for (String metodo : new String[]{"GET", "POST"}) {
+            org.springframework.mock.web.MockHttpServletResponse respuesta = new org.springframework.mock.web.MockHttpServletResponse();
+            org.springframework.mock.web.MockFilterChain cadena = new org.springframework.mock.web.MockFilterChain();
+
+            filtro.doFilter(new org.springframework.mock.web.MockHttpServletRequest(metodo, "/login"), respuesta, cadena);
+
+            assertThat(respuesta.getRedirectedUrl()).as(metodo).isEqualTo("/admin/dashboard");
+            assertThat(cadena.getRequest()).as("%s no debe procesar el login", metodo).isNull();
+        }
+    }
+
+    @Test
+    void sinSesionElLoginSeMuestraNormalmente() throws Exception {
+        SecurityContextHolder.clearContext();
+        org.springframework.mock.web.MockHttpServletResponse respuesta = new org.springframework.mock.web.MockHttpServletResponse();
+        org.springframework.mock.web.MockFilterChain cadena = new org.springframework.mock.web.MockFilterChain();
+
+        new com.pucp.skillb_ia.security.SesionActivaLoginFilter()
+                .doFilter(new org.springframework.mock.web.MockHttpServletRequest("GET", "/login"), respuesta, cadena);
+
+        assertThat(respuesta.getRedirectedUrl()).isNull();
+        assertThat(cadena.getRequest()).isNotNull();
+    }
+
+    @Test
+    void conSesionActivaLasDemasRutasNoSeAfectan() throws Exception {
+        org.springframework.mock.web.MockHttpServletResponse respuesta = new org.springframework.mock.web.MockHttpServletResponse();
+        org.springframework.mock.web.MockFilterChain cadena = new org.springframework.mock.web.MockFilterChain();
+
+        new com.pucp.skillb_ia.security.SesionActivaLoginFilter()
+                .doFilter(new org.springframework.mock.web.MockHttpServletRequest("GET", "/admin/usuarios"), respuesta, cadena);
+
+        assertThat(respuesta.getRedirectedUrl()).isNull();
+        assertThat(cadena.getRequest()).isNotNull();
+    }
+
+    @Test
+    void unPostSinTokenCsrfSeRechazaAunqueHayaSesion() throws Exception {
+        String telefonoAntes = usuarioRepository.findById(admin.getId()).orElseThrow().getTelefono();
+
+        mockMvcConSeguridad().perform(post("/admin/perfil/telefono").param("telefono", "911222333")
+                        .session(sesionDe(admin)))
+                .andExpect(status().isForbidden());
+
+        assertThat(usuarioRepository.findById(admin.getId()).orElseThrow().getTelefono()).isEqualTo(telefonoAntes);
+        assertThat(logAuditoriaRepository.findAll())
+                .anyMatch(log -> log.getDetalle() != null
+                        && log.getDetalle().equals("Petición rechazada por token CSRF ausente o inválido: POST /admin/perfil/telefono"));
+    }
+
+    @Test
+    void unPostConElTokenCsrfDelFormularioSeAcepta() throws Exception {
+        MockMvc mvc = mockMvcConSeguridad();
+        org.springframework.mock.web.MockHttpSession sesion = sesionDe(admin);
+        String html = mvc.perform(get("/admin/perfil").session(sesion))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        java.util.regex.Matcher campo = java.util.regex.Pattern
+                .compile("name=\"_csrf\" value=\"([^\"]+)\"").matcher(html);
+        assertThat(campo.find()).as("los formularios th:action llevan el token").isTrue();
+
+        mvc.perform(post("/admin/perfil/telefono").param("telefono", "911222333")
+                        .param("_csrf", campo.group(1)).session(sesion))
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(usuarioRepository.findById(admin.getId()).orElseThrow().getTelefono()).isEqualTo("911222333");
+    }
+
+    private MockMvc mockMvcConSeguridad() {
+        return MockMvcBuilders.webAppContextSetup(context)
+                .addFilters(context.getBean("springSecurityFilterChain", jakarta.servlet.Filter.class))
+                .build();
+    }
+
+    private org.springframework.mock.web.MockHttpSession sesionDe(Usuario usuario) {
+        UsuarioDetails details = new UsuarioDetails(usuario);
+        org.springframework.mock.web.MockHttpSession sesion = new org.springframework.mock.web.MockHttpSession();
+        sesion.setAttribute(org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new org.springframework.security.core.context.SecurityContextImpl(
+                        new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities())));
+        return sesion;
     }
 
     private Curso cursoAutodidacta(String nombre) {

@@ -117,6 +117,16 @@ public class AuthService {
     }
 
     private void enviarNuevoTokenActivacion(Usuario usuario) {
+        // Al reenviar, el enlace anterior que no se usó deja de servir: se marca como vencido (no como
+        // "usado", porque eso mostraría "Esta cuenta ya fue activada" en vez de "El enlace ya no es válido").
+        LocalDateTime ahora = LocalDateTime.now();
+        for (TokenUsuario anterior : tokenUsuarioRepository.findByUsuarioAndTipoAndUsadoFalse(usuario, TipoToken.ACTIVACION)) {
+            if (anterior.getFechaExpiracion().isAfter(ahora)) {
+                anterior.setFechaExpiracion(ahora.minusSeconds(1));
+                tokenUsuarioRepository.save(anterior);
+            }
+        }
+
         TokenUsuario token = new TokenUsuario();
         token.setUsuario(usuario);
         token.setTipo(TipoToken.ACTIVACION);
@@ -193,7 +203,7 @@ public class AuthService {
     // ya reflejado en el mensaje de recuperar-contrasena.html.
     @Transactional
     public void solicitarRecuperacion(String correo) {
-        usuarioRepository.findByCorreo(correo).ifPresent(usuario -> {
+        usuarioRepository.findByCorreo(correo).filter(this::puedeRecuperarContrasena).ifPresent(usuario -> {
             String codigo = generarCodigoNumericoUnico(6);
             TokenUsuario token = new TokenUsuario();
             token.setUsuario(usuario);
@@ -208,12 +218,21 @@ public class AuthService {
 
     // Se valida contra el correo Y el código a la vez, para que un código no
     // pueda probarse contra un correo distinto del que lo solicitó.
+    @Transactional(readOnly = true)
     public Optional<TokenUsuario> validarCodigoRecuperacion(String correo, String codigo) {
         return tokenUsuarioRepository.findByToken(codigo)
                 .filter(t -> t.getTipo() == TipoToken.RECUPERACION)
                 .filter(t -> !t.isUsado())
                 .filter(t -> t.getFechaExpiracion().isAfter(LocalDateTime.now()))
-                .filter(t -> t.getUsuario().getCorreo().equalsIgnoreCase(correo));
+                .filter(t -> t.getUsuario().getCorreo().equalsIgnoreCase(correo))
+                .filter(t -> puedeRecuperarContrasena(t.getUsuario()));
+    }
+
+    // Solo una cuenta ya activada (con contraseña) y activa puede recuperar su contraseña. Una cuenta
+    // invitada que nunca se activó debe usar su enlace de activación: si pudiera "recuperar", pondría
+    // una contraseña sin pasar por el pre-registro ni por la aprobación del Administrador.
+    private boolean puedeRecuperarContrasena(Usuario usuario) {
+        return usuario.isActivo() && usuario.getPasswordHash() != null;
     }
 
     @Transactional
@@ -222,6 +241,7 @@ public class AuthService {
                 .filter(t -> t.getTipo() == TipoToken.RECUPERACION)
                 .filter(t -> !t.isUsado())
                 .filter(t -> t.getFechaExpiracion().isAfter(LocalDateTime.now()))
+                .filter(t -> puedeRecuperarContrasena(t.getUsuario()))
                 .orElseThrow(() -> new IllegalStateException("El código de recuperación no es válido o expiró."));
 
         Usuario usuario = token.getUsuario();

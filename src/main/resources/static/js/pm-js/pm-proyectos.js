@@ -63,6 +63,7 @@ if (cancelModal) {
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/pm/proyectos/' + projectId + '/cancelar';
+            agregarCsrfAFormulario(form);
             document.body.appendChild(form);
             form.submit();
         };

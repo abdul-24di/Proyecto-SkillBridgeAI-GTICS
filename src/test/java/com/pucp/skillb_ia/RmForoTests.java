@@ -148,13 +148,15 @@ class RmForoTests {
                 .andExpect(model().attributeExists(
                         "foros", "totalForos", "totalActivos", "totalPublicaciones"));
 
-        mockMvc.perform(get("/rm/foros/detalle")
+        String html = mockMvc.perform(get("/rm/foros/detalle")
                         .param("id", foro.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("rm/rm-foro-detalle"))
                 .andExpect(model().attributeExists("foro", "ordenActual"))
-                .andExpect(content().string(org.hamcrest.Matchers.not(
-                        org.hamcrest.Matchers.containsString("method=\"post\""))));
+                .andReturn().getResponse().getContentAsString();
+        // El foro es de solo lectura para el RM; el único POST permitido es el "Salir" del topbar.
+        String contenido = html.substring(html.indexOf("</header>"));
+        org.junit.jupiter.api.Assertions.assertFalse(contenido.contains("method=\"post\""));
     }
 
     // TASK-032: la vista raíz muestra directamente el encabezado, sin ruta de navegación de un solo elemento.

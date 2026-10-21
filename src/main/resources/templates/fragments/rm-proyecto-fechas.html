@@ -14,7 +14,7 @@
       th:action="@{/rm/proyectos/{id}/fechas(id=${proyecto.id})}"
       th:with="inicioActual=${proyecto.fechaInicio},
                minInicio=${inicioActual != null and inicioActual.isBefore(#temporals.createToday()) ? inicioActual : #temporals.createToday()}">
-  <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+  <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
   <input type="hidden" name="origen" th:value="${origen}">
   <div class="col-12">
     <div class="info-label">Cambiar fechas del proyecto</div>

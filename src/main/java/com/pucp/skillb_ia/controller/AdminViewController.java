@@ -482,13 +482,14 @@ public class AdminViewController {
         out.write(0xBB);
         out.write(0xBF);
 
-        StringBuilder csv = new StringBuilder("Fecha y hora,Usuario,Rol,Tipo de accion,Detalle\n");
+        StringBuilder csv = new StringBuilder("Fecha y hora,Usuario,Rol,Tipo de accion,Detalle,IP\n");
         for (AdminAuditoriaService.LogFila log : logs) {
             csv.append(csvEscapar(log.fecha())).append(',')
                     .append(csvEscapar(log.usuarioNombre())).append(',')
                     .append(csvEscapar(log.rolEtiqueta())).append(',')
                     .append(csvEscapar(log.accionEtiqueta())).append(',')
-                    .append(csvEscapar(log.detalle())).append('\n');
+                    .append(csvEscapar(log.detalle())).append(',')
+                    .append(csvEscapar(log.ip())).append('\n');
         }
         out.write(csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
         out.flush();
@@ -509,7 +510,7 @@ public class AdminViewController {
 
         try (org.apache.poi.xssf.usermodel.XSSFWorkbook libro = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
             org.apache.poi.ss.usermodel.Sheet hoja = libro.createSheet("Auditoria");
-            String[] encabezados = {"Fecha y hora", "Usuario", "Rol", "Tipo de accion", "Detalle"};
+            String[] encabezados = {"Fecha y hora", "Usuario", "Rol", "Tipo de accion", "Detalle", "IP"};
             org.apache.poi.ss.usermodel.Row filaEncabezado = hoja.createRow(0);
             for (int i = 0; i < encabezados.length; i++) {
                 filaEncabezado.createCell(i).setCellValue(encabezados[i]);
@@ -523,6 +524,7 @@ public class AdminViewController {
                 fila.createCell(2).setCellValue(log.rolEtiqueta());
                 fila.createCell(3).setCellValue(log.accionEtiqueta());
                 fila.createCell(4).setCellValue(log.detalle() != null ? log.detalle() : "");
+                fila.createCell(5).setCellValue(log.ip());
             }
             for (int i = 0; i < encabezados.length; i++) {
                 hoja.autoSizeColumn(i);

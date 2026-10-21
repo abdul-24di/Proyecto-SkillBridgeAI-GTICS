@@ -161,7 +161,7 @@
               th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}"
               data-rm-budget-form
               th:attr="data-presupuesto-anterior=${proyecto.proyecto.presupuesto != null ? proyecto.proyecto.presupuesto.toPlainString() : ''}">
-          <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+          <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
           <div class="col-md-8">
             <label for="projectBudget" class="form-label">Presupuesto asignado (S/)</label>
             <input id="projectBudget" name="presupuesto" type="text" class="form-control"

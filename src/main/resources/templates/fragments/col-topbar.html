@@ -3,6 +3,8 @@
 <body>
 
 <header class="topbar" th:fragment="topbar(activeSection)">
+  <meta name="_csrf" th:content="${_csrf?.token}">
+  <meta name="_csrf_header" th:content="${_csrf?.headerName}">
     <div class="container-xl">
         <a href="../col/col-dashboard.html" class="brand" th:href="@{/colaborador/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
 
@@ -34,7 +36,7 @@
                     <div class="small">Colaborador</div>
                 </div>
             </a>
-            <a href="/logout" th:href="@{/logout}" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
+            <form th:action="@{/logout}" method="post" class="m-0 d-flex"><button type="submit" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                     <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>
@@ -42,8 +44,9 @@
                     <path d="M18 15l3 -3"></path>
                 </svg>
                 Salir
-            </a>
+            </button></form>
         </div>  </div>
+    <script th:src="@{/js/csrf.js}" src="../static/js/csrf.js"></script>
     <script th:src="@{/js/notificaciones.js}" src="../static/js/notificaciones.js"></script>
 </header>
 

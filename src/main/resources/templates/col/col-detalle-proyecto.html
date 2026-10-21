@@ -678,6 +678,8 @@
                 </div>
 
                 <form id="detalleActividadForm" method="post" enctype="multipart/form-data">
+                    <!-- El action lo pone el JS, por eso el token CSRF va a mano (sin th:action Thymeleaf no lo agrega). -->
+                    <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
                     <hr>
                     <div class="mb-3">
                         <label class="form-label">Evidencia (PDF, JPG o PNG) <span class="text-red">*</span></label>

@@ -49,6 +49,7 @@ public class AdminAuditoriaService {
 
     static {
         ENTIDAD_A_ETIQUETA.put("USUARIO", "Gestión de usuarios");
+        ENTIDAD_A_ETIQUETA.put("RUTA", "Seguridad");
         ENTIDAD_A_ETIQUETA.put("HABILIDAD", "Catálogo de habilidades");
         ENTIDAD_A_ETIQUETA.put("CATEGORIA_HABILIDAD", "Categorías de habilidades");
         ENTIDAD_A_ETIQUETA.put("CARGO", "Cargos y tarifas");
@@ -68,6 +69,7 @@ public class AdminAuditoriaService {
 
         // Auth / usuarios
         ACCION_A_ETIQUETA.put("LOGIN", "Inicio de sesión");
+        ACCION_A_ETIQUETA.put("ACCESO_DENEGADO", "Acceso denegado");
         ACCION_A_ETIQUETA.put("CREAR_USUARIO", "Creó usuario");
         ACCION_A_ETIQUETA.put("REENVIAR_ACTIVACION", "Reenvió activación");
         ACCION_A_ETIQUETA.put("ENVIO_CORREO_ACTIVACION", "Envió correo de activación");
@@ -151,7 +153,7 @@ public class AdminAuditoriaService {
 
     public record LogFila(String fecha, LocalDate fechaSolo, String usuarioNombre, String usuarioRolNombre,
                            String rolEtiqueta, String rolBadgeClase, String entidad, String accion,
-                           String accionEtiqueta, String accionBadgeClase, String detalle) {
+                           String accionEtiqueta, String accionBadgeClase, String detalle, String ip) {
     }
 
     public record AccionOpcion(String valor, String etiqueta) {
@@ -241,7 +243,7 @@ public class AdminAuditoriaService {
 
         return new LogFila(l.getFechaHora().format(FECHA_FORMATO), l.getFechaHora().toLocalDate(),
                 usuarioNombre, rolNombre, rolEtiqueta, rolBadge, entidad, accion, accionEtiqueta, accionBadge,
-                l.getDetalle());
+                l.getDetalle(), l.getIp() != null ? l.getIp() : "—");
     }
 
     private static String etiquetaAccion(String accion) {

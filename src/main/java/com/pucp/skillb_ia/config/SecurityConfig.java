@@ -1,12 +1,15 @@
 package com.pucp.skillb_ia.config;
 
+import com.pucp.skillb_ia.security.RegistroAccesoDenegadoHandler;
 import com.pucp.skillb_ia.security.RoleRedirectSuccessHandler;
+import com.pucp.skillb_ia.security.SesionActivaLoginFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 // Épica 2 — Historia de Inicio de sesión + Historia de Gestión de sesión.
 // El formulario de auth/login.html ya usa los nombres por defecto de Spring
@@ -29,10 +32,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, RoleRedirectSuccessHandler successHandler) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, RoleRedirectSuccessHandler successHandler,
+                                           RegistroAccesoDenegadoHandler accesoDenegadoHandler) throws Exception {
         http
+            // Con sesión activa, /login lleva al panel del rol: no se puede iniciar otra sesión encima.
+            .addFilterBefore(new SesionActivaLoginFilter(), UsernamePasswordAuthenticationFilter.class)
+            // Rol equivocado: se registra el intento en la auditoría y se muestra la página 403 propia.
+            .exceptionHandling(excepciones -> excepciones.accessDeniedHandler(accesoDenegadoHandler))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/js/**", "/img/**", "/uploads/**", "/favicon.ico", "/tabler/**", "/documentos/**", "/plantillas/**").permitAll()
+                // /uploads/** (CV, certificados, fotos, evidencias) no es público: exige sesión, por la
+                // regla anyRequest().authenticated() de abajo.
+                .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico", "/tabler/**", "/documentos/**", "/plantillas/**").permitAll()
                 .requestMatchers("/", "/login", "/login.html").permitAll()
                 .requestMatchers("/activar-cuenta", "/activar-cuenta.html").permitAll()
                 .requestMatchers("/recuperar", "/recuperar-contrasena.html").permitAll()
@@ -45,10 +55,9 @@ public class SecurityConfig {
                 .requestMatchers("/colaborador/**").hasRole("COLABORADOR")
                 .anyRequest().authenticated()
             )
-            // Simplificación deliberada: los formularios existentes (auth, admin,
-            // etc.) todavía no llevan el campo oculto de token CSRF. Retomar esto
-            // cuando se agregue CSRF a todos los forms del proyecto, no solo a Auth.
-            .csrf(csrf -> csrf.disable())
+            // CSRF activo (configuración por defecto de Spring Security): todo POST debe traer el token.
+            // Los <form th:action> lo reciben solos; los formularios cuyo action pone el JS lo llevan en un
+            // campo oculto, y los fetch lo mandan en una cabecera con /js/csrf.js. Por eso el logout es POST.
 
             .formLogin(form -> form
                 .loginPage("/login")

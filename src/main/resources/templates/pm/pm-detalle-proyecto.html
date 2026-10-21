@@ -71,7 +71,15 @@
         <a th:if="${proyecto.puedeCancelar}" href="#" data-bs-toggle="modal" data-bs-target="#cancelProjectModal" class="btn btn-outline-danger">Cancelar proyecto</a>
       </div>
     </div>
-    
+
+    <!-- TASK-060: motivo registrado por el RM al cancelar o finalizar el proyecto. -->
+    <div class="alert mb-4"
+         th:if="${(proyecto.proyecto.estado.name() == 'CANCELADO' or proyecto.proyecto.estado.name() == 'FINALIZADO') and proyecto.proyecto.motivoCierre != null and !proyecto.proyecto.motivoCierre.isBlank()}"
+         th:classappend="${proyecto.proyecto.estado.name() == 'CANCELADO'} ? 'alert-danger' : 'alert-secondary'">
+      <strong th:text="${proyecto.proyecto.estado.name() == 'CANCELADO'} ? 'Motivo de cancelación:' : 'Motivo de finalización:'">Motivo:</strong>
+      <span th:text="${proyecto.proyecto.motivoCierre}">Motivo.</span>
+    </div>
+
     <div class="row row-cards mb-4">
       <div class="col-sm-6 col-lg-3">
         <div class="card metric-card h-100">

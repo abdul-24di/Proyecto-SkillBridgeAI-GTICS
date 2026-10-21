@@ -14,6 +14,8 @@ import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.dto.RmReporteView;
 import com.pucp.skillb_ia.dto.RmCursoView;
+import com.pucp.skillb_ia.dto.RmEducacionView;
+import com.pucp.skillb_ia.model.enums.EstadoCertificado;
 import com.pucp.skillb_ia.model.enums.MotivoFinalizacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
@@ -51,8 +53,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 @Controller
@@ -360,8 +364,6 @@ public class RmViewController {
     @PostMapping("/proyectos/{id}/aprobar")
     public String approveProject(
             @PathVariable("id") Long proyectoId,
-            @RequestParam(name = "calificacion", required = false) Integer calificacion,
-            @RequestParam(name = "feedback", required = false) String feedback,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
@@ -675,6 +677,8 @@ public class RmViewController {
                     rmAsignacionService.proyectosConAsignacionVigente(colaboradorId));
             model.addAttribute("sueldoColaborador",
                     rmColaboradorConsultaService.mapaSueldosBase().get(colaboradorId));
+            model.addAttribute("evaluaciones",
+                    evaluacionService.obtenerEvaluacionesPorColaborador(colaboradorId));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/colaboradores?noEncontrado=true";
         }
@@ -856,6 +860,38 @@ public class RmViewController {
         model.addAttribute("totalColaboradores", formaciones.stream()
                 .map(item -> item.getEducacion().getColaborador().getId()).distinct().count());
         return "rm/rm-educacion-pendiente";
+    }
+
+    // Historial de formaciones ya revisadas (TASK-061): filtros y paginación en el servidor.
+    @GetMapping("/colaboradores/educacion/historial")
+    public String educationHistory(
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String institucion,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String colaborador,
+            @RequestParam(required = false) String pagina,
+            Model model) {
+        var revisadas = rmEducacionService.listarRevisadas();
+        var filtros = rmEducacionService.normalizarFiltrosHistorial(busqueda, institucion, estado, colaborador, revisadas);
+        var paginaEducacion = rmEducacionService.paginarRevisadas(revisadas, filtros, pagina);
+        model.addAttribute("formaciones", paginaEducacion.filas());
+        model.addAttribute("paginaActual", paginaEducacion.paginaActual());
+        model.addAttribute("totalPaginas", paginaEducacion.totalPaginas());
+        model.addAttribute("totalRegistros", paginaEducacion.totalRegistros());
+        model.addAttribute("tamanioPagina", RmEducacionService.TAMANIO_PAGINA);
+        model.addAttribute("instituciones", rmEducacionService.institucionesDisponibles(revisadas));
+        model.addAttribute("busqueda", filtros.busqueda());
+        model.addAttribute("institucion", filtros.institucion());
+        model.addAttribute("estado", filtros.estado() == null ? null : filtros.estado().name());
+        model.addAttribute("colaborador", filtros.colaboradorId());
+        model.addAttribute("colaboradorNombre", filtros.colaboradorId() == null ? null : revisadas.stream()
+                .filter(item -> filtros.colaboradorId().equals(item.getEducacion().getColaborador().getId()))
+                .map(RmEducacionView::getColaboradorNombre).findFirst().orElse(null));
+        model.addAttribute("totalAprobadas", revisadas.stream()
+                .filter(item -> item.getEducacion().getEstado() == EstadoCertificado.APROBADO).count());
+        model.addAttribute("totalRechazadas", revisadas.stream()
+                .filter(item -> item.getEducacion().getEstado() == EstadoCertificado.RECHAZADO).count());
+        return "rm/rm-educacion-historial";
     }
 
     @GetMapping("/colaboradores/educacion/revision")
@@ -1107,6 +1143,9 @@ public class RmViewController {
         model.addAttribute("estado", filtros.estado());
         model.addAttribute("proyectoId", filtros.proyectoId());
         model.addAttribute("proyectoNombre", filtros.proyectoNombre());
+        // TASK-062: los detalles reciben los filtros y la página para volver a la misma bandeja tras decidir.
+        model.addAttribute("sufijoBandeja", sufijoFiltrosBandeja(filtrosBandeja(
+                grupo, busqueda, origen, estado, String.valueOf(paginaAsignaciones.paginaActual()))));
         model.addAttribute("pendientesRm", contadores.pendientesRm());
         model.addAttribute("pendientesPm", contadores.pendientesPm());
         model.addAttribute("solicitudesColaborador", contadores.solicitudesColaborador());
@@ -1121,16 +1160,25 @@ public class RmViewController {
     public String assignmentReview(
             @RequestParam(name = "id", required = false) Long asignacionId,
             @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(required = false) String grupo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String origenBandeja,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String pagina,
             Model model) {
         if (asignacionId == null) return "redirect:/rm/asignaciones";
+        var filtrosBandeja = filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina);
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
-            if (!asignacion.isRequiereDecisionRm()) return redirectDetalleAsignacion(asignacion, origen);
+            if (!asignacion.isRequiereDecisionRm()) {
+                return redirectDetalleAsignacion(asignacion, origen, filtrosBandeja);
+            }
             model.addAttribute("asignacion", asignacion);
             model.addAttribute("impacto", rmPresupuestoService.calcularImpacto(
                     asignacion.getAsignacion().getProyecto(), asignacion.getAsignacion().getColaborador(),
                     asignacion.getAsignacion().getHorasSemanales()));
-            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen));
+            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen, filtrosBandeja));
+            model.addAttribute("filtrosBandeja", filtrosBandeja);
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
@@ -1141,16 +1189,25 @@ public class RmViewController {
     public String applicationReview(
             @RequestParam(name = "id", required = false) Long asignacionId,
             @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(required = false) String grupo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String origenBandeja,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String pagina,
             Model model) {
         if (asignacionId == null) return "redirect:/rm/asignaciones";
+        var filtrosBandeja = filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina);
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
-            if (!asignacion.isRequiereDecisionRm()) return redirectDetalleAsignacion(asignacion, origen);
+            if (!asignacion.isRequiereDecisionRm()) {
+                return redirectDetalleAsignacion(asignacion, origen, filtrosBandeja);
+            }
             model.addAttribute("asignacion", asignacion);
             model.addAttribute("impacto", rmPresupuestoService.calcularImpacto(
                     asignacion.getAsignacion().getProyecto(), asignacion.getAsignacion().getColaborador(),
                     asignacion.getAsignacion().getHorasSemanales()));
-            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen));
+            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen, filtrosBandeja));
+            model.addAttribute("filtrosBandeja", filtrosBandeja);
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
@@ -1161,13 +1218,20 @@ public class RmViewController {
     public String pendingPmAssignment(
             @RequestParam(name = "id", required = false) Long asignacionId,
             @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(required = false) String grupo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String origenBandeja,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String pagina,
             Model model) {
         if (asignacionId == null) return "redirect:/rm/asignaciones";
+        var filtrosBandeja = filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina);
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
-            if (!asignacion.isPendientePm()) return redirectDetalleAsignacion(asignacion, origen);
+            if (!asignacion.isPendientePm()) return redirectDetalleAsignacion(asignacion, origen, filtrosBandeja);
             model.addAttribute("asignacion", asignacion);
-            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen));
+            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen, filtrosBandeja));
+            model.addAttribute("filtrosBandeja", filtrosBandeja);
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
@@ -1178,15 +1242,22 @@ public class RmViewController {
     public String activeAssignment(
             @RequestParam(name = "id", required = false) Long asignacionId,
             @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(required = false) String grupo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String origenBandeja,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String pagina,
             Model model) {
         if (asignacionId == null) return "redirect:/rm/asignaciones";
+        var filtrosBandeja = filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina);
         try {
             RmAsignacionView asignacion = rmAsignacionService.obtener(asignacionId);
             if (asignacion.isRequiereDecisionRm() || asignacion.isPendientePm()) {
-                return redirectDetalleAsignacion(asignacion, origen);
+                return redirectDetalleAsignacion(asignacion, origen, filtrosBandeja);
             }
             model.addAttribute("asignacion", asignacion);
-            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen));
+            model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen, filtrosBandeja));
+            model.addAttribute("filtrosBandeja", filtrosBandeja);
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/asignaciones";
         }
@@ -1202,7 +1273,8 @@ public class RmViewController {
     }
 
     // Migas y regreso armados con el colaborador y el proyecto de la propia asignación, no con datos del navegador.
-    private RmNavegacionView navegacionAsignacion(RmAsignacionView asignacion, String origen) {
+    private RmNavegacionView navegacionAsignacion(
+            RmAsignacionView asignacion, String origen, Map<String, Object> filtrosBandeja) {
         String origenValido = origenDetalleAsignacion(origen);
         String actual = "Asignación #" + asignacion.getAsignacion().getId();
         if ("colaborador".equals(origenValido)) {
@@ -1217,22 +1289,29 @@ public class RmViewController {
         }
         if ("proyecto".equals(origenValido)) {
             var proyecto = asignacion.getAsignacion().getProyecto();
-            String asignacionesProyecto = "/rm/asignaciones?proyectoId=" + proyecto.getId();
+            String asignacionesProyecto = urlBandejaAsignaciones(proyecto.getId(), filtrosBandeja);
             return new RmNavegacionView(origenValido, List.of(
                     new RmNavegacionView.Miga("Proyectos", "/rm/proyectos"),
                     new RmNavegacionView.Miga(proyecto.getNombre(), "/rm/proyectos/detalle?id=" + proyecto.getId()),
                     new RmNavegacionView.Miga("Asignaciones", asignacionesProyecto)),
                     actual, asignacionesProyecto, "Volver a las asignaciones del proyecto");
         }
+        String bandeja = urlBandejaAsignaciones(null, filtrosBandeja);
         return new RmNavegacionView(origenValido,
-                List.of(new RmNavegacionView.Miga("Asignaciones", "/rm/asignaciones")),
-                actual, "/rm/asignaciones", "Volver a asignaciones");
+                List.of(new RmNavegacionView.Miga("Asignaciones", bandeja)),
+                actual, bandeja, "Volver a asignaciones");
     }
 
     @PostMapping("/asignaciones/{id}/aprobar")
     public String approveAssignment(
             @PathVariable("id") Long asignacionId,
             @RequestParam(name = "motivoCapacidad", required = false) String motivoCapacidad,
+            @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(required = false) String grupo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String origenBandeja,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String pagina,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
@@ -1243,13 +1322,20 @@ public class RmViewController {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
         }
-        return "redirect:/rm/asignaciones";
+        return "redirect:" + destinoTrasDecision(
+                asignacionId, origen, filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina));
     }
 
     @PostMapping("/asignaciones/{id}/rechazar")
     public String rejectAssignment(
             @PathVariable("id") Long asignacionId,
             @RequestParam("motivo") String motivo,
+            @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(required = false) String grupo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String origenBandeja,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String pagina,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
@@ -1260,7 +1346,8 @@ public class RmViewController {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
         }
-        return "redirect:/rm/asignaciones";
+        return "redirect:" + destinoTrasDecision(
+                asignacionId, origen, filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina));
     }
 
     @PostMapping("/asignaciones/{id}/finalizar")
@@ -1270,6 +1357,12 @@ public class RmViewController {
             @RequestParam(name = "observacion", required = false) String observacion,
             @RequestParam(name = "calificacion", required = false) Integer calificacion,
             @RequestParam(name = "feedback", required = false) String feedback,
+            @RequestParam(name = "origen", required = false) String origen,
+            @RequestParam(required = false) String grupo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String origenBandeja,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String pagina,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
@@ -1283,23 +1376,93 @@ public class RmViewController {
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
         }
-        return "redirect:/rm/asignaciones";
+        return "redirect:" + destinoTrasDecision(
+                asignacionId, origen, filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina));
     }
 
     // Conserva el origen solo si pertenece a la lista cerrada de los detalles (TASK-026).
     private String redirectDetalleAsignacion(RmAsignacionView asignacion, String origen) {
-        Long id = asignacion.getAsignacion().getId();
-        String origenValido = origenDetalleAsignacion(origen);
-        String sufijo = origenValido == null ? "" : "&origen=" + origenValido;
+        return redirectDetalleAsignacion(asignacion, origen, Map.of());
+    }
+
+    // TASK-062: también conserva los filtros de la bandeja ya normalizados.
+    private String redirectDetalleAsignacion(
+            RmAsignacionView asignacion, String origen, Map<String, Object> filtrosBandeja) {
+        String ruta;
         if (asignacion.isRequiereDecisionRm()) {
-            return asignacion.isSolicitudColaborador()
-                    ? "redirect:/rm/asignaciones/revision-postulacion?id=" + id + sufijo
-                    : "redirect:/rm/asignaciones/revision?id=" + id + sufijo;
+            ruta = asignacion.isSolicitudColaborador()
+                    ? "/rm/asignaciones/revision-postulacion" : "/rm/asignaciones/revision";
+        } else if (asignacion.isPendientePm()) {
+            ruta = "/rm/asignaciones/pendiente-pm";
+        } else {
+            ruta = "/rm/asignaciones/activa";
         }
-        if (asignacion.isPendientePm()) {
-            return "redirect:/rm/asignaciones/pendiente-pm?id=" + id + sufijo;
+        Map<String, Object> valores = new LinkedHashMap<>();
+        valores.put("id", asignacion.getAsignacion().getId());
+        String origenValido = origenDetalleAsignacion(origen);
+        if (origenValido != null) valores.put("origen", origenValido);
+        valores.putAll(filtrosBandeja);
+        return "redirect:" + construirUrl(ruta, valores);
+    }
+
+    // TASK-062: filtros de la bandeja que viajan por los detalles y las decisiones. Solo esta lista cerrada,
+    // normalizada por el servicio; los valores por defecto no se agregan. El filtro "origen" de la bandeja
+    // viaja como "origenBandeja" para no chocar con el origen de navegación (TASK-026).
+    private Map<String, Object> filtrosBandeja(
+            String grupo, String busqueda, String origenBandeja, String estado, String pagina) {
+        var filtros = rmAsignacionService.normalizarFiltros(grupo, busqueda, origenBandeja, estado, null);
+        Map<String, Object> valores = new LinkedHashMap<>();
+        if (!RmAsignacionService.GRUPO_POR_DEFECTO.equals(filtros.grupo())) valores.put("grupo", filtros.grupo());
+        if (filtros.busqueda() != null) valores.put("busqueda", filtros.busqueda());
+        if (filtros.origen() != null) valores.put("origenBandeja", filtros.origen());
+        if (filtros.estado() != null) valores.put("estado", filtros.estado());
+        try {
+            int numeroPagina = Integer.parseInt(pagina == null ? "" : pagina.trim());
+            if (numeroPagina > 1) valores.put("pagina", numeroPagina);
+        } catch (NumberFormatException ignorado) {
+            // Página vacía o inválida: la bandeja abre la primera.
         }
-        return "redirect:/rm/asignaciones/activa?id=" + id + sufijo;
+        return valores;
+    }
+
+    // Bandeja con sus filtros; el proyecto sale siempre de la asignación, nunca del navegador.
+    private String urlBandejaAsignaciones(Long proyectoId, Map<String, Object> filtrosBandeja) {
+        Map<String, Object> valores = new LinkedHashMap<>();
+        if (proyectoId != null) valores.put("proyectoId", proyectoId);
+        filtrosBandeja.forEach((nombre, valor) ->
+                valores.put("origenBandeja".equals(nombre) ? "origen" : nombre, valor));
+        return construirUrl("/rm/asignaciones", valores);
+    }
+
+    // Destino tras aprobar, rechazar o finalizar (TASK-062): la vista desde la que se abrió la asignación.
+    private String destinoTrasDecision(Long asignacionId, String origen, Map<String, Object> filtrosBandeja) {
+        String origenValido = origenDetalleAsignacion(origen);
+        if ("colaborador".equals(origenValido) || "proyecto".equals(origenValido)) {
+            try {
+                var asignacion = rmAsignacionService.obtener(asignacionId).getAsignacion();
+                if ("colaborador".equals(origenValido)) {
+                    return "/rm/colaboradores/asignaciones?id=" + asignacion.getColaborador().getId();
+                }
+                return urlBandejaAsignaciones(asignacion.getProyecto().getId(), filtrosBandeja);
+            } catch (IllegalArgumentException ex) {
+                return "/rm/asignaciones";
+            }
+        }
+        return urlBandejaAsignaciones(null, filtrosBandeja);
+    }
+
+    // Parámetros de los filtros como "&clave=valor…" (codificados) para los enlaces de la bandeja a sus detalles.
+    private static String sufijoFiltrosBandeja(Map<String, Object> filtrosBandeja) {
+        if (filtrosBandeja.isEmpty()) return "";
+        String url = construirUrl("/", filtrosBandeja);
+        return "&" + url.substring(url.indexOf('?') + 1);
+    }
+
+    // Cada valor va como variable de URI: se codifica completo (incluidos "+", "&" y tildes).
+    private static String construirUrl(String ruta, Map<String, Object> valores) {
+        UriComponentsBuilder url = UriComponentsBuilder.fromPath(ruta);
+        valores.keySet().forEach(nombre -> url.queryParam(nombre, "{" + nombre + "}"));
+        return url.encode().buildAndExpand(valores).toUriString();
     }
 
     @GetMapping({"/asignaciones/solicitudes-colaboradores", "/rm-solicitudes-colaboradores.html"})

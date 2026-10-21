@@ -111,6 +111,24 @@ public class ColaboradorPerfilService {
         return mapa;
     }
 
+    //Motivo del rechazo por habilidad, solo cuando su certificado más reciente fue rechazado.
+    public java.util.Map<Long, String> mapaMotivosRechazoPorHabilidad(Usuario colaborador) {
+        List<Certificado> certificados = certificadoRepository.findByColaboradorIdConDetalle(colaborador.getId());
+        java.util.Map<Long, String> mapa = new java.util.HashMap<>();
+        Set<Long> vistas = new HashSet<>();
+
+        for (Certificado certificado : certificados) {
+            Long habilidadId = certificado.getHabilidad().getId();
+            //Vienen del más reciente al más antiguo: solo cuenta el primero de cada habilidad.
+            if (!vistas.add(habilidadId)) continue;
+            String motivo = certificado.getMotivoRechazo();
+            if (certificado.getEstado() == EstadoCertificado.RECHAZADO && motivo != null && !motivo.isBlank()) {
+                mapa.put(habilidadId, motivo);
+            }
+        }
+        return mapa;
+    }
+
     //Listado de habilidades con las que no cuenta el colaborador
     public List<Habilidad> listarHabilidadesDisponibles(Usuario colaborador) {
         List<ColaboradorHabilidad> misHabilidades = listarHabilidades(colaborador);

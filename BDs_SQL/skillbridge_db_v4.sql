@@ -61,6 +61,7 @@ CREATE TABLE usuario (
     cv_fecha_subida             DATETIME      NULL,
     registro_estado             VARCHAR(20)   NULL,
     motivo_rechazo              VARCHAR(500)  NULL,
+    motivo_cierre               VARCHAR(500)  NULL,
     rol_id                      BIGINT        NOT NULL,
     activo                      BOOLEAN       NOT NULL DEFAULT TRUE,
     fecha_creacion              DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -260,6 +261,7 @@ CREATE TABLE proyecto (
     prioridad                   VARCHAR(10)   NOT NULL,
     justificacion_prioridad     VARCHAR(500)  NOT NULL,
     motivo_rechazo              VARCHAR(500)  NULL,
+    motivo_cierre               VARCHAR(500)  NULL,
     presupuesto_solicitado      DECIMAL(12,2) NULL,
     justificacion_presupuesto   VARCHAR(500)  NULL,
     presupuesto                 DECIMAL(12,2) NULL,
@@ -354,7 +356,7 @@ CREATE TABLE asignacion (
         CHECK (horas_semanales > 0),
 
     CONSTRAINT chk_asignacion_finalizacion
-        CHECK (motivo_finalizacion IS NULL OR motivo_finalizacion IN ('BAJO_DESEMPENO','PROYECTO_CANCELADO','OTRO')),
+        CHECK (motivo_finalizacion IS NULL OR motivo_finalizacion IN ('BAJO_DESEMPENO','PROYECTO_CANCELADO','PROYECTO_FINALIZADO','OTRO')),
 
     CONSTRAINT uq_asignacion_abierta
         UNIQUE (proyecto_id, colaborador_id, estado_abierto)

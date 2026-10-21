@@ -60,7 +60,7 @@
     </div></div></div>
     <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
       <div class="metric-icon bg-red-lt text-red"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>
-      <div><div class="metric-label">Rechazadas este mes</div><div class="metric-number" th:text="${bandeja.rechazadasEsteMes}">0</div></div>
+      <div><div class="metric-label">Solicitudes rechazadas este mes</div><div class="metric-number" th:text="${bandeja.rechazadasEsteMes}">0</div></div>
     </div></div></div>
     <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
       <div class="metric-icon bg-blue-lt text-blue"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
@@ -73,7 +73,7 @@
       <div class="col-xl-4 col-md-6"><label class="form-label" for="busqueda">Buscar colaborador o curso</label><input id="busqueda" name="busqueda" class="form-control" th:value="${busqueda}" placeholder="Nombre, cargo, curso o categoría"></div>
       <div class="col-xl-3 col-md-6"><label class="form-label" for="estado">Estado</label><select id="estado" name="estado" class="form-select"><option value="" th:selected="${estadoSeleccionado == ''}">Todos</option><option value="SOLICITADO" th:selected="${estadoSeleccionado == 'SOLICITADO'}">Pendientes</option><option value="EVIDENCIA_PENDIENTE" th:selected="${estadoSeleccionado == 'EVIDENCIA_PENDIENTE'}">Evidencia en revisión</option><option value="EN_CURSO" th:selected="${estadoSeleccionado == 'EN_CURSO'}">En curso</option><option value="COMPLETADO" th:selected="${estadoSeleccionado == 'COMPLETADO'}">Completados</option>
 
-        <option value="RECHAZADO" th:selected="${estadoSeleccionado == 'RECHAZADO'}">Rechazados</option><option value="NO_COMPLETADO" th:selected="${estadoSeleccionado == 'NO_COMPLETADO'}">No completados</option></select></div>
+        <option value="RECHAZADO" th:selected="${estadoSeleccionado == 'RECHAZADO'}">Rechazados (solicitud o evidencia)</option><option value="SOLICITUD_RECHAZADA" th:selected="${estadoSeleccionado == 'SOLICITUD_RECHAZADA'}">Solicitud rechazada</option><option value="EVIDENCIA_RECHAZADA" th:selected="${estadoSeleccionado == 'EVIDENCIA_RECHAZADA'}">Evidencia rechazada</option><option value="NO_COMPLETADO" th:selected="${estadoSeleccionado == 'NO_COMPLETADO'}">No completados</option></select></div>
 
       <div class="col-xl-3 col-md-6"><label class="form-label" for="origen">Origen</label><select id="origen" name="origen" class="form-select"><option value="">Todos</option><option value="SOLICITUD_COLABORADOR" th:selected="${origenSeleccionado == 'SOLICITUD_COLABORADOR'}">Solicitud del colaborador</option><option value="ASIGNADO_POR_RM" th:selected="${origenSeleccionado == 'ASIGNADO_POR_RM'}">Asignado por RM</option></select></div>
       <div class="col-xl-2 col-md-6 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit">Aplicar</button><a class="btn btn-outline-secondary" th:href="@{/rm/cursos/solicitudes}">Limpiar</a></div>
@@ -99,9 +99,13 @@
         <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
         <td th:text="${#temporals.format(item.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
 
-        <td class="text-secondary small"><span th:text="${item.pendienteGestionRm} ? (${#strings.isEmpty(item.justificacion) ? 'Sin justificación' : item.justificacion}) : (${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta})">—</span>
-          <div th:if="${item.evidenciaRevisadaPor != null}" class="evidencia-revision mt-1"
-               th:text="|Evidencia revisada por ${item.evidenciaRevisadaPor} · ${#temporals.format(item.fechaRevisionEvidencia, 'dd MMM yyyy HH:mm')}|">Evidencia revisada por</div></td>
+        <td class="text-secondary small">
+          <th:block th:if="${item.pendienteGestionRm}"><span class="fw-semibold">Justificación:</span> <span th:text="${#strings.isEmpty(item.justificacion) ? 'Sin justificación' : item.justificacion}">—</span></th:block>
+          <th:block th:if="${!item.pendienteGestionRm and item.motivoEtiqueta != null}"><span class="fw-semibold" th:text="|${item.motivoEtiqueta}:|">Motivo:</span> <span th:text="${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta}">—</span></th:block>
+          <span th:if="${item.situacion == 'EVIDENCIA_PENDIENTE'}" th:text="${item.fechaEvidencia != null} ? |Evidencia enviada el ${#temporals.format(item.fechaEvidencia, 'dd MMM yyyy HH:mm')}| : 'Evidencia enviada'">Evidencia enviada</span>
+          <span th:if="${item.situacion == 'COMPLETADO' and item.revisionTexto == null}">—</span>
+          <div th:if="${item.revisionTexto != null}" class="evidencia-revision mt-1"
+               th:text="|${item.revisionTexto} ${item.evidenciaRevisadaPor} · ${#temporals.format(item.fechaRevisionEvidencia, 'dd MMM yyyy HH:mm')}|">Evidencia revisada por</div></td>
         <td class="text-end">
           <div th:if="${item.pendienteGestionRm}" class="d-flex gap-2 justify-content-end">
             <button type="button" class="btn btn-success btn-sm"
@@ -127,6 +131,7 @@
                     th:data-colaborador="${item.colaborador}" th:data-curso="${item.curso}">Rechazar evidencia</button>
           </div>
 
+          <a th:if="${item.situacion == 'EVIDENCIA_RECHAZADA' and !#strings.isEmpty(item.evidenciaUrl)}" th:data-evidencia="${item.evidenciaUrl}" onclick="showEvidenciaModal(this.getAttribute('data-evidencia')); return false;" href="#" class="btn btn-outline-primary btn-sm">Ver evidencia rechazada</a>
           <a th:if="${!item.pendienteGestionRm and !item.pendienteRevisionEvidencia}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${item.colaboradorId})}">Ver perfil</a>
         </td>
       </tr>
@@ -225,7 +230,7 @@
         <form method="post" action="#">
           <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
           <div class="modal-body">
-            <p class="mb-3">Vas a rechazar la evidencia de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El curso volverá a "En curso" y el colaborador podrá reenviar la evidencia.</p>
+            <p class="mb-3">Vas a rechazar la evidencia de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. La inscripción no se cancela: quedará como "Evidencia rechazada" y el colaborador podrá subir una nueva evidencia.</p>
             <label for="evidenceRejectReason" class="form-label">Motivo del rechazo</label>
             <textarea id="evidenceRejectReason" name="motivo" maxlength="500" rows="4" class="form-control js-motivo" required placeholder="Explica al colaborador qué debe corregir en la evidencia"></textarea>
             <div class="form-hint">El motivo es obligatorio y puede tener hasta 500 caracteres. El colaborador lo verá y podrá volver a subir la evidencia.</div>
@@ -256,10 +261,11 @@ function showEvidenciaModal(url) {
     var content = document.getElementById('pureLightboxContent');
     if (!overlay || !content) return;
     
-    if (url.toLowerCase().includes('.pdf')) {
-        content.innerHTML = '<iframe src="' + url + '" style="width: 100%; height: 100%; border: none; border-radius: 8px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);"></iframe>';
-    } else {
+    // Solo las imágenes van en <img>; PDF, TXT y otros documentos se abren en un iframe
+    if (/\.(jpe?g|png|gif|webp)(\?|$)/i.test(url)) {
         content.innerHTML = '<img src="' + url + '" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain;">';
+    } else {
+        content.innerHTML = '<iframe src="' + url + '" style="width: 100%; height: 100%; border: none; border-radius: 8px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);"></iframe>';
     }
     
     overlay.style.display = 'flex';

@@ -888,6 +888,41 @@ class RmCertificadoTests {
                 });
     }
 
+    @Test
+    void perfilExponeMotivoSoloDelCertificadoRechazadoMasReciente() {
+        Certificado pendiente = guardarPendiente("/uploads/certificados/motivo-pendiente.pdf");
+        assertFalse(colaboradorPerfilService.mapaMotivosRechazoPorHabilidad(colaborador)
+                .containsKey(habilidad.getId()));
+
+        certificadoService.rechazar(pendiente.getId(), "Falta la entidad emisora.", rm.getId());
+        assertEquals("Falta la entidad emisora.", colaboradorPerfilService
+                .mapaMotivosRechazoPorHabilidad(colaborador).get(habilidad.getId()));
+
+        Certificado nuevo = guardarPendiente("/uploads/certificados/motivo-nuevo.pdf");
+        nuevo.setFechaSubida(pendiente.getFechaSubida().plusMinutes(1));
+        nuevo = certificadoRepository.save(nuevo);
+        certificadoService.aprobar(nuevo.getId(), null, null, rm.getId());
+        assertFalse(colaboradorPerfilService.mapaMotivosRechazoPorHabilidad(colaborador)
+                .containsKey(habilidad.getId()));
+    }
+
+    @Test
+    void perfilDelColaboradorMuestraElMotivoDelRechazo() throws Exception {
+        Certificado certificado = guardarPendiente("/uploads/certificados/motivo-perfil.pdf");
+        certificadoService.rechazar(certificado.getId(), "El certificado esta vencido.", rm.getId());
+        UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre("COLABORADOR")
+                .stream().filter(usuario -> usuario.getId().equals(colaborador.getId()))
+                .findFirst().orElseThrow());
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities()));
+
+        String html = mockMvc.perform(get("/colaborador/perfil"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("Rechazada por el RM"));
+        assertTrue(html.contains("El certificado esta vencido."));
+    }
+
     private Certificado guardarPendiente(String archivo) {
         return guardar(archivo, habilidad, EstadoCertificado.PENDIENTE);
     }

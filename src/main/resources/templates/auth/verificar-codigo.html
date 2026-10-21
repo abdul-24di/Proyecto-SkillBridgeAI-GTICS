@@ -55,7 +55,7 @@
         <h2 class="auth-title">Verifica tu identidad</h2>
         <p class="auth-subtitle">Hemos enviado un código de 6 dígitos a <strong th:text="${correo}">tu correo</strong>.</p>
 
-        <div class="auth-alert error" th:if="${param.error}">Código incorrecto o expirado. Intenta nuevamente.</div>
+        <div class="auth-alert error" th:if="${param.error}">Código incorrecto o expirado. Tras 5 intentos fallidos el código se anula y debes solicitar uno nuevo.</div>
 
         <form class="auth-form" id="verifyForm" th:action="@{/verificar-codigo}" method="post">
             <input type="hidden" name="correo" th:value="${correo}">

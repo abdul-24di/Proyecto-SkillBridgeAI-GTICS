@@ -75,6 +75,8 @@ public class AdminAuditoriaService {
         ACCION_A_ETIQUETA.put("ENVIO_CORREO_ACTIVACION", "Envió correo de activación");
         ACCION_A_ETIQUETA.put("ACTIVACION_CUENTA", "Activó cuenta");
         ACCION_A_ETIQUETA.put("RECUPERACION_CONTRASENA", "Recuperó contraseña");
+        ACCION_A_ETIQUETA.put("RECUPERACION_CODIGO_INCORRECTO", "Código de recuperación incorrecto");
+        ACCION_A_ETIQUETA.put("RECUPERACION_BLOQUEADA", "Código de recuperación anulado");
         ACCION_A_ETIQUETA.put("CAMBIAR_ROL", "Cambió rol");
         ACCION_A_ETIQUETA.put("DESACTIVAR_USUARIO", "Desactivó usuario");
         ACCION_A_ETIQUETA.put("REACTIVAR_USUARIO", "Reactivó usuario");

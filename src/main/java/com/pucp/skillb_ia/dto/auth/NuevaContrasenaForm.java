@@ -4,9 +4,8 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 
+// El código de recuperación no viaja en este formulario: el controlador lo toma de la sesión.
 public class NuevaContrasenaForm {
-
-    private String token;
 
     @NotBlank(message = "La contraseña es obligatoria.")
     @Pattern(regexp = PoliticaPassword.REGEX, message = PoliticaPassword.MENSAJE)
@@ -20,8 +19,6 @@ public class NuevaContrasenaForm {
         return password == null || confirmarPassword == null || password.equals(confirmarPassword);
     }
 
-    public String getToken() { return token; }
-    public void setToken(String token) { this.token = token; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
     public String getConfirmarPassword() { return confirmarPassword; }

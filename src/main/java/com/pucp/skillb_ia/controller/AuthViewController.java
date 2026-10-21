@@ -10,6 +10,7 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.service.AuthService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.col.PreRegistroColaboradorService;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -137,33 +138,48 @@ public class AuthViewController {
         return "auth/verificar-codigo";
     }
 
+    // El código verificado se guarda en la sesión (no en la URL ni en el formulario): /nueva-contrasena solo
+    // cambia la contraseña de quien pasó por esta verificación con su correo.
+    private static final String RECUPERACION_CORREO = "recuperacionCorreo";
+    private static final String RECUPERACION_CODIGO = "recuperacionCodigo";
+
     @PostMapping("/verificar-codigo")
-    public String verificarCodigoSubmit(@RequestParam String correo, @RequestParam String codigo) {
+    public String verificarCodigoSubmit(@RequestParam String correo, @RequestParam String codigo, HttpSession session) {
         Optional<TokenUsuario> token = authService.validarCodigoRecuperacion(correo, codigo);
         if (token.isEmpty()) {
             return "redirect:/verificar-codigo?correo=" + correo + "&error";
         }
-        return "redirect:/nueva-contrasena?token=" + token.get().getToken();
+        session.setAttribute(RECUPERACION_CORREO, correo);
+        session.setAttribute(RECUPERACION_CODIGO, codigo);
+        return "redirect:/nueva-contrasena";
     }
 
     @GetMapping({"/nueva-contrasena", "/nueva-contrasena.html"})
-    public String nuevaContrasenaForm(@RequestParam String token, Model model) {
-        NuevaContrasenaForm form = new NuevaContrasenaForm();
-        form.setToken(token);
-        model.addAttribute("nuevaContrasenaForm", form);
+    public String nuevaContrasenaForm(HttpSession session, Model model) {
+        if (session.getAttribute(RECUPERACION_CODIGO) == null) {
+            return "redirect:/recuperar?vencido";
+        }
+        model.addAttribute("nuevaContrasenaForm", new NuevaContrasenaForm());
         return "auth/nueva-contrasena";
     }
 
     @PostMapping("/nueva-contrasena")
     public String nuevaContrasenaSubmit(@Valid @ModelAttribute("nuevaContrasenaForm") NuevaContrasenaForm form,
-                                         BindingResult result) {
+                                         BindingResult result, HttpSession session) {
         if (result.hasErrors()) {
             return "auth/nueva-contrasena";
         }
+        String correo = (String) session.getAttribute(RECUPERACION_CORREO);
+        String codigo = (String) session.getAttribute(RECUPERACION_CODIGO);
+        session.removeAttribute(RECUPERACION_CORREO);
+        session.removeAttribute(RECUPERACION_CODIGO);
+        if (codigo == null) {
+            return "redirect:/recuperar?vencido";
+        }
         try {
-            authService.restablecerContrasena(form.getToken(), form.getPassword());
+            authService.restablecerContrasena(correo, codigo, form.getPassword());
         } catch (IllegalStateException e) {
-            return "redirect:/nueva-contrasena?token=" + form.getToken() + "&error";
+            return "redirect:/recuperar?vencido";
         }
         return "redirect:/login?recuperado";
     }

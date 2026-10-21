@@ -65,6 +65,9 @@ class PreRegistroColaboradorTests {
     @Autowired private CategoriaHabilidadRepository categoriaHabilidadRepository;
     @Autowired private RmCertificadoService rmCertificadoService;
     @Autowired private RmEducacionService rmEducacionService;
+    @Autowired private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    @Autowired private org.springframework.beans.factory.ObjectProvider<
+            org.springframework.session.FindByIndexNameSessionRepository<? extends org.springframework.session.Session>> repositorioSesiones;
     private MockMvc mockMvc;
     private Usuario admin;
 
@@ -392,7 +395,7 @@ class PreRegistroColaboradorTests {
         List<TokenUsuario> codigos = codigosDeRecuperacion(activado);
         assertThat(codigos).hasSize(1);
         assertThat(authService.validarCodigoRecuperacion(correo, codigos.get(0).getToken())).isPresent();
-        authService.restablecerContrasena(codigos.get(0).getToken(), "Nueva#1234");
+        authService.restablecerContrasena(correo, codigos.get(0).getToken(), "Nueva#1234");
     }
 
     @Test
@@ -408,7 +411,7 @@ class PreRegistroColaboradorTests {
         tokenUsuarioRepository.save(antiguo);
 
         assertThat(authService.validarCodigoRecuperacion(correo, antiguo.getToken())).isEmpty();
-        assertThatThrownBy(() -> authService.restablecerContrasena(antiguo.getToken(), "Segura#123"))
+        assertThatThrownBy(() -> authService.restablecerContrasena(correo, antiguo.getToken(), "Segura#123"))
                 .isInstanceOf(IllegalStateException.class);
         assertThat(usuarioRepository.findById(invitado.getId()).orElseThrow().getPasswordHash()).isNull();
     }
@@ -424,6 +427,119 @@ class PreRegistroColaboradorTests {
         authService.solicitarRecuperacion(correo);
 
         assertThat(codigosDeRecuperacion(usuario)).isEmpty();
+    }
+
+    // ---------- recuperación de contraseña: verificación obligatoria, intentos, códigos y sesiones ----------
+
+    @Test
+    void elFlujoCompletoCambiaLaContrasenaConElCodigoVerificadoEnLaSesion() throws Exception {
+        String correo = correoNuevo();
+        Usuario usuario = usuarioActivado(correo);
+        authService.solicitarRecuperacion(correo);
+        String codigo = codigosDeRecuperacion(usuario).get(0).getToken();
+        org.springframework.mock.web.MockHttpSession sesion = new org.springframework.mock.web.MockHttpSession();
+
+        mockMvc.perform(post("/verificar-codigo").param("correo", correo).param("codigo", codigo).session(sesion))
+                .andExpect(redirectedUrl("/nueva-contrasena"));
+        mockMvc.perform(get("/nueva-contrasena").session(sesion))
+                .andExpect(view().name("auth/nueva-contrasena"));
+        mockMvc.perform(post("/nueva-contrasena").session(sesion)
+                        .param("password", "Nueva#1234").param("confirmarPassword", "Nueva#1234"))
+                .andExpect(redirectedUrl("/login?recuperado"));
+
+        assertThat(passwordEncoder.matches("Nueva#1234",
+                usuarioRepository.findById(usuario.getId()).orElseThrow().getPasswordHash())).isTrue();
+    }
+
+    @Test
+    void sinPasarPorLaVerificacionNoSePuedeCambiarLaContrasena() throws Exception {
+        String correo = correoNuevo();
+        Usuario usuario = usuarioActivado(correo);
+        authService.solicitarRecuperacion(correo);
+        String codigo = codigosDeRecuperacion(usuario).get(0).getToken();
+        String hashAntes = usuarioRepository.findById(usuario.getId()).orElseThrow().getPasswordHash();
+
+        // Aunque se conozca un código vigente, sin verificarlo con el correo la pantalla final no lo acepta.
+        mockMvc.perform(get("/nueva-contrasena").param("token", codigo))
+                .andExpect(redirectedUrl("/recuperar?vencido"));
+        mockMvc.perform(post("/nueva-contrasena").param("token", codigo)
+                        .param("password", "Intrusa#123").param("confirmarPassword", "Intrusa#123"))
+                .andExpect(redirectedUrl("/recuperar?vencido"));
+
+        assertThat(usuarioRepository.findById(usuario.getId()).orElseThrow().getPasswordHash()).isEqualTo(hashAntes);
+    }
+
+    @Test
+    void tras5CodigosIncorrectosElCodigoSeAnula() {
+        String correo = correoNuevo();
+        Usuario usuario = usuarioActivado(correo);
+        authService.solicitarRecuperacion(correo);
+        String codigo = codigosDeRecuperacion(usuario).get(0).getToken();
+        String incorrecto = codigo.equals("000000") ? "111111" : "000000";
+
+        for (int i = 0; i < 5; i++) {
+            assertThat(authService.validarCodigoRecuperacion(correo, incorrecto)).isEmpty();
+        }
+
+        assertThat(authService.validarCodigoRecuperacion(correo, codigo)).isEmpty();
+        assertThatThrownBy(() -> authService.restablecerContrasena(correo, codigo, "Nueva#1234"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void con4CodigosIncorrectosElCorrectoTodaviaSirve() {
+        String correo = correoNuevo();
+        Usuario usuario = usuarioActivado(correo);
+        authService.solicitarRecuperacion(correo);
+        String codigo = codigosDeRecuperacion(usuario).get(0).getToken();
+        String incorrecto = codigo.equals("000000") ? "111111" : "000000";
+
+        for (int i = 0; i < 4; i++) {
+            authService.validarCodigoRecuperacion(correo, incorrecto);
+        }
+
+        assertThat(authService.validarCodigoRecuperacion(correo, codigo)).isPresent();
+    }
+
+    @Test
+    void pedirUnCodigoNuevoAnulaElAnterior() {
+        String correo = correoNuevo();
+        Usuario usuario = usuarioActivado(correo);
+        authService.solicitarRecuperacion(correo);
+        String primero = codigosDeRecuperacion(usuario).get(0).getToken();
+
+        authService.solicitarRecuperacion(correo);
+        String segundo = codigosDeRecuperacion(usuario).stream().map(TokenUsuario::getToken)
+                .filter(c -> !c.equals(primero)).findFirst().orElseThrow();
+
+        assertThat(authService.validarCodigoRecuperacion(correo, primero)).isEmpty();
+        assertThat(authService.validarCodigoRecuperacion(correo, segundo)).isPresent();
+    }
+
+    @Test
+    void cambiarLaContrasenaCierraLasSesionesAbiertasDeLaCuenta() {
+        String correo = correoNuevo();
+        Usuario usuario = usuarioActivado(correo);
+        var sesiones = repositorioSesiones.getObject();
+        var abierta = sesiones.createSession();
+        abierta.setAttribute(org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, correo);
+        guardarSesion(sesiones, abierta);
+        assertThat(sesiones.findByPrincipalName(correo)).hasSize(1);
+
+        authService.solicitarRecuperacion(correo);
+        authService.restablecerContrasena(correo, codigosDeRecuperacion(usuario).get(0).getToken(), "Nueva#1234");
+
+        assertThat(sesiones.findByPrincipalName(correo)).isEmpty();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <S extends org.springframework.session.Session> void guardarSesion(
+            org.springframework.session.FindByIndexNameSessionRepository<S> repositorio, Object sesion) {
+        repositorio.save((S) sesion);
+    }
+
+    private Usuario usuarioActivado(String correo) {
+        return authService.activarCuenta(invitar(correo, "PROJECT_MANAGER"), "Rita Recupera", "987654321", null, "Segura#123");
     }
 
     private Long invitarYDevolverId(String correo) {

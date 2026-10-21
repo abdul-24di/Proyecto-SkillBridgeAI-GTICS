@@ -54,6 +54,7 @@
             </div>
         </div>
 
+        <div class="auth-alert error" th:if="${param.vencido}">El código ya no es válido o expiró. Solicita uno nuevo.</div>
         <h2 class="auth-title">Recuperar contraseña</h2>
         <p class="auth-subtitle">Ingresa tu correo electrónico y te enviaremos un código para restablecer tu contraseña.</p>
 

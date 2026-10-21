@@ -17,6 +17,7 @@ import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -33,6 +34,7 @@ public class AuthService {
     private static final int VIGENCIA_ACTIVACION_HORAS = 48; // coincide con el texto de activar-cuenta.html
     private static final int VIGENCIA_RECUPERACION_MINUTOS = 15;
     private static final int MAX_INTENTOS_CODIGO = 5;
+    private static final BigDecimal JORNADA_SEMANAL_COLABORADOR = BigDecimal.valueOf(40);
 
     public enum EstadoToken { VALIDO, EXPIRADO, USADO, INVALIDO }
 
@@ -105,6 +107,11 @@ public class AuthService {
         usuario.setCorreo(correo);
         usuario.setRol(rol);
         usuario.setActivo(true);
+        // Todo colaborador empieza con la jornada fija de 40 h/semana, toda disponible.
+        if ("COLABORADOR".equals(rol.getNombre())) {
+            usuario.setHorasContratadasSemana(JORNADA_SEMANAL_COLABORADOR);
+            usuario.setHorasDisponibles(JORNADA_SEMANAL_COLABORADOR);
+        }
         // passwordHash, nombre y apellido quedan NULL hasta que el usuario active su cuenta.
         usuario = usuarioRepository.save(usuario);
 

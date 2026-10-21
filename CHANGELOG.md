@@ -68,6 +68,55 @@ Correcciones de validación encontradas en la prueba profunda: horas de curso (>
 
 ---
 
+## Sesión 2 de Octubre 2026
+
+---
+
+## 1. Evidencia obligatoria para todos los cursos y estado `NO_COMPLETADO` (TASK-043 parcial) — commit `5afa232`
+
+### Descripción
+Reemplaza la regla de `996932f`/`3a140f4`: **todos** los cursos (autodidactas o de horario fijo) piden evidencia y solo se completan cuando el RM la aprueba. Ya no hay finalización automática.
+
+- Si un curso tiene `fecha_fin` y vence sin evidencia (la inscripción sigue `EN_CURSO` y `evidencia_url` es nula), pasa a `NO_COMPLETADO`: se audita `CURSO_NO_COMPLETADO` y se notifica `CURSO_NO_COMPLETADO` al colaborador ("sin penalización, pero sus horas no cuentan"). Sin `fecha_fin` no hay plazo.
+- La primera evidencia debe subirse antes de que pase `fecha_fin`; si el RM la rechaza, el reenvío no tiene límite de fecha.
+- Solicitar un curso se bloquea si el colaborador ya alcanzó en el mes el tope de horas extra que cuentan para el bono (`TOPE_HORAS_EXTRA_BONO`).
+- El perfil de otro colaborador (Explorar y detalle del proyecto) muestra sus "Cursos completados".
+
+Sigue sin tarea programada: la comprobación de vencidos se ejecuta cuando el colaborador abre Explorar, "Mis cursos" o el resumen de horas.
+
+### Archivos modificados
+- `model/enums/EstadoColaboradorCurso.java` y `BDs_SQL/skillbridge_db_v4.sql` — Nuevo valor `NO_COMPLETADO` en el enum y en `chk_colcurso_estado` (sin migración para bases existentes).
+- `service/col/ColaboradorCursoService.java` — `completarCursosProgramadosVencidos` pasa a `marcarCursosSinEvidenciaVencidos`; `subirEvidencia` acepta cualquier curso y valida el plazo del primer intento; `solicitarInscripcion` valida el tope del bono (inyecta `ColaboradorActividadService` con `@Lazy`).
+- `service/col/ColaboradorActividadService.java` — `obtenerResumenHoras` llama a `marcarCursosSinEvidenciaVencidos`.
+- `service/col/ColaboradorExplorarService.java` — `PerfilExplorar.cursosCompletados`.
+- `service/rm/RmCursoService.java` y `templates/rm/rm-solicitudes-cursos.html` — Texto, insignia y filtro "No completados".
+- `templates/col/col-perfil.html` — Botón y modal de evidencia para todo curso `EN_CURSO`, aviso de plazo e insignia/aviso de `NO_COMPLETADO`.
+- `templates/col/col-explorar.html`, `col-detalle-proyecto.html` — "Cursos completados"; la pestaña "Chat" del detalle pasa a un aviso "Coming soon".
+- `templates/col/col-asistente.html` — El mock del asistente se reemplaza por un aviso "Coming soon".
+- `service/ArchivoAlmacenamientoService.java` — Mensajes de error de S3 más cortos.
+- `application.properties` — Solo se quitaron comentarios (sin cambios de valores).
+
+### Alcance pendiente
+- `listarMisCursos` no incluye `NO_COMPLETADO`: la insignia y el aviso nuevos de `col-perfil.html` no llegan a mostrarse.
+- `col-asistente.html` sigue cargando `col-asistente.js`, que busca elementos que ya no existen (error de JavaScript en la consola).
+- Una base existente rechazará `NO_COMPLETADO` (falta la migración del `CHECK`). Sin pruebas nuevas.
+
+---
+
+## 2. Modal para aprobar asignaciones (PM) y documento de contexto en el detalle RM — commit `1a92d39`
+
+### Descripción
+- `pm-asignaciones-proyecto.html`: "Aprobar" abre un modal Bootstrap con el nombre del colaborador (antes `confirm()` de JavaScript). El POST no cambió.
+- `rm-detalle-proyecto.html`: muestra "Documento de contexto (PM)" con un enlace a `documentoContextoUrl` o "Sin documento adjunto". La creación del proyecto todavía no guarda ese archivo (P35), así que hoy siempre aparece el texto alternativo.
+
+---
+
+## 3. Pruebas de reportes robustas — commit `1fb001d`
+
+`RmReporteTests`: la prueba del PDF con páginas solo exige los proyectos creados por ella (`Pag proyecto…`), para no fallar por proyectos que dejan otras clases en la H2 compartida.
+
+---
+
 ## Sesión 1 de Octubre 2026
 
 ---

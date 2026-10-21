@@ -58,7 +58,6 @@
         <div class="auth-alert error" th:if="${param.error}">El enlace ya no es válido o expiró. Solicita uno nuevo.</div>
 
         <form class="auth-form" id="resetForm" th:action="@{/nueva-contrasena}" method="post" th:object="${nuevaContrasenaForm}" novalidate>
-            <input type="hidden" th:field="*{token}">
 
             <div class="mb-3">
                 <label class="form-label" for="newPassword">Nueva contraseña</label>

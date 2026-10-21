@@ -6,10 +6,14 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoRegistro;
 import com.pucp.skillb_ia.model.enums.TipoToken;
+import com.pucp.skillb_ia.repository.LogAuditoriaRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
 import com.pucp.skillb_ia.repository.TokenUsuarioRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.session.FindByIndexNameSessionRepository;
+import org.springframework.session.Session;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +32,7 @@ public class AuthService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int VIGENCIA_ACTIVACION_HORAS = 48; // coincide con el texto de activar-cuenta.html
     private static final int VIGENCIA_RECUPERACION_MINUTOS = 15;
+    private static final int MAX_INTENTOS_CODIGO = 5;
 
     public enum EstadoToken { VALIDO, EXPIRADO, USADO, INVALIDO }
 
@@ -42,11 +47,17 @@ public class AuthService {
     private final EmailService emailService;
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
+    private final LogAuditoriaRepository logAuditoriaRepository;
+    // Sesiones guardadas por Spring Session JDBC; se usan para cerrar las de un usuario al cambiar su contraseña.
+    private final ObjectProvider<FindByIndexNameSessionRepository<? extends Session>> repositorioSesiones;
 
     public AuthService(UsuarioRepository usuarioRepository, RolRepository rolRepository,
                         TokenUsuarioRepository tokenUsuarioRepository, PasswordEncoder passwordEncoder,
                         EmailService emailService, AuditoriaService auditoriaService,
-                        NotificacionService notificacionService) {
+                        NotificacionService notificacionService, LogAuditoriaRepository logAuditoriaRepository,
+                        ObjectProvider<FindByIndexNameSessionRepository<? extends Session>> repositorioSesiones) {
+        this.logAuditoriaRepository = logAuditoriaRepository;
+        this.repositorioSesiones = repositorioSesiones;
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
         this.tokenUsuarioRepository = tokenUsuarioRepository;
@@ -117,15 +128,8 @@ public class AuthService {
     }
 
     private void enviarNuevoTokenActivacion(Usuario usuario) {
-        // Al reenviar, el enlace anterior que no se usó deja de servir: se marca como vencido (no como
-        // "usado", porque eso mostraría "Esta cuenta ya fue activada" en vez de "El enlace ya no es válido").
-        LocalDateTime ahora = LocalDateTime.now();
-        for (TokenUsuario anterior : tokenUsuarioRepository.findByUsuarioAndTipoAndUsadoFalse(usuario, TipoToken.ACTIVACION)) {
-            if (anterior.getFechaExpiracion().isAfter(ahora)) {
-                anterior.setFechaExpiracion(ahora.minusSeconds(1));
-                tokenUsuarioRepository.save(anterior);
-            }
-        }
+        // Al reenviar, el enlace anterior que no se usó deja de servir.
+        anularTokensPendientes(usuario, TipoToken.ACTIVACION);
 
         TokenUsuario token = new TokenUsuario();
         token.setUsuario(usuario);
@@ -204,6 +208,8 @@ public class AuthService {
     @Transactional
     public void solicitarRecuperacion(String correo) {
         usuarioRepository.findByCorreo(correo).filter(this::puedeRecuperarContrasena).ifPresent(usuario -> {
+            // Pedir un código nuevo anula los anteriores: solo el último que llegó al correo sirve.
+            anularTokensPendientes(usuario, TipoToken.RECUPERACION);
             String codigo = generarCodigoNumericoUnico(6);
             TokenUsuario token = new TokenUsuario();
             token.setUsuario(usuario);
@@ -217,15 +223,46 @@ public class AuthService {
     }
 
     // Se valida contra el correo Y el código a la vez, para que un código no
-    // pueda probarse contra un correo distinto del que lo solicitó.
-    @Transactional(readOnly = true)
+    // pueda probarse contra un correo distinto del que lo solicitó. Cada fallo queda en la auditoría y,
+    // al llegar a MAX_INTENTOS_CODIGO, se anulan los códigos pendientes: hay que pedir uno nuevo.
+    @Transactional
     public Optional<TokenUsuario> validarCodigoRecuperacion(String correo, String codigo) {
+        Optional<Usuario> usuario = usuarioRepository.findByCorreo(correo).filter(this::puedeRecuperarContrasena);
+        if (usuario.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<TokenUsuario> token = codigoVigenteDe(usuario.get(), codigo);
+        if (token.isEmpty()) {
+            registrarCodigoIncorrecto(usuario.get());
+        }
+        return token;
+    }
+
+    private Optional<TokenUsuario> codigoVigenteDe(Usuario usuario, String codigo) {
         return tokenUsuarioRepository.findByToken(codigo)
                 .filter(t -> t.getTipo() == TipoToken.RECUPERACION)
                 .filter(t -> !t.isUsado())
                 .filter(t -> t.getFechaExpiracion().isAfter(LocalDateTime.now()))
-                .filter(t -> t.getUsuario().getCorreo().equalsIgnoreCase(correo))
-                .filter(t -> puedeRecuperarContrasena(t.getUsuario()));
+                .filter(t -> t.getUsuario().getId().equals(usuario.getId()));
+    }
+
+    private void registrarCodigoIncorrecto(Usuario usuario) {
+        auditoriaService.registrar(usuario, "RECUPERACION_CODIGO_INCORRECTO", "USUARIO", usuario.getId(),
+                "Ingresó un código de recuperación incorrecto.");
+        LocalDateTime ahora = LocalDateTime.now();
+        tokenUsuarioRepository.findByUsuarioAndTipoAndUsadoFalse(usuario, TipoToken.RECUPERACION).stream()
+                .filter(t -> t.getFechaExpiracion().isAfter(ahora))
+                .map(TokenUsuario::getFechaCreacion)
+                .max(LocalDateTime::compareTo)
+                .ifPresent(pedidoEl -> {
+                    long fallidos = logAuditoriaRepository.countByUsuarioAndAccionAndFechaHoraGreaterThanEqual(
+                            usuario, "RECUPERACION_CODIGO_INCORRECTO", pedidoEl);
+                    if (fallidos >= MAX_INTENTOS_CODIGO) {
+                        anularTokensPendientes(usuario, TipoToken.RECUPERACION);
+                        auditoriaService.registrar(usuario, "RECUPERACION_BLOQUEADA", "USUARIO", usuario.getId(),
+                                "Se anuló el código de recuperación tras " + fallidos + " intentos fallidos.");
+                    }
+                });
     }
 
     // Solo una cuenta ya activada (con contraseña) y activa puede recuperar su contraseña. Una cuenta
@@ -235,24 +272,49 @@ public class AuthService {
         return usuario.isActivo() && usuario.getPasswordHash() != null;
     }
 
+    // Recibe el correo y el código que el controlador guardó en la sesión al verificarlos, no un valor
+    // que llegue del formulario: así no se puede saltar el paso de verificación.
     @Transactional
-    public void restablecerContrasena(String tokenValor, String nuevaPassword) {
-        TokenUsuario token = tokenUsuarioRepository.findByToken(tokenValor)
-                .filter(t -> t.getTipo() == TipoToken.RECUPERACION)
-                .filter(t -> !t.isUsado())
-                .filter(t -> t.getFechaExpiracion().isAfter(LocalDateTime.now()))
-                .filter(t -> puedeRecuperarContrasena(t.getUsuario()))
+    public void restablecerContrasena(String correo, String codigo, String nuevaPassword) {
+        Usuario usuario = usuarioRepository.findByCorreo(correo).filter(this::puedeRecuperarContrasena)
+                .orElseThrow(() -> new IllegalStateException("El código de recuperación no es válido o expiró."));
+        TokenUsuario token = codigoVigenteDe(usuario, codigo)
                 .orElseThrow(() -> new IllegalStateException("El código de recuperación no es válido o expiró."));
 
-        Usuario usuario = token.getUsuario();
         usuario.setPasswordHash(passwordEncoder.encode(nuevaPassword));
         usuarioRepository.save(usuario);
 
         token.setUsado(true);
         tokenUsuarioRepository.save(token);
 
+        // Con la contraseña cambiada, se cierran las sesiones que la cuenta tuviera abiertas en otros equipos.
+        int cerradas = cerrarSesiones(usuario.getCorreo());
+
         auditoriaService.registrar(usuario, "RECUPERACION_CONTRASENA", "USUARIO", usuario.getId(),
-                "Restableció su contraseña mediante el flujo de recuperación.");
+                "Restableció su contraseña mediante el flujo de recuperación."
+                        + (cerradas > 0 ? " Sesiones abiertas cerradas: " + cerradas + "." : ""));
+    }
+
+    private int cerrarSesiones(String correo) {
+        FindByIndexNameSessionRepository<? extends Session> sesiones = repositorioSesiones.getIfAvailable();
+        if (sesiones == null) {
+            return 0;
+        }
+        var abiertas = sesiones.findByPrincipalName(correo).keySet();
+        abiertas.forEach(sesiones::deleteById);
+        return abiertas.size();
+    }
+
+    // Un token que no se usó deja de servir: se marca como vencido (no como "usado", porque en la activación
+    // eso mostraría "Esta cuenta ya fue activada" en vez de "El enlace ya no es válido").
+    private void anularTokensPendientes(Usuario usuario, TipoToken tipo) {
+        LocalDateTime ahora = LocalDateTime.now();
+        for (TokenUsuario anterior : tokenUsuarioRepository.findByUsuarioAndTipoAndUsadoFalse(usuario, tipo)) {
+            if (anterior.getFechaExpiracion().isAfter(ahora)) {
+                anterior.setFechaExpiracion(ahora.minusSeconds(1));
+                tokenUsuarioRepository.save(anterior);
+            }
+        }
     }
 
     // ============================================================

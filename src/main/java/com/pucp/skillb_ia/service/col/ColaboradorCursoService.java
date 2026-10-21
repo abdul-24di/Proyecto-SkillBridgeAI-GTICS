@@ -10,6 +10,7 @@ import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
 import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.repository.CursoRepository;
+import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
@@ -36,17 +37,22 @@ public class ColaboradorCursoService {
     private static final Set<String> TIPOS_EVIDENCIA_PERMITIDOS = Set.of("application/pdf", "image/jpeg", "image/png");
     private static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10 MB
 
+    //Días antes de la fecha fin en los que se avisa (una sola vez) al colaborador que aún no sube evidencia.
+    private static final int DIAS_AVISO_FIN_CURSO = 3;
+
     private final CursoRepository cursoRepository;
     private final ColaboradorCursoRepository colaboradorCursoRepository;
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
     private final ColaboradorActividadService colaboradorActividadService;
+    private final NotificacionRepository notificacionRepository;
 
     public ColaboradorCursoService(CursoRepository cursoRepository,
                                    ColaboradorCursoRepository colaboradorCursoRepository,
                                    AuditoriaService auditoriaService,
                                    NotificacionService notificacionService,
+                                   NotificacionRepository notificacionRepository,
                                    ArchivoAlmacenamientoService archivoAlmacenamientoService,
                                    //@Lazy evita una dependencia circular entre los servicios,
                                    //haciendo que ColaboradorActividadService se inicialice cuando sea necesario.
@@ -55,6 +61,7 @@ public class ColaboradorCursoService {
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
+        this.notificacionRepository = notificacionRepository;
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
         this.colaboradorActividadService = colaboradorActividadService;
     }
@@ -224,6 +231,7 @@ public class ColaboradorCursoService {
     // ============================================================
     // MARCAMOS COMO "NO COMPLETADO" LOS CURSOS (AUTODIDACTA O NO) "EN CURSO" CUYA FECHA FIN
     // VENCIÓ SIN EVIDENCIA. Al cambiar el estado, una segunda ejecución ya no los vuelve a tocar.
+    // Si aún no vence pero faltan DIAS_AVISO_FIN_CURSO días o menos, se avisa una sola vez al colaborador.
     // ============================================================
     public void marcarCursosSinEvidenciaVencidos(Usuario colaborador) {
         marcarSinEvidenciaVencidos(colaboradorCursoRepository.findByColaborador(colaborador));
@@ -255,6 +263,7 @@ public class ColaboradorCursoService {
 
             //Todavía no llega la fecha fin, así que sigue "En curso".
             if (curso.getFechaFin().isAfter(hoy)) {
+                avisarCursoPorVencer(registro, hoy);
                 continue;
             }
 
@@ -276,6 +285,29 @@ public class ColaboradorCursoService {
                     "El plazo del curso \"" + curso.getNombre() + "\" venció sin que se aprobara una evidencia. No se te aplicó ninguna penalización, pero tampoco se contaron sus horas.",
                     "COLABORADOR_CURSO", registro.getId());
         }
+    }
+
+    //Aviso único por inscripción: solo si falta poco para la fecha fin, no hay evidencia y no se avisó antes.
+    private void avisarCursoPorVencer(ColaboradorCurso registro, LocalDate hoy) {
+        Curso curso = registro.getCurso();
+
+        if (registro.getEvidenciaUrl() != null || curso.getFechaFin().isAfter(hoy.plusDays(DIAS_AVISO_FIN_CURSO))) {
+            return;
+        }
+
+        Usuario colaborador = registro.getColaborador();
+
+        if (notificacionRepository.existsByUsuarioAndTipoAndEntidadAndEntidadId(colaborador, "CURSO_POR_VENCER", "COLABORADOR_CURSO", registro.getId())) {
+            return;
+        }
+
+        long diasRestantes = java.time.temporal.ChronoUnit.DAYS.between(hoy, curso.getFechaFin());
+        String fechaFin = curso.getFechaFin().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+
+        notificacionService.crear(colaborador, "CURSO_POR_VENCER", CategoriaNotificacion.CURSO,
+                "Curso por vencer",
+                "Falta" + (diasRestantes == 1 ? " 1 día" : "n " + diasRestantes + " días") + " para la fecha fin del curso \"" + curso.getNombre() + "\" (" + fechaFin + "). Sube tu evidencia de finalización antes de esa fecha.",
+                "COLABORADOR_CURSO", registro.getId());
     }
 
     // ============================================================

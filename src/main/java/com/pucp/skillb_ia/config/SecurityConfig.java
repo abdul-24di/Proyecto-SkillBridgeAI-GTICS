@@ -59,6 +59,9 @@ public class SecurityConfig {
             // Los <form th:action> lo reciben solos; los formularios cuyo action pone el JS lo llevan en un
             // campo oculto, y los fetch lo mandan en una cabecera con /js/csrf.js. Por eso el logout es POST.
 
+            // Permite abrir evidencias propias (PDF, TXT) en el iframe del visor; sigue bloqueando sitios externos
+            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")

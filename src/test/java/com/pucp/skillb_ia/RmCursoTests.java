@@ -351,7 +351,7 @@ class RmCursoTests {
     @CsvSource(delimiter = '|', value = {
             "/rm/cursos | Cursos activos;Solicitudes pendientes;Inscripciones activas;Asignados por RM",
             "/rm/cursos/solicitudes | Solicitudes pendientes;Evidencias por revisar;Aprobadas este mes;"
-                    + "Rechazadas este mes;En curso"})
+                    + "Solicitudes rechazadas este mes;En curso"})
     void tarjetasNumericasTienenIconoDecorativo(String url, String etiquetas) throws Exception {
         String html = mockMvc.perform(get(url)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
@@ -656,7 +656,7 @@ class RmCursoTests {
         assertTrue(rechazar.contains("id=\"evidenceRejectReason\" name=\"motivo\" maxlength=\"500\""));
         assertTrue(rechazar.contains("js-motivo\" required"));
         assertTrue(rechazar.contains("class=\"btn btn-danger js-confirmar\" disabled"));
-        assertTrue(rechazar.contains("podrá reenviar la evidencia"));
+        assertTrue(rechazar.contains("quedará como \"Evidencia rechazada\" y el colaborador podrá subir una nueva evidencia"));
 
         String js = new ClassPathResource("static/js/rm-js/rm-solicitudes-cursos.js")
                 .getContentAsString(StandardCharsets.UTF_8);
@@ -802,6 +802,94 @@ class RmCursoTests {
         assertEquals("EN_CURSO", log.getValorNuevo());
     }
 
+    // GG22-275: una misma regla decide la etiqueta y el filtro de los dos tipos de rechazo.
+    @Test
+    void ambosRechazosAparecenEnRechazadosConEtiquetaPropiaYLaEvidenciaNoEnEnCurso() throws Exception {
+        ColaboradorCurso solicitud = inscripcion(colaboradorDos, aws, OrigenCurso.SOLICITUD_COLABORADOR,
+                EstadoColaboradorCurso.RECHAZADO);
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
+        cursoService.rechazarEvidencia(evidencia.getId(), "Falta tu nombre.", rm.getId());
+        ColaboradorCurso enCurso = inscripcion(colaboradorDos, spring, OrigenCurso.ASIGNADO_POR_RM,
+                EstadoColaboradorCurso.EN_CURSO);
+
+        RmCursoView.Bandeja rechazados = cursoService.obtenerBandeja(
+                cursoService.normalizarFiltrosBandeja(null, "RECHAZADO", null), "1");
+        assertEquals(2, rechazados.getTotalRegistros());
+        assertEquals(List.of("Evidencia rechazada", "Solicitud rechazada"), rechazados.getInscripciones().stream()
+                .map(RmCursoView.InscripcionItem::getEstadoTexto).sorted().toList());
+        assertEquals(List.of(solicitud.getId()), idsBandeja("SOLICITUD_RECHAZADA"));
+        assertEquals(List.of(evidencia.getId()), idsBandeja("EVIDENCIA_RECHAZADA"));
+        assertEquals(List.of(enCurso.getId()), idsBandeja("EN_CURSO"), "La evidencia rechazada no está En curso");
+        assertEquals(3, totalBandeja(null, "", null), "Todos conserva ambos rechazos");
+        assertEquals(1, rechazados.getEnCurso(), "El indicador usa la misma regla");
+
+        String html = mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", "RECHAZADO"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("<option value=\"RECHAZADO\" selected=\"selected\">Rechazados (solicitud o evidencia)</option>"));
+        assertTrue(html.contains("Motivo del rechazo de la evidencia:"));
+        assertTrue(html.contains("Motivo del rechazo de la solicitud:"));
+        assertTrue(html.contains("Evidencia rechazada por Rosa Mendoza"));
+        assertEquals(1, ocurrencias(html, ">Ver evidencia rechazada</a>"));
+        assertFalse(html.contains(">Validar evidencia</button>") || html.contains(">Aprobar</button>"),
+                "Los rechazos no ofrecen decisiones");
+    }
+
+    @Test
+    void reenviarEvidenciaRechazadaVuelveARevisionSinDecisionPreviaYValidarlaLaCompleta() throws Exception {
+        ColaboradorCurso evidencia = evidenciaAprobadaPorOtroRm();
+        cursoService.rechazarEvidencia(evidencia.getId(), "Falta tu nombre.", rm.getId());
+
+        colaboradorCursoService.subirEvidencia(colaboradorUno, evidencia.getId(),
+                new MockMultipartFile("evidencia", "nueva.pdf", "application/pdf", new byte[]{1, 2, 3}));
+
+        RmCursoView.InscripcionItem fila = cursoService.obtenerBandeja(
+                cursoService.normalizarFiltrosBandeja(null, "EVIDENCIA_PENDIENTE", null), "1").getInscripciones().get(0);
+        assertEquals("Evidencia en revisión", fila.getEstadoTexto());
+        assertNull(fila.getRevisionTexto(), "La revisión anterior no se muestra sobre el archivo nuevo");
+        assertNull(fila.getMotivoEtiqueta(), "El motivo del rechazo anterior no se muestra");
+        assertTrue(idsBandeja("RECHAZADO").isEmpty());
+        String html = mockMvc.perform(get(URL_EVIDENCIAS)).andReturn().getResponse()
+                .getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(html.contains("Falta tu nombre."));
+        assertTrue(html.contains("Evidencia enviada el"));
+
+        cursoService.aprobarEvidencia(evidencia.getId(), rm.getId());
+        RmCursoView.InscripcionItem completada = cursoService.obtenerBandeja(
+                cursoService.normalizarFiltrosBandeja(null, "COMPLETADO", null), "1").getInscripciones().get(0);
+        assertEquals("Completado", completada.getEstadoTexto());
+        assertEquals("Evidencia validada por", completada.getRevisionTexto());
+        assertEquals(rmInscripcion.getId(), colaboradorCursoRepository.findByIdConDetalle(evidencia.getId())
+                .orElseThrow().getAsignadoPor().getId(), "asignadoPor no cambia");
+        assertEquals(1, auditorias("RECHAZAR_EVIDENCIA_CURSO", evidencia.getId()).size(), "El historial se conserva");
+        assertEquals(1, auditorias("APROBAR_EVIDENCIA_CURSO", evidencia.getId()).size());
+    }
+
+    @Test
+    void paginacionDeRechazadosConservaElFiltro() throws Exception {
+        for (int i = 0; i < 11; i++) {
+            inscripcion(i % 2 == 0 ? colaboradorUno : colaboradorDos, i % 2 == 0 ? spring : aws,
+                    OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.RECHAZADO);
+        }
+        ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, aws, "ana.pdf", null);
+        cursoService.rechazarEvidencia(evidencia.getId(), "Ilegible.", rm.getId());
+
+        MvcResult resultado = mockMvc.perform(get("/rm/cursos/solicitudes")
+                        .param("estado", "RECHAZADO").param("pagina", "2"))
+                .andExpect(status().isOk()).andReturn();
+        RmCursoView.Bandeja bandeja = (RmCursoView.Bandeja) resultado.getModelAndView().getModel().get("bandeja");
+        assertEquals(12, bandeja.getTotalRegistros());
+        assertEquals(2, bandeja.getInscripciones().size());
+        String paginacion = bloquePaginacion(resultado.getResponse().getContentAsString(StandardCharsets.UTF_8));
+        assertTrue(paginacion.contains("estado=RECHAZADO&amp;origen=&amp;pagina=1\">Anterior"));
+        assertFalse(paginacion.contains("estado=&amp;"));
+    }
+
+    private List<Long> idsBandeja(String estado) {
+        return cursoService.obtenerBandeja(cursoService.normalizarFiltrosBandeja(null, estado, null), "1")
+                .getInscripciones().stream().map(RmCursoView.InscripcionItem::getId).toList();
+    }
+
     @Test
     void rechazoConMotivoMaximoSeAuditaSinSuperarLaColumna() {
         ColaboradorCurso evidencia = evidenciaPendiente(colaboradorUno, spring, "ana.pdf", null);
@@ -926,9 +1014,9 @@ class RmCursoTests {
         String html = mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", ""))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertEquals(2, html.split("Evidencia revisada por Rosa Mendoza", -1).length - 1,
-                "Solo las evidencias revisadas muestran revisor");
-        assertTrue(html.contains("Evidencia revisada por Rosa Mendoza · "
+        assertEquals(1, ocurrencias(html, "Evidencia validada por Rosa Mendoza"), "La validada indica el verbo");
+        assertEquals(1, ocurrencias(html, "Evidencia rechazada por Rosa Mendoza"), "La rechazada indica el verbo");
+        assertTrue(html.contains("Evidencia validada por Rosa Mendoza · "
                 + String.format("%02d", fecha.getDayOfMonth())), "Muestra la fecha de revisión");
         assertTrue(html.contains(String.format("%d %02d:%02d<", fecha.getYear(), fecha.getHour(), fecha.getMinute())),
                 "Muestra la hora de revisión");

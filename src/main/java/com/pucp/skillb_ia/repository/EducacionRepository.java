@@ -29,6 +29,22 @@ public interface EducacionRepository extends JpaRepository<Educacion, Long> {
             """)
     List<Educacion> findActivasByEstadoConDetalle(@Param("estado") EstadoCertificado estado);
 
+    // Historial del RM (TASK-061): formaciones ya revisadas, la revisión más reciente primero.
+    @Query("""
+            select e from Educacion e
+            join fetch e.colaborador u
+            join fetch u.rol
+            left join fetch u.cargo
+            left join fetch e.revisadoPor
+            where e.estado in (com.pucp.skillb_ia.model.enums.EstadoCertificado.APROBADO,
+                               com.pucp.skillb_ia.model.enums.EstadoCertificado.RECHAZADO)
+              and e.activo = true
+              and (u.registroEstado is null
+                   or u.registroEstado = com.pucp.skillb_ia.model.enums.EstadoRegistro.APROBADO)
+            order by e.fechaRevision desc, e.id desc
+            """)
+    List<Educacion> findActivasRevisadasConDetalle();
+
     @Query("""
             select e from Educacion e
             join fetch e.colaborador u

@@ -261,11 +261,40 @@ class ColaboradorCursoEvidenciaTests {
                     colaboradorCursoRepository.findById(item.getId()).orElseThrow().getEstado());
             assertTrue(auditorias("CURSO_NO_COMPLETADO", item.getId()).isEmpty());
         }
-        assertEquals(2, notificacionRepository.count(), "Solo las dos notificaciones CURSO_NO_COMPLETADO");
+        //El curso vigente (vence mañana) recibe además el aviso previo CURSO_POR_VENCER (TASK-063).
+        assertEquals(1, notificaciones(colaborador, "CURSO_POR_VENCER", vigente.getId()));
+        assertEquals(3, notificacionRepository.count(), "Las dos CURSO_NO_COMPLETADO y un CURSO_POR_VENCER");
 
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> colaboradorCursoService.subirEvidencia(colaborador, venceHoy.getId(), pdf()));
         assertEquals("Solo puedes subir evidencia de un curso que esté \"En curso\".", error.getMessage());
+    }
+
+    // 6b. Aviso previo (TASK-063): una sola vez si faltan 3 días o menos, sin evidencia; nunca con más plazo,
+    // con evidencia o sin fecha fin.
+    @Test
+    void avisaUnaSolaVezCuandoFaltanTresDiasOMenos() {
+        ColaboradorCurso enTresDias = enCurso(colaborador,
+                curso("Curso aviso 3 dias evid test", "8.00", LocalDate.now().plusDays(3)));
+        ColaboradorCurso enCuatroDias = enCurso(colaborador,
+                curso("Curso aviso 4 dias evid test", "8.00", LocalDate.now().plusDays(4)));
+        ColaboradorCurso conEvidencia = enCurso(colaborador,
+                curso("Curso aviso con evidencia evid test", "8.00", LocalDate.now().plusDays(2)));
+        conEvidencia.setEvidenciaUrl("evidencias/previa.pdf");
+        colaboradorCursoRepository.save(conEvidencia);
+        ColaboradorCurso sinFecha = enCurso(colaborador, curso);
+
+        colaboradorCursoService.listarMisCursos(colaborador);
+        colaboradorCursoService.listarMisCursos(colaborador);
+        rmCursoService.marcarCursosSinEvidenciaVencidos();
+
+        assertEquals(1, notificaciones(colaborador, "CURSO_POR_VENCER", enTresDias.getId()));
+        for (ColaboradorCurso item : List.of(enCuatroDias, conEvidencia, sinFecha)) {
+            assertEquals(0, notificaciones(colaborador, "CURSO_POR_VENCER", item.getId()));
+        }
+        assertEquals(1, notificacionRepository.count());
+        assertEquals(EstadoColaboradorCurso.EN_CURSO,
+                colaboradorCursoRepository.findById(enTresDias.getId()).orElseThrow().getEstado());
     }
 
     // 7. NO_COMPLETADO aparece en "Mis cursos" y sus horas no se suman al mes.

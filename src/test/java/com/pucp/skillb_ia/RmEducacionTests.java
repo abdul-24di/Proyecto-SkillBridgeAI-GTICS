@@ -367,6 +367,104 @@ class RmEducacionTests {
         assertTrue(html.contains("El documento no corresponde al título."));
     }
 
+    @Test
+    void historialListaSoloRevisadasActivasDeLaRevisionMasRecienteConMotivoYRevisor() throws Exception {
+        Educacion pendiente = guardar("Pendiente", "PUCP", EstadoCertificado.PENDIENTE, null);
+        Educacion antigua = revisada("Bachiller", "PUCP", EstadoCertificado.APROBADO, null, 5);
+        Educacion reciente = revisada("Maestría", "UNI", EstadoCertificado.RECHAZADO,
+                "El documento está incompleto.", 1);
+        Educacion eliminada = revisada("Eliminada", "PUCP", EstadoCertificado.APROBADO, null, 2);
+        eliminada.setActivo(false);
+        educacionRepository.save(eliminada);
+
+        MvcResult resultado = mockMvc.perform(get(BANDEJA + "/historial"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("rm/rm-educacion-historial"))
+                .andExpect(model().attribute("totalRegistros", 2L))
+                .andExpect(model().attribute("totalAprobadas", 1L))
+                .andExpect(model().attribute("totalRechazadas", 1L))
+                .andReturn();
+        assertEquals(List.of(reciente.getId(), antigua.getId()), ids(resultado));
+        assertFalse(ids(resultado).contains(pendiente.getId()));
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("El documento está incompleto."));
+        assertTrue(html.contains("Rosa Revisora"));
+        assertTrue(html.contains("/rm/colaboradores/educacion/revision?id=" + reciente.getId()));
+    }
+
+    @Test
+    void historialFiltraYPaginaEnElServidorIgnorandoValoresInvalidos() throws Exception {
+        for (int i = 1; i <= 7; i++) {
+            revisada("Curso técnico " + i, "Instituto Alfa", EstadoCertificado.APROBADO, null, 20 - i);
+        }
+        revisada("Doctorado en Física", "Universidad Beta", EstadoCertificado.RECHAZADO, "No legible.", 0);
+        Usuario otro = obtenerUsuario("col2.educacion@skillbridge.test", "Otro", "Colaborador",
+                obtenerRol("COLABORADOR"));
+        Educacion deOtro = revisada("Técnico de otro", "Instituto Alfa", EstadoCertificado.APROBADO, null, 30);
+        deOtro.setColaborador(otro);
+        educacionRepository.save(deOtro);
+        String historial = BANDEJA + "/historial";
+
+        mockMvc.perform(get(historial).param("estado", "rechazado"))
+                .andExpect(model().attribute("estado", "RECHAZADO"))
+                .andExpect(model().attribute("totalRegistros", 1L));
+        mockMvc.perform(get(historial).param("estado", "PENDIENTE"))
+                .andExpect(model().attribute("estado", (Object) null))
+                .andExpect(model().attribute("totalRegistros", 9L));
+        mockMvc.perform(get(historial).param("estado", "XYZ"))
+                .andExpect(model().attribute("totalRegistros", 9L));
+        mockMvc.perform(get(historial).param("busqueda", " fisica "))
+                .andExpect(model().attribute("totalRegistros", 1L));
+        mockMvc.perform(get(historial).param("colaborador", otro.getId().toString()))
+                .andExpect(model().attribute("colaborador", otro.getId()))
+                .andExpect(model().attribute("colaboradorNombre", "Otro Colaborador"))
+                .andExpect(model().attribute("totalRegistros", 1L));
+        mockMvc.perform(get(historial).param("colaborador", "999999"))
+                .andExpect(model().attribute("colaborador", (Object) null))
+                .andExpect(model().attribute("totalRegistros", 9L));
+        mockMvc.perform(get(historial).param("colaborador", "abc"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalRegistros", 9L));
+
+        MvcResult segunda = mockMvc.perform(get(historial).param("institucion", "instituto alfa")
+                        .param("estado", "APROBADO").param("colaborador", colaborador.getId().toString())
+                        .param("pagina", "2"))
+                .andExpect(model().attribute("paginaActual", 2))
+                .andExpect(model().attribute("totalRegistros", 7L))
+                .andReturn();
+        assertEquals(1, ids(segunda).size());
+        String anterior = enlace(segunda.getResponse().getContentAsString(StandardCharsets.UTF_8), "Anterior");
+        for (String parametro : List.of("institucion=Instituto", "estado=APROBADO",
+                "colaborador=" + colaborador.getId(), "pagina=1")) {
+            assertTrue(anterior.contains(parametro), anterior);
+        }
+        mockMvc.perform(get(historial).param("pagina", "99")).andExpect(model().attribute("paginaActual", 2));
+    }
+
+    @Test
+    void historialSoloEsAccesibleParaElRmYSeEnlazaDesdeBandejaYPerfil() throws Exception {
+        MockMvc mvcSeguro = MockMvcBuilders.webAppContextSetup(context)
+                .addFilters(context.getBean("springSecurityFilterChain", Filter.class))
+                .build();
+        mvcSeguro.perform(get(BANDEJA + "/historial").session(sesion(colaborador)))
+                .andExpect(status().isForbidden());
+        mvcSeguro.perform(get(BANDEJA + "/historial").session(sesion(rm)))
+                .andExpect(status().isOk());
+
+        String bandeja = mockMvc.perform(get(BANDEJA))
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(bandeja.contains("href=\"/rm/colaboradores/educacion/historial\""));
+    }
+
+    private Educacion revisada(String titulo, String institucion, EstadoCertificado estado,
+                               String motivo, int diasDesdeRevision) {
+        Educacion educacion = guardar(titulo, institucion, estado, LocalDateTime.now().minusDays(40));
+        educacion.setRevisadoPor(rm);
+        educacion.setMotivoRechazo(motivo);
+        educacion.setFechaRevision(LocalDateTime.now().minusDays(diasDesdeRevision));
+        return educacionRepository.save(educacion);
+    }
+
     private List<Long> ids(MvcResult resultado) {
         Object formaciones = resultado.getModelAndView().getModel().get("formaciones");
         return ((List<?>) formaciones).stream()

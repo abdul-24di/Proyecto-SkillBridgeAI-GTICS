@@ -146,9 +146,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             fetch('/colaborador/api/chat/enviar', {
                 method: 'POST',
-                headers: {
+                headers: csrfHeaders({
                     'Content-Type': 'application/x-www-form-urlencoded'
-                },
+                }),
                 body: formData.toString()
             })
             .then(res => {

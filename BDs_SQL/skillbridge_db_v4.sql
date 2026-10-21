@@ -169,6 +169,24 @@ CREATE TABLE habilidad (
         UNIQUE (nombre, categoria_id)
 ) ENGINE=InnoDB;
 
+-- Catálogo base de habilidades (seed). Cloud (AWS, GCP) va en Técnico para coincidir con los
+-- datos de prueba (Pruebas_col.sql). Para una BD que ya existe, usar seed_habilidades.sql.
+INSERT INTO habilidad (nombre, categoria_id) VALUES
+    ('Java',        (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('Python',      (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('JavaScript',  (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('Spring Boot', (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('React',       (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('Angular',     (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('MySQL',       (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('PostgreSQL',  (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('MongoDB',     (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('AWS',         (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('GCP',         (SELECT id FROM categoria_habilidad WHERE nombre = 'Técnico')),
+    ('Docker',      (SELECT id FROM categoria_habilidad WHERE nombre = 'Herramientas')),
+    ('Git',         (SELECT id FROM categoria_habilidad WHERE nombre = 'Herramientas')),
+    ('Scrum',       (SELECT id FROM categoria_habilidad WHERE nombre = 'Habilidades blandas'));
+
 
 -- =====================================================================
 -- 6. HABILIDADES DEL COLABORADOR

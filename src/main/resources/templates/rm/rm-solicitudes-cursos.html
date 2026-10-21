@@ -154,6 +154,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <form method="post" action="#">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
           <div class="modal-body">
             <p class="mb-3">Vas a aprobar la solicitud de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El colaborador quedará inscrito y será notificado.</p>
             <label for="courseApproveReason" class="form-label">Motivo de la aprobación</label>
@@ -177,6 +178,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <form method="post" action="#">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
           <div class="modal-body">
             <p class="mb-3">Vas a rechazar la solicitud de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El colaborador verá el motivo.</p>
             <label for="courseRejectReason" class="form-label">Motivo del rechazo</label>
@@ -200,6 +202,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <form method="post" action="#">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
           <div class="modal-body">
             <p class="mb-0">Vas a validar la evidencia de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El curso quedará completado, sus horas se sumarán al mes y el colaborador será notificado.</p>
           </div>
@@ -220,6 +223,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <form method="post" action="#">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
           <div class="modal-body">
             <p class="mb-3">Vas a rechazar la evidencia de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El curso volverá a "En curso" y el colaborador podrá reenviar la evidencia.</p>
             <label for="evidenceRejectReason" class="form-label">Motivo del rechazo</label>

@@ -153,6 +153,13 @@ public class AdminUsuarioService {
         String rolAnterior = usuario.getRol().getNombre();
         if (rolAnterior.equals(nuevoRolNombre)) return;
 
+        // El sistema nunca puede quedar sin un Administrador activo. La pantalla no ofrece cambiar el
+        // rol de un Administrador, pero la regla se valida aquí por si la petición llega de otra forma.
+        if ("ADMINISTRADOR".equals(rolAnterior) && usuario.isActivo()
+                && usuarioRepository.countByRol_NombreAndActivoTrue("ADMINISTRADOR") <= 1) {
+            throw new IllegalArgumentException("Debe quedar al menos un Administrador activo.");
+        }
+
         Rol nuevoRol = rolRepository.findByNombre(nuevoRolNombre)
                 .orElseThrow(() -> new IllegalArgumentException("Rol inválido: " + nuevoRolNombre));
         usuario.setRol(nuevoRol);

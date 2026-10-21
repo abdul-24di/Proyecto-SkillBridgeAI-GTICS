@@ -7,6 +7,7 @@ import com.pucp.skillb_ia.model.TokenUsuario;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoCv;
 import com.pucp.skillb_ia.model.enums.EstadoRegistro;
+import com.pucp.skillb_ia.model.enums.TipoToken;
 import com.pucp.skillb_ia.repository.CategoriaHabilidadRepository;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.RolRepository;
@@ -31,12 +32,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -311,6 +315,126 @@ class PreRegistroColaboradorTests {
 
         assertThatThrownBy(() -> adminUsuarioService.aprobarRegistro(u.getId(), admin))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    // ---------- reenviar la invitación invalida el enlace anterior ----------
+
+    @Test
+    void alReenviarLaInvitacionElEnlaceAnteriorDejaDeServir() throws Exception {
+        String correo = correoNuevo();
+        Usuario invitado = authService.invitarUsuario(correo, "PROJECT_MANAGER", admin);
+        String viejo = tokensDeActivacion(invitado).get(0).getToken();
+
+        authService.reenviarActivacion(invitado, admin);
+        String nuevo = tokensDeActivacion(invitado).stream()
+                .map(TokenUsuario::getToken).filter(t -> !t.equals(viejo)).findFirst().orElseThrow();
+
+        assertThat(authService.validarTokenActivacion(viejo).estado()).isEqualTo(AuthService.EstadoToken.EXPIRADO);
+        assertThat(authService.validarTokenActivacion(nuevo).estado()).isEqualTo(AuthService.EstadoToken.VALIDO);
+
+        // El enlace viejo muestra "El enlace ya no es válido" y no permite activar.
+        mockMvc.perform(get("/activar-cuenta").param("token", viejo))
+                .andExpect(model().attribute("estado", AuthService.EstadoToken.EXPIRADO));
+        assertThatThrownBy(() -> authService.activarCuenta(viejo, "Vic Viejo", "987654321", null, "Segura#123"))
+                .isInstanceOf(IllegalStateException.class);
+
+        // Con el enlace nuevo sí se activa.
+        authService.activarCuenta(nuevo, "Nora Nueva", "987654321", null, "Segura#123");
+        assertThat(usuarioRepository.findByCorreo(correo).orElseThrow().getPasswordHash()).isNotBlank();
+    }
+
+    @Test
+    void conVariosReenviosSoloFuncionaElUltimoEnlace() {
+        String correo = correoNuevo();
+        Usuario invitado = authService.invitarUsuario(correo, "PROJECT_MANAGER", admin);
+        authService.reenviarActivacion(invitado, admin);
+        authService.reenviarActivacion(invitado, admin);
+
+        List<TokenUsuario> tokens = tokensDeActivacion(invitado);
+        assertThat(tokens).hasSize(3);
+        long validos = tokens.stream()
+                .filter(t -> authService.validarTokenActivacion(t.getToken()).esValido())
+                .count();
+        assertThat(validos).isEqualTo(1);
+        TokenUsuario ultimo = tokens.stream().max(java.util.Comparator.comparing(TokenUsuario::getId)).orElseThrow();
+        assertThat(authService.validarTokenActivacion(ultimo.getToken()).esValido()).isTrue();
+    }
+
+    private List<TokenUsuario> tokensDeActivacion(Usuario usuario) {
+        return tokenUsuarioRepository.findAll().stream()
+                .filter(t -> t.getUsuario().getId().equals(usuario.getId()))
+                .filter(t -> t.getTipo() == TipoToken.ACTIVACION)
+                .toList();
+    }
+
+    // ---------- recuperación de contraseña: no debe saltarse la activación ----------
+
+    @Test
+    void unInvitadoQueNoActivoSuCuentaNoRecibeCodigoDeRecuperacion() throws Exception {
+        String correo = correoNuevo();
+        Usuario invitado = usuarioRepository.findById(invitarYDevolverId(correo)).orElseThrow();
+
+        // La pantalla responde igual (no revela si la cuenta existe), pero no se crea ningún código.
+        mockMvc.perform(post("/recuperar").param("correo", correo))
+                .andExpect(redirectedUrl("/verificar-codigo?correo=" + correo));
+        assertThat(codigosDeRecuperacion(invitado)).isEmpty();
+        assertThat(usuarioRepository.findById(invitado.getId()).orElseThrow().getPasswordHash()).isNull();
+    }
+
+    @Test
+    void unaCuentaActivadaSiPuedeRecuperarSuContrasena() {
+        String correo = correoNuevo();
+        String token = invitar(correo, "PROJECT_MANAGER");
+        Usuario activado = authService.activarCuenta(token, "Pia Activa", "987654321", null, "Segura#123");
+
+        authService.solicitarRecuperacion(correo);
+
+        List<TokenUsuario> codigos = codigosDeRecuperacion(activado);
+        assertThat(codigos).hasSize(1);
+        assertThat(authService.validarCodigoRecuperacion(correo, codigos.get(0).getToken())).isPresent();
+        authService.restablecerContrasena(codigos.get(0).getToken(), "Nueva#1234");
+    }
+
+    @Test
+    void unCodigoDeRecuperacionEmitidoAUnInvitadoSinActivarNoSirve() {
+        // Simula un código creado antes del arreglo para una cuenta que nunca se activó.
+        String correo = correoNuevo();
+        Usuario invitado = usuarioRepository.findById(invitarYDevolverId(correo)).orElseThrow();
+        TokenUsuario antiguo = new TokenUsuario();
+        antiguo.setUsuario(invitado);
+        antiguo.setTipo(TipoToken.RECUPERACION);
+        antiguo.setToken(String.valueOf(100000 + (int) (Math.random() * 899999)));
+        antiguo.setFechaExpiracion(LocalDateTime.now().plusMinutes(15));
+        tokenUsuarioRepository.save(antiguo);
+
+        assertThat(authService.validarCodigoRecuperacion(correo, antiguo.getToken())).isEmpty();
+        assertThatThrownBy(() -> authService.restablecerContrasena(antiguo.getToken(), "Segura#123"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(usuarioRepository.findById(invitado.getId()).orElseThrow().getPasswordHash()).isNull();
+    }
+
+    @Test
+    void unaCuentaDesactivadaNoRecibeCodigoDeRecuperacion() {
+        String correo = correoNuevo();
+        String token = invitar(correo, "PROJECT_MANAGER");
+        Usuario usuario = authService.activarCuenta(token, "Dina Desactivada", "987654321", null, "Segura#123");
+        usuario.setActivo(false);
+        usuarioRepository.save(usuario);
+
+        authService.solicitarRecuperacion(correo);
+
+        assertThat(codigosDeRecuperacion(usuario)).isEmpty();
+    }
+
+    private Long invitarYDevolverId(String correo) {
+        return authService.invitarUsuario(correo, "COLABORADOR", admin).getId();
+    }
+
+    private List<TokenUsuario> codigosDeRecuperacion(Usuario usuario) {
+        return tokenUsuarioRepository.findAll().stream()
+                .filter(t -> t.getUsuario().getId().equals(usuario.getId()))
+                .filter(t -> t.getTipo() == TipoToken.RECUPERACION)
+                .toList();
     }
 
     // ---------- helpers ----------

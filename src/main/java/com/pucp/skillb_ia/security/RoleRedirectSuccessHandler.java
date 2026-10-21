@@ -29,18 +29,22 @@ public class RoleRedirectSuccessHandler implements AuthenticationSuccessHandler 
         auditoriaService.registrar(details.getUsuario(), "LOGIN", "USUARIO", details.getUsuario().getId(),
                 "Inició sesión correctamente.");
 
+        response.sendRedirect(request.getContextPath() + panelSegunRol(authentication));
+    }
+
+    // Panel de inicio de cada rol; también lo usa SesionActivaLoginFilter.
+    public static String panelSegunRol(Authentication authentication) {
         String rol = authentication.getAuthorities().stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)
                 .orElse("");
 
-        String destino = switch (rol) {
+        return switch (rol) {
             case "ROLE_ADMINISTRADOR" -> "/admin/dashboard";
             case "ROLE_PROJECT_MANAGER" -> "/pm/proyectos";
             case "ROLE_RESOURCE_MANAGER" -> "/rm/dashboard";
             case "ROLE_COLABORADOR" -> "/colaborador/dashboard";
             default -> "/login";
         };
-        response.sendRedirect(request.getContextPath() + destino);
     }
 }

@@ -24,6 +24,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             """)
     List<Usuario> findActivosByRolNombre(@Param("rolNombre") String rolNombre);
 
+    // Cuántos usuarios activos tienen un rol (p. ej. para no dejar el sistema sin Administradores).
+    long countByRol_NombreAndActivoTrue(String rolNombre);
+
     // Colaboradores que el RM puede ver y asignar (TASK-053): activos y con el pre-registro
     // aprobado; NULL (anterior al pre-registro) cuenta como aprobado.
     @Query("""

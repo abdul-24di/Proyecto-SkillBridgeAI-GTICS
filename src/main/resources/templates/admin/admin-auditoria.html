@@ -141,6 +141,7 @@
               <th>Rol</th>
               <th>Acción</th>
               <th>Detalle</th>
+              <th>IP</th>
             </tr>
           </thead>
           <tbody>
@@ -150,9 +151,10 @@
               <td><span class="badge" th:classappend="${log.rolBadgeClase()}" th:text="${log.rolEtiqueta()}">Administrador</span></td>
               <td><span class="badge" th:classappend="${log.accionBadgeClase()}" th:text="${log.accionEtiqueta()}">Gestión de usuarios</span></td>
               <td class="text-secondary" th:text="${log.detalle()}">Detalle...</td>
+              <td class="text-secondary small text-nowrap" th:text="${log.ip()}">190.12.34.56</td>
             </tr>
             <tr th:if="${#lists.isEmpty(logs)}">
-              <td colspan="5" class="text-center text-secondary py-4">No hay acciones registradas con estos filtros.</td>
+              <td colspan="6" class="text-center text-secondary py-4">No hay acciones registradas con estos filtros.</td>
             </tr>
           </tbody>
         </table>

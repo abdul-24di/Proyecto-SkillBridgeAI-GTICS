@@ -55,7 +55,7 @@
   }
 
   async function request(url) {
-    return fetch(url, {method: 'POST', credentials: 'same-origin'});
+    return fetch(url, {method: 'POST', credentials: 'same-origin', headers: window.csrfHeaders ? csrfHeaders() : {}});
   }
 
   async function init() {

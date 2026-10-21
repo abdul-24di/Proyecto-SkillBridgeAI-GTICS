@@ -39,7 +39,8 @@ INSERT INTO usuario (correo, password_hash, nombre, apellido, rol_id, activo, ca
 -- =====================================================================
 -- 2. HABILIDADES (catálogo)
 -- =====================================================================
-INSERT INTO habilidad (nombre, categoria_id, activa) VALUES
+-- IGNORE: Java, Spring Boot, React y AWS ya vienen en el seed de skillbridge_db_v4.sql.
+INSERT IGNORE INTO habilidad (nombre, categoria_id, activa) VALUES
 ('Java', (SELECT id FROM categoria_habilidad WHERE nombre='Técnico'), 1),
 ('Spring Boot', (SELECT id FROM categoria_habilidad WHERE nombre='Técnico'), 1),
 ('React', (SELECT id FROM categoria_habilidad WHERE nombre='Técnico'), 1),

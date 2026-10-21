@@ -263,14 +263,23 @@ class RmEducacionTests {
                 .andExpect(status().isForbidden());
         mvcSeguro.perform(get(BANDEJA).session(sesionColaborador))
                 .andExpect(status().isForbidden());
+        // Sin sesión ni token CSRF, Spring Security corta el POST con 403 antes de llegar al controlador.
         mvcSeguro.perform(post(BANDEJA + "/" + educacion.getId() + "/aprobar"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isForbidden());
 
         Educacion sinCambios = educacionRepository.findById(educacion.getId()).orElseThrow();
         assertEquals(EstadoCertificado.PENDIENTE, sinCambios.getEstado());
         assertNull(sinCambios.getRevisadoPor());
 
-        mvcSeguro.perform(post(BANDEJA + "/" + educacion.getId() + "/aprobar").session(sesion(rm)))
+        // El RM envía el token CSRF que trae el formulario de la bandeja, como en el navegador.
+        MockHttpSession sesionRm = sesion(rm);
+        String bandeja = mvcSeguro.perform(get(BANDEJA).session(sesionRm))
+                .andReturn().getResponse().getContentAsString();
+        java.util.regex.Matcher token = java.util.regex.Pattern
+                .compile("name=\"_csrf\" value=\"([^\"]+)\"").matcher(bandeja);
+        assertTrue(token.find());
+        mvcSeguro.perform(post(BANDEJA + "/" + educacion.getId() + "/aprobar")
+                        .param("_csrf", token.group(1)).session(sesionRm))
                 .andExpect(redirectedUrl(BANDEJA));
         assertEquals(EstadoCertificado.APROBADO,
                 educacionRepository.findById(educacion.getId()).orElseThrow().getEstado());

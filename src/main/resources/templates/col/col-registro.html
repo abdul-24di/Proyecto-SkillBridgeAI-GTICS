@@ -57,7 +57,9 @@
             Mientras tanto no puedes usar el resto del sistema.
         </div>
 
-        <a th:href="@{/logout}" class="auth-back" style="margin-top:18px; display:inline-block">Cerrar sesión</a>
+        <form th:action="@{/logout}" method="post" style="margin-top:18px">
+            <button type="submit" class="auth-back" style="background:none; border:0; padding:0; cursor:pointer">Cerrar sesión</button>
+        </form>
     </div>
 
     <div class="auth-copyright">© 2026 SkillBridge AI — TEL137 PUCP</div>

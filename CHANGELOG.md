@@ -1,5 +1,22 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 21 de Octubre 2026 — Revisión de seguridad
+
+Detalle completo, reglas para el equipo y pendientes en [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md).
+
+- **CSRF activado:** token en todos los formularios y `fetch` (`static/js/csrf.js`); cerrar sesión pasa a POST.
+- **Login sobre sesión activa:** con sesión abierta, `/login` lleva al panel del rol (`SesionActivaLoginFilter`).
+- **Acceso denegado:** página 403 propia y registro en la auditoría (`RegistroAccesoDenegadoHandler`, `templates/error/403.html`).
+- **IP en la auditoría:** se guarda en cada registro; columna IP en la vista, CSV y Excel.
+- **Recuperación de contraseña:** el código verificado queda en la sesión (ya no se puede saltar la verificación), tope de 5 intentos, un código nuevo anula los anteriores, cambiar la contraseña cierra las sesiones abiertas y solo cuentas activadas pueden recuperar.
+- **Activación:** reenviar la invitación invalida el enlace anterior.
+- **Usuarios:** no se puede quitar el rol al último Administrador activo.
+- **Archivos:** `/uploads/**` exige sesión.
+- **BD:** `seed_habilidades.sql` (14 habilidades base) y `migracion_motivo_cierre.sql` (BD existentes); ambos idempotentes.
+- **Tests:** 738 en verde.
+
+---
+
 ## Sesión 6 de Octubre 2026
 
 ---

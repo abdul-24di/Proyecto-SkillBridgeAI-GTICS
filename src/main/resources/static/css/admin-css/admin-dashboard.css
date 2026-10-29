@@ -21,3 +21,14 @@
   margin-top: .4rem;
   border-radius: 50%;
 }
+
+/* Gráficos del dashboard: barras por rol y columnas de actividad diaria (solo CSS, datos del servidor). */
+.role-bars{display:grid;gap:1rem}
+.activity-chart{display:grid;grid-template-columns:repeat(7,1fr);gap:.75rem;align-items:end;min-height:190px}
+.activity-col{display:flex;flex-direction:column;align-items:center;gap:.35rem;height:100%}
+.activity-value{font-size:.8rem;font-weight:600;color:#4f5d6b}
+.activity-track{width:100%;max-width:42px;height:130px;display:flex;align-items:flex-end;border-radius:8px;background:#f1f5f9}
+.activity-bar{width:100%;border-radius:8px;background:#9ec5ea;transition:height .3s}
+.activity-bar.is-today{background:#206bc4}
+.activity-label{font-size:.72rem;color:#6c7a89;text-transform:capitalize;white-space:nowrap}
+@media(max-width:575px){.activity-chart{gap:.35rem}.activity-label{font-size:.62rem}}

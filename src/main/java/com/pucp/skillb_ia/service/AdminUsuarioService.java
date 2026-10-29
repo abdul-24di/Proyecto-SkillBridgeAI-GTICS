@@ -83,6 +83,10 @@ public class AdminUsuarioService {
     public record ResumenUsuarios(long total, long pendientes, long activos, long inactivos) {
     }
 
+    // Dashboard: usuarios activos de un rol y su porcentaje sobre el total, para dibujar la barra.
+    public record RolConteo(String rolEtiqueta, String rolBadgeClase, String barraClase, long total, int porcentaje) {
+    }
+
     public record ResultadoCargaMasiva(int creados, List<String> errores) {
         public boolean tieneErrores() { return !errores.isEmpty(); }
     }
@@ -136,6 +140,22 @@ public class AdminUsuarioService {
         long activos = filas.stream().filter(f -> f.activo() && !f.pendiente()).count();
         long inactivos = filas.stream().filter(f -> !f.activo()).count();
         return new ResumenUsuarios(filas.size(), pendientes, activos, inactivos);
+    }
+
+    // Usuarios activos (cuenta ya activada) por rol, en el orden de ROL_A_ETIQUETA.
+    @Transactional(readOnly = true)
+    public List<RolConteo> usuariosPorRol() {
+        List<UsuarioFila> activos = listar().stream().filter(f -> f.activo() && !f.pendiente()).toList();
+        return ROL_A_ETIQUETA.entrySet().stream()
+                .map(rol -> {
+                    long total = activos.stream().filter(f -> rol.getKey().equals(f.rolNombre())).count();
+                    int porcentaje = activos.isEmpty() ? 0 : (int) Math.round(total * 100.0 / activos.size());
+                    String badge = ROL_A_BADGE.get(rol.getKey());
+                    // "bg-green-lt text-green" -> "bg-green": la barra usa el color fuerte del badge del rol.
+                    String barra = "bg-" + badge.substring(badge.indexOf("text-") + "text-".length());
+                    return new RolConteo(rol.getValue(), badge, barra, total, porcentaje);
+                })
+                .toList();
     }
 
     @Transactional

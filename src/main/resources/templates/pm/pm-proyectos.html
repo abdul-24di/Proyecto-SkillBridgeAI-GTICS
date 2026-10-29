@@ -193,7 +193,7 @@
               </div>
               <div>
                 <div class="info-label">Presupuesto</div>
-                <div class="info-value" th:text="${'$' + p.presupuestoVisible}">$1000</div>
+                <div class="info-value" th:text="|S/ ${#numbers.formatDecimal(p.presupuestoVisible, 1, 'COMMA', 2, 'POINT')}|">S/ 1,000.00</div>
               </div>
               <div>
                 <div class="info-label">Actividades</div>

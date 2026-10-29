@@ -113,7 +113,7 @@
         <div class="card metric-card h-100">
           <div class="card-body">
             <div class="metric-label">Presupuesto</div>
-            <div class="metric-number" th:text="${'$' + proyecto.presupuestoVisible}">$10,000</div>
+            <div class="metric-number" th:text="|S/ ${#numbers.formatDecimal(proyecto.presupuestoVisible, 1, 'COMMA', 2, 'POINT')}|">S/ 10,000.00</div>
             <div class="text-secondary small mt-2" th:text="${proyecto.presupuestoEtiqueta}">Presupuesto asignado</div>
           </div>
         </div>

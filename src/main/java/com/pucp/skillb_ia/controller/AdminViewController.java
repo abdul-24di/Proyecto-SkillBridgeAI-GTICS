@@ -104,6 +104,11 @@ public class AdminViewController {
                 .filter(l -> l.fechaSolo().isEqual(LocalDate.now()))
                 .count());
 
+        // Gráficos del dashboard y pre-registros que esperan la revisión del Admin.
+        model.addAttribute("usuariosPorRol", adminUsuarioService.usuariosPorRol());
+        model.addAttribute("actividadSemana", adminAuditoriaService.actividadPorDia(logs, 7));
+        model.addAttribute("preRegistrosPendientes", adminUsuarioService.listarCvsPendientes().size());
+
         return "admin/admin-dashboard";
     }
 

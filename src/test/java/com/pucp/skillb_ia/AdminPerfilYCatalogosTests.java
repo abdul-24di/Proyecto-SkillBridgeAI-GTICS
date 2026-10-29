@@ -65,6 +65,7 @@ class AdminPerfilYCatalogosTests {
     @Autowired private com.pucp.skillb_ia.security.RegistroAccesoDenegadoHandler registroAccesoDenegadoHandler;
     @Autowired private com.pucp.skillb_ia.repository.LogAuditoriaRepository logAuditoriaRepository;
     @Autowired private com.pucp.skillb_ia.service.AdminUsuarioService adminUsuarioService;
+    @Autowired private com.pucp.skillb_ia.service.AdminAuditoriaService adminAuditoriaService;
     @Autowired private NotificacionService notificacionService;
     private MockMvc mockMvc;
     private Usuario admin;
@@ -281,6 +282,51 @@ class AdminPerfilYCatalogosTests {
                     .andExpect(content().string(not(containsString("class=\"avatar avatar-sm user-avatar\">AA</span>"))));
         }
         admin.setFotoUrl(null);
+    }
+
+    @Test
+    void elDashboardMuestraLosGraficosDeRolesYActividad() throws Exception {
+        mockMvc.perform(get("/admin/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeExists("usuariosPorRol", "actividadSemana", "preRegistrosPendientes"))
+                .andExpect(content().string(containsString("Usuarios activos por rol")))
+                .andExpect(content().string(containsString("Actividad de los últimos 7 días")));
+    }
+
+    @Test
+    void losUsuariosPorRolSalenEnOrdenYSusPorcentajesCuadranConElTotal() {
+        List<com.pucp.skillb_ia.service.AdminUsuarioService.RolConteo> roles = adminUsuarioService.usuariosPorRol();
+
+        assertThat(roles).extracting(com.pucp.skillb_ia.service.AdminUsuarioService.RolConteo::rolEtiqueta)
+                .containsExactly("Administrador", "Resource Manager", "Project Manager", "Colaborador");
+        assertThat(roles.stream().mapToLong(com.pucp.skillb_ia.service.AdminUsuarioService.RolConteo::total).sum())
+                .isEqualTo(adminUsuarioService.resumen().activos());
+        assertThat(roles).allSatisfy(r -> {
+            assertThat(r.porcentaje()).isBetween(0, 100);
+            assertThat(r.barraClase()).startsWith("bg-").doesNotContain("-lt");
+        });
+    }
+
+    @Test
+    void laActividadPorDiaCubre7DiasAunqueAlgunoNoTengaAcciones() {
+        java.time.LocalDate hoy = java.time.LocalDate.now();
+        List<com.pucp.skillb_ia.service.AdminAuditoriaService.LogFila> logs = List.of(
+                logDel(hoy), logDel(hoy), logDel(hoy), logDel(hoy.minusDays(2)), logDel(hoy.minusDays(30)));
+
+        var dias = adminAuditoriaService.actividadPorDia(logs, 7);
+
+        assertThat(dias).hasSize(7);
+        assertThat(dias).extracting(com.pucp.skillb_ia.service.AdminAuditoriaService.DiaActividad::total)
+                .containsExactly(0L, 0L, 0L, 0L, 1L, 0L, 3L); // el log de hace 30 días queda fuera
+        assertThat(dias.get(6).hoy()).isTrue();
+        assertThat(dias.get(6).altura()).isEqualTo(100);
+        assertThat(dias.get(4).altura()).isEqualTo(33);
+        assertThat(dias.get(0).altura()).isZero();
+    }
+
+    private com.pucp.skillb_ia.service.AdminAuditoriaService.LogFila logDel(java.time.LocalDate dia) {
+        return new com.pucp.skillb_ia.service.AdminAuditoriaService.LogFila("", dia, "Ana", "COLABORADOR",
+                "Colaborador", "", "USUARIO", "LOGIN", "Inicio de sesión", "", "", "—");
     }
 
     @Test

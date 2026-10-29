@@ -51,6 +51,7 @@
   <div>
     <h1 class="page-title">Reporte del Proyecto</h1>
     <div class="text-secondary" th:text="${reporte.proyecto.nombre + ' — Métricas Actuales'}"></div>
+    <div class="report-print-date text-secondary small" style="display:none" th:text="${'Generado el ' + #temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}">Generado el</div>
   </div>
   <div class="report-actions">
     <button class="btn btn-outline-primary" onclick="window.print()">Exportar PDF</button>
@@ -75,7 +76,7 @@
   </div></div></div>
   <div class="col-sm-6 col-xl-3"><div class="card metric-card"><div class="card-body">
     <div class="metric-label">Presupuesto</div>
-    <div class="metric-number"><span th:text="${reporte.presupuestoVisible != null ? '$' + reporte.presupuestoVisible : 'No definido'}"></span></div>
+    <div class="metric-number"><span th:text="${reporte.presupuestoVisible != null ? 'S/ ' + #numbers.formatDecimal(reporte.presupuestoVisible, 1, 'COMMA', 2, 'POINT') : 'No definido'}"></span></div>
     <div class="small text-secondary">Aprobado / Solicitado</div>
   </div></div></div>
 </div>

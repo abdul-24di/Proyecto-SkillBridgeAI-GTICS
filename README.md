@@ -72,6 +72,9 @@ Para cargar datos de demostración del RM, incluidas solicitudes de personal,
 certificados, foros, actividades para reportes y solicitudes de cursos, se
 puede ejecutar después
 [`BDs_SQL/datos_demo_rm_proyectos.sql`](BDs_SQL/datos_demo_rm_proyectos.sql).
+Para ver los reportes del RM con varios meses, estados y prioridades, ejecutar
+luego [`BDs_SQL/datos_demo_rm_reportes.sql`](BDs_SQL/datos_demo_rm_reportes.sql)
+(incluye escenarios sugeridos de filtros y exportación).
 
 ### Reportes del RM
 

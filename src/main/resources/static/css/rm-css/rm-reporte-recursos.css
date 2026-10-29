@@ -146,3 +146,13 @@
   overflow-wrap: anywhere;
   font-size: .75rem;
 }
+
+/* Desde/Hasta: mes y año en un solo grupo; el año ocupa solo lo necesario. */
+.report-periodo {
+  flex-wrap: nowrap;
+  min-width: 15rem;
+}
+
+.report-periodo .report-anio {
+  flex: 0 0 6.5rem;
+}

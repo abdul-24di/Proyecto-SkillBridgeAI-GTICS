@@ -1604,10 +1604,20 @@ public class RmViewController {
             @RequestParam(name = "periodo", required = false) String periodo,
             @RequestParam(name = "proyecto", required = false) String proyectoTexto,
             @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "hasta", required = false) String hasta,
+            @RequestParam(name = "prioridad", required = false) String prioridad,
+            @RequestParam(name = "anioDesde", required = false) String anioDesde,
+            @RequestParam(name = "mesDesde", required = false) String mesDesde,
+            @RequestParam(name = "anioHasta", required = false) String anioHasta,
+            @RequestParam(name = "mesHasta", required = false) String mesHasta,
             @RequestParam(name = "paginaProyectos", required = false) String paginaProyectos,
             @RequestParam(name = "paginaColaboradores", required = false) String paginaColaboradores,
             Model model) {
-        var filtros = rmReporteService.normalizarFiltrosRecursos(periodo, idReporte(proyectoTexto), estado);
+        // El formulario envía año y mes por separado; los enlaces de página, "periodo" y "hasta".
+        var filtros = rmReporteService.normalizarFiltrosRecursos(
+                rmReporteService.componerPeriodo(anioDesde, mesDesde, periodo),
+                rmReporteService.componerPeriodo(anioHasta, mesHasta, hasta),
+                idReporte(proyectoTexto), estado, prioridad);
         var paginaRecursos = rmReporteService.listarPaginaRecursos(filtros, paginaProyectos, paginaColaboradores);
         RmReporteView reporte = paginaRecursos.reporte();
         cargarModeloReporte(model, reporte);
@@ -1617,6 +1627,11 @@ public class RmViewController {
         model.addAttribute("archivoExportacion", rmReporteExportService.nombreArchivo(reporte));
         model.addAttribute("columnasProyecto", RmReporteExportService.COLUMNAS_PROYECTO);
         model.addAttribute("columnasDetalle", RmReporteExportService.COLUMNAS_DETALLE);
+        model.addAttribute("metricasResumen", RmReporteExportService.METRICAS);
+        model.addAttribute("aniosFiltro", rmReporteService.listarAnios(reporte));
+        model.addAttribute("mesesFiltro", rmReporteService.listarMeses());
+        model.addAttribute("maximoMesesRango", RmReporteService.MAXIMO_MESES_RANGO);
+        model.addAttribute("mesActual", java.time.YearMonth.now().toString());
         return "rm/rm-reporte-recursos";
     }
 
@@ -1661,22 +1676,20 @@ public class RmViewController {
     public ResponseEntity<byte[]> exportarReporteExcel(
             @RequestParam(name = "periodo", required = false) String periodo,
             @RequestParam(name = "proyecto", required = false) String proyectoTexto,
-            @RequestParam(name = "estado", required = false) String estado) {
-        RmReporteView reporte = rmReporteService.generar(periodo, idReporte(proyectoTexto), estado);
-        return archivo(rmReporteExportService.crearExcel(reporte),
+            @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "hasta", required = false) String hasta,
+            @RequestParam(name = "prioridad", required = false) String prioridad,
+            @RequestParam(name = "personalizado", defaultValue = "false") boolean personalizado,
+            @RequestParam(name = "resumen", defaultValue = "false") boolean resumen,
+            @RequestParam(name = "hojas", required = false) List<String> hojas,
+            @RequestParam(name = "colProyecto", required = false) List<Integer> colProyecto,
+            @RequestParam(name = "colDetalle", required = false) List<Integer> colDetalle) {
+        var opciones = RmReporteExportService.OpcionesExcel.normalizar(
+                personalizado, resumen, hojas, colProyecto, colDetalle);
+        RmReporteView reporte = rmReporteService.generar(periodo, hasta, idReporte(proyectoTexto), estado, prioridad);
+        return archivo(rmReporteExportService.crearExcel(reporte, opciones),
                 rmReporteExportService.nombreArchivo(reporte) + ".xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    }
-
-    @GetMapping("/reportes/recursos/pdf")
-    public ResponseEntity<byte[]> exportarReportePdf(
-            @RequestParam(name = "periodo", required = false) String periodo,
-            @RequestParam(name = "proyecto", required = false) String proyectoTexto,
-            @RequestParam(name = "estado", required = false) String estado) {
-        RmReporteView reporte = rmReporteService.generar(periodo, idReporte(proyectoTexto), estado);
-        return archivo(rmReporteExportService.crearPdf(reporte),
-                rmReporteExportService.nombreArchivo(reporte) + ".pdf",
-                MediaType.APPLICATION_PDF_VALUE);
     }
 
     /** Proyecto del reporte: vacío o no numérico se trata como "Todos", igual que un estado inválido. */
@@ -1690,6 +1703,7 @@ public class RmViewController {
         model.addAttribute("periodos", rmReporteService.listarPeriodos(reporte.getPeriodoValor()));
         model.addAttribute("proyectosFiltro", rmReporteService.listarProyectos());
         model.addAttribute("estadosFiltro", rmReporteService.listarEstados());
+        model.addAttribute("prioridadesFiltro", rmReporteService.listarPrioridades());
     }
 
     private ResponseEntity<byte[]> archivo(byte[] contenido, String nombre, String contentType) {

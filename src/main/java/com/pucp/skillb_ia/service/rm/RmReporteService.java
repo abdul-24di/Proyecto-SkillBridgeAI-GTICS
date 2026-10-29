@@ -6,6 +6,7 @@ import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.model.enums.Prioridad;
 import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import org.springframework.stereotype.Service;
@@ -14,8 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.Normalizer;
+import java.time.Month;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.*;
 
 @Service
@@ -25,8 +28,12 @@ public class RmReporteService {
     private static final DateTimeFormatter FORMATO_PERIODO =
             DateTimeFormatter.ofPattern("MMMM yyyy", LOCALE_ES);
 
-    /** Filtros normalizados del reporte de recursos (los mismos que reciben Excel y PDF). */
-    public record FiltrosRecursos(String periodo, Long proyecto, String estado) {
+    /** Máximo de meses de un rango (el mismo alcance que la lista de meses del filtro). */
+    public static final int MAXIMO_MESES_RANGO = 12;
+    private static final int ANIOS_FILTRO = 5;
+
+    /** Filtros normalizados del reporte de recursos (los mismos que recibe el Excel). */
+    public record FiltrosRecursos(String periodo, String hasta, Long proyecto, String estado, String prioridad) {
     }
 
     /** Filtros normalizados del consolidado de horas por colaborador. */
@@ -57,15 +64,29 @@ public class RmReporteService {
         this.actividadRepository = actividadRepository;
     }
 
+    /** Reporte de un solo mes, sin filtro de prioridad. */
     @Transactional(readOnly = true)
     public RmReporteView generar(String periodoValor, Long proyectoId, String estadoValor) {
+        return generar(periodoValor, null, proyectoId, estadoValor, null);
+    }
+
+    /**
+     * {@code hastaValor} cierra un rango de meses desde {@code periodoValor}: vacío, inválido o anterior
+     * al inicio = un solo mes; un rango mayor a {@value #MAXIMO_MESES_RANGO} meses se recorta.
+     * Prioridad inválida = Todas, igual que el estado.
+     */
+    @Transactional(readOnly = true)
+    public RmReporteView generar(String periodoValor, String hastaValor, Long proyectoId,
+                                 String estadoValor, String prioridadValor) {
         YearMonth periodo = obtenerPeriodo(periodoValor);
+        YearMonth hasta = obtenerHasta(periodo, hastaValor);
         EstadoProyecto estado = obtenerEstado(estadoValor);
+        Prioridad prioridad = obtenerPrioridad(prioridadValor);
         List<Actividad> actividades = actividadRepository
                 .findByEstadoAndFechaEntregaBetweenConDetalle(
                         EstadoActividad.COMPLETADA,
                         periodo.atDay(1).atStartOfDay(),
-                        periodo.plusMonths(1).atDay(1).atStartOfDay());
+                        hasta.plusMonths(1).atDay(1).atStartOfDay());
 
         Map<Long, List<Actividad>> actividadesPorProyecto = new HashMap<>();
         actividades.forEach(actividad -> actividadesPorProyecto
@@ -80,6 +101,7 @@ public class RmReporteService {
         List<Proyecto> proyectos = todos.stream()
                 .filter(proyecto -> proyectoId == null || proyecto.getId().equals(proyectoId))
                 .filter(proyecto -> estado == null || proyecto.getEstado() == estado)
+                .filter(proyecto -> prioridad == null || proyecto.getPrioridad() == prioridad)
                 .toList();
 
         Map<Long, BigDecimal> horasPorProyecto = new HashMap<>();
@@ -107,18 +129,27 @@ public class RmReporteService {
                         .toList());
         List<RmReporteView.ColaboradorReporte> colaboradores = crearColaboradores(detalles);
 
+        String textoRango = hasta.equals(periodo)
+                ? textoPeriodo(periodo) : textoPeriodo(periodo) + " – " + textoPeriodo(hasta);
         return new RmReporteView(
-                periodo, textoPeriodo(periodo), proyectoId,
+                periodo, hasta, textoRango, proyectoId,
                 estado == null ? "" : estado.name(),
                 proyectoNombre, estado == null ? null : textoEnum(estado.name()),
+                prioridad == null ? "" : prioridad.name(),
+                prioridad == null ? null : textoEnum(prioridad.name()),
                 filasProyecto, detalles, colaboradores);
     }
 
-    /** Periodo inválido = mes actual y estado inválido = Todos, igual que {@link #generar}. */
-    public FiltrosRecursos normalizarFiltrosRecursos(String periodo, Long proyectoId, String estado) {
+    /** Periodo inválido = mes actual; estado o prioridad inválidos = Todos, igual que {@link #generar}. */
+    public FiltrosRecursos normalizarFiltrosRecursos(String periodo, String hasta, Long proyectoId,
+                                                     String estado, String prioridad) {
+        YearMonth inicio = obtenerPeriodo(periodo);
+        YearMonth fin = obtenerHasta(inicio, hasta);
         EstadoProyecto estadoValido = obtenerEstado(estado);
-        return new FiltrosRecursos(obtenerPeriodo(periodo).toString(), proyectoId,
-                estadoValido == null ? null : estadoValido.name());
+        Prioridad prioridadValida = obtenerPrioridad(prioridad);
+        return new FiltrosRecursos(inicio.toString(), fin.equals(inicio) ? null : fin.toString(), proyectoId,
+                estadoValido == null ? null : estadoValido.name(),
+                prioridadValida == null ? null : prioridadValida.name());
     }
 
     public FiltrosHoras normalizarFiltrosHoras(String periodo, Long proyectoId,
@@ -134,7 +165,8 @@ public class RmReporteService {
     @Transactional(readOnly = true)
     public PaginaRecursos listarPaginaRecursos(FiltrosRecursos filtros,
                                                String paginaProyectos, String paginaColaboradores) {
-        RmReporteView reporte = generar(filtros.periodo(), filtros.proyecto(), filtros.estado());
+        RmReporteView reporte = generar(filtros.periodo(), filtros.hasta(), filtros.proyecto(),
+                filtros.estado(), filtros.prioridad());
         return new PaginaRecursos(reporte,
                 paginar(reporte.getProyectos(), paginaProyectos),
                 paginar(reporte.getDetalles(), paginaColaboradores));
@@ -156,6 +188,38 @@ public class RmReporteService {
                 .toList();
     }
 
+    /**
+     * Une los selectores de año y mes del filtro ("2026" + "09" = "2026-09"). Si faltan o no son
+     * válidos se usa {@code periodo} (enlaces y exportación siguen enviando el valor completo).
+     */
+    public String componerPeriodo(String anio, String mes, String periodo) {
+        if (anio != null && mes != null && anio.trim().matches("\\d{4}")
+                && mes.trim().matches("0[1-9]|1[0-2]")) {
+            return anio.trim() + "-" + mes.trim();
+        }
+        return periodo;
+    }
+
+    /** Años del filtro: los últimos {@value #ANIOS_FILTRO} y los del reporte, del más reciente al más antiguo. */
+    public List<Integer> listarAnios(RmReporteView reporte) {
+        TreeSet<Integer> anios = new TreeSet<>(Comparator.reverseOrder());
+        int actual = YearMonth.now().getYear();
+        for (int indice = 0; indice < ANIOS_FILTRO; indice++) anios.add(actual - indice);
+        anios.add(reporte.getPeriodo().getYear());
+        anios.add(reporte.getPeriodoHasta().getYear());
+        return List.copyOf(anios);
+    }
+
+    public List<RmReporteView.Opcion> listarMeses() {
+        return Arrays.stream(Month.values())
+                .map(mes -> {
+                    String texto = mes.getDisplayName(TextStyle.FULL_STANDALONE, LOCALE_ES);
+                    return new RmReporteView.Opcion(String.format("%02d", mes.getValue()),
+                            Character.toUpperCase(texto.charAt(0)) + texto.substring(1));
+                })
+                .toList();
+    }
+
     public List<RmReporteView.Opcion> listarPeriodos(String periodoValor) {
         YearMonth seleccionado = obtenerPeriodo(periodoValor);
         LinkedHashSet<YearMonth> periodos = new LinkedHashSet<>();
@@ -171,6 +235,12 @@ public class RmReporteService {
     public List<RmReporteView.Opcion> listarEstados() {
         return Arrays.stream(EstadoProyecto.values())
                 .map(estado -> new RmReporteView.Opcion(estado.name(), textoEnum(estado.name())))
+                .toList();
+    }
+
+    public List<RmReporteView.Opcion> listarPrioridades() {
+        return Arrays.stream(Prioridad.values())
+                .map(prioridad -> new RmReporteView.Opcion(prioridad.name(), textoEnum(prioridad.name())))
                 .toList();
     }
 
@@ -284,6 +354,26 @@ public class RmReporteService {
             }
         }
         return YearMonth.now();
+    }
+
+    /** "Hasta" queda entre {@code inicio} y el menor de: inicio + 11 meses y el mes actual. */
+    private YearMonth obtenerHasta(YearMonth inicio, String valor) {
+        if (valor == null || !valor.matches("\\d{4}-(0[1-9]|1[0-2])")) return inicio;
+        YearMonth fin = YearMonth.parse(valor);
+        if (fin.isBefore(inicio)) return inicio;
+        YearMonth limite = inicio.plusMonths(MAXIMO_MESES_RANGO - 1L);
+        YearMonth actual = YearMonth.now();
+        if (actual.isBefore(limite)) limite = actual.isBefore(inicio) ? inicio : actual;
+        return fin.isAfter(limite) ? limite : fin;
+    }
+
+    private Prioridad obtenerPrioridad(String valor) {
+        if (valor == null || valor.isBlank()) return null;
+        try {
+            return Prioridad.valueOf(valor);
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 
     private EstadoProyecto obtenerEstado(String valor) {

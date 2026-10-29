@@ -117,6 +117,6 @@ Estado al **21 de octubre de 2026** (rama `feature/cruds`). Resume cómo está p
 - Nombres de prototipo (Abraham Ramirez, Sofía Alarcón, Abdon Vallejo, iniciales AR/SA/AV) como texto de ejemplo en varias plantillas.
 - Teléfono del RM y PM acepta 7–20 dígitos; Admin, pre-registro y colaborador exigen 9.
 - PM: contraseña mínima de 6 caracteres y mensajes sin tildes (`PmProyectoForm`, `PmPerfilPasswordForm`).
-- Aviso "se implementará más adelante" en las pantallas de Chat e IA.
+- Aviso "próximamente" en el Asistente IA del PM (`pm-asistente-ia.html`). El del colaborador y la pestaña Chat de su detalle de proyecto ya lo tienen; los chats del colaborador y del PM funcionan.
 - Subir una imagen al foro del PM sin archivo responde error 500 (falta manejar el caso).
 - En la BD de demo, Java, Spring Boot y AWS existen dos veces (`Técnico` y `[DEMO] Tecnologia`) porque `datos_demo_rm_proyectos.sql` crea su propia categoría.

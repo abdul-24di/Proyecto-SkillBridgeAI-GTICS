@@ -76,6 +76,15 @@
       </div>
     </div>
 
+    <div class="alert alert-warning d-flex align-items-center justify-content-between gap-3 flex-wrap"
+         th:if="${preRegistrosPendientes > 0}">
+      <div>
+        <strong th:text="${preRegistrosPendientes == 1 ? '1 pre-registro por revisar' : preRegistrosPendientes + ' pre-registros por revisar'}">2 pre-registros por revisar</strong>
+        <div class="small">Colaboradores que completaron su registro y esperan tu aprobación para usar el sistema.</div>
+      </div>
+      <a class="btn btn-warning btn-sm" th:href="@{/admin/experiencia}">Revisar</a>
+    </div>
+
     <div class="row row-cards mb-4">
       <div class="col-sm-6 col-lg-3">
         <div class="card summary-card">
@@ -130,6 +139,59 @@
               <div class="summary-number" th:text="${accionesHoy}">6</div>
               <div class="small text-secondary">Ver detalle en Auditoría.</div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-xl-5">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Usuarios activos por rol</h3>
+              <div class="section-description" th:text="${resumenUsuarios.activos()} + ' usuarios con la cuenta activada.'">16 usuarios con la cuenta activada.</div>
+            </div>
+          </div>
+          <div class="card-body role-bars">
+            <div class="role-bar-row" th:each="rol : ${usuariosPorRol}">
+              <div class="d-flex justify-content-between small mb-1">
+                <span class="badge" th:classappend="${rol.rolBadgeClase()}" th:text="${rol.rolEtiqueta()}">Colaborador</span>
+                <span class="text-secondary"><strong class="text-body" th:text="${rol.total()}">10</strong>
+                  <span th:text="'(' + ${rol.porcentaje()} + '%)'">(62%)</span></span>
+              </div>
+              <div class="progress progress-sm">
+                <div class="progress-bar" th:classappend="${rol.barraClase()}"
+                     th:style="'width:' + ${rol.porcentaje()} + '%'" style="width:62%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-xl-7">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Actividad de los últimos 7 días</h3>
+              <div class="section-description">Acciones registradas en la auditoría por día.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="activity-chart" role="img"
+                 th:attr="aria-label=${'Acciones por día: ' + #strings.listJoin(actividadSemana.![etiqueta() + ' ' + total()], ', ')}">
+              <div class="activity-col" th:each="dia : ${actividadSemana}">
+                <div class="activity-value" th:text="${dia.total()}">4</div>
+                <div class="activity-track">
+                  <div class="activity-bar" th:classappend="${dia.hoy()} ? 'is-today'"
+                       th:style="'height:' + ${dia.altura()} + '%'" style="height:60%"></div>
+                </div>
+                <div class="activity-label" th:classappend="${dia.hoy()} ? 'fw-semibold text-body'" th:text="${dia.etiqueta()}">lun 22</div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer text-end">
+            <a class="btn btn-link p-0" th:href="@{/admin/auditoria}">Ver log completo →</a>
           </div>
         </div>
       </div>

@@ -356,6 +356,22 @@ class PmProyectoCancelacionTests {
                 new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities()));
     }
 
+    @Test
+    void elPresupuestoSeMuestraEnSolesConSeparadorDeMilesEnLasPantallasDelPm() throws Exception {
+        Proyecto proyecto = proyecto(EstadoProyecto.ACTIVO);
+        autenticar(pm);
+        try {
+            for (String ruta : new String[]{"/pm/proyectos", "/pm/proyectos/detalle?id=" + proyecto.getId(),
+                    "/pm/reportes/detalle?proyectoId=" + proyecto.getId()}) {
+                mockMvc.perform(get(ruta))
+                        .andExpect(content().string(containsString("S/ 50,000.00")))
+                        .andExpect(content().string(org.hamcrest.Matchers.not(containsString("$50000"))));
+            }
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
     private Proyecto proyecto(EstadoProyecto estado) {
         Proyecto nuevo = new Proyecto();
         nuevo.setNombre("Proyecto cancelacion " + System.nanoTime());

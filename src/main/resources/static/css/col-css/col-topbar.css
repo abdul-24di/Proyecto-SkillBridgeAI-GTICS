@@ -297,3 +297,10 @@
   border-radius: 50%;
   box-shadow: 0 0 0 2px rgba(255, 255, 255, .9);
 }
+
+/* La topbar ocupa todo el ancho con calc(50% - 50vw); como 100vw incluye la barra de scroll vertical,
+   sobresalía unos px y aparecía un scroll horizontal. Se recorta ese sobrante sin afectar el diseño. */
+html,
+body {
+  overflow-x: clip;
+}

@@ -19,6 +19,7 @@ import java.util.Map;
 public class AdminAuditoriaService {
 
     private static final DateTimeFormatter FECHA_FORMATO = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm");
+    private static final DateTimeFormatter DIA_FORMATO = DateTimeFormatter.ofPattern("EEE dd");
 
     private static final Map<String, String> ROL_A_ETIQUETA = Map.of(
             "ADMINISTRADOR", "Administrador",
@@ -151,6 +152,26 @@ public class AdminAuditoriaService {
         ACCION_A_ETIQUETA.put("CREAR_RESPUESTA_FORO", "Respondió en foro");
         ACCION_A_ETIQUETA.put("EDITAR_RESPUESTA_FORO", "Editó respuesta en foro");
         ACCION_A_ETIQUETA.put("ELIMINAR_RESPUESTA_FORO", "Eliminó respuesta en foro");
+    }
+
+    // Dashboard: acciones auditadas en un día; altura es el % respecto del día con más acciones (para la columna).
+    public record DiaActividad(String etiqueta, long total, int altura, boolean hoy) {
+    }
+
+    // Últimos `dias` días (hoy incluido), del más antiguo al más reciente, aunque alguno no tenga acciones.
+    public List<DiaActividad> actividadPorDia(List<LogFila> logs, int dias) {
+        LocalDate hoy = LocalDate.now();
+        Map<LocalDate, Long> porDia = new LinkedHashMap<>();
+        for (int i = dias - 1; i >= 0; i--) {
+            porDia.put(hoy.minusDays(i), 0L);
+        }
+        logs.forEach(l -> porDia.computeIfPresent(l.fechaSolo(), (dia, total) -> total + 1));
+        long maximo = porDia.values().stream().mapToLong(Long::longValue).max().orElse(0);
+        return porDia.entrySet().stream()
+                .map(e -> new DiaActividad(e.getKey().format(DIA_FORMATO), e.getValue(),
+                        e.getValue() == 0 ? 0 : (int) Math.max(4, Math.round(e.getValue() * 100.0 / maximo)),
+                        e.getKey().equals(hoy)))
+                .toList();
     }
 
     public record LogFila(String fecha, LocalDate fechaSolo, String usuarioNombre, String usuarioRolNombre,

@@ -5,17 +5,20 @@ import java.time.YearMonth;
 import java.util.List;
 
 public class RmReporteView {
-    /** Regla única de horas: la usan la vista, el PDF y el Excel. */
+    /** Regla única de horas: la usan la vista y el Excel. */
     public static final String REGLA_HORAS = "Se suman las horas estimadas de las tareas completadas "
             + "cuya fecha de entrega pertenece al periodo. El periodo solo filtra las horas; "
             + "el presupuesto asignado es el registrado en cada proyecto (S/ 0.00 si no tiene).";
 
     private final YearMonth periodo;
+    private final YearMonth periodoHasta;
     private final String periodoTexto;
     private final Long proyectoSeleccionado;
     private final String estadoSeleccionado;
     private final String proyectoSeleccionadoNombre;
     private final String estadoSeleccionadoTexto;
+    private final String prioridadSeleccionada;
+    private final String prioridadSeleccionadaTexto;
     private final List<ProyectoReporte> proyectos;
     private final List<DetalleColaborador> detalles;
     private final List<ColaboradorReporte> colaboradores;
@@ -29,12 +32,28 @@ public class RmReporteView {
                          List<ProyectoReporte> proyectos,
                          List<DetalleColaborador> detalles,
                          List<ColaboradorReporte> colaboradores) {
+        this(periodo, periodo, periodoTexto, proyectoSeleccionado, estadoSeleccionado,
+                proyectoSeleccionadoNombre, estadoSeleccionadoTexto, "", null,
+                proyectos, detalles, colaboradores);
+    }
+
+    /** {@code periodoHasta} igual a {@code periodo} = un solo mes; prioridad vacía = Todas. */
+    public RmReporteView(YearMonth periodo, YearMonth periodoHasta, String periodoTexto,
+                         Long proyectoSeleccionado, String estadoSeleccionado,
+                         String proyectoSeleccionadoNombre, String estadoSeleccionadoTexto,
+                         String prioridadSeleccionada, String prioridadSeleccionadaTexto,
+                         List<ProyectoReporte> proyectos,
+                         List<DetalleColaborador> detalles,
+                         List<ColaboradorReporte> colaboradores) {
         this.periodo = periodo;
+        this.periodoHasta = periodoHasta == null ? periodo : periodoHasta;
         this.periodoTexto = periodoTexto;
         this.proyectoSeleccionado = proyectoSeleccionado;
         this.estadoSeleccionado = estadoSeleccionado;
         this.proyectoSeleccionadoNombre = proyectoSeleccionadoNombre;
         this.estadoSeleccionadoTexto = estadoSeleccionadoTexto;
+        this.prioridadSeleccionada = prioridadSeleccionada == null ? "" : prioridadSeleccionada;
+        this.prioridadSeleccionadaTexto = prioridadSeleccionadaTexto;
         this.proyectos = List.copyOf(proyectos);
         this.detalles = List.copyOf(detalles);
         this.colaboradores = List.copyOf(colaboradores);
@@ -52,6 +71,10 @@ public class RmReporteView {
 
     public YearMonth getPeriodo() { return periodo; }
     public String getPeriodoValor() { return periodo.toString(); }
+    public YearMonth getPeriodoHasta() { return periodoHasta; }
+    /** Vacío si el reporte es de un solo mes, así los enlaces no arrastran un "hasta" redundante. */
+    public String getPeriodoHastaValor() { return esRango() ? periodoHasta.toString() : ""; }
+    public boolean esRango() { return !periodoHasta.equals(periodo); }
     public String getPeriodoTexto() { return periodoTexto; }
     public Long getProyectoSeleccionado() { return proyectoSeleccionado; }
     public String getProyectoSeleccionadoValor() {
@@ -68,9 +91,15 @@ public class RmReporteView {
         return estadoSeleccionadoTexto == null || estadoSeleccionadoTexto.isBlank()
                 ? "Todos" : estadoSeleccionadoTexto;
     }
-    /** Texto único de los filtros aplicados para la vista, el PDF y el Excel. */
+    public String getPrioridadSeleccionada() { return prioridadSeleccionada; }
+    public String getPrioridadFiltroTexto() {
+        return prioridadSeleccionadaTexto == null || prioridadSeleccionadaTexto.isBlank()
+                ? "Todas" : prioridadSeleccionadaTexto;
+    }
+    /** Texto único de los filtros aplicados para la vista y el Excel; la prioridad, solo si se eligió. */
     public String getFiltrosTexto() {
-        return "Proyecto: " + getProyectoFiltroTexto() + " | Estado: " + getEstadoFiltroTexto();
+        String texto = "Proyecto: " + getProyectoFiltroTexto() + " | Estado: " + getEstadoFiltroTexto();
+        return prioridadSeleccionada.isEmpty() ? texto : texto + " | Prioridad: " + getPrioridadFiltroTexto();
     }
     public String getReglaHoras() { return REGLA_HORAS; }
     public List<ProyectoReporte> getProyectos() { return proyectos; }

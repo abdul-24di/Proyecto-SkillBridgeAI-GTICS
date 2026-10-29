@@ -153,7 +153,7 @@ class RmReporteTests {
     }
 
     @Test
-    void descargaExcelYPdfValidos() throws Exception {
+    void descargaExcelValido() throws Exception {
         MvcResult excel = mockMvc.perform(get("/rm/reportes/recursos/excel")
                         .param("periodo", periodo.toString())
                         .param("proyecto", proyecto.getId().toString()))
@@ -198,19 +198,16 @@ class RmReporteTests {
                 assertFalse(formato.startsWith("S/"), "Formato inválido para Excel: " + formato);
             }
         }
-
-        MvcResult pdf = mockMvc.perform(get("/rm/reportes/recursos/pdf")
-                        .param("periodo", periodo.toString())
-                        .param("proyecto", proyecto.getId().toString()))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString(".pdf")))
-                .andExpect(content().contentType("application/pdf"))
-                .andReturn();
-        assertTrue(pdf.getResponse().getContentAsString().startsWith("%PDF-1.4"));
     }
 
     @Test
-    void pdfYExcelTienenElMismoEncabezadoConPeriodoFiltrosFechaYReglaDeHoras() throws Exception {
+    void laExportacionPdfYaNoExiste() throws Exception {
+        mockMvc.perform(get(PDF).param("periodo", periodo.toString()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void excelTieneElEncabezadoConPeriodoFiltrosFechaYReglaDeHoras() throws Exception {
         String periodoTexto = reporteService.generar(periodo.toString(), null, null).getPeriodoTexto();
         String filtros = "Proyecto: Reporte mensual test | Estado: Activo";
         String hoy = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
@@ -230,20 +227,13 @@ class RmReporteTests {
             assertEquals(SECCION_PROYECTOS, texto(libro.getSheet("Proyectos"), FILA_CABECERA_PROYECTOS - 1, 0));
         }
 
-        String pdf = pdf(PDF, filtrosProyectoActivo());
-        assertTrue(pdf.startsWith("SkillBridge AI - " + TITULO + "\n"), pdf);
-        assertTrue(pdf.contains("\nPeriodo: " + periodoTexto + "\n"));
-        assertTrue(pdf.contains("\nFiltros aplicados: " + filtros + "\n"));
-        assertTrue(pdf.contains("\nFecha de generación: " + hoy));
-        assertTrue(pdf.replace('\n', ' ').contains("Regla de horas trabajadas: " + RmReporteView.REGLA_HORAS));
-
         mockMvc.perform(get("/rm/reportes/recursos").params(filtrosProyectoActivo()))
                 .andExpect(content().string(containsString("Filtros aplicados: " + filtros)))
                 .andExpect(content().string(containsString("Regla de horas trabajadas: " + RmReporteView.REGLA_HORAS)));
     }
 
     @Test
-    void vistaPdfYExcelUsanLasMismasColumnasYEtiquetas() throws Exception {
+    void vistaYExcelUsanLasMismasColumnasYEtiquetas() throws Exception {
         String vista = mockMvc.perform(get("/rm/reportes/recursos").params(filtrosProyectoActivo()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
@@ -264,22 +254,10 @@ class RmReporteTests {
             }
             assertEquals(2.0, proyectos.getRow(FILA_CABECERA_PROYECTOS + 1).getCell(5).getNumericCellValue());
         }
-
-        String pdf = pdf(PDF, filtrosProyectoActivo());
-        List<String> lineas = List.of(pdf.split("\n"));
-        String cabeceraProyectos = lineas.get(lineas.indexOf(SECCION_PROYECTOS) + 1);
-        assertEnOrden(cabeceraProyectos, COLUMNAS_PROYECTO);
-        String cabeceraDetalle = lineas.get(lineas.indexOf(SECCION_DETALLE) + 1);
-        assertEnOrden(cabeceraDetalle, COLUMNAS_DETALLE);
-        String filaProyecto = lineas.get(lineas.indexOf(SECCION_PROYECTOS) + 3);
-        assertTrue(filaProyecto.startsWith("Reporte mensual test") && filaProyecto.endsWith(" 2"), filaProyecto);
-        String filaAna = lineas.stream().filter(linea -> linea.startsWith("Ana Álvarez")).findFirst().orElseThrow();
-        assertEnOrden(filaAna, List.of("Ana Álvarez", "Backend Developer", "Reporte mensual test", "52.00 h", "2"));
-        for (String etiqueta : METRICAS) assertTrue(pdf.contains("\n" + etiqueta + ": "), etiqueta);
     }
 
     @Test
-    void dineroYHorasTienenFormatoUniformeEnVistaPdfYExcel() throws Exception {
+    void dineroYHorasTienenFormatoUniformeEnVistaYExcel() throws Exception {
         proyecto.setPresupuesto(new BigDecimal("1234567.50"));
         proyectoRepository.save(proyecto);
 
@@ -287,12 +265,6 @@ class RmReporteTests {
                 .andExpect(content().string(containsString("S/ 1,234,567.50")))
                 .andExpect(content().string(containsString("60.00 h")))
                 .andExpect(content().string(containsString("52.00 h")));
-
-        String pdf = pdf(PDF, filtrosProyectoActivo());
-        assertTrue(pdf.contains("Presupuesto asignado: S/ 1,234,567.50"));
-        assertTrue(pdf.contains("Horas trabajadas: 60.00 h"));
-        assertTrue(pdf.contains("S/ 1,234,567.50") && pdf.contains("52.00 h") && pdf.contains("8.00 h"));
-        assertFalse(pdf.contains("1234567.5 "), "El PDF ya no usa toPlainString");
 
         try (XSSFWorkbook libro = excel(EXCEL, filtrosProyectoActivo())) {
             Sheet proyectos = libro.getSheet("Proyectos");
@@ -314,9 +286,6 @@ class RmReporteTests {
         mockMvc.perform(get("/rm/reportes/recursos").params(filtrosProyectoActivo()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("<td>S/ 0.00</td>")));
-        String pdf = pdf(PDF, filtrosProyectoActivo());
-        assertTrue(pdf.contains("Presupuesto asignado: S/ 0.00"));
-        assertTrue(pdf.lines().anyMatch(linea -> linea.startsWith("Reporte mensual test") && linea.contains(" S/ 0.00 ")));
         try (XSSFWorkbook libro = excel(EXCEL, filtrosProyectoActivo())) {
             Cell presupuesto = libro.getSheet("Proyectos").getRow(FILA_CABECERA_PROYECTOS + 1).getCell(3);
             assertEquals(CellType.NUMERIC, presupuesto.getCellType());
@@ -330,9 +299,13 @@ class RmReporteTests {
         String base = "reporte-recursos-" + periodo;
         mockMvc.perform(get(EXCEL).param("periodo", periodo.toString()))
                 .andExpect(header().string("Content-Disposition", containsString(base + ".xlsx")));
-        mockMvc.perform(get(PDF).params(filtrosProyectoActivo()))
+        mockMvc.perform(get(EXCEL).params(filtrosProyectoActivo()))
                 .andExpect(header().string("Content-Disposition",
-                        containsString(base + "-proyecto-reporte-mensual-test-estado-activo.pdf")));
+                        containsString(base + "-proyecto-reporte-mensual-test-estado-activo.xlsx")));
+        mockMvc.perform(get(EXCEL).param("periodo", periodo.minusMonths(2).toString())
+                        .param("hasta", periodo.toString()).param("prioridad", "ALTA"))
+                .andExpect(header().string("Content-Disposition", containsString(
+                        "reporte-recursos-" + periodo.minusMonths(2) + "-a-" + periodo + "-prioridad-alta.xlsx")));
         mockMvc.perform(get(EXCEL).param("periodo", periodo.toString()).param("estado", "EN_REVISION"))
                 .andExpect(header().string("Content-Disposition", containsString(base + "-estado-en-revision.xlsx")));
 
@@ -359,21 +332,25 @@ class RmReporteTests {
         assertTrue(vista.contains("class=\"modal modal-blur fade rm-modal\" id=\"exportReportModal\""));
         assertTrue(vista.contains("class=\"rm-modal-context export-scope\""));
         assertFalse(vista.contains("href=\"/rm/reportes/recursos/excel"), "Ya no hay descarga directa sin modal");
-        assertFalse(vista.contains("href=\"/rm/reportes/recursos/pdf"));
+        assertFalse(vista.contains("/rm/reportes/recursos/pdf"));
+        assertFalse(vista.contains("Descargar PDF"));
         String modal = vista.substring(vista.indexOf("id=\"exportReportModal\""));
         assertTrue(modal.contains("data-applied-periodo=\"" + periodo + "\""));
         assertTrue(modal.contains("data-applied-proyecto=\"" + proyecto.getId() + "\""));
         assertTrue(modal.contains("data-applied-estado=\"ACTIVO\""));
         assertTrue(modal.contains("<form class=\"modal-content\" id=\"exportReportForm\" method=\"get\""));
-        assertTrue(modal.contains("formaction=\"/rm/reportes/recursos/excel\">Descargar Excel"));
-        assertTrue(modal.contains("formaction=\"/rm/reportes/recursos/pdf\">Descargar PDF"));
+        assertTrue(modal.contains("action=\"/rm/reportes/recursos/excel\""));
+        assertTrue(modal.contains("id=\"exportExcelButton\">Descargar Excel"));
         assertTrue(modal.contains("Proyecto: Reporte mensual test | Estado: Activo"));
         assertTrue(modal.contains(">1 proyecto(s) y 2 registro(s) por colaborador<"));
         assertTrue(modal.contains("Se exportan todos los registros de estos filtros"));
-        assertTrue(modal.contains(String.join(", ", COLUMNAS_PROYECTO)));
-        assertTrue(modal.contains(String.join(", ", COLUMNAS_DETALLE)));
+        for (String columna : COLUMNAS_PROYECTO.subList(1, COLUMNAS_PROYECTO.size())) {
+            assertTrue(modal.contains(">" + columna + "<"), columna);
+        }
+        assertTrue(modal.contains("name=\"colProyecto\"") && modal.contains("name=\"colDetalle\""));
+        assertTrue(modal.contains("name=\"hojas\" value=\"proyectos\"") && modal.contains("name=\"hojas\" value=\"colaboradores\""));
+        assertTrue(modal.contains("name=\"resumen\""));
         assertTrue(modal.contains(">reporte-recursos-" + periodo + "-proyecto-reporte-mensual-test-estado-activo.xlsx<"));
-        assertTrue(modal.contains(">reporte-recursos-" + periodo + "-proyecto-reporte-mensual-test-estado-activo.pdf<"));
         assertTrue(modal.contains("class=\"alert alert-warning d-none\" id=\"exportUnappliedAlert\""));
         assertTrue(modal.contains("form=\"reportFiltersForm\""));
         assertTrue(vista.contains("id=\"reportFiltersForm\""));
@@ -384,10 +361,16 @@ class RmReporteTests {
         assertEquals(List.of(periodo.toString()), enviados.get("periodo"));
         assertEquals(List.of(proyecto.getId().toString()), enviados.get("proyecto"));
         assertEquals(List.of("ACTIVO"), enviados.get("estado"));
+        assertEquals(List.of("true"), enviados.get("personalizado"));
+        // Con las casillas marcadas por defecto (resumen y las dos hojas) sale el Excel completo.
+        enviados.add("resumen", "true");
+        enviados.addAll("hojas", List.of("proyectos", "colaboradores"));
+        enviados.addAll("colProyecto", List.of("1", "2", "3", "4", "5"));
+        enviados.addAll("colDetalle", List.of("1", "2", "3", "4"));
         try (XSSFWorkbook libro = excel(EXCEL, enviados)) {
             assertEquals("Proyecto: Reporte mensual test | Estado: Activo", texto(libro.getSheet("Proyectos"), 2, 1));
+            assertEquals(COLUMNAS_PROYECTO, fila(libro.getSheet("Proyectos"), FILA_CABECERA_PROYECTOS, 6));
         }
-        assertTrue(pdf(PDF, enviados).contains("Filtros aplicados: Proyecto: Reporte mensual test | Estado: Activo"));
 
         String script = mockMvc.perform(get("/js/rm-js/rm-reporte-recursos.js"))
                 .andExpect(status().isOk())
@@ -410,8 +393,6 @@ class RmReporteTests {
             assertEquals(SIN_PROYECTOS, texto(libro.getSheet("Proyectos"), FILA_CABECERA_PROYECTOS + 1, 0));
             assertEquals(SIN_DETALLES, texto(libro.getSheet("Colaboradores"), FILA_CABECERA_DETALLE + 1, 0));
         }
-        String pdf = pdf(PDF, parametros("periodo", periodo.toString(), "proyecto", "999999999"));
-        assertTrue(pdf.contains("\n" + SIN_PROYECTOS + "\n") && pdf.contains("\n" + SIN_DETALLES + "\n"));
         assertTrue(vista.contains(SIN_PROYECTOS) && vista.contains(SIN_DETALLES));
     }
 
@@ -421,14 +402,9 @@ class RmReporteTests {
         mockMvc.perform(get(EXCEL))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString(actual + ".xlsx")));
-        mockMvc.perform(get(PDF))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", containsString(actual + ".pdf")));
         mockMvc.perform(get(EXCEL).param("periodo", periodo.toString()).param("proyecto", proyecto.getId().toString()))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
-        assertTrue(pdf(PDF, parametros("periodo", periodo.toString(), "estado", "ACTIVO"))
-                .contains("Estado: Activo"));
     }
 
     @Test
@@ -449,7 +425,6 @@ class RmReporteTests {
                 assertEquals("Proyecto: Todos los proyectos | Estado: Todos",
                         texto(libro.getSheet("Colaboradores"), 2, 1), caso.toString());
             }
-            assertTrue(pdf(PDF, caso).contains("Filtros aplicados: Proyecto: Todos los proyectos | Estado: Todos"));
         }
     }
 
@@ -474,13 +449,6 @@ class RmReporteTests {
             assertEquals(FILA_CABECERA_DETALLE + 25, hojaDetalle.getLastRowNum());
             assertEquals(25000.0, hojaProyectos.getRow(7).getCell(1).getNumericCellValue());
         }
-        String pdf = textoPdf(exportService.crearPdf(masivo));
-        // Courier 8 pt en A4 con márgenes de 40 pt admite 107 caracteres por línea.
-        assertTrue(pdf.lines().allMatch(linea -> linea.length() <= 107), "Línea fuera de la página");
-        for (int indice = 1; indice <= 25; indice++) {
-            assertTrue(pdf.contains("\nProyecto masivo " + indice + " "), "Proyecto " + indice);
-            assertTrue(pdf.contains("\nColaborador masivo " + indice + " "), "Colaborador " + indice);
-        }
 
         // Un parámetro de página en la URL no recorta la exportación (TASK-040 coordinada).
         try (XSSFWorkbook sinPagina = excel(EXCEL, filtrosProyectoActivo());
@@ -491,6 +459,123 @@ class RmReporteTests {
                     conPagina.getSheet("Colaboradores").getLastRowNum());
             assertEquals(FILA_CABECERA_DETALLE + 2, conPagina.getSheet("Colaboradores").getLastRowNum());
         }
+    }
+
+    // ---- Rango de meses, prioridad y contenido elegido del Excel. ----
+
+    @Test
+    void rangoDeMesesSumaLasHorasDeTodoElRangoYSeNormaliza() throws Exception {
+        RmReporteView rango = reporteService.generar(periodo.minusMonths(2).toString(), periodo.toString(),
+                proyecto.getId(), null, null);
+        // 60 h del mes + 20 h de la actividad del mes anterior.
+        assertEquals(0, new BigDecimal("80.00").compareTo(rango.getHorasTotales()));
+        assertTrue(rango.esRango());
+        assertTrue(rango.getPeriodoTexto().contains(" – "), rango.getPeriodoTexto());
+        assertEquals(periodo.toString(), rango.getPeriodoHastaValor());
+
+        // Un rango que termina antes del mes solo cuenta la actividad anterior; "hasta" anterior o
+        // inválido = un solo mes; más de 12 meses se recorta.
+        RmReporteView anterior = reporteService.generar(periodo.minusMonths(3).toString(),
+                periodo.minusMonths(1).toString(), proyecto.getId(), null, null);
+        assertEquals(0, new BigDecimal("20.00").compareTo(anterior.getHorasTotales()));
+        assertFalse(reporteService.generar(periodo.toString(), periodo.minusMonths(1).toString(), null, null, null).esRango());
+        assertFalse(reporteService.generar(periodo.toString(), "abc", null, null, null).esRango());
+        // "Hasta" no pasa del mes actual (periodo = mes actual en estas pruebas).
+        assertEquals(periodo, reporteService.generar(periodo.minusMonths(2).toString(),
+                periodo.plusMonths(3).toString(), null, null, null).getPeriodoHasta());
+        assertFalse(reporteService.generar(periodo.toString(), periodo.plusMonths(1).toString(),
+                null, null, null).esRango());
+        assertEquals(periodo.minusMonths(12).plusMonths(11),
+                reporteService.generar(periodo.minusMonths(12).toString(), periodo.plusMonths(6).toString(),
+                        null, null, null).getPeriodoHasta());
+
+        String vista = mockMvc.perform(get("/rm/reportes/recursos").param("periodo", periodo.minusMonths(2).toString())
+                        .param("hasta", periodo.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertEquals(List.of(periodo.toString()), camposOcultos(vista).get("hasta"), "El modal exporta el mismo rango");
+
+        // El formulario envía año y mes por separado; un "hasta" anterior al "desde" queda en un solo mes.
+        YearMonth desde = periodo.minusMonths(2);
+        String formulario = mockMvc.perform(get("/rm/reportes/recursos")
+                        .param("anioDesde", String.valueOf(desde.getYear()))
+                        .param("mesDesde", String.format("%02d", desde.getMonthValue()))
+                        .param("anioHasta", String.valueOf(periodo.getYear()))
+                        .param("mesHasta", String.format("%02d", periodo.getMonthValue())))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertEquals(List.of(desde.toString()), camposOcultos(formulario).get("periodo"));
+        assertEquals(List.of(periodo.toString()), camposOcultos(formulario).get("hasta"));
+        assertTrue(formulario.contains("id=\"anioDesde\"") && formulario.contains("id=\"mesHasta\""));
+        String invertido = mockMvc.perform(get("/rm/reportes/recursos")
+                        .param("anioDesde", String.valueOf(periodo.getYear()))
+                        .param("mesDesde", String.format("%02d", periodo.getMonthValue()))
+                        .param("anioHasta", String.valueOf(desde.getYear()))
+                        .param("mesHasta", String.format("%02d", desde.getMonthValue())))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertEquals(List.of(""), camposOcultos(invertido).get("hasta"));
+        try (XSSFWorkbook libro = excel(EXCEL, parametros("periodo", periodo.minusMonths(2).toString(),
+                "hasta", periodo.toString(), "proyecto", proyecto.getId().toString()))) {
+            assertEquals(rango.getPeriodoTexto(), texto(libro.getSheet("Proyectos"), 1, 1));
+        }
+    }
+
+    @Test
+    void filtroDePrioridadIncluyeSoloLosProyectosDeEsaPrioridad() throws Exception {
+        assertEquals(List.of("Reporte mensual test"), nombresProyectos(
+                reporteService.generar(periodo.toString(), null, proyecto.getId(), null, "ALTA")));
+        assertTrue(reporteService.generar(periodo.toString(), null, proyecto.getId(), null, "BAJA")
+                .getProyectos().isEmpty());
+        // Prioridad inválida = Todas, igual que el estado.
+        assertEquals(1, reporteService.generar(periodo.toString(), null, proyecto.getId(), null, "FOO")
+                .getProyectos().size());
+
+        try (XSSFWorkbook libro = excel(EXCEL, parametros("periodo", periodo.toString(),
+                "proyecto", proyecto.getId().toString(), "prioridad", "ALTA"))) {
+            assertEquals("Proyecto: Reporte mensual test | Estado: Todos | Prioridad: Alta",
+                    texto(libro.getSheet("Proyectos"), 2, 1));
+        }
+        String vista = mockMvc.perform(get("/rm/reportes/recursos").param("periodo", periodo.toString()).param("prioridad", "ALTA"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        assertTrue(Pattern.compile("<option value=\"ALTA\"[^>]*selected").matcher(vista).find());
+        assertTrue(vista.contains("Prioridad: Alta"));
+    }
+
+    @Test
+    void excelSoloConLasHojasYColumnasElegidas() throws Exception {
+        org.springframework.util.LinkedMultiValueMap<String, String> soloColaboradores = parametros(
+                "periodo", periodo.toString(), "proyecto", proyecto.getId().toString(),
+                "personalizado", "true", "hojas", "colaboradores", "colDetalle", "3");
+        try (XSSFWorkbook libro = excel(EXCEL, soloColaboradores)) {
+            assertEquals(1, libro.getNumberOfSheets());
+            Sheet hoja = libro.getSheet("Colaboradores");
+            assertNotNull(hoja);
+            // La primera columna siempre va; las demás, solo las marcadas.
+            assertEquals(List.of("Colaborador", "Horas trabajadas"), fila(hoja, FILA_CABECERA_DETALLE, 2));
+            assertNull(hoja.getRow(FILA_CABECERA_DETALLE).getCell(2));
+            assertEquals("#,##0.00 \"h\"", hoja.getRow(FILA_CABECERA_DETALLE + 1).getCell(1)
+                    .getCellStyle().getDataFormatString());
+        }
+
+        // Sin resumen: la sección de proyectos sube justo después del encabezado.
+        try (XSSFWorkbook libro = excel(EXCEL, parametros("periodo", periodo.toString(),
+                "proyecto", proyecto.getId().toString(), "personalizado", "true",
+                "hojas", "proyectos", "colProyecto", "4", "colProyecto", "99"))) {
+            Sheet hoja = libro.getSheet("Proyectos");
+            assertNull(libro.getSheet("Colaboradores"));
+            assertEquals(SECCION_PROYECTOS, texto(hoja, 6, 0));
+            assertEquals(List.of("Proyecto", "Horas trabajadas"), fila(hoja, 7, 2));
+            assertEquals(60.0, hoja.getRow(8).getCell(1).getNumericCellValue(), 0.001);
+            assertEquals(TITULO, texto(hoja, 0, 0));
+        }
+
+        // Sin ninguna hoja no se genera archivo: vuelve con el mensaje de error.
+        mockMvc.perform(get(EXCEL).param("periodo", periodo.toString()).param("personalizado", "true")
+                        .header("Referer", "/rm/reportes/recursos"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("error", "Selecciona al menos una hoja para exportar."));
     }
 
     // ---- Paginación en el servidor (TASK-040). Los datos masivos se revierten al final de cada prueba. ----
@@ -540,13 +625,13 @@ class RmReporteTests {
         assertFalse(enlacesProyectos.isEmpty());
         assertFalse(enlacesDetalle.isEmpty());
         for (MultiValueMap<String, String> enlace : enlacesProyectos) {
-            assertEquals(Set.of("periodo", "proyecto", "estado", "paginaProyectos", "paginaColaboradores"), enlace.keySet());
+            assertEquals(Set.of("periodo", "hasta", "proyecto", "estado", "prioridad", "paginaProyectos", "paginaColaboradores"), enlace.keySet());
             assertEquals(PERIODO_MASIVO.toString(), enlace.getFirst("periodo"));
             assertEquals("EN_ESPERA", enlace.getFirst("estado"));
             assertEquals("1", enlace.getFirst("paginaColaboradores"), "Conserva la página del detalle");
         }
         for (MultiValueMap<String, String> enlace : enlacesDetalle) {
-            assertEquals(Set.of("periodo", "proyecto", "estado", "paginaProyectos", "paginaColaboradores"), enlace.keySet());
+            assertEquals(Set.of("periodo", "hasta", "proyecto", "estado", "prioridad", "paginaProyectos", "paginaColaboradores"), enlace.keySet());
             assertEquals("2", enlace.getFirst("paginaProyectos"), "Conserva la página de proyectos");
         }
         // Anterior (deshabilitado; el servidor normaliza 0 a 1), números y Siguiente del detalle: 0, 1, 2, 2.
@@ -593,7 +678,7 @@ class RmReporteTests {
         // El modal informa el total y envía solo los filtros aplicados, sin parámetros de página.
         String modal = vista.substring(vista.indexOf("id=\"exportReportModal\""));
         assertTrue(modal.contains(">" + completo.getTotalProyectos() + " proyecto(s) y 12 registro(s) por colaborador<"));
-        assertEquals(Set.of("periodo", "proyecto", "estado"), camposOcultos(modal).keySet());
+        assertEquals(Set.of("periodo", "hasta", "proyecto", "estado", "prioridad", "personalizado"), camposOcultos(modal).keySet());
         assertFalse(modal.contains("paginaProyectos") || modal.contains("paginaColaboradores")
                 || modal.contains("name=\"pagina"));
         int inicioFormulario = vista.indexOf("id=\"reportFiltersForm\"");
@@ -603,7 +688,7 @@ class RmReporteTests {
 
     @Test
     @Transactional
-    void excelYPdfConPaginaDistintaDeLaPrimeraIncluyenTodosLosRegistrosFiltrados() throws Exception {
+    void excelConPaginaDistintaDeLaPrimeraIncluyeTodosLosRegistrosFiltrados() throws Exception {
         prepararDatosMasivos();
         List<String> todosProyectos = nombresProyectos(reporteService.generar(PERIODO_MASIVO.toString(), null, "EN_ESPERA"));
         MultiValueMap<String, String> conPaginas = filtrosMasivos(
@@ -621,15 +706,6 @@ class RmReporteTests {
                 assertEquals(esperados.get(indice), texto(hojaDetalle, FILA_CABECERA_DETALLE + 1 + indice, 0));
             }
         }
-        String pdf = pdf(PDF, conPaginas);
-        for (String nombre : todosProyectos) {
-            if (nombre.startsWith("Pag proyecto")) {
-                assertTrue(pdf.contains("\n" + nombre + " "), nombre);
-            }
-        }
-        for (String nombre : colaboradoresMasivos(1, 12)) assertTrue(pdf.contains("\n" + nombre + " "), nombre);
-        assertEquals(sinFechaDeGeneracion(pdf(PDF, filtrosMasivos())), sinFechaDeGeneracion(pdf),
-                "El PDF con páginas en la URL es igual al PDF sin páginas");
     }
 
     @Test
@@ -900,10 +976,6 @@ class RmReporteTests {
         return UriComponentsBuilder.fromUriString(href.replace("&amp;", "&")).build().getQueryParams();
     }
 
-    private String sinFechaDeGeneracion(String pdf) {
-        return pdf.replaceAll("Fecha de generación: [^\n]*", "");
-    }
-
     private int ocurrencias(String texto, String fragmento) {
         int total = 0;
         for (int posicion = texto.indexOf(fragmento); posicion >= 0; posicion = texto.indexOf(fragmento, posicion + 1)) total++;
@@ -936,24 +1008,6 @@ class RmReporteTests {
             assertFalse(formato.startsWith("S/"), "Formato inválido para Excel: " + formato);
         }
         return libro;
-    }
-
-    private String pdf(String ruta, org.springframework.util.MultiValueMap<String, String> filtros) throws Exception {
-        byte[] contenido = mockMvc.perform(get(ruta).params(filtros))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("application/pdf"))
-                .andReturn().getResponse().getContentAsByteArray();
-        return textoPdf(contenido);
-    }
-
-    /** Une las líneas de texto del PDF (cada línea es un operador "(...) Tj" sin comprimir). */
-    private String textoPdf(byte[] contenido) {
-        String crudo = new String(contenido, StandardCharsets.ISO_8859_1);
-        assertTrue(crudo.startsWith("%PDF-1.4"));
-        Matcher matcher = Pattern.compile("\\(((?:\\\\.|[^\\\\)])*)\\) Tj").matcher(crudo);
-        List<String> lineas = new ArrayList<>();
-        while (matcher.find()) lineas.add(matcher.group(1).replaceAll("\\\\(.)", "$1"));
-        return String.join("\n", lineas);
     }
 
     private String texto(Sheet hoja, int fila, int columna) {

@@ -1,5 +1,18 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 4 de Noviembre 2026 — Preparación para el test de seguridad y pre-registro
+
+Detalle en la sección 2B de [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md).
+
+- **Disponibilidad:** límite de peticiones por IP (`LimiteSolicitudesFilter`, responde 429), límites de Tomcat, caché de Thymeleaf activo y sin imprimir SQL por defecto.
+- **Accesos:** bloqueo de cuenta 15 minutos tras 5 contraseñas incorrectas; desactivar o cambiar el rol de un usuario cierra sus sesiones; un correo de recuperación por minuto.
+- **Datos maliciosos:** XSS de foros corregido con Jsoup (dependencia nueva), firma real de archivos, validación estricta de correo y nombre, redirecciones seguras.
+- **Errores:** páginas propias 404, 4xx, 429 y 5xx; sin mensajes técnicos en PM, RM y pre-registro; corregidos dos errores 500 del PM.
+- **Pre-registro:** los archivos válidos se conservan si hay errores, lista de errores con paso y campo exactos, y formulario por pasos para el colaborador.
+- **Para el equipo:** definir `THYMELEAF_CACHE=false` en IntelliJ para ver cambios de HTML sin reiniciar. En producción definir `REMEMBER_ME_KEY`.
+
+---
+
 ## Sesión 21 de Octubre 2026 — Revisión de seguridad
 
 Detalle completo, reglas para el equipo y pendientes en [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md).

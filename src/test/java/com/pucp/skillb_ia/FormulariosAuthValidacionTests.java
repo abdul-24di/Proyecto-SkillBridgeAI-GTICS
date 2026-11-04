@@ -22,6 +22,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class FormulariosAuthValidacionTests {
 
     @Autowired private WebApplicationContext context;
+    @Autowired private com.pucp.skillb_ia.service.AuthService authService;
+    @Autowired private com.pucp.skillb_ia.repository.RolRepository rolRepository;
+    @Autowired private com.pucp.skillb_ia.repository.TokenUsuarioRepository tokenUsuarioRepository;
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -29,10 +32,23 @@ class FormulariosAuthValidacionTests {
         mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
     }
 
+    // Un enlace de activación vigente: con uno inválido el formulario ni siquiera se procesa.
+    private String tokenVigente() {
+        rolRepository.findByNombre("PROJECT_MANAGER").orElseGet(() -> {
+            com.pucp.skillb_ia.model.Rol rol = new com.pucp.skillb_ia.model.Rol();
+            rol.setNombre("PROJECT_MANAGER");
+            return rolRepository.save(rol);
+        });
+        var usuario = authService.invitarUsuario("form." + java.util.UUID.randomUUID() + "@test.local", "PROJECT_MANAGER", null);
+        return tokenUsuarioRepository.findAll().stream()
+                .filter(t -> t.getUsuario().getId().equals(usuario.getId()))
+                .findFirst().orElseThrow().getToken();
+    }
+
     @Test
     void activarCuentaConPasswordDebilYSinPoliticaMuestraErroresPorCampo() throws Exception {
         mockMvc.perform(post("/activar-cuenta")
-                        .param("token", "token-que-no-existe")
+                        .param("token", tokenVigente())
                         .param("nombreCompleto", "Ab")
                         .param("password", "abcdefgh")
                         .param("confirmarPassword", "abcdefgh"))
@@ -45,7 +61,7 @@ class FormulariosAuthValidacionTests {
     @Test
     void activarCuentaConPasswordsDistintasMarcaElError() throws Exception {
         mockMvc.perform(post("/activar-cuenta")
-                        .param("token", "token-que-no-existe")
+                        .param("token", tokenVigente())
                         .param("nombreCompleto", "Ana Perez")
                         .param("password", "Segura#123")
                         .param("confirmarPassword", "Segura#124")

@@ -1,8 +1,12 @@
 package com.pucp.skillb_ia.config;
 
+import com.pucp.skillb_ia.security.LimiteSolicitudesFilter;
 import com.pucp.skillb_ia.security.RegistroAccesoDenegadoHandler;
+import com.pucp.skillb_ia.security.RegistroLoginFallidoHandler;
 import com.pucp.skillb_ia.security.RoleRedirectSuccessHandler;
 import com.pucp.skillb_ia.security.SesionActivaLoginFilter;
+import jakarta.servlet.DispatcherType;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -10,19 +14,29 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
 // Épica 2 — Historia de Inicio de sesión + Historia de Gestión de sesión.
 // El formulario de auth/login.html ya usa los nombres por defecto de Spring
 // Security (username/password/remember-me), así que se integra directo con
-// formLogin() en vez de manejar la sesión a mano.
-//
-// La Historia de "Control de acceso según rol" (restringir cada ruta /admin,
-// /pm, /rm, /colaborador según el rol autenticado) todavía no está
-// implementada aquí a propósito — es la siguiente historia de esta misma
-// épica, y requiere revisar cada ruta existente antes de bloquear nada.
-// Por ahora todo queda accesible para no romper las vistas ya construidas.
+// formLogin() en vez de manejar la sesión a mano. El resumen de las defensas
+// está en docs/SEGURIDAD.md.
 @Configuration
 public class SecurityConfig {
+
+    // Firma las cookies de "Recordarme". No puede estar escrita en el repositorio: en la nube se define con
+    // la variable de entorno REMEMBER_ME_KEY. Si falta, se genera una al arrancar (las cookies dejan de
+    // valer al reiniciar, pero nunca queda una clave conocida).
+    @Value("${REMEMBER_ME_KEY:#{T(java.util.UUID).randomUUID().toString()}}")
+    private String claveRecordarme;
+
+    // Peticiones por IP y por minuto (ver LimiteSolicitudesFilter).
+    @Value("${app.limite.peticiones-por-minuto:300}")
+    private int maxPeticionesPorMinuto;
+
+    @Value("${app.limite.formularios-por-minuto:20}")
+    private int maxFormulariosPorMinuto;
 
     // BCrypt para password_hash — lo usa AuthService al activar la cuenta (A6)
     // y al restablecer la contraseña.
@@ -33,13 +47,19 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, RoleRedirectSuccessHandler successHandler,
-                                           RegistroAccesoDenegadoHandler accesoDenegadoHandler) throws Exception {
+                                           RegistroAccesoDenegadoHandler accesoDenegadoHandler,
+                                           RegistroLoginFallidoHandler loginFallidoHandler) throws Exception {
         http
+            // Va primero: una IP que inunda el sitio se corta antes de leer la sesión en la base de datos.
+            .addFilterBefore(new LimiteSolicitudesFilter(maxPeticionesPorMinuto, maxFormulariosPorMinuto),
+                    SecurityContextHolderFilter.class)
             // Con sesión activa, /login lleva al panel del rol: no se puede iniciar otra sesión encima.
             .addFilterBefore(new SesionActivaLoginFilter(), UsernamePasswordAuthenticationFilter.class)
             // Rol equivocado: se registra el intento en la auditoría y se muestra la página 403 propia.
             .exceptionHandling(excepciones -> excepciones.accessDeniedHandler(accesoDenegadoHandler))
             .authorizeHttpRequests(auth -> auth
+                // Las páginas de error (403, 404, 429, 500...) deben verse también sin sesión.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 // /uploads/** (CV, certificados, fotos, evidencias) no es público: exige sesión, por la
                 // regla anyRequest().authenticated() de abajo.
                 .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico", "/tabler/**", "/documentos/**", "/plantillas/**").permitAll()
@@ -60,7 +80,14 @@ public class SecurityConfig {
             // campo oculto, y los fetch lo mandan en una cabecera con /js/csrf.js. Por eso el logout es POST.
 
             // Permite abrir evidencias propias (PDF, TXT) en el iframe del visor; sigue bloqueando sitios externos
-            .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+                // Solo reglas que no afectan a los scripts de las vistas: nadie externo nos embebe, no hay
+                // plugins, y un HTML inyectado no puede cambiar la base de los enlaces ni enviar formularios fuera.
+                .contentSecurityPolicy(csp -> csp.policyDirectives(
+                        "frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"))
+                // Los enlaces de activación llevan un token en la URL: no se envía a sitios externos.
+                .referrerPolicy(referrer -> referrer.policy(ReferrerPolicy.SAME_ORIGIN)))
 
             .formLogin(form -> form
                 .loginPage("/login")
@@ -68,7 +95,7 @@ public class SecurityConfig {
                 .usernameParameter("username")
                 .passwordParameter("password")
                 .successHandler(successHandler)
-                .failureUrl("/login?error")
+                .failureHandler(loginFallidoHandler)
                 .permitAll()
             )
 
@@ -79,7 +106,7 @@ public class SecurityConfig {
             )
 
             .rememberMe(remember -> remember
-                .key("skillbridge-remember-me")
+                .key(claveRecordarme)
                 .rememberMeParameter("remember-me")
             );
         return http.build();

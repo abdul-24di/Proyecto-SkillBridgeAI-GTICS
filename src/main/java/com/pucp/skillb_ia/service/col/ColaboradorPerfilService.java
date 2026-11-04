@@ -307,6 +307,7 @@ public class ColaboradorPerfilService {
         if (cv.getSize() > TAMANO_MAXIMO_CV_BYTES) {
             throw new IllegalArgumentException("El archivo supera el máximo de 5MB.");
         }
+        archivoAlmacenamientoService.validarContenidoReal(cv);
     }
 
     @Transactional
@@ -507,6 +508,7 @@ public class ColaboradorPerfilService {
         if (archivo.getSize() > TAMANO_MAXIMO_CERTIFICADO_BYTES) {
             throw new IllegalArgumentException("El certificado supera el máximo de 10MB.");
         }
+        archivoAlmacenamientoService.validarContenidoReal(archivo);
     }
 
     // Habilidades del catálogo que un colaborador puede elegir (pre-registro).

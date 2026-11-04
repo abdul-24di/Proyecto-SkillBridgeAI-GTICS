@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
 // Pantalla "Registro en revisión" del pre-registro (ver RegistroPendienteInterceptor): muestra el
 // estado y deja subir un CV nuevo, p. ej. cuando el Admin rechazó el anterior.
@@ -43,7 +44,7 @@ public class ColaboradorRegistroController {
             colaboradorPerfilService.actualizarCv(recargar(principal), cv);
             ra.addFlashAttribute("mensajeOk", "Tu CV se envió. El Administrador lo revisará pronto.");
         } catch (Exception e) {
-            ra.addFlashAttribute("mensajeError", e.getMessage());
+            ra.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/colaborador/registro";
     }

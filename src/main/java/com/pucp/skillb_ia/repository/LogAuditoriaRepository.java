@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface LogAuditoriaRepository extends JpaRepository<LogAuditoria, Long> {
     // Usado por admin-configuracion.html: última modificación por parámetro
@@ -15,6 +16,9 @@ public interface LogAuditoriaRepository extends JpaRepository<LogAuditoria, Long
 
     // AuthService: intentos fallidos de código de recuperación desde que se pidió el código vigente.
     long countByUsuarioAndAccionAndFechaHoraGreaterThanEqual(Usuario usuario, String accion, LocalDateTime desde);
+
+    // UsuarioDetailsService: último inicio de sesión correcto o cambio de contraseña (reinicia los intentos).
+    Optional<LogAuditoria> findTopByUsuarioAndAccionInOrderByFechaHoraDesc(Usuario usuario, List<String> acciones);
 
     // admin-auditoria.html: los filtros (usuario, rol, tipo de acción, fechas)
     // se aplican en el service sobre esta lista completa — el volumen esperado

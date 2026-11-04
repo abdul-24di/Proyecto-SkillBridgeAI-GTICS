@@ -54,6 +54,7 @@ public class AdminUsuarioService {
     // 3 roles que el Admin puede asignar a otros usuarios.
     private static final Map<String, String> NUMERO_A_ROL = new LinkedHashMap<>();
     private static final Map<String, String> ROL_A_NUMERO = new LinkedHashMap<>();
+    private static final int MAX_FILAS_CARGA_MASIVA = 200;
 
     static {
         ETIQUETA_A_ROL.put("Administrador", "ADMINISTRADOR");
@@ -184,6 +185,8 @@ public class AdminUsuarioService {
                 .orElseThrow(() -> new IllegalArgumentException("Rol inválido: " + nuevoRolNombre));
         usuario.setRol(nuevoRol);
         usuarioRepository.save(usuario);
+        // Sus sesiones abiertas guardan el rol anterior: se cierran para que entre con el nuevo.
+        authService.cerrarSesiones(usuario.getCorreo());
 
         auditoriaService.registrar(admin, "CAMBIAR_ROL", "USUARIO", usuario.getId(),
                 "Cambió el rol de " + usuario.getCorreo() + ".", rolAnterior, nuevoRolNombre, null);
@@ -223,6 +226,8 @@ public class AdminUsuarioService {
         }
         usuario.setActivo(false);
         usuarioRepository.save(usuario);
+        // Un usuario desactivado no debe seguir usando el sistema con la sesión que ya tenía abierta.
+        authService.cerrarSesiones(usuario.getCorreo());
         auditoriaService.registrar(admin, "DESACTIVAR_USUARIO", "USUARIO", usuario.getId(),
                 "Desactivó al usuario " + usuario.getCorreo() + ".");
     }
@@ -257,6 +262,12 @@ public class AdminUsuarioService {
     public ResultadoCargaMasiva cargaMasiva(MultipartFile archivo, Usuario admin) throws IOException {
         List<FilaCruda> filasCrudas = leerFilas(archivo);
 
+        // Cada fila envía un correo y agota el cupo diario de Gmail: se evita una carga accidental o abusiva.
+        if (filasCrudas.size() > MAX_FILAS_CARGA_MASIVA) {
+            return new ResultadoCargaMasiva(0, List.of("El archivo tiene " + filasCrudas.size()
+                    + " filas. El máximo por carga es " + MAX_FILAS_CARGA_MASIVA + "."));
+        }
+
         List<String> errores = new ArrayList<>();
         List<String[]> filasValidas = new ArrayList<>();
         Set<String> correosEnArchivo = new LinkedHashSet<>();
@@ -270,7 +281,9 @@ public class AdminUsuarioService {
             String correo = fila.correo();
             String numeroRol = fila.rol();
 
-            if (!correo.contains("@")) {
+            try {
+                authService.validarCorreo(correo);
+            } catch (IllegalArgumentException e) {
                 errores.add("Fila " + fila.numeroFila() + ": correo inválido (\"" + correo + "\").");
                 continue;
             }

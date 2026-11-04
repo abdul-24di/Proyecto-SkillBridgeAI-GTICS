@@ -2,6 +2,7 @@ package com.pucp.skillb_ia.controller;
 
 import com.pucp.skillb_ia.dto.auth.ActivarCuentaForm;
 import com.pucp.skillb_ia.dto.auth.CertificadoPreRegistroForm;
+import com.pucp.skillb_ia.dto.auth.ErrorPreRegistro;
 import com.pucp.skillb_ia.dto.auth.EstudioPreRegistroForm;
 import com.pucp.skillb_ia.dto.auth.ExperienciaForm;
 import com.pucp.skillb_ia.dto.auth.NuevaContrasenaForm;
@@ -9,6 +10,7 @@ import com.pucp.skillb_ia.model.TokenUsuario;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.service.AuthService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
+import com.pucp.skillb_ia.service.col.PreRegistroArchivosService;
 import com.pucp.skillb_ia.service.col.PreRegistroColaboradorService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -19,7 +21,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.List;
 import java.util.Optional;
 
 // Épica 2 — Autenticación. El login en sí lo maneja Spring Security
@@ -33,13 +37,16 @@ public class AuthViewController {
     private final AuthService authService;
     private final PreRegistroColaboradorService preRegistroColaboradorService;
     private final ColaboradorPerfilService colaboradorPerfilService;
+    private final PreRegistroArchivosService preRegistroArchivosService;
 
     public AuthViewController(AuthService authService,
                               PreRegistroColaboradorService preRegistroColaboradorService,
-                              ColaboradorPerfilService colaboradorPerfilService) {
+                              ColaboradorPerfilService colaboradorPerfilService,
+                              PreRegistroArchivosService preRegistroArchivosService) {
         this.authService = authService;
         this.preRegistroColaboradorService = preRegistroColaboradorService;
         this.colaboradorPerfilService = colaboradorPerfilService;
+        this.preRegistroArchivosService = preRegistroArchivosService;
     }
 
     @GetMapping({"/", ""})
@@ -57,27 +64,36 @@ public class AuthViewController {
     // ============================================================
 
     @GetMapping({"/activar-cuenta", "/activar-cuenta.html"})
-    public String activarCuentaForm(@RequestParam(required = false) String token, Model model) {
+    public String activarCuentaForm(@RequestParam(required = false) String token, Model model, HttpSession session) {
         ActivarCuentaForm form = new ActivarCuentaForm();
         form.setToken(token);
         agregarFilasEnBlanco(form);
         model.addAttribute("activarCuentaForm", form);
-        cargarDatosActivacion(token, model);
+        cargarDatosActivacion(token, model, session);
         return "auth/activar-cuenta";
     }
 
     @PostMapping("/activar-cuenta")
     public String activarCuentaSubmit(@Valid @ModelAttribute("activarCuentaForm") ActivarCuentaForm form,
-                                       BindingResult result, Model model) {
-        // Pre-registro: CV, experiencia, certificados y formación solo se piden a los colaboradores.
+                                       BindingResult result, Model model, HttpSession session,
+                                       RedirectAttributes redirectAttributes) {
+        // Sin un enlace vigente no se procesa nada (ni se guarda ningún archivo): el GET muestra el estado.
         AuthService.ResultadoToken resultado = authService.validarTokenActivacion(form.getToken());
-        boolean esColaborador = resultado.token() != null
-                && "COLABORADOR".equals(resultado.token().getUsuario().getRol().getNombre());
+        if (!resultado.esValido()) {
+            redirectAttributes.addAttribute("token", form.getToken());
+            return "redirect:/activar-cuenta";
+        }
+
+        // Pre-registro: CV, experiencia, certificados y formación solo se piden a los colaboradores.
+        boolean esColaborador = "COLABORADOR".equals(resultado.token().getUsuario().getRol().getNombre());
         if (esColaborador) {
-            preRegistroColaboradorService.validar(form, result);
+            preRegistroColaboradorService.validar(form, result, session);
         }
         if (result.hasErrors()) {
-            cargarDatosActivacion(form.getToken(), model);
+            List<ErrorPreRegistro> errores = preRegistroColaboradorService.resumirErrores(result);
+            model.addAttribute("erroresResumen", errores);
+            model.addAttribute("pasoInicial", errores.isEmpty() ? 1 : errores.get(0).paso());
+            cargarDatosActivacion(form.getToken(), model, session);
             agregarFilasEnBlanco(form);
             return "auth/activar-cuenta";
         }
@@ -85,12 +101,13 @@ public class AuthViewController {
             Usuario usuario = authService.activarCuenta(form.getToken(), form.getNombreCompleto(),
                     form.getTelefono(), form.getDescripcion(), form.getPassword());
             if (esColaborador) {
-                preRegistroColaboradorService.guardar(usuario, form);
+                preRegistroColaboradorService.guardar(usuario, form, session);
             }
         } catch (IllegalStateException e) {
             // El enlace expiró o ya se usó entre que se abrió el form y se envió:
             // el GET vuelve a mostrar el estado correcto.
-            return "redirect:/activar-cuenta?token=" + form.getToken();
+            redirectAttributes.addAttribute("token", form.getToken());
+            return "redirect:/activar-cuenta";
         }
         return "redirect:/login?activado";
     }
@@ -102,10 +119,11 @@ public class AuthViewController {
         if (form.getEstudios().isEmpty()) form.getEstudios().add(new EstudioPreRegistroForm());
     }
 
-    private void cargarDatosActivacion(String token, Model model) {
+    private void cargarDatosActivacion(String token, Model model, HttpSession session) {
         AuthService.ResultadoToken resultado = authService.validarTokenActivacion(token);
         model.addAttribute("estado", resultado.estado());
         model.addAttribute("token", token);
+        model.addAttribute("archivosGuardados", preRegistroArchivosService.archivos(session));
         if (resultado.token() != null) {
             model.addAttribute("correo", resultado.token().getUsuario().getCorreo());
             model.addAttribute("rolNombre", resultado.token().getUsuario().getRol().getNombre());
@@ -125,11 +143,12 @@ public class AuthViewController {
     }
 
     @PostMapping("/recuperar")
-    public String recuperarSubmit(@RequestParam String correo) {
+    public String recuperarSubmit(@RequestParam String correo, RedirectAttributes redirectAttributes) {
         authService.solicitarRecuperacion(correo);
         // El mensaje/pantalla siguiente es igual exista o no el correo — no se
         // revela si una cuenta existe en el sistema.
-        return "redirect:/verificar-codigo?correo=" + correo;
+        redirectAttributes.addAttribute("correo", correo);
+        return "redirect:/verificar-codigo";
     }
 
     @GetMapping({"/verificar-codigo", "/verificar-codigo.html"})
@@ -144,10 +163,13 @@ public class AuthViewController {
     private static final String RECUPERACION_CODIGO = "recuperacionCodigo";
 
     @PostMapping("/verificar-codigo")
-    public String verificarCodigoSubmit(@RequestParam String correo, @RequestParam String codigo, HttpSession session) {
+    public String verificarCodigoSubmit(@RequestParam String correo, @RequestParam String codigo, HttpSession session,
+                                        RedirectAttributes redirectAttributes) {
         Optional<TokenUsuario> token = authService.validarCodigoRecuperacion(correo, codigo);
         if (token.isEmpty()) {
-            return "redirect:/verificar-codigo?correo=" + correo + "&error";
+            redirectAttributes.addAttribute("correo", correo);
+            redirectAttributes.addAttribute("error", "1");
+            return "redirect:/verificar-codigo";
         }
         session.setAttribute(RECUPERACION_CORREO, correo);
         session.setAttribute(RECUPERACION_CODIGO, codigo);

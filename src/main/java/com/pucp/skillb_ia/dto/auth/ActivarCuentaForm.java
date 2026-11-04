@@ -15,6 +15,7 @@ public class ActivarCuentaForm {
 
     @NotBlank(message = "Ingresa tu nombre completo.")
     @Size(min = 3, max = 150, message = "El nombre debe tener entre 3 y 150 caracteres.")
+    @Pattern(regexp = "^[\\p{L}][\\p{L} .'-]*$", message = "El nombre solo puede tener letras, espacios, puntos, apóstrofes y guiones.")
     private String nombreCompleto;
 
     @NotBlank(message = "El teléfono es obligatorio.")
@@ -26,6 +27,9 @@ public class ActivarCuentaForm {
 
     // Solo se exige para colaboradores (se valida en el controlador, que conoce el rol del enlace).
     private MultipartFile cv;
+
+    // Id del CV que ya se recibió en un envío anterior (ver PreRegistroArchivosService).
+    private String cvGuardado;
 
     // Experiencia profesional del pre-registro (solo colaboradores, opcional): las filas vacías se ignoran.
     private List<ExperienciaForm> experiencias = new ArrayList<>();
@@ -65,6 +69,8 @@ public class ActivarCuentaForm {
     public void setEstudios(List<EstudioPreRegistroForm> estudios) { this.estudios = estudios; }
     public MultipartFile getCv() { return cv; }
     public void setCv(MultipartFile cv) { this.cv = cv; }
+    public String getCvGuardado() { return cvGuardado; }
+    public void setCvGuardado(String cvGuardado) { this.cvGuardado = cvGuardado; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
     public String getConfirmarPassword() { return confirmarPassword; }

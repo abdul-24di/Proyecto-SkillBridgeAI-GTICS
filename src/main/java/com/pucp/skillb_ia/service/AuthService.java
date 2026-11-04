@@ -34,6 +34,7 @@ public class AuthService {
     private static final int VIGENCIA_ACTIVACION_HORAS = 48; // coincide con el texto de activar-cuenta.html
     private static final int VIGENCIA_RECUPERACION_MINUTOS = 15;
     private static final int MAX_INTENTOS_CODIGO = 5;
+    private static final int ESPERA_ENTRE_CODIGOS_SEGUNDOS = 60;
     private static final BigDecimal JORNADA_SEMANAL_COLABORADOR = BigDecimal.valueOf(40);
 
     public enum EstadoToken { VALIDO, EXPIRADO, USADO, INVALIDO }
@@ -74,11 +75,11 @@ public class AuthService {
     // ============================================================
 
     private static final java.util.regex.Pattern CORREO_VALIDO =
-            java.util.regex.Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$");
+            java.util.regex.Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}$");
 
     // El correo es el identificador de acceso y a donde llega la invitación: se limpia (espacios) y
-    // se exige un formato mínimo válido antes de crear el usuario.
-    private String validarCorreo(String correo) {
+    // se exige un formato válido antes de crear el usuario (también lo usa la carga masiva).
+    public String validarCorreo(String correo) {
         String limpio = correo == null ? "" : correo.strip();
         if (limpio.isEmpty()) {
             throw new IllegalArgumentException("El correo es obligatorio.");
@@ -215,6 +216,11 @@ public class AuthService {
     @Transactional
     public void solicitarRecuperacion(String correo) {
         usuarioRepository.findByCorreo(correo).filter(this::puedeRecuperarContrasena).ifPresent(usuario -> {
+            // Máximo un correo por minuto a la misma cuenta: evita llenar la bandeja de alguien (y agotar el
+            // cupo de envíos de Gmail) repitiendo este formulario. El código anterior sigue valiendo.
+            if (pidioCodigoHacePoco(usuario)) {
+                return;
+            }
             // Pedir un código nuevo anula los anteriores: solo el último que llegó al correo sirve.
             anularTokensPendientes(usuario, TipoToken.RECUPERACION);
             String codigo = generarCodigoNumericoUnico(6);
@@ -227,6 +233,13 @@ public class AuthService {
 
             emailService.enviarCodigoRecuperacion(usuario.getCorreo(), codigo);
         });
+    }
+
+    private boolean pidioCodigoHacePoco(Usuario usuario) {
+        LocalDateTime limite = LocalDateTime.now()
+                .plusMinutes(VIGENCIA_RECUPERACION_MINUTOS).minusSeconds(ESPERA_ENTRE_CODIGOS_SEGUNDOS);
+        return tokenUsuarioRepository.findByUsuarioAndTipoAndUsadoFalse(usuario, TipoToken.RECUPERACION).stream()
+                .anyMatch(t -> t.getFechaExpiracion().isAfter(limite));
     }
 
     // Se valida contra el correo Y el código a la vez, para que un código no
@@ -302,7 +315,7 @@ public class AuthService {
                         + (cerradas > 0 ? " Sesiones abiertas cerradas: " + cerradas + "." : ""));
     }
 
-    private int cerrarSesiones(String correo) {
+    public int cerrarSesiones(String correo) {
         FindByIndexNameSessionRepository<? extends Session> sesiones = repositorioSesiones.getIfAvailable();
         if (sesiones == null) {
             return 0;

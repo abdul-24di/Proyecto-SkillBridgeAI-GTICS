@@ -65,7 +65,9 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       nueva.querySelectorAll("select").forEach(function (el) { el.selectedIndex = 0; });
       nueva.querySelectorAll("input[type=checkbox]").forEach(function (el) { el.checked = false; });
-      nueva.querySelectorAll(".auth-field-error").forEach(function (el) { el.remove(); });
+      nueva.querySelectorAll(".auth-field-error, .auth-archivo-ok").forEach(function (el) { el.remove(); });
+      nueva.querySelectorAll(".is-invalid").forEach(function (el) { el.classList.remove("is-invalid"); });
+      nueva.querySelectorAll("input[name$='.archivoGuardado']").forEach(function (el) { el.value = ""; });
       todas[todas.length - 1].after(nueva);
       reindexar();
     });

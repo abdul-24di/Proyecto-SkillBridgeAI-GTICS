@@ -348,6 +348,21 @@ class PmProyectoCancelacionTests {
                 .map(Asignacion::getId).collect(Collectors.toSet());
     }
 
+    @Test
+    void unDatoInvalidoEnElPerfilDelPmMuestraElFormularioConErrores() throws Exception {
+        autenticar(pm);
+        try {
+            mockMvc.perform(post("/pm/perfil/password").param("passwordActual", "x")
+                            .param("passwordNueva", "corta").param("passwordConfirm", "corta"))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                    .andExpect(content().string(containsString("al menos 8 caracteres")));
+            mockMvc.perform(post("/pm/perfil/datos").param("nombre", ""))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
     private void autenticar(Usuario usuario) {
         // findActivosByRolNombre trae el rol cargado, necesario para las autoridades.
         UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre("PROJECT_MANAGER")

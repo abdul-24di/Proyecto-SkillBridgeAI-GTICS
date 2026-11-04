@@ -59,7 +59,7 @@ public class PublicacionForo {
     public void setTitulo(String titulo) { this.titulo = titulo; }
 
     public String getContenido() { return contenido; }
-    public void setContenido(String contenido) { this.contenido = contenido; }
+    public void setContenido(String contenido) { this.contenido = com.pucp.skillb_ia.security.HtmlSeguro.limpiar(contenido); }
 
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }

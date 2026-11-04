@@ -35,6 +35,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
 @Controller
 @RequestMapping("/pm")
@@ -151,9 +152,9 @@ public class PmViewController {
             return reabrirSolicitudPersonal(destino, e.getMessage(), form, ra);
         } catch (IllegalStateException e) {
             // Estado del proyecto o solicitud abierta: no se corrige en el modal.
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         } catch (SecurityException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
             return "redirect:/pm/proyectos";
         }
         return destino;
@@ -217,7 +218,7 @@ public class PmViewController {
             ra.addFlashAttribute("success", "Proyecto creado exitosamente. Está pendiente de revisión por el RM.");
             return "redirect:/pm/proyectos/detalle?id=" + nuevo.getId();
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
             return "redirect:/pm/proyectos/crear";
         }
     }
@@ -230,7 +231,7 @@ public class PmViewController {
             var resultado = pmProyectoService.cancelar(proyectoId, principal.getUsuario());
             ra.addFlashAttribute("success", CierreAsignacionesService.mensaje("cancelado", resultado));
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/proyectos";
     }
@@ -267,7 +268,7 @@ public class PmViewController {
                     principal.getUsuario());
             ra.addFlashAttribute("success", "Propuesta enviada al RM para aprobación.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
     }
@@ -281,7 +282,7 @@ public class PmViewController {
             pmAsignacionService.aprobar(asignacionId, principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación aprobada.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
     }
@@ -296,7 +297,7 @@ public class PmViewController {
             pmAsignacionService.rechazar(asignacionId, motivo, principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación rechazada.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
     }
@@ -312,7 +313,7 @@ public class PmViewController {
             pmAsignacionService.finalizar(asignacionId, calificacion, feedback, principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación finalizada.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
     }
@@ -354,7 +355,7 @@ public class PmViewController {
                     horasEstimadas, fechaLimite, principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad creada correctamente.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
@@ -369,7 +370,7 @@ public class PmViewController {
             pmActividadService.confirmar(actividadId, aplicarStrike, principal.getUsuario());
             ra.addFlashAttribute("success", "Entrega confirmada exitosamente.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
@@ -389,7 +390,7 @@ public class PmViewController {
             ra.addFlashAttribute("success", "Actividad devuelta al colaborador.");
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(getClass()).error("Error al devolver actividad {}", actividadId, e);
-            ra.addFlashAttribute("error", e.getMessage() != null ? e.getMessage() : "No se pudo devolver la actividad.");
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
@@ -408,7 +409,7 @@ public class PmViewController {
             pmActividadService.editar(actividadId, titulo, descripcion, horasEstimadas, fechaLimite, principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad editada correctamente.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
@@ -422,7 +423,7 @@ public class PmViewController {
             pmActividadService.eliminar(actividadId, principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad eliminada correctamente.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
@@ -478,7 +479,7 @@ public class PmViewController {
                 return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
             }
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/foros";
     }
@@ -494,7 +495,7 @@ public class PmViewController {
             pmForoService.responder(publicacionId, contenido, principal.getUsuario());
             ra.addFlashAttribute("success", "Respuesta publicada.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
@@ -510,7 +511,7 @@ public class PmViewController {
             pmForoService.alternarSolucion(principal.getUsuario(), respuestaId);
             ra.addFlashAttribute("success", "Estado de solución actualizado.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
@@ -525,7 +526,7 @@ public class PmViewController {
         try {
             pmForoService.alternarLikePublicacion(principal.getUsuario(), publicacionId);
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
@@ -540,7 +541,7 @@ public class PmViewController {
         try {
             pmForoService.alternarLikeRespuesta(principal.getUsuario(), respuestaId);
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
@@ -556,7 +557,7 @@ public class PmViewController {
             pmForoService.eliminarPublicacion(principal.getUsuario(), publicacionId);
             ra.addFlashAttribute("success", "Publicación eliminada.");
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
@@ -572,7 +573,7 @@ public class PmViewController {
             pmForoService.eliminarRespuesta(principal.getUsuario(), respuestaId);
             ra.addFlashAttribute("success", "Respuesta eliminada.");
         } catch (IllegalArgumentException e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
@@ -586,7 +587,7 @@ public class PmViewController {
             return java.util.Map.of("url", url);
         } catch (Exception e) {
             throw new org.springframework.web.server.ResponseStatusException(
-                org.springframework.http.HttpStatus.BAD_REQUEST, e.getMessage());
+                org.springframework.http.HttpStatus.BAD_REQUEST, mensajeSeguro(e));
         }
     }
 
@@ -618,9 +619,15 @@ public class PmViewController {
 
     @GetMapping({"/perfil", "/pm-perfil.html"})
     public String perfil(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        cargarVistaPerfil(principal, model);
+        return "pm/pm-perfil";
+    }
+
+    // La vista tiene dos formularios: si uno vuelve con errores, el otro también debe estar en el modelo.
+    private void cargarVistaPerfil(UsuarioDetails principal, Model model) {
         model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
         model.addAttribute("pm", principal.getUsuario());
-                if (!model.containsAttribute("pmPerfilDatosForm")) {
+        if (!model.containsAttribute("pmPerfilDatosForm")) {
             PmPerfilDatosForm form = new PmPerfilDatosForm();
             form.setNombre(principal.getUsuario().getNombre());
             form.setApellido(principal.getUsuario().getApellido());
@@ -628,7 +635,6 @@ public class PmViewController {
             model.addAttribute("pmPerfilDatosForm", form);
         }
         if (!model.containsAttribute("pmPerfilPasswordForm")) model.addAttribute("pmPerfilPasswordForm", new PmPerfilPasswordForm());
-        return "pm/pm-perfil";
     }
 
     @PostMapping("/perfil/datos")
@@ -637,8 +643,7 @@ public class PmViewController {
             @AuthenticationPrincipal UsuarioDetails principal, Model model,
             RedirectAttributes ra, HttpServletRequest request) {
         if (result.hasErrors()) {
-            model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
-            model.addAttribute("pm", principal.getUsuario());
+            cargarVistaPerfil(principal, model);
             return "pm/pm-perfil";
         }
         try {
@@ -646,7 +651,7 @@ public class PmViewController {
             ra.addFlashAttribute("success", "Datos actualizados correctamente.");
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/perfil";
     }
@@ -660,7 +665,7 @@ public class PmViewController {
             ra.addFlashAttribute("success", "Foto de perfil actualizada.");
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/perfil";
     }
@@ -671,8 +676,7 @@ public class PmViewController {
             @AuthenticationPrincipal UsuarioDetails principal, Model model,
             RedirectAttributes ra, HttpServletRequest request) {
         if (result.hasErrors()) {
-            model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
-            model.addAttribute("pm", principal.getUsuario());
+            cargarVistaPerfil(principal, model);
             return "pm/pm-perfil";
         }
         try {
@@ -683,7 +687,7 @@ public class PmViewController {
             ra.addFlashAttribute("success", "Contraseña actualizada correctamente.");
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
         } catch (Exception e) {
-            ra.addFlashAttribute("error", e.getMessage());
+            ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/perfil";
     }

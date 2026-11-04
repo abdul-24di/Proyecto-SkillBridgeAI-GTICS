@@ -47,6 +47,7 @@
         <p class="auth-subtitle centered">Ingresa tus credenciales para continuar</p>
 
         <div class="auth-alert error" th:if="${param.error}">Correo o contraseña incorrectos.</div>
+        <div class="auth-alert error" th:if="${param.bloqueado}">Por seguridad, esta cuenta quedó bloqueada 15 minutos tras varios intentos fallidos. Puedes esperar o recuperar tu contraseña.</div>
         <div class="auth-alert success" th:if="${param.logout}">Sesión cerrada correctamente.</div>
         <div class="auth-alert success" th:if="${param.activado}">Cuenta activada. Ya puedes iniciar sesión.</div>
         <div class="auth-alert success" th:if="${param.recuperado}">Contraseña actualizada. Ya puedes iniciar sesión.</div>

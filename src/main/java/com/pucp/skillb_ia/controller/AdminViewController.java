@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
 @Controller
 @RequestMapping("/admin")
@@ -617,15 +618,6 @@ public class AdminViewController {
         var error = resultado.getFieldError();
         return error == null ? "Revisa los datos ingresados."
                 : messageSource.getMessage(error, org.springframework.context.i18n.LocaleContextHolder.getLocale());
-    }
-
-    // Los mensajes de negocio (IllegalArgumentException / IllegalStateException) están escritos para el
-    // usuario; cualquier otro error (p. ej. de la base de datos) no debe filtrar detalles técnicos.
-    private static String mensajeSeguro(Exception e) {
-        if (e instanceof IllegalArgumentException || e instanceof IllegalStateException) {
-            return e.getMessage();
-        }
-        return "No se pudo completar la operación. Revisa los datos e inténtalo de nuevo.";
     }
 
     private String csvEscapar(String valor) {

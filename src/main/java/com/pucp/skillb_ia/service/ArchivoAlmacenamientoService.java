@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 
 @Service
 public class ArchivoAlmacenamientoService {
@@ -58,7 +59,41 @@ public class ArchivoAlmacenamientoService {
     }
 
 
+    // El tipo que declara el navegador se puede falsificar (un .exe enviado como application/pdf), así que
+    // se comparan los primeros bytes del archivo con la firma real de cada formato. Los formatos sin firma
+    // simple (Word, Excel, diseño) no se revisan aquí: esas subidas ya se filtran por lista de extensiones.
+    public void validarContenidoReal(MultipartFile archivo) {
+        String tipo = archivo.getContentType();
+        String extension = "image/png".equals(tipo) ? "png" : "image/jpeg".equals(tipo) ? "jpg"
+                : "image/gif".equals(tipo) ? "gif" : "image/webp".equals(tipo) ? "webp"
+                : "application/pdf".equals(tipo) ? "pdf" : "";
+        validarFirma(archivo, extension);
+    }
+
+    private void validarFirma(MultipartFile archivo, String extension) {
+        byte[] firma = switch (extension) {
+            case "pdf" -> new byte[]{'%', 'P', 'D', 'F'};
+            case "png" -> new byte[]{(byte) 0x89, 'P', 'N', 'G'};
+            case "jpg", "jpeg" -> new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+            case "gif" -> new byte[]{'G', 'I', 'F', '8'};
+            case "webp" -> new byte[]{'R', 'I', 'F', 'F'};
+            default -> null;
+        };
+        if (firma == null) {
+            return;
+        }
+        try (var entrada = archivo.getInputStream()) {
+            if (!Arrays.equals(entrada.readNBytes(firma.length), firma)) {
+                throw new IllegalArgumentException("El contenido del archivo no corresponde a un "
+                        + extension.toUpperCase() + " válido.");
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("No se pudo leer el archivo. Inténtalo nuevamente.", e);
+        }
+    }
+
     public String guardar(MultipartFile archivo, String carpeta, String nombreArchivo) {
+        validarFirma(archivo, nombreArchivo.substring(nombreArchivo.lastIndexOf('.') + 1).toLowerCase());
 
         //Si el tipo de la configuración es igual a s3, entonces ejecutamos el metodo para subirlo a Amazon
         if ("s3".equalsIgnoreCase(tipoAlmacenamiento)) {

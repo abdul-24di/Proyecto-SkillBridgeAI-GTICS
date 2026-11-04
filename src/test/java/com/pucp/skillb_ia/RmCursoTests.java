@@ -841,7 +841,7 @@ class RmCursoTests {
         cursoService.rechazarEvidencia(evidencia.getId(), "Falta tu nombre.", rm.getId());
 
         colaboradorCursoService.subirEvidencia(colaboradorUno, evidencia.getId(),
-                new MockMultipartFile("evidencia", "nueva.pdf", "application/pdf", new byte[]{1, 2, 3}));
+                new MockMultipartFile("evidencia", "nueva.pdf", "application/pdf", "%PDF-1.4 prueba".getBytes()));
 
         RmCursoView.InscripcionItem fila = cursoService.obtenerBandeja(
                 cursoService.normalizarFiltrosBandeja(null, "EVIDENCIA_PENDIENTE", null), "1").getInscripciones().get(0);
@@ -909,7 +909,7 @@ class RmCursoTests {
         cursoService.rechazarEvidencia(evidencia.getId(), "Archivo ilegible.", rm.getId());
 
         colaboradorCursoService.subirEvidencia(colaboradorUno, evidencia.getId(),
-                new MockMultipartFile("evidencia", "constancia.pdf", "application/pdf", new byte[]{1, 2, 3}));
+                new MockMultipartFile("evidencia", "constancia.pdf", "application/pdf", "%PDF-1.4 prueba".getBytes()));
 
         ColaboradorCurso reenviada = colaboradorCursoRepository.findByIdConDetalle(evidencia.getId()).orElseThrow();
         assertEquals(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE, reenviada.getEstado());

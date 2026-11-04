@@ -19,9 +19,12 @@ public class EstudioPreRegistroForm {
 
     private MultipartFile archivo;
 
+    // Id del archivo que ya se recibió en un envío anterior (ver PreRegistroArchivosService).
+    private String archivoGuardado;
+
     public boolean estaVacia() {
         return esVacio(institucion) && esVacio(titulo) && fechaInicio == null && fechaFin == null
-                && (archivo == null || archivo.isEmpty());
+                && (archivo == null || archivo.isEmpty()) && esVacio(archivoGuardado);
     }
 
     private static boolean esVacio(String valor) {
@@ -38,4 +41,6 @@ public class EstudioPreRegistroForm {
     public void setFechaFin(LocalDate fechaFin) { this.fechaFin = fechaFin; }
     public MultipartFile getArchivo() { return archivo; }
     public void setArchivo(MultipartFile archivo) { this.archivo = archivo; }
+    public String getArchivoGuardado() { return archivoGuardado; }
+    public void setArchivoGuardado(String archivoGuardado) { this.archivoGuardado = archivoGuardado; }
 }

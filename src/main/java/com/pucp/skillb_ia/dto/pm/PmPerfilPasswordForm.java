@@ -1,15 +1,17 @@
 package com.pucp.skillb_ia.dto.pm;
+
+import com.pucp.skillb_ia.dto.auth.PoliticaPassword;
 import jakarta.validation.constraints.*;
 
 public class PmPerfilPasswordForm {
-    @NotBlank(message = "La contrasea actual es obligatoria")
+    @NotBlank(message = "La contraseña actual es obligatoria")
     private String passwordActual;
 
-    @NotBlank(message = "La nueva contrasea es obligatoria")
-    @Size(min = 6, message = "La contrasea debe tener al menos 6 caracteres")
+    @NotBlank(message = "La nueva contraseña es obligatoria")
+    @Pattern(regexp = PoliticaPassword.REGEX, message = PoliticaPassword.MENSAJE)
     private String passwordNueva;
 
-    @NotBlank(message = "Debes confirmar la nueva contrasea")
+    @NotBlank(message = "Debes confirmar la nueva contraseña")
     private String passwordConfirm;
 
     public String getPasswordActual() { return passwordActual; }

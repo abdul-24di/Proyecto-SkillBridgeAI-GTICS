@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
 @Controller
 @RequestMapping("/rm")
@@ -1751,7 +1752,7 @@ public class RmViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Teléfono actualizado correctamente.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
             redirectAttributes.addFlashAttribute("telefonoIngresado", telefono);
         }
         return "redirect:/rm/perfil";
@@ -1766,7 +1767,7 @@ public class RmViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Foto de perfil actualizada.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/rm/perfil";
     }
@@ -1785,7 +1786,7 @@ public class RmViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Contraseña actualizada correctamente.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
         return "redirect:/rm/perfil";
     }

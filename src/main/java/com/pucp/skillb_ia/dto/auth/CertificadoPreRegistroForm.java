@@ -11,8 +11,12 @@ public class CertificadoPreRegistroForm {
     private NivelDominio nivel;
     private MultipartFile archivo;
 
+    // Id del archivo que ya se recibió en un envío anterior (ver PreRegistroArchivosService).
+    private String archivoGuardado;
+
     public boolean estaVacia() {
-        return habilidadId == null && nivel == null && (archivo == null || archivo.isEmpty());
+        return habilidadId == null && nivel == null && (archivo == null || archivo.isEmpty())
+                && (archivoGuardado == null || archivoGuardado.isBlank());
     }
 
     public Long getHabilidadId() { return habilidadId; }
@@ -21,4 +25,6 @@ public class CertificadoPreRegistroForm {
     public void setNivel(NivelDominio nivel) { this.nivel = nivel; }
     public MultipartFile getArchivo() { return archivo; }
     public void setArchivo(MultipartFile archivo) { this.archivo = archivo; }
+    public String getArchivoGuardado() { return archivoGuardado; }
+    public void setArchivoGuardado(String archivoGuardado) { this.archivoGuardado = archivoGuardado; }
 }

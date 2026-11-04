@@ -23,7 +23,6 @@ public class AdminErrorAdvice {
                     + ((MissingServletRequestParameterException) ex).getParameterName() + "\".";
         }
         redirectAttributes.addFlashAttribute("mensajeError", mensaje);
-        String referer = request.getHeader("Referer");
-        return "redirect:" + (referer != null ? referer : "/admin/dashboard");
+        return "redirect:" + GlobalExceptionHandler.paginaAnterior(request, "/admin/dashboard");
     }
 }

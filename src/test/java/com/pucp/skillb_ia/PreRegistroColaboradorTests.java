@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia;
 
+import com.pucp.skillb_ia.dto.auth.ActivarCuentaForm;
 import com.pucp.skillb_ia.model.CategoriaHabilidad;
 import com.pucp.skillb_ia.model.Habilidad;
 import com.pucp.skillb_ia.model.Rol;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,9 +40,11 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -162,7 +166,7 @@ class PreRegistroColaboradorTests {
     @Test
     void certificadosYFormacionDelPreRegistroQuedanEnElPerfilYElRmLosVeSoloTrasAprobar() throws Exception {
         Habilidad java = habilidadDelCatalogo();
-        String marca = "Zoe" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String marca = "Zoe" + UUID.randomUUID().toString().replaceAll("[^a-f]", "x").substring(0, 12);
         String correo = correoNuevo();
         String token = invitar(correo, "COLABORADOR");
 
@@ -379,7 +383,7 @@ class PreRegistroColaboradorTests {
 
         // La pantalla responde igual (no revela si la cuenta existe), pero no se crea ningún código.
         mockMvc.perform(post("/recuperar").param("correo", correo))
-                .andExpect(redirectedUrl("/verificar-codigo?correo=" + correo));
+                .andExpect(redirectedUrl("/verificar-codigo?correo=" + correo.replace("@", "%40")));
         assertThat(codigosDeRecuperacion(invitado)).isEmpty();
         assertThat(usuarioRepository.findById(invitado.getId()).orElseThrow().getPasswordHash()).isNull();
     }
@@ -507,6 +511,7 @@ class PreRegistroColaboradorTests {
         Usuario usuario = usuarioActivado(correo);
         authService.solicitarRecuperacion(correo);
         String primero = codigosDeRecuperacion(usuario).get(0).getToken();
+        simularQuePasoUnMinuto(usuario);
 
         authService.solicitarRecuperacion(correo);
         String segundo = codigosDeRecuperacion(usuario).stream().map(TokenUsuario::getToken)
@@ -514,6 +519,130 @@ class PreRegistroColaboradorTests {
 
         assertThat(authService.validarCodigoRecuperacion(correo, primero)).isEmpty();
         assertThat(authService.validarCodigoRecuperacion(correo, segundo)).isPresent();
+    }
+
+    @Test
+    void repetirLaSolicitudEnElMismoMinutoNoEnviaOtroCodigoYElAnteriorSigueValiendo() {
+        String correo = correoNuevo();
+        Usuario usuario = usuarioActivado(correo);
+        authService.solicitarRecuperacion(correo);
+        String codigo = codigosDeRecuperacion(usuario).get(0).getToken();
+
+        authService.solicitarRecuperacion(correo);
+        authService.solicitarRecuperacion(correo);
+
+        assertThat(codigosDeRecuperacion(usuario)).hasSize(1);
+        assertThat(authService.validarCodigoRecuperacion(correo, codigo)).isPresent();
+    }
+
+    private void simularQuePasoUnMinuto(Usuario usuario) {
+        codigosDeRecuperacion(usuario).forEach(t -> {
+            t.setFechaExpiracion(t.getFechaExpiracion().minusMinutes(2));
+            tokenUsuarioRepository.save(t);
+        });
+    }
+
+    // ---------- pre-registro: un error no obliga a repetir archivos y dice exactamente qué corregir ----------
+
+    private ActivarEnvio enviarActivacion(String token, MockHttpSession sesion, String telefono, MockMultipartFile... archivos)
+            throws Exception {
+        var peticion = multipart("/activar-cuenta").session(sesion)
+                .param("token", token).param("nombreCompleto", "Ana Perez").param("telefono", telefono)
+                .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
+                .param("aceptaPolitica", "true");
+        for (MockMultipartFile archivo : archivos) {
+            peticion.file(archivo);
+        }
+        return new ActivarEnvio(peticion);
+    }
+
+    private record ActivarEnvio(org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder peticion) {
+    }
+
+    @Test
+    void unErrorEnOtroCampoConservaElCvYNoHayQueVolverASubirlo() throws Exception {
+        String correo = correoNuevo();
+        String token = invitar(correo, "COLABORADOR");
+        MockHttpSession sesion = new MockHttpSession();
+
+        var respuesta = mockMvc.perform(enviarActivacion(token, sesion, "123",
+                        new MockMultipartFile("cv", "mi-cv.pdf", "application/pdf", PDF)).peticion())
+                .andExpect(status().isOk())
+                .andExpect(view().name("auth/activar-cuenta"))
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "telefono"))
+                .andExpect(content().string(containsString("mi-cv.pdf")))
+                .andReturn();
+
+        ActivarCuentaForm form = (ActivarCuentaForm) respuesta.getModelAndView().getModel().get("activarCuentaForm");
+        assertThat(form.getCvGuardado()).isNotBlank();
+
+        // Segundo envío: sin archivo, solo con el id que el formulario guardó en el campo oculto.
+        mockMvc.perform(enviarActivacion(token, sesion, "987654321").peticion().param("cvGuardado", form.getCvGuardado()))
+                .andExpect(redirectedUrl("/login?activado"));
+
+        Usuario activado = usuarioRepository.findByCorreo(correo).orElseThrow();
+        assertThat(activado.getCvUrl()).isNotBlank();
+        assertThat(sesion.getAttribute("preRegistroArchivos")).isNull();
+    }
+
+    @Test
+    void elIdDeUnArchivoDeOtraSesionNoSirve() throws Exception {
+        String token = invitar(correoNuevo(), "COLABORADOR");
+        var primero = mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "123",
+                        new MockMultipartFile("cv", "ajeno.pdf", "application/pdf", PDF)).peticion())
+                .andReturn();
+        String idAjeno = ((ActivarCuentaForm) primero.getModelAndView().getModel().get("activarCuentaForm")).getCvGuardado();
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321").peticion().param("cvGuardado", idAjeno))
+                .andExpect(view().name("auth/activar-cuenta"))
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "cv"));
+    }
+
+    @Test
+    void laListaDeErroresDiceElPasoYElCampoExactos() throws Exception {
+        String token = invitar(correoNuevo(), "COLABORADOR");
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "123").peticion()
+                        .param("certificados[1].nivel", "BASICO"))
+                .andExpect(view().name("auth/activar-cuenta"))
+                .andExpect(model().attribute("pasoInicial", 1))
+                .andExpect(content().string(containsString("Paso 1 · ")))
+                .andExpect(content().string(containsString("Teléfono:")))
+                .andExpect(content().string(containsString("CV:")))
+                .andExpect(content().string(containsString("Certificado 2 · Habilidad:")));
+    }
+
+    @Test
+    void unArchivoConContenidoFalsoSeRechazaAunqueDigaSerPdf() throws Exception {
+        String token = invitar(correoNuevo(), "COLABORADOR");
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321",
+                        new MockMultipartFile("cv", "virus.pdf", "application/pdf", "MZ ejecutable".getBytes())).peticion())
+                .andExpect(view().name("auth/activar-cuenta"))
+                .andExpect(content().string(containsString("no corresponde a un PDF")));
+    }
+
+    @Test
+    void conUnEnlaceInvalidoNoSeProcesaNadaNiSeGuardanArchivos() throws Exception {
+        MockHttpSession sesion = new MockHttpSession();
+
+        mockMvc.perform(enviarActivacion("enlace-falso", sesion, "987654321",
+                        new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF)).peticion())
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(sesion.getAttribute("preRegistroArchivos")).isNull();
+    }
+
+    @Test
+    void elNombreNoAdmiteEtiquetasHtml() throws Exception {
+        String token = invitar(correoNuevo(), "PROJECT_MANAGER");
+
+        mockMvc.perform(multipart("/activar-cuenta").param("token", token)
+                        .param("nombreCompleto", "<script>alert(1)</script>").param("telefono", "987654321")
+                        .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
+                        .param("aceptaPolitica", "true"))
+                .andExpect(view().name("auth/activar-cuenta"))
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "nombreCompleto"));
     }
 
     @Test

@@ -47,7 +47,7 @@ public class RespuestaForo {
     public void setAutor(Usuario autor) { this.autor = autor; }
 
     public String getContenido() { return contenido; }
-    public void setContenido(String contenido) { this.contenido = contenido; }
+    public void setContenido(String contenido) { this.contenido = com.pucp.skillb_ia.security.HtmlSeguro.limpiar(contenido); }
 
     public boolean isEsSolucion() { return esSolucion; }
     public void setEsSolucion(boolean esSolucion) { this.esSolucion = esSolucion; }

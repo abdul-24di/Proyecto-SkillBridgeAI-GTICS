@@ -53,8 +53,15 @@ public class PmChatService {
 
     @Transactional
     public PmMensajeView enviarMensaje(Long proyectoId, String contenido, Usuario pm) {
+        if (proyectoId == null) {
+            throw new IllegalArgumentException("Debes seleccionar un proyecto para enviar un mensaje.");
+        }
         if (contenido == null || contenido.trim().isEmpty()) {
             throw new IllegalArgumentException("El mensaje no puede estar vacío.");
+        }
+        String contenidoLimpio = contenido.trim();
+        if (contenidoLimpio.length() > 1000) {
+            throw new IllegalArgumentException("El mensaje no puede superar los 1000 caracteres.");
         }
 
         Proyecto proyecto = proyectoRepository.findByIdConPm(proyectoId)
@@ -70,7 +77,7 @@ public class PmChatService {
         Mensaje mensaje = new Mensaje();
         mensaje.setConversacion(conversacion);
         mensaje.setAutor(pm);
-        mensaje.setContenido(contenido);
+        mensaje.setContenido(contenidoLimpio);
 
         Mensaje guardado = mensajeRepository.save(mensaje);
         return new PmMensajeView(guardado, pm.getId());

@@ -9,6 +9,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+
+import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
 @RestController
 @RequestMapping("/pm/api/chat")
@@ -29,11 +32,15 @@ public class PmChatRestController {
     }
 
     @PostMapping("/enviar")
-    public ResponseEntity<PmMensajeView> enviarMensaje(@RequestParam("proyectoId") Long proyectoId,
-                                                       @RequestParam("contenido") String contenido,
-                                                       @AuthenticationPrincipal UsuarioDetails principal) {
-        Usuario pm = principal.getUsuario();
-        PmMensajeView mensaje = pmChatService.enviarMensaje(proyectoId, contenido, pm);
-        return ResponseEntity.ok(mensaje);
+    public ResponseEntity<?> enviarMensaje(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                                           @RequestParam(value = "contenido", required = false) String contenido,
+                                           @AuthenticationPrincipal UsuarioDetails principal) {
+        try {
+            Usuario pm = principal.getUsuario();
+            PmMensajeView mensaje = pmChatService.enviarMensaje(proyectoId, contenido, pm);
+            return ResponseEntity.ok(mensaje);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", mensajeSeguro(e)));
+        }
     }
 }

@@ -1,6 +1,5 @@
 package com.pucp.skillb_ia.controller;
 
-import com.pucp.skillb_ia.model.Habilidad;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import com.pucp.skillb_ia.dto.pm.*;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,12 +29,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
+import java.util.stream.Collectors;
+
 import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
 @Controller
@@ -78,7 +77,7 @@ public class PmViewController {
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
-    @org.springframework.web.bind.annotation.ModelAttribute("pm")
+    @ModelAttribute("pm")
     public Usuario pm(@AuthenticationPrincipal UsuarioDetails principal) {
         return principal != null ? principal.getUsuario() : null;
     }
@@ -190,7 +189,9 @@ public class PmViewController {
 
     @GetMapping({"/proyectos/crear", "/pm-crear-proyecto.html"})
     public String crearProyectoForm(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
-        model.addAttribute("pmProyectoForm", new PmProyectoForm());
+        if (!model.containsAttribute("pmProyectoForm")) {
+            model.addAttribute("pmProyectoForm", new PmProyectoForm());
+        }
         model.addAttribute("habilidades", habilidadRepository.findByActivaTrue());
         model.addAttribute("pm", principal.getUsuario());
         return "pm/pm-crear-proyecto";
@@ -203,6 +204,29 @@ public class PmViewController {
             @AuthenticationPrincipal UsuarioDetails principal,
             Model model,
             RedirectAttributes ra, HttpServletRequest request) {
+        if (form.getFechaInicio() != null && form.getFechaFinEstimada() != null
+                && form.getFechaFinEstimada().isBefore(form.getFechaInicio())) {
+            result.rejectValue("fechaFinEstimada", "fechaFinEstimada.anterior",
+                    "La fecha de fin estimada no puede ser anterior a la fecha de inicio");
+        }
+        if (form.getCantidadesPersonas() != null) {
+            for (Integer cant : form.getCantidadesPersonas()) {
+                if (cant == null || cant < 1) {
+                    result.rejectValue("habilidadIds", "cantidadesPersonas.invalida",
+                            "La cantidad de personas por habilidad debe ser de al menos 1");
+                    break;
+                }
+            }
+        }
+        if (form.getHorasSemanalesHab() != null) {
+            for (BigDecimal horas : form.getHorasSemanalesHab()) {
+                if (horas == null || horas.compareTo(new BigDecimal("0.5")) < 0 || horas.compareTo(new BigDecimal("168")) > 0) {
+                    result.rejectValue("habilidadIds", "horasSemanalesHab.invalida",
+                            "Las horas semanales por habilidad deben estar entre 0.5 y 168");
+                    break;
+                }
+            }
+        }
         if (result.hasErrors()) {
             model.addAttribute("habilidades", habilidadRepository.findByActivaTrue());
             model.addAttribute("pm", principal.getUsuario());
@@ -212,28 +236,42 @@ public class PmViewController {
             com.pucp.skillb_ia.model.Proyecto nuevo = pmProyectoService.crear(
                     form.getNombre(), form.getDescripcion(), form.getFechaInicio(), form.getFechaFinEstimada(),
                     form.getPrioridad(), form.getJustificacionPrioridad(), form.getPresupuestoSolicitado(), form.getJustificacionPresupuesto(),
-                    form.getColaboradoresRequeridos(), null,
+                    form.getColaboradoresRequeridos() != null ? form.getColaboradoresRequeridos() : 1, null,
                     form.getHabilidadIds(), form.getNivelesRequeridos(), form.getCantidadesPersonas(), form.getHorasSemanalesHab(),
                     principal.getUsuario());
             ra.addFlashAttribute("success", "Proyecto creado exitosamente. Está pendiente de revisión por el RM.");
             return "redirect:/pm/proyectos/detalle?id=" + nuevo.getId();
         } catch (Exception e) {
-            ra.addFlashAttribute("error", mensajeSeguro(e));
-            return "redirect:/pm/proyectos/crear";
+            model.addAttribute("error", mensajeSeguro(e));
+            model.addAttribute("habilidades", habilidadRepository.findByActivaTrue());
+            model.addAttribute("pm", principal.getUsuario());
+            return "pm/pm-crear-proyecto";
         }
     }
 
     @PostMapping("/proyectos/{id}/cancelar")
     public String cancelarProyecto(@PathVariable("id") Long proyectoId,
+                                   @RequestParam(value = "motivo", required = false) String motivo,
                                    @AuthenticationPrincipal UsuarioDetails principal,
                                    RedirectAttributes ra, HttpServletRequest request) {
         try {
+            if (motivo != null && motivo.trim().length() > 500) {
+                throw new IllegalArgumentException("El motivo de cancelación no puede superar los 500 caracteres.");
+            }
             var resultado = pmProyectoService.cancelar(proyectoId, principal.getUsuario());
             ra.addFlashAttribute("success", CierreAsignacionesService.mensaje("cancelado", resultado));
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
         }
         return "redirect:/pm/proyectos";
+    }
+
+    @PostMapping("/proyectos/cancelar")
+    public String cancelarProyectoDesdeDetalle(@RequestParam("proyectoId") Long proyectoId,
+                                               @RequestParam(value = "motivo", required = false) String motivo,
+                                               @AuthenticationPrincipal UsuarioDetails principal,
+                                               RedirectAttributes ra, HttpServletRequest request) {
+        return cancelarProyecto(proyectoId, motivo, principal, ra, request);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -251,24 +289,41 @@ public class PmViewController {
         // Colaboradores disponibles para proponer (rol COLABORADOR activos)
         model.addAttribute("colaboradoresDisponibles",
                 usuarioRepository.findActivosByRolNombre("COLABORADOR"));
+        if (!model.containsAttribute("pmProponerAsignacionForm")) {
+            PmProponerAsignacionForm proponerForm = new PmProponerAsignacionForm();
+            proponerForm.setProyectoId(proyectoId);
+            model.addAttribute("pmProponerAsignacionForm", proponerForm);
+        }
         model.addAttribute("pm", pm);
         return "pm/pm-asignaciones-proyecto";
     }
 
     @PostMapping("/asignaciones/proponer")
     public String proponerAsignacion(
-            @RequestParam("proyectoId") Long proyectoId,
-            @RequestParam("colaboradorId") Long colaboradorId,
-            @RequestParam("horasSemanales") BigDecimal horasSemanales,
-            @RequestParam(value = "mensajeSolicitud", required = false) String mensaje,
+            @Valid @ModelAttribute("pmProponerAsignacionForm") PmProponerAsignacionForm form,
+            BindingResult result,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes ra, HttpServletRequest request) {
+        Long proyectoId = form.getProyectoId();
+        if (proyectoId == null) {
+            ra.addFlashAttribute("error", "El proyecto es obligatorio.");
+            return "redirect:/pm/proyectos";
+        }
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "Revisa los datos de la propuesta."));
+            ra.addFlashAttribute("pmProponerAsignacionForm", form);
+            ra.addFlashAttribute("org.springframework.validation.BindingResult.pmProponerAsignacionForm", result);
+            ra.addFlashAttribute("abrirModalProponer", true);
+            return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
+        }
         try {
-            pmAsignacionService.proponer(proyectoId, colaboradorId, horasSemanales, mensaje,
-                    principal.getUsuario());
+            pmAsignacionService.proponer(proyectoId, form.getColaboradorId(), form.getHorasSemanales(),
+                    form.getMensajeSolicitud(), principal.getUsuario());
             ra.addFlashAttribute("success", "Propuesta enviada al RM para aprobación.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
+            ra.addFlashAttribute("pmProponerAsignacionForm", form);
+            ra.addFlashAttribute("abrirModalProponer", true);
         }
         return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
     }
@@ -289,12 +344,22 @@ public class PmViewController {
 
     @PostMapping("/asignaciones/{id}/rechazar")
     public String rechazarAsignacion(@PathVariable("id") Long asignacionId,
-                                     @RequestParam("proyectoId") Long proyectoId,
-                                     @RequestParam(value = "motivo", required = false) String motivo,
+                                     @Valid @ModelAttribute("pmRechazarAsignacionForm") PmRechazarAsignacionForm form,
+                                     BindingResult result,
                                      @AuthenticationPrincipal UsuarioDetails principal,
                                      RedirectAttributes ra, HttpServletRequest request) {
+        Long proyectoId = form.getProyectoId();
+        if (proyectoId == null) {
+            ra.addFlashAttribute("error", "El proyecto es obligatorio.");
+            return "redirect:/pm/proyectos";
+        }
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "Debes indicar el motivo del rechazo."));
+            ra.addFlashAttribute("abrirModalRechazarId", asignacionId);
+            return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
+        }
         try {
-            pmAsignacionService.rechazar(asignacionId, motivo, principal.getUsuario());
+            pmAsignacionService.rechazar(asignacionId, form.getMotivo(), principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación rechazada.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
@@ -304,13 +369,22 @@ public class PmViewController {
 
     @PostMapping("/asignaciones/{id}/finalizar")
     public String finalizarAsignacion(@PathVariable("id") Long asignacionId,
-                                      @RequestParam("proyectoId") Long proyectoId,
-                                      @RequestParam(name = "calificacion", required = false) Integer calificacion,
-                                      @RequestParam(name = "feedback", required = false) String feedback,
+                                      @Valid @ModelAttribute("pmFinalizarAsignacionForm") PmFinalizarAsignacionForm form,
+                                      BindingResult result,
                                       @AuthenticationPrincipal UsuarioDetails principal,
                                       RedirectAttributes ra, HttpServletRequest request) {
+        Long proyectoId = form.getProyectoId();
+        if (proyectoId == null) {
+            ra.addFlashAttribute("error", "El proyecto es obligatorio.");
+            return "redirect:/pm/proyectos";
+        }
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "Revisa los datos para finalizar la asignación."));
+            ra.addFlashAttribute("abrirModalFinalizarId", asignacionId);
+            return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
+        }
         try {
-            pmAsignacionService.finalizar(asignacionId, calificacion, feedback, principal.getUsuario());
+            pmAsignacionService.finalizar(asignacionId, form.getCalificacion(), form.getFeedback(), principal.getUsuario());
             ra.addFlashAttribute("success", "Asignación finalizada.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
@@ -335,27 +409,41 @@ public class PmViewController {
                         .stream()
                         .filter(a -> "Activa".equals(a.getEstadoTexto()))
                         .toList());
+        if (!model.containsAttribute("pmActividadForm")) {
+            PmActividadForm actForm = new PmActividadForm();
+            actForm.setProyectoId(proyectoId);
+            model.addAttribute("pmActividadForm", actForm);
+        }
         model.addAttribute("pm", pm);
         return "pm/pm-actividades";
     }
 
     @PostMapping("/actividades/crear")
     public String crearActividad(
-            @RequestParam("proyectoId") Long proyectoId,
-            @RequestParam("colaboradorId") Long colaboradorId,
-            @RequestParam("titulo") String titulo,
-            @RequestParam(value = "descripcion", required = false) String descripcion,
-            @RequestParam("horasEstimadas") BigDecimal horasEstimadas,
-            @RequestParam("fechaLimite") String fechaLimiteStr,
+            @Valid @ModelAttribute("pmActividadForm") PmActividadForm form,
+            BindingResult result,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes ra, HttpServletRequest request) {
+        Long proyectoId = form.getProyectoId();
+        if (proyectoId == null) {
+            ra.addFlashAttribute("error", "El proyecto es obligatorio.");
+            return "redirect:/pm/proyectos";
+        }
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "Revisa los campos de la nueva actividad."));
+            ra.addFlashAttribute("pmActividadForm", form);
+            ra.addFlashAttribute("org.springframework.validation.BindingResult.pmActividadForm", result);
+            ra.addFlashAttribute("abrirModalNuevaActividad", true);
+            return "redirect:/pm/actividades?proyectoId=" + proyectoId;
+        }
         try {
-            LocalDate fechaLimite = LocalDate.parse(fechaLimiteStr);
-            pmActividadService.crear(proyectoId, colaboradorId, titulo, descripcion,
-                    horasEstimadas, fechaLimite, principal.getUsuario());
+            pmActividadService.crear(proyectoId, form.getColaboradorId(), form.getTitulo(), form.getDescripcion(),
+                    form.getHorasEstimadas(), form.getFechaLimite(), principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad creada correctamente.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
+            ra.addFlashAttribute("pmActividadForm", form);
+            ra.addFlashAttribute("abrirModalNuevaActividad", true);
         }
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
@@ -377,16 +465,22 @@ public class PmViewController {
 
     @PostMapping("/actividades/{id}/devolver")
     public String devolverActividad(@PathVariable("id") Long actividadId,
-                                    @RequestParam("proyectoId") Long proyectoId,
-                                    @RequestParam(value = "comentario", required = false) String comentario,
-                                    @RequestParam(value = "aplicarStrike", defaultValue = "false") boolean aplicarStrike,
+                                    @Valid @ModelAttribute("pmDevolverActividadForm") PmDevolverActividadForm form,
+                                    BindingResult result,
                                     @AuthenticationPrincipal UsuarioDetails principal,
                                     RedirectAttributes ra, HttpServletRequest request) {
+        Long proyectoId = form.getProyectoId();
+        if (proyectoId == null) {
+            ra.addFlashAttribute("error", "El proyecto es obligatorio.");
+            return "redirect:/pm/proyectos";
+        }
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "Debes escribir un comentario para devolver la actividad."));
+            ra.addFlashAttribute("abrirModalDetalleActividadId", actividadId);
+            return "redirect:/pm/actividades?proyectoId=" + proyectoId;
+        }
         try {
-            if (comentario == null || comentario.isBlank()) {
-                throw new IllegalArgumentException("Debes escribir un comentario para devolver la actividad.");
-            }
-            pmActividadService.devolver(actividadId, comentario, aplicarStrike, principal.getUsuario());
+            pmActividadService.devolver(actividadId, form.getComentario(), form.isAplicarStrike(), principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad devuelta al colaborador.");
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(getClass()).error("Error al devolver actividad {}", actividadId, e);
@@ -397,19 +491,27 @@ public class PmViewController {
 
     @PostMapping("/actividades/{id}/editar")
     public String editarActividad(@PathVariable("id") Long actividadId,
-                                  @RequestParam("proyectoId") Long proyectoId,
-                                  @RequestParam("titulo") String titulo,
-                                  @RequestParam(value = "descripcion", required = false) String descripcion,
-                                  @RequestParam("horasEstimadas") java.math.BigDecimal horasEstimadas,
-                                  @RequestParam("fechaLimite") String fechaLimiteStr,
+                                  @Valid @ModelAttribute("pmEditarActividadForm") PmEditarActividadForm form,
+                                  BindingResult result,
                                   @AuthenticationPrincipal UsuarioDetails principal,
                                   RedirectAttributes ra, HttpServletRequest request) {
+        Long proyectoId = form.getProyectoId();
+        if (proyectoId == null) {
+            ra.addFlashAttribute("error", "El proyecto es obligatorio.");
+            return "redirect:/pm/proyectos";
+        }
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "Revisa los campos de la actividad."));
+            ra.addFlashAttribute("abrirModalEditarActividadId", actividadId);
+            return "redirect:/pm/actividades?proyectoId=" + proyectoId;
+        }
         try {
-            java.time.LocalDate fechaLimite = java.time.LocalDate.parse(fechaLimiteStr);
-            pmActividadService.editar(actividadId, titulo, descripcion, horasEstimadas, fechaLimite, principal.getUsuario());
+            pmActividadService.editar(actividadId, form.getTitulo(), form.getDescripcion(),
+                    form.getHorasEstimadas(), form.getFechaLimite(), principal.getUsuario());
             ra.addFlashAttribute("success", "Actividad editada correctamente.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
+            ra.addFlashAttribute("abrirModalEditarActividadId", actividadId);
         }
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
@@ -447,6 +549,12 @@ public class PmViewController {
                               @AuthenticationPrincipal UsuarioDetails principal,
                               Model model) {
         Usuario pm = principal.getUsuario();
+        if (!model.containsAttribute("pmForoPublicacionForm")) {
+            PmForoPublicacionForm pubForm = new PmForoPublicacionForm();
+            pubForm.setProyectoId(proyectoId);
+            pubForm.setForoId(foroId);
+            model.addAttribute("pmForoPublicacionForm", pubForm);
+        }
         if (foroId != null) {
             model.addAttribute("publicaciones", pmForoService.obtenerDetallePorForo(foroId, pm));
             model.addAttribute("foroBase", pmForoService.obtenerForoBase(foroId));
@@ -462,43 +570,69 @@ public class PmViewController {
     }
 
     @PostMapping("/foro/publicar")
-    public String publicarForo(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
-                               @RequestParam(value = "foroId", required = false) Long foroId,
-                               @RequestParam("titulo") String titulo,
-                               @RequestParam("contenido") String contenido,
+    public String publicarForo(@Valid @ModelAttribute("pmForoPublicacionForm") PmForoPublicacionForm form,
+                               BindingResult result,
                                @AuthenticationPrincipal UsuarioDetails principal,
                                RedirectAttributes ra, HttpServletRequest request) {
+        Long proyectoId = form.getProyectoId();
+        Long foroId = form.getForoId();
+        if (!result.hasFieldErrors("contenido") && PmForoService.contenidoForoVacio(form.getContenido())) {
+            result.rejectValue("contenido", "contenido.vacio", "El contenido de la publicación es obligatorio.");
+        }
+        String redirectUrl = foroId != null
+                ? "redirect:/pm/foro/detalle?foroId=" + foroId
+                : (proyectoId != null ? "redirect:/pm/foro/detalle?proyectoId=" + proyectoId : "redirect:/pm/foros");
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "Revisa los campos de la publicación."));
+            ra.addFlashAttribute("pmForoPublicacionForm", form);
+            ra.addFlashAttribute("org.springframework.validation.BindingResult.pmForoPublicacionForm", result);
+            ra.addFlashAttribute("abrirModalNuevaPublicacion", true);
+            return redirectUrl;
+        }
         try {
             if (foroId != null) {
-                pmForoService.publicarEnForo(foroId, titulo, contenido, principal.getUsuario());
+                pmForoService.publicarEnForo(foroId, form.getTitulo(), form.getContenido(), principal.getUsuario());
                 ra.addFlashAttribute("success", "Publicación creada exitosamente.");
                 return "redirect:/pm/foro/detalle?foroId=" + foroId;
             } else if (proyectoId != null) {
-                pmForoService.publicar(proyectoId, titulo, contenido, principal.getUsuario());
+                pmForoService.publicar(proyectoId, form.getTitulo(), form.getContenido(), principal.getUsuario());
                 ra.addFlashAttribute("success", "Publicación creada exitosamente.");
                 return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
             }
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
+            ra.addFlashAttribute("pmForoPublicacionForm", form);
+            ra.addFlashAttribute("abrirModalNuevaPublicacion", true);
         }
-        return "redirect:/pm/foros";
+        return redirectUrl;
     }
 
     @PostMapping("/foro/responder")
-    public String responderForo(@RequestParam("publicacionId") Long publicacionId,
-                                @RequestParam(value = "proyectoId", required = false) Long proyectoId,
-                                @RequestParam(value = "foroId", required = false) Long foroId,
-                                @RequestParam("contenido") String contenido,
+    public String responderForo(@Valid @ModelAttribute("pmForoRespuestaForm") PmForoRespuestaForm form,
+                                BindingResult result,
                                 @AuthenticationPrincipal UsuarioDetails principal,
                                 RedirectAttributes ra, HttpServletRequest request) {
+        Long proyectoId = form.getProyectoId();
+        Long foroId = form.getForoId();
+        if (!result.hasFieldErrors("contenido") && PmForoService.contenidoForoVacio(form.getContenido())) {
+            result.rejectValue("contenido", "contenido.vacio", "El contenido de la respuesta no puede estar vacío.");
+        }
+        String redirectUrl = foroId != null
+                ? "redirect:/pm/foro/detalle?foroId=" + foroId
+                : "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "El contenido de la respuesta no puede estar vacío."));
+            ra.addFlashAttribute("abrirModalResponderId", form.getPublicacionId());
+            return redirectUrl;
+        }
         try {
-            pmForoService.responder(publicacionId, contenido, principal.getUsuario());
+            pmForoService.responder(form.getPublicacionId(), form.getContenido(), principal.getUsuario());
             ra.addFlashAttribute("success", "Respuesta publicada.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
+            ra.addFlashAttribute("abrirModalResponderId", form.getPublicacionId());
         }
-        if (foroId != null) return "redirect:/pm/foro/detalle?foroId=" + foroId;
-        return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
+        return redirectUrl;
     }
 
     @PostMapping("/foro/respuesta/{id}/marcar-solucion")
@@ -657,7 +791,7 @@ public class PmViewController {
     }
 
     @PostMapping("/perfil/foto")
-    public String actualizarFoto(@RequestParam("foto") MultipartFile foto,
+    public String actualizarFoto(@RequestParam(value = "foto", required = false) MultipartFile foto,
                                  @AuthenticationPrincipal UsuarioDetails principal,
                                  RedirectAttributes ra, HttpServletRequest request) {
         try {
@@ -675,14 +809,17 @@ public class PmViewController {
             @Valid @ModelAttribute("pmPerfilPasswordForm") PmPerfilPasswordForm form, BindingResult result,
             @AuthenticationPrincipal UsuarioDetails principal, Model model,
             RedirectAttributes ra, HttpServletRequest request) {
+        if (form.getPasswordNueva() != null && form.getPasswordConfirm() != null
+                && !form.getPasswordNueva().isBlank() && !form.getPasswordConfirm().isBlank()
+                && !form.getPasswordNueva().equals(form.getPasswordConfirm())) {
+            result.rejectValue("passwordConfirm", "passwordConfirm.noCoincide",
+                    "Las contraseñas nuevas no coinciden.");
+        }
         if (result.hasErrors()) {
             cargarVistaPerfil(principal, model);
             return "pm/pm-perfil";
         }
         try {
-            if (!form.getPasswordNueva().equals(form.getPasswordConfirm())) {
-                throw new IllegalArgumentException("Las contraseñas nuevas no coinciden.");
-            }
             pmPerfilService.actualizarPassword(form.getPasswordActual(), form.getPasswordNueva(), principal.getUsuario());
             ra.addFlashAttribute("success", "Contraseña actualizada correctamente.");
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
@@ -693,7 +830,7 @@ public class PmViewController {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // OTRAS VISTAS (sin lógica específica aún)
+    // OTRAS VISTAS
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping({"/chat", "/pm-chat.html"})
@@ -711,5 +848,16 @@ public class PmViewController {
     public String asistente(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         model.addAttribute("pm", principal.getUsuario());
         return "pm/pm-asistente-ia";
+    }
+
+    private static String unirErrores(BindingResult result, String porDefecto) {
+        String unidos = result.getFieldErrors().stream()
+                .map(error -> error.isBindingFailure()
+                        ? "El valor ingresado en '" + error.getField() + "' no tiene un formato válido."
+                        : error.getDefaultMessage())
+                .filter(msg -> msg != null && !msg.isBlank())
+                .distinct()
+                .collect(Collectors.joining(" "));
+        return unidos.isBlank() ? porDefecto : unidos;
     }
 }

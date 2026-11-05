@@ -11,11 +11,10 @@
     <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
 
 <style>
-  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
   .avatar {
       object-fit: contain !important;
       object-position: center !important;
-      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+      background-color: #f8f9fa;
   }
   span.avatar {
       background-size: contain !important;
@@ -23,15 +22,6 @@
       background-repeat: no-repeat !important;
       background-color: #f8f9fa;
   }
-  
-  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
-  /*
-  .avatar {
-      object-fit: contain !important;
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-  }
-  */
 </style>
 
 </head>
@@ -88,7 +78,8 @@
                     <div class="text-center py-5 text-secondary">Cargando mensajes...</div>
                 </div>
                 
-                <form id="chatForm" class="chat-composer mt-3">
+                <div id="chatErrorAlert" class="alert alert-danger py-2 px-3 mb-2 d-none"></div>
+                <form id="chatForm" class="chat-composer mt-3" novalidate>
                     <input type="hidden" id="activeProjectId" th:value="${proyectoIdSeleccionado}">
                     <input id="messageInput" class="form-control me-2" placeholder="Escribe un mensaje al equipo" autocomplete="off">
                     <button type="submit" class="btn btn-primary" id="btnEnviar">Enviar</button>
@@ -115,20 +106,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatForm = document.getElementById('chatForm');
     const messageInput = document.getElementById('messageInput');
     const btnEnviar = document.getElementById('btnEnviar');
+    const chatErrorAlert = document.getElementById('chatErrorAlert');
     let chatInterval = null;
 
     if (activeProjectId && channelTitle) {
-        // Find active button to set title
         const activeButton = document.querySelector(`.channel-item[data-channel-id='${activeProjectId}']`);
         if(activeButton) channelTitle.textContent = '# ' + activeButton.dataset.channelName;
         
         loadMessages();
-        chatInterval = setInterval(loadMessages, 3000); // Polling cada 3 segundos
+        chatInterval = setInterval(loadMessages, 3000);
     }
 
     channelButtons.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Redirect instead of full SPA logic to keep Thymeleaf logic simple and maintain state easily
             window.location.href = `/pm/chat?proyectoId=${this.dataset.channelId}`;
         });
     });
@@ -136,8 +126,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if(chatForm) {
         chatForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            const text = messageInput.value.trim();
-            if(!text || !activeProjectId) return;
+            if(!activeProjectId) return;
+            const text = messageInput.value;
+            if (chatErrorAlert) {
+                chatErrorAlert.classList.add('d-none');
+                chatErrorAlert.textContent = '';
+            }
             
             btnEnviar.disabled = true;
             
@@ -152,17 +146,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 }),
                 body: formData.toString()
             })
-            .then(res => {
-                if(!res.ok) throw new Error("Error enviando mensaje");
-                return res.json();
+            .then(async res => {
+                const payload = await res.json().catch(() => ({}));
+                if(!res.ok) {
+                    throw new Error(payload.error || "No se pudo enviar el mensaje.");
+                }
+                return payload;
             })
             .then(msg => {
                 messageInput.value = '';
-                loadMessages(); // reload to show new msg
+                loadMessages();
             })
             .catch(err => {
-                console.error(err);
-                alert("No se pudo enviar el mensaje");
+                if (chatErrorAlert) {
+                    chatErrorAlert.textContent = err.message;
+                    chatErrorAlert.classList.remove('d-none');
+                }
             })
             .finally(() => {
                 btnEnviar.disabled = false;

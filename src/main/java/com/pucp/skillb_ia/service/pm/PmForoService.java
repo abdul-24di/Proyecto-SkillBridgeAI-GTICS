@@ -205,22 +205,46 @@ public class PmForoService {
     }
 
     private PublicacionForo publicarInterno(Foro foro, String titulo, String contenido, Usuario pm) {
+        if (titulo == null || titulo.isBlank()) {
+            throw new IllegalArgumentException("El título de la publicación es obligatorio.");
+        }
+        String tituloLimpio = titulo.trim();
+        if (tituloLimpio.length() > 200) {
+            throw new IllegalArgumentException("El título no puede superar los 200 caracteres.");
+        }
+        if (contenidoForoVacio(contenido)) {
+            throw new IllegalArgumentException("El contenido de la publicación es obligatorio.");
+        }
+        if (contenido.length() > 10000) {
+            throw new IllegalArgumentException("El contenido no puede superar los 10000 caracteres.");
+        }
+
         PublicacionForo pub = new PublicacionForo();
         pub.setForo(foro);
         pub.setAutor(pm);
-        pub.setTitulo(titulo);
+        pub.setTitulo(tituloLimpio);
         pub.setContenido(contenido);
         PublicacionForo saved = publicacionRepository.save(pub);
 
         String nombreForo = foro.getProyecto() != null ? foro.getProyecto().getNombre() : foro.getNombre();
         auditoriaService.registrar(pm, "PUBLICAR", "FORO", foro.getId(),
-                "PM publicó en el foro '" + nombreForo + "': " + titulo);
+                "PM publicó en el foro '" + nombreForo + "': " + tituloLimpio);
         return saved;
     }
 
     /** Responde a una publicación existente. */
     @Transactional
     public RespuestaForo responder(Long publicacionId, String contenido, Usuario pm) {
+        if (publicacionId == null) {
+            throw new IllegalArgumentException("La publicación es obligatoria.");
+        }
+        if (contenidoForoVacio(contenido)) {
+            throw new IllegalArgumentException("El contenido de la respuesta no puede estar vacío.");
+        }
+        if (contenido.length() > 5000) {
+            throw new IllegalArgumentException("La respuesta no puede superar los 5000 caracteres.");
+        }
+
         PublicacionForo publicacion = publicacionRepository.findById(publicacionId)
                 .orElseThrow(() -> new IllegalArgumentException("Publicación no encontrada."));
 
@@ -234,6 +258,14 @@ public class PmForoService {
         respuesta.setAutor(pm);
         respuesta.setContenido(contenido);
         return respuestaRepository.save(respuesta);
+    }
+
+    public static boolean contenidoForoVacio(String contenido) {
+        if (contenido == null || contenido.isBlank()) {
+            return true;
+        }
+        org.jsoup.nodes.Document doc = org.jsoup.Jsoup.parseBodyFragment(contenido);
+        return doc.text().isBlank() && doc.select("img").isEmpty();
     }
 
     /** Marca o desmarca una respuesta como solución de la publicación. */

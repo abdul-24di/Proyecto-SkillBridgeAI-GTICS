@@ -12,11 +12,10 @@
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
 <style>
-  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
   .avatar {
       object-fit: contain !important;
       object-position: center !important;
-      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+      background-color: #f8f9fa;
   }
   span.avatar {
       background-size: contain !important;
@@ -24,15 +23,6 @@
       background-repeat: no-repeat !important;
       background-color: #f8f9fa;
   }
-  
-  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
-  /*
-  .avatar {
-      object-fit: contain !important;
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-  }
-  */
 </style>
 
 </head>
@@ -110,14 +100,14 @@
                                                 <div class="small text-secondary mb-1" th:text="${#temporals.format(resp.respuesta.fechaCreacion, 'dd MMM HH:mm')}"></div>
                                                 <div th:utext="${resp.respuesta.contenido}"></div>
                                                 <div class="mt-2">
-                                                    <form method="POST" th:action="@{/pm/foro/respuesta/{id}/like(id=${resp.respuesta.id})}" class="d-inline">
+                                                    <form method="POST" th:action="@{/pm/foro/respuesta/{id}/like(id=${resp.respuesta.id})}" class="d-inline" novalidate>
                                                         <input th:if="${proyecto != null}" type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                                                         <input th:if="${foroBase != null}" type="hidden" name="foroId" th:value="${foroBase.id}" />
                                                         <button type="submit" class="btn btn-sm mt-1" th:classappend="${resp.meGusta} ? 'btn-red text-white' : 'btn-outline-secondary'">
                                                             ♥ <span th:text="${resp.totalLikes}">0</span>
                                                         </button>
                                                     </form>
-                                                    <form th:if="${pm.id == resp.respuesta.autor.id}" method="POST" th:action="@{/pm/foro/respuesta/{id}/eliminar(id=${resp.respuesta.id})}" class="d-inline ms-1" onsubmit="return confirm('¿Seguro que deseas eliminar esta respuesta?');">
+                                                    <form th:if="${pm.id == resp.respuesta.autor.id}" method="POST" th:action="@{/pm/foro/respuesta/{id}/eliminar(id=${resp.respuesta.id})}" class="d-inline ms-1" onsubmit="return confirm('¿Seguro que deseas eliminar esta respuesta?');" novalidate>
                                                         <input th:if="${proyecto != null}" type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                                                         <input th:if="${foroBase != null}" type="hidden" name="foroId" th:value="${foroBase.id}" />
                                                         <button type="submit" class="btn btn-sm btn-outline-danger mt-1">Eliminar</button>
@@ -127,7 +117,7 @@
                                         </div>
                                         <div class="d-flex flex-column align-items-end gap-1">
                                             <form method="POST"
-                                                  th:action="@{/pm/foro/respuesta/{id}/marcar-solucion(id=${resp.respuesta.id})}">
+                                                  th:action="@{/pm/foro/respuesta/{id}/marcar-solucion(id=${resp.respuesta.id})}" novalidate>
                                                 <input th:if="${proyecto != null}" type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                                                 <input th:if="${foroBase != null}" type="hidden" name="foroId" th:value="${foroBase.id}" />
                                                 <button type="submit" class="btn btn-sm"
@@ -140,7 +130,7 @@
 
                                 <!-- Botones Principales -->
                                 <div class="mt-2">
-                                    <form method="POST" th:action="@{/pm/foro/publicacion/{id}/like(id=${pub.publicacion.id})}" class="d-inline">
+                                    <form method="POST" th:action="@{/pm/foro/publicacion/{id}/like(id=${pub.publicacion.id})}" class="d-inline" novalidate>
                                         <input th:if="${proyecto != null}" type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                                         <input th:if="${foroBase != null}" type="hidden" name="foroId" th:value="${foroBase.id}" />
                                         <button type="submit" class="btn btn-sm mt-2" th:classappend="${pub.meGusta} ? 'btn-red text-white' : 'btn-outline-secondary'">
@@ -161,12 +151,13 @@
                                                 <h5 class="modal-title">Responder a: <span th:text="${pub.publicacion.titulo}"></span></h5>
                                                 <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                                             </div>
-                                            <form method="POST" th:action="@{/pm/foro/responder}" th:id="'form-resp-' + ${pub.publicacion.id}">
+                                            <form method="POST" th:action="@{/pm/foro/responder}" th:id="'form-resp-' + ${pub.publicacion.id}" novalidate>
                                                 <input th:if="${proyecto != null}" type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                                                 <input th:if="${foroBase != null}" type="hidden" name="foroId" th:value="${foroBase.id}" />
                                                 <input type="hidden" name="publicacionId" th:value="${pub.publicacion.id}" />
                                                 <input type="hidden" name="contenido" th:id="'input-form-resp-' + ${pub.publicacion.id}" />
                                                 <div class="modal-body">
+                                                    <div th:if="${abrirModalResponderId == pub.publicacion.id and error != null}" class="alert alert-danger" th:text="${error}"></div>
                                                     <div class="editor-respuesta bg-white text-dark" th:data-form-id="'form-resp-' + ${pub.publicacion.id}" style="height: 150px;"></div>
                                                 </div>
                                                 <div class="modal-footer">
@@ -186,7 +177,7 @@
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01" /><path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75" /></svg>
                                                 <h3>¿Eliminar publicación?</h3>
                                                 <div class="text-secondary mb-4">Esta acción no se puede deshacer.</div>
-                                                <form method="POST" th:action="@{/pm/foro/publicacion/{id}/eliminar(id=${pub.publicacion.id})}">
+                                                <form method="POST" th:action="@{/pm/foro/publicacion/{id}/eliminar(id=${pub.publicacion.id})}" novalidate>
                                                     <input th:if="${proyecto != null}" type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                                                     <input th:if="${foroBase != null}" type="hidden" name="foroId" th:value="${foroBase.id}" />
                                                     <div class="d-flex gap-2 w-100">
@@ -247,19 +238,23 @@
                 </div>
                 <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form method="POST" th:action="@{/pm/foro/publicar}" id="form-nueva-publicacion">
+            <form method="POST" th:action="@{/pm/foro/publicar}" th:object="${pmForoPublicacionForm}" id="form-nueva-publicacion" novalidate>
                 <input th:if="${proyecto != null}" type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                 <input th:if="${foroBase != null}" type="hidden" name="foroId" th:value="${foroBase.id}" />
-                <input type="hidden" name="contenido" id="input-nueva-publicacion" />
+                <input type="hidden" th:field="*{contenido}" id="input-nueva-publicacion" />
                 <div class="modal-body">
+                    <div th:if="${abrirModalNuevaPublicacion != null and error != null}" class="alert alert-danger" th:text="${error}"></div>
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label">Título</label>
-                            <input name="titulo" class="form-control" placeholder="Título de la publicación">
+                            <label class="form-label">Título <span class="text-danger">*</span></label>
+                            <input th:field="*{titulo}" class="form-control" placeholder="Título de la publicación"
+                                   th:classappend="${#fields.hasErrors('titulo')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('titulo')}" th:errors="*{titulo}"></div>
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Contenido</label>
+                            <label class="form-label">Contenido <span class="text-danger">*</span></label>
                             <div id="editor-nueva-publicacion" class="bg-white text-dark" style="height: 250px;"></div>
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('contenido')}" th:errors="*{contenido}"></div>
                         </div>
                     </div>
                 </div>
@@ -275,5 +270,19 @@
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script src="../../static/js/pm-js/pm-foro-quill.js" th:src="@{/js/pm-js/pm-foro-quill.js}"></script>
+<script th:if="${abrirModalNuevaPublicacion != null}">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("newPostModal");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+<script th:if="${abrirModalResponderId != null}" th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("replyModal" + /*[[${abrirModalResponderId}]]*/ "");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
 </body>
 </html>

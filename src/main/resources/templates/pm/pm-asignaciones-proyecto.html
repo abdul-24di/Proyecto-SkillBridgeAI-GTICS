@@ -11,11 +11,10 @@
   <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
 
 <style>
-  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
   .avatar {
       object-fit: contain !important;
       object-position: center !important;
-      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+      background-color: #f8f9fa;
   }
   span.avatar {
       background-size: contain !important;
@@ -23,15 +22,6 @@
       background-repeat: no-repeat !important;
       background-color: #f8f9fa;
   }
-  
-  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
-  /*
-  .avatar {
-      object-fit: contain !important;
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-  }
-  */
 </style>
 
 </head>
@@ -166,7 +156,7 @@
                         quedará asignado activamente al proyecto. Esta acción no se puede deshacer.
                       </div>
                       <div class="d-flex gap-2">
-                        <form method="POST" th:action="@{/pm/asignaciones/{id}/aprobar(id=${pend.asignacion.id})}" class="flex-fill">
+                        <form method="POST" th:action="@{/pm/asignaciones/{id}/aprobar(id=${pend.asignacion.id})}" class="flex-fill" novalidate>
                           <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                           <button type="submit" class="btn btn-success w-100">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
@@ -188,12 +178,13 @@
                       <h5 class="modal-title">Rechazar propuesta</h5>
                       <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
-                    <form method="POST" th:action="@{/pm/asignaciones/{id}/rechazar(id=${pend.asignacion.id})}">
+                    <form method="POST" th:action="@{/pm/asignaciones/{id}/rechazar(id=${pend.asignacion.id})}" novalidate>
                       <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
-                      <div class="modal-body">
-                        <label class="form-label">Motivo del rechazo</label>
-                        <textarea name="motivo" class="form-control" rows="4" maxlength="300" required placeholder="Explica por qué esta propuesta no cubre la necesidad"></textarea>
-                        <div class="form-hint">El rechazo quedará registrado para el RM.</div>
+                      <div class="modal-body text-start">
+                        <div th:if="${abrirModalRechazarId == pend.asignacion.id and error != null}" class="alert alert-danger" th:text="${error}"></div>
+                        <label class="form-label">Motivo del rechazo <span class="text-danger">*</span></label>
+                        <textarea name="motivo" class="form-control" rows="4" placeholder="Explica por qué esta propuesta no cubre la necesidad"></textarea>
+                        <div class="form-hint">El rechazo quedará registrado para el RM (máximo 300 caracteres).</div>
                       </div>
                       <div class="modal-footer">
                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -310,24 +301,31 @@
         <div><h5 class="modal-title">Proponer colaborador</h5><div class="text-secondary small">La propuesta se enviará al Resource Manager para su aprobación.</div></div>
         <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <form method="POST" th:action="@{/pm/asignaciones/proponer}">
+      <form method="POST" th:action="@{/pm/asignaciones/proponer}" th:object="${pmProponerAsignacionForm}" novalidate>
         <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
         <div class="modal-body">
+          <div th:if="${abrirModalProponer != null and error != null}" class="alert alert-danger" th:text="${error}"></div>
           <div class="row g-3">
             <div class="col-md-7">
-              <label class="form-label" for="proposedCollaborator">Colaborador</label>
-              <select name="colaboradorId" id="proposedCollaborator" class="form-select" required>
-                <option value="" disabled selected>Seleccionar colaborador</option>
+              <label class="form-label" for="proposedCollaborator">Colaborador <span class="text-danger">*</span></label>
+              <select th:field="*{colaboradorId}" id="proposedCollaborator" class="form-select"
+                      th:classappend="${#fields.hasErrors('colaboradorId')} ? 'is-invalid' : ''">
+                <option value="">Seleccionar colaborador</option>
                 <option th:each="col : ${colaboradoresDisponibles}" th:value="${col.id}" th:text="${col.nombre + ' ' + col.apellido}"></option>
               </select>
+              <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('colaboradorId')}" th:errors="*{colaboradorId}"></div>
             </div>
             <div class="col-md-5">
-              <label class="form-label" for="proposedHours">Horas semanales propuestas</label>
-              <input name="horasSemanales" id="proposedHours" type="number" min="0.5" max="168" step="0.5" class="form-control" value="16" required>
+              <label class="form-label" for="proposedHours">Horas semanales propuestas <span class="text-danger">*</span></label>
+              <input th:field="*{horasSemanales}" id="proposedHours" type="number" step="0.5" class="form-control"
+                     th:classappend="${#fields.hasErrors('horasSemanales')} ? 'is-invalid' : ''">
+              <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('horasSemanales')}" th:errors="*{horasSemanales}"></div>
             </div>
             <div class="col-12">
               <label class="form-label" for="proposalReason">Justificación / Mensaje para RM</label>
-              <input name="mensajeSolicitud" id="proposalReason" class="form-control" maxlength="500" placeholder="Experiencia o habilidades relevantes">
+              <input th:field="*{mensajeSolicitud}" id="proposalReason" class="form-control" placeholder="Experiencia o habilidades relevantes"
+                     th:classappend="${#fields.hasErrors('mensajeSolicitud')} ? 'is-invalid' : ''">
+              <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('mensajeSolicitud')}" th:errors="*{mensajeSolicitud}"></div>
             </div>
           </div>
           <div class="form-hint mt-3">Proponer no activa la asignación: primero debe aprobarla el RM.</div>
@@ -341,23 +339,19 @@
   </div>
 </div>
 
-<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script th:src="@{/js/validacion-formularios.js}"></script>
-<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
-<script src="../../static/js/pm-js/pm-asignaciones-proyecto.js" th:src="@{/js/pm-js/pm-asignaciones-proyecto.js}"></script>
-
 <!-- Modals Finalizar Asignación -->
 <th:block th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Activa'}">
     <div class="modal fade" th:id="|modalFinalizarAsig${asig.asignacion.id}|" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST" th:action="@{/pm/asignaciones/{id}/finalizar(id=${asig.asignacion.id})}">
+                <form method="POST" th:action="@{/pm/asignaciones/{id}/finalizar(id=${asig.asignacion.id})}" novalidate>
                     <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
                     <div class="modal-header">
                         <h5 class="modal-title">Finalizar Asignación</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
+                        <div th:if="${abrirModalFinalizarId == asig.asignacion.id and error != null}" class="alert alert-danger" th:text="${error}"></div>
                         <p>¿Estás seguro que deseas finalizar la participación de <strong th:text="${asig.colaboradorNombre}"></strong> en este proyecto?</p>
                         
                         <label class="form-label mt-3">Calificación (Estrellas) <span class="text-secondary">(Opcional)</span></label>
@@ -370,7 +364,7 @@
                             <option value="1">1 - Muy deficiente</option>
                         </select>
                         <label class="form-label mt-2">Feedback de desempeño <span class="text-secondary">(Opcional)</span></label>
-                        <textarea name="feedback" maxlength="500" rows="3" class="form-control" placeholder="Escribe un comentario sobre el desempeño del colaborador..."></textarea>
+                        <textarea name="feedback" rows="3" class="form-control" placeholder="Escribe un comentario sobre el desempeño del colaborador..."></textarea>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -382,5 +376,29 @@
     </div>
 </th:block>
 
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
+<script src="../../static/js/pm-js/pm-asignaciones-proyecto.js" th:src="@{/js/pm-js/pm-asignaciones-proyecto.js}"></script>
+<script th:if="${abrirModalProponer != null}">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("proposeCollaboratorModal");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+<script th:if="${abrirModalRechazarId != null}" th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("rejectModal" + /*[[${abrirModalRechazarId}]]*/ "");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+<script th:if="${abrirModalFinalizarId != null}" th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("modalFinalizarAsig" + /*[[${abrirModalFinalizarId}]]*/ "");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
 </body>
 </html>

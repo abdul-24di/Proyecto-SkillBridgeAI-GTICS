@@ -1,27 +1,31 @@
 package com.pucp.skillb_ia.dto.pm;
+
 import jakarta.validation.constraints.*;
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-public class PmActividadForm {
-    @NotNull(message = "El proyecto es obligatorio")
+public class PmActividadForm implements Serializable {
+    @NotNull(message = "El proyecto es obligatorio.")
     private Long proyectoId;
 
-    @NotNull(message = "El colaborador es obligatorio")
+    @NotNull(message = "Debes seleccionar un colaborador.")
     private Long colaboradorId;
 
-    @NotBlank(message = "El ttulo es obligatorio")
-    @Size(max = 150, message = "El ttulo no puede exceder 150 caracteres")
+    @NotBlank(message = "El título de la actividad es obligatorio.")
+    @Size(max = 150, message = "El título no puede exceder los 150 caracteres.")
     private String titulo;
 
-    @Size(max = 500, message = "La descripcin no puede exceder 500 caracteres")
+    @Size(max = 500, message = "La descripción no puede exceder los 500 caracteres.")
     private String descripcion;
 
-    @NotNull(message = "Las horas estimadas son obligatorias")
-    @DecimalMin(value = "0.5", message = "Debe ser mayor a 0")
+    @NotNull(message = "Las horas estimadas son obligatorias.")
+    @DecimalMin(value = "0.5", message = "Las horas estimadas deben ser al menos 0.5.")
+    @DecimalMax(value = "999.0", message = "Las horas estimadas no pueden exceder 999.")
     private BigDecimal horasEstimadas;
 
-    @NotNull(message = "La fecha lmite es obligatoria")
+    @NotNull(message = "La fecha límite es obligatoria.")
+    @FutureOrPresent(message = "La fecha límite no puede ser anterior a hoy.")
     private LocalDate fechaLimite;
 
     public Long getProyectoId() { return proyectoId; }

@@ -11,11 +11,10 @@
   <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
 
 <style>
-  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
   .avatar {
       object-fit: contain !important;
       object-position: center !important;
-      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+      background-color: #f8f9fa;
   }
   span.avatar {
       background-size: contain !important;
@@ -23,15 +22,6 @@
       background-repeat: no-repeat !important;
       background-color: #f8f9fa;
   }
-  
-  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
-  /*
-  .avatar {
-      object-fit: contain !important;
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-  }
-  */
 </style>
 
 </head>
@@ -168,10 +158,10 @@
         <div><h5 class="modal-title">Cancelar proyecto</h5><div class="text-secondary small">Esta acción no se puede deshacer.</div></div>
         <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <form method="POST" th:action="@{/pm/proyectos/cancelar}">
+      <form method="POST" th:action="@{/pm/proyectos/{id}/cancelar(id=${proyecto.proyecto.id})}" novalidate>
         <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
         <div class="modal-body">
-          <label class="form-label" for="cancelReason">Motivo de cancelación</label>
+          <label class="form-label" for="cancelReason">Motivo de cancelación (opcional)</label>
           <textarea id="cancelReason" name="motivo" class="form-control" rows="4"></textarea>
         </div>
         <div class="modal-footer">
@@ -192,7 +182,7 @@
         <div><h5 class="modal-title" id="requestStaffTitle">Solicitar personal</h5><div class="text-secondary small">Los Resource Managers recibirán la solicitud.</div></div>
         <a href="#" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></a>
       </div>
-      <form method="POST" th:action="@{/pm/proyectos/{id}/solicitudes-personal(id=${proyecto.proyecto.id})}" th:object="${pmSolicitudPersonalForm}">
+      <form method="POST" th:action="@{/pm/proyectos/{id}/solicitudes-personal(id=${proyecto.proyecto.id})}" th:object="${pmSolicitudPersonalForm}" novalidate>
         <div class="modal-body">
           <div th:if="${abrirSolicitudPersonal != null and error != null}" class="alert alert-danger" role="alert" th:text="${error}">Error</div>
           <div class="mb-3">

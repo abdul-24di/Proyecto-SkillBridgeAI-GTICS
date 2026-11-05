@@ -63,6 +63,33 @@ public class PmActividadService {
                            String titulo, String descripcion,
                            BigDecimal horasEstimadas, LocalDate fechaLimite,
                            Usuario pm) {
+        if (proyectoId == null) {
+            throw new IllegalArgumentException("El proyecto es obligatorio.");
+        }
+        if (colaboradorId == null) {
+            throw new IllegalArgumentException("Debes seleccionar un colaborador.");
+        }
+        if (titulo == null || titulo.isBlank()) {
+            throw new IllegalArgumentException("El título de la actividad es obligatorio.");
+        }
+        String tituloLimpio = titulo.trim();
+        if (tituloLimpio.length() > 150) {
+            throw new IllegalArgumentException("El título no puede exceder los 150 caracteres.");
+        }
+        String descripcionLimpia = (descripcion == null || descripcion.isBlank()) ? null : descripcion.trim();
+        if (descripcionLimpia != null && descripcionLimpia.length() > 500) {
+            throw new IllegalArgumentException("La descripción no puede exceder los 500 caracteres.");
+        }
+        if (horasEstimadas == null || horasEstimadas.compareTo(new BigDecimal("0.5")) < 0) {
+            throw new IllegalArgumentException("Las horas estimadas deben ser al menos 0.5.");
+        }
+        if (horasEstimadas.compareTo(new BigDecimal("999")) > 0) {
+            throw new IllegalArgumentException("Las horas estimadas no pueden exceder 999.");
+        }
+        if (fechaLimite == null) {
+            throw new IllegalArgumentException("La fecha límite es obligatoria.");
+        }
+
         Proyecto proyecto = obtenerProyectoDelPm(proyectoId, pm);
 
         // Verificar que el colaborador tiene asignación ACTIVA en el proyecto
@@ -78,8 +105,8 @@ public class PmActividadService {
         Actividad actividad = new Actividad();
         actividad.setProyecto(proyecto);
         actividad.setColaborador(colaborador);
-        actividad.setTitulo(titulo);
-        actividad.setDescripcion(descripcion);
+        actividad.setTitulo(tituloLimpio);
+        actividad.setDescripcion(descripcionLimpia);
         actividad.setHorasEstimadas(horasEstimadas);
         actividad.setFechaLimite(fechaLimite);
         actividad.setEstado(EstadoActividad.PENDIENTE);
@@ -87,12 +114,12 @@ public class PmActividadService {
         Actividad saved = actividadRepository.save(actividad);
 
         auditoriaService.registrar(pm, "CREAR", "ACTIVIDAD", saved.getId(),
-                "PM creó actividad '" + titulo + "' para colaborador ID " + colaboradorId
+                "PM creó actividad '" + tituloLimpio + "' para colaborador ID " + colaboradorId
                         + " en proyecto '" + proyecto.getNombre() + "'.");
 
         notificacionService.crear(colaborador, "NUEVA_ACTIVIDAD", CategoriaNotificacion.ACTIVIDAD,
                 "Nueva actividad asignada",
-                "Te asignaron \"" + titulo + "\" en " + proyecto.getNombre() + ". Fecha límite: " + fechaLimite + ".",
+                "Te asignaron \"" + tituloLimpio + "\" en " + proyecto.getNombre() + ". Fecha límite: " + fechaLimite + ".",
                 "ACTIVIDAD", saved.getId());
 
         return saved;
@@ -129,6 +156,14 @@ public class PmActividadService {
 
     @Transactional
     public void devolver(Long actividadId, String comentario, boolean aplicarStrike, Usuario pm) {
+        if (comentario == null || comentario.isBlank()) {
+            throw new IllegalArgumentException("Debes escribir un comentario para devolver la actividad.");
+        }
+        String comentarioLimpio = comentario.trim();
+        if (comentarioLimpio.length() > 500) {
+            throw new IllegalArgumentException("El comentario no puede exceder los 500 caracteres.");
+        }
+
         Actividad actividad = obtenerActividadDelPm(actividadId, pm);
 
         if (actividad.getEstado() != EstadoActividad.EN_REVISION) {
@@ -136,13 +171,13 @@ public class PmActividadService {
                     "Solo se pueden devolver actividades en estado EN_REVISION.");
         }
         actividad.setEstado(EstadoActividad.EN_PROGRESO);
-        actividad.setComentarioDevolucion(comentario);
+        actividad.setComentarioDevolucion(comentarioLimpio);
         actividad.setVecesDevuelta(actividad.getVecesDevuelta() + 1);
         actividad.setFechaMarcadoRevision(null);
         actividadRepository.save(actividad);
 
         auditoriaService.registrar(pm, "DEVOLVER", "ACTIVIDAD", actividadId,
-                "PM devolvió la actividad '" + actividad.getTitulo() + "': " + comentario);
+                "PM devolvió la actividad '" + actividad.getTitulo() + "': " + comentarioLimpio);
 
 
         if (aplicarStrike) {
@@ -152,7 +187,7 @@ public class PmActividadService {
 
         notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_DEVUELTA", CategoriaNotificacion.ACTIVIDAD,
                 "Actividad devuelta",
-                "El PM devolvió \"" + actividad.getTitulo() + "\": " + comentario,
+                "El PM devolvió \"" + actividad.getTitulo() + "\": " + comentarioLimpio,
                 "ACTIVIDAD", actividad.getId());
     }
 
@@ -162,25 +197,46 @@ public class PmActividadService {
     public Actividad editar(Long actividadId, String titulo, String descripcion,
                             BigDecimal horasEstimadas, LocalDate fechaLimite,
                             Usuario pm) {
+        if (titulo == null || titulo.isBlank()) {
+            throw new IllegalArgumentException("El título de la actividad es obligatorio.");
+        }
+        String tituloLimpio = titulo.trim();
+        if (tituloLimpio.length() > 150) {
+            throw new IllegalArgumentException("El título no puede exceder los 150 caracteres.");
+        }
+        String descripcionLimpia = (descripcion == null || descripcion.isBlank()) ? null : descripcion.trim();
+        if (descripcionLimpia != null && descripcionLimpia.length() > 500) {
+            throw new IllegalArgumentException("La descripción no puede exceder los 500 caracteres.");
+        }
+        if (horasEstimadas == null || horasEstimadas.compareTo(new BigDecimal("0.5")) < 0) {
+            throw new IllegalArgumentException("Las horas estimadas deben ser al menos 0.5.");
+        }
+        if (horasEstimadas.compareTo(new BigDecimal("999")) > 0) {
+            throw new IllegalArgumentException("Las horas estimadas no pueden exceder 999.");
+        }
+        if (fechaLimite == null) {
+            throw new IllegalArgumentException("La fecha límite es obligatoria.");
+        }
+
         Actividad actividad = obtenerActividadDelPm(actividadId, pm);
 
         if (actividad.getEstado() == com.pucp.skillb_ia.model.enums.EstadoActividad.COMPLETADA) {
             throw new IllegalStateException("No se puede editar una actividad completada.");
         }
 
-        actividad.setTitulo(titulo);
-        actividad.setDescripcion(descripcion);
+        actividad.setTitulo(tituloLimpio);
+        actividad.setDescripcion(descripcionLimpia);
         actividad.setHorasEstimadas(horasEstimadas);
         actividad.setFechaLimite(fechaLimite);
 
         Actividad saved = actividadRepository.save(actividad);
 
         auditoriaService.registrar(pm, "EDITAR", "ACTIVIDAD", saved.getId(),
-                "PM editó la actividad '" + titulo + "'.");
+                "PM editó la actividad '" + tituloLimpio + "'.");
 
         notificacionService.crear(actividad.getColaborador(), "ACTIVIDAD_EDITADA", com.pucp.skillb_ia.model.enums.CategoriaNotificacion.ACTIVIDAD,
                 "Actividad modificada",
-                "El PM ha modificado los detalles de la actividad \"" + titulo + "\".",
+                "El PM ha modificado los detalles de la actividad \"" + tituloLimpio + "\".",
                 "ACTIVIDAD", saved.getId());
 
         return saved;

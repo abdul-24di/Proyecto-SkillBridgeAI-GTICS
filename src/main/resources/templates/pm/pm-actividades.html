@@ -10,11 +10,10 @@
     <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
 
 <style>
-  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
   .avatar {
       object-fit: contain !important;
       object-position: center !important;
-      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+      background-color: #f8f9fa;
   }
   span.avatar {
       background-size: contain !important;
@@ -22,15 +21,6 @@
       background-repeat: no-repeat !important;
       background-color: #f8f9fa;
   }
-  
-  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
-  /*
-  .avatar {
-      object-fit: contain !important;
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-  }
-  */
 </style>
 
 </head>
@@ -126,32 +116,43 @@
                 <h5 class="modal-title">Nueva actividad</h5>
                 <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form method="POST" th:action="@{/pm/actividades/crear}">
+            <form method="POST" th:action="@{/pm/actividades/crear}" th:object="${pmActividadForm}" novalidate>
                 <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
                 <div class="modal-body">
+                    <div th:if="${abrirModalNuevaActividad != null and error != null}" class="alert alert-danger" th:text="${error}"></div>
                     <div class="mb-3">
-                        <label class="form-label">Colaborador</label>
-                        <select name="colaboradorId" class="form-select">
-                            <option value="" selected disabled>Seleccionar colaborador</option>
+                        <label class="form-label">Colaborador <span class="text-danger">*</span></label>
+                        <select th:field="*{colaboradorId}" class="form-select"
+                                th:classappend="${#fields.hasErrors('colaboradorId')} ? 'is-invalid' : ''">
+                            <option value="">Seleccionar colaborador</option>
                             <option th:each="c : ${colaboradoresActivos}" th:value="${c.asignacion.colaborador.id}" th:text="${c.colaboradorNombre}"></option>
                         </select>
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('colaboradorId')}" th:errors="*{colaboradorId}"></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Título</label>
-                        <input type="text" name="titulo" class="form-control" placeholder="Ej. Diseñar el módulo de login">
+                        <label class="form-label">Título <span class="text-danger">*</span></label>
+                        <input type="text" th:field="*{titulo}" class="form-control" placeholder="Ej. Diseñar el módulo de login"
+                               th:classappend="${#fields.hasErrors('titulo')} ? 'is-invalid' : ''">
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('titulo')}" th:errors="*{titulo}"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descripción</label>
-                        <textarea name="descripcion" class="form-control" rows="3"></textarea>
+                        <textarea th:field="*{descripcion}" class="form-control" rows="3"
+                                  th:classappend="${#fields.hasErrors('descripcion')} ? 'is-invalid' : ''"></textarea>
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('descripcion')}" th:errors="*{descripcion}"></div>
                     </div>
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label">Horas estimadas <span class="text-danger">*</span></label>
-                            <input type="number" step="0.5" min="0.5" max="999" name="horasEstimadas" class="form-control" required>
+                            <input type="number" step="0.5" th:field="*{horasEstimadas}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('horasEstimadas')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('horasEstimadas')}" th:errors="*{horasEstimadas}"></div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label">Fecha límite</label>
-                            <input type="date" name="fechaLimite" class="form-control">
+                            <label class="form-label">Fecha límite <span class="text-danger">*</span></label>
+                            <input type="date" th:field="*{fechaLimite}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('fechaLimite')} ? 'is-invalid' : ''">
+                            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('fechaLimite')}" th:errors="*{fechaLimite}"></div>
                         </div>
                     </div>
                 </div>
@@ -174,6 +175,7 @@
                     <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
                 <div class="modal-body">
+                    <div th:if="${abrirModalDetalleActividadId == act.actividad.id and error != null}" class="alert alert-danger" th:text="${error}"></div>
                     <div class="info-grid mb-3">
                         <div><div class="info-label">Colaborador</div><div class="info-value" th:text="${act.colaboradorNombre}">—</div></div>
                         <div><div class="info-label">Horas estimadas</div><div class="info-value" th:text="${act.horasEstimadas} + ' h'">—</div></div>
@@ -188,7 +190,7 @@
                         <p class="text-secondary small" th:text="${act.actividad.comentarioColaborador}">—</p>
                     </div>
                     <div th:if="${act.actividad.evidenciaUrl != null}" class="mb-3">
-                        <a th:data-evidencia="@{${act.actividad.evidenciaUrl}}" onclick="showEvidenciaModal(this.getAttribute('data-evidencia')); return false;" href="#"  class="btn btn-outline-secondary btn-sm">Ver evidencia adjuntada</a>
+                        <a th:data-evidencia="@{${act.actividad.evidenciaUrl}}" onclick="showEvidenciaModal(this.getAttribute('data-evidencia')); return false;" href="#" class="btn btn-outline-secondary btn-sm">Ver evidencia adjuntada</a>
                     </div>
                     <div th:if="${act.actividad.comentarioDevolucion != null}" class="alert alert-warning small mb-0">
                         <div class="fw-semibold">Tú devolviste esta actividad antes:</div>
@@ -197,7 +199,7 @@
                 </div>
                 <div class="modal-footer" th:if="${act.puedeConfirmar or act.puedeDevolver or act.puedeEditar or act.puedeEliminar}">
                     <div th:if="${act.puedeConfirmar or act.puedeDevolver}" class="w-100 mb-3 pb-3 border-bottom">
-                        <form method="POST" th:action="@{/pm/actividades/{id}/devolver(id=${act.actividad.id})}" class="w-100">
+                        <form method="POST" th:action="@{/pm/actividades/{id}/devolver(id=${act.actividad.id})}" class="w-100" novalidate>
                             <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
                             <textarea name="comentario" class="form-control mb-2" rows="2" placeholder="Comentario para devolver (obligatorio si devuelves)"></textarea>
                             
@@ -215,7 +217,7 @@
                         </form>
                     </div>
                     <div class="w-100 d-flex justify-content-between align-items-center">
-                        <form th:if="${act.puedeEliminar}" method="POST" th:action="@{/pm/actividades/{id}/eliminar(id=${act.actividad.id})}">
+                        <form th:if="${act.puedeEliminar}" method="POST" th:action="@{/pm/actividades/{id}/eliminar(id=${act.actividad.id})}" novalidate>
                             <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
                             <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Seguro que deseas eliminar esta actividad?');">Eliminar actividad</button>
                         </form>
@@ -235,12 +237,13 @@
                     <h5 class="modal-title">Editar actividad</h5>
                     <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <form method="POST" th:action="@{/pm/actividades/{id}/editar(id=${act.actividad.id})}">
+                <form method="POST" th:action="@{/pm/actividades/{id}/editar(id=${act.actividad.id})}" novalidate>
                     <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
                     <div class="modal-body">
+                        <div th:if="${abrirModalEditarActividadId == act.actividad.id and error != null}" class="alert alert-danger" th:text="${error}"></div>
                         <div class="mb-3">
-                            <label class="form-label">Título</label>
-                            <input type="text" name="titulo" class="form-control" th:value="${act.titulo}" required>
+                            <label class="form-label">Título <span class="text-danger">*</span></label>
+                            <input type="text" name="titulo" class="form-control" th:value="${act.titulo}">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Descripción</label>
@@ -249,10 +252,10 @@
                         <div class="row g-3">
                             <div class="col-6">
                                 <label class="form-label">Horas estimadas <span class="text-danger">*</span></label>
-                                <input type="number" step="0.5" min="0.5" max="999" name="horasEstimadas" class="form-control" th:value="${act.horasEstimadas}" required>
+                                <input type="number" step="0.5" name="horasEstimadas" class="form-control" th:value="${act.horasEstimadas}">
                             </div>
                             <div class="col-6">
-                                <label class="form-label">Fecha límite</label>
+                                <label class="form-label">Fecha límite <span class="text-danger">*</span></label>
                                 <input type="date" name="fechaLimite" class="form-control" th:value="${act.fechaLimite}">
                             </div>
                         </div>
@@ -268,10 +271,29 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script th:src="@{/js/validacion-formularios.js}"></script>
 <script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
 <script src="../../static/js/pm-js/pm-actividades.js" th:src="@{/js/pm-js/pm-actividades.js}"></script>
-
+<script th:if="${abrirModalNuevaActividad != null}">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("nuevaActividadModal");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+<script th:if="${abrirModalEditarActividadId != null}" th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("editarActividadModal-" + /*[[${abrirModalEditarActividadId}]]*/ "");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+<script th:if="${abrirModalDetalleActividadId != null}" th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("detalleActividadModal-" + /*[[${abrirModalDetalleActividadId}]]*/ "");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
 
 <!-- Pure JS/CSS Lightbox -->
 <div id="pureLightboxOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 99999; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
@@ -312,7 +334,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
 
 </body>
 </html>

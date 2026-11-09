@@ -13,6 +13,7 @@ import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.ExperienciaProfesional;
 import com.pucp.skillb_ia.model.Usuario;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
@@ -118,8 +119,17 @@ public class AdminViewController {
     // ============================================================
 
     @GetMapping({"/usuarios", "/admin-usuarios.html"})
-    public String users(Model model) {
-        model.addAttribute("usuarios", adminUsuarioService.listar());
+    public String users(@RequestParam(required = false) String busqueda,
+                        @RequestParam(required = false) String rol,
+                        @RequestParam(required = false) String estado,
+                        @RequestParam(required = false) Integer pagina,
+                        Model model) {
+        Page<AdminUsuarioService.UsuarioFila> paginaUsuarios = adminUsuarioService.listarPagina(busqueda, rol, estado, pagina);
+        model.addAttribute("paginaUsuarios", paginaUsuarios);
+        model.addAttribute("usuarios", paginaUsuarios.getContent());
+        model.addAttribute("busqueda", busqueda);
+        model.addAttribute("rolFiltro", rol);
+        model.addAttribute("estadoFiltro", estado);
         model.addAttribute("resumen", adminUsuarioService.resumen());
         model.addAttribute("rolesDisponibles", AdminUsuarioService.etiquetasRoles());
         model.addAttribute("rolesAsignables", AdminUsuarioService.etiquetasRolesAsignables());
@@ -140,13 +150,20 @@ public class AdminViewController {
         return "redirect:/admin/usuarios";
     }
 
+    private static final String MENSAJE_CORREO_NO_ENVIADO = "%s no se pudo enviar el correo de invitación. "
+            + "Revisa la configuración del correo del servidor (MAIL_USERNAME y MAIL_PASSWORD) y usa \"Reenviar enlace\".";
+
     @PostMapping("/usuarios")
     public String crearUsuario(@RequestParam String correo, @RequestParam String rol,
                                 @AuthenticationPrincipal UsuarioDetails principal,
                                 RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
-            adminUsuarioService.crear(correo, rol, principal.getUsuario());
-            redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el usuario " + correo + " y se envió su correo de invitación.");
+            if (adminUsuarioService.crear(correo, rol, principal.getUsuario())) {
+                redirectAttributes.addFlashAttribute("mensajeOk", "Se creó el usuario " + correo + " y se envió su correo de invitación.");
+            } else {
+                redirectAttributes.addFlashAttribute("mensajeError", MENSAJE_CORREO_NO_ENVIADO
+                        .formatted("Se creó el usuario " + correo + ", pero"));
+            }
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
@@ -166,6 +183,9 @@ public class AdminViewController {
                     adminUsuarioService.cargaMasiva(archivo, principal.getUsuario());
             if (resultado.tieneErrores()) {
                 redirectAttributes.addFlashAttribute("cargaErrores", resultado.errores());
+            } else if (resultado.sinCorreo() > 0) {
+                redirectAttributes.addFlashAttribute("mensajeError", MENSAJE_CORREO_NO_ENVIADO.formatted(
+                        "Se crearon " + resultado.creados() + " usuario(s), pero a " + resultado.sinCorreo() + " de ellos"));
             } else {
                 redirectAttributes.addFlashAttribute("mensajeOk",
                         "Se crearon " + resultado.creados() + " usuario(s) desde el archivo.");
@@ -220,8 +240,12 @@ public class AdminViewController {
                                       @AuthenticationPrincipal UsuarioDetails principal,
                                       RedirectAttributes redirectAttributes, HttpServletRequest request) {
         try {
-            adminUsuarioService.reenviarActivacion(usuarioId, principal.getUsuario());
-            redirectAttributes.addFlashAttribute("mensajeOk", "Se reenvió el enlace de activación.");
+            if (adminUsuarioService.reenviarActivacion(usuarioId, principal.getUsuario())) {
+                redirectAttributes.addFlashAttribute("mensajeOk", "Se reenvió el enlace de activación.");
+            } else {
+                redirectAttributes.addFlashAttribute("mensajeError",
+                        MENSAJE_CORREO_NO_ENVIADO.formatted("Se generó un enlace nuevo, pero"));
+            }
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("mensajeError", mensajeSeguro(e));
         }
@@ -233,11 +257,23 @@ public class AdminViewController {
     // ============================================================
 
     @GetMapping({"/habilidades", "/admin-habilidades.html"})
-    public String skills(Model model) {
-        model.addAttribute("habilidades", adminHabilidadService.listar());
+    public String skills(@RequestParam(required = false) String busqueda,
+                         @RequestParam(required = false) String categoria,
+                         @RequestParam(required = false) String estado,
+                         @RequestParam(required = false) Integer pagina,
+                         @RequestParam(required = false) Integer paginaCategorias,
+                         Model model) {
+        Page<AdminHabilidadService.HabilidadFila> paginaHabilidades = adminHabilidadService.listarPagina(busqueda, categoria, estado, pagina);
+        Page<AdminHabilidadService.CategoriaFila> paginaCat = com.pucp.skillb_ia.util.Paginador.paginar(adminHabilidadService.listarCategorias(), paginaCategorias);
+        model.addAttribute("paginaHabilidades", paginaHabilidades);
+        model.addAttribute("habilidades", paginaHabilidades.getContent());
+        model.addAttribute("paginaCategorias", paginaCat);
+        model.addAttribute("todasCategorias", paginaCat.getContent());
+        model.addAttribute("busqueda", busqueda);
+        model.addAttribute("categoriaFiltro", categoria);
+        model.addAttribute("estadoFiltro", estado);
         model.addAttribute("resumen", adminHabilidadService.resumen());
         model.addAttribute("categorias", adminHabilidadService.listarCategoriasActivas());
-        model.addAttribute("todasCategorias", adminHabilidadService.listarCategorias());
         model.addAttribute("cargos", adminCargoService.listarTodosLosCargos());
         return "admin/admin-habilidades";
     }
@@ -627,10 +663,16 @@ public class AdminViewController {
 
     // ================== CURSOS ==================
     @GetMapping({"/cursos", "/admin-cursos.html"})
-    public String cursos(Model model) {
+    public String cursos(@RequestParam(required = false) Integer paginaVigentes,
+                         @RequestParam(required = false) Integer paginaFinalizados,
+                         Model model) {
+        Page<Curso> vigentes = com.pucp.skillb_ia.util.Paginador.paginar(adminCursoService.listarVigentes(), paginaVigentes);
+        Page<Curso> finalizados = com.pucp.skillb_ia.util.Paginador.paginar(adminCursoService.listarFinalizados(), paginaFinalizados);
         model.addAttribute("cursos", adminCursoService.listarTodos());
-        model.addAttribute("cursosVigentes", adminCursoService.listarVigentes());
-        model.addAttribute("cursosFinalizados", adminCursoService.listarFinalizados());
+        model.addAttribute("paginaVigentes", vigentes);
+        model.addAttribute("paginaFinalizados", finalizados);
+        model.addAttribute("cursosVigentes", vigentes.getContent());
+        model.addAttribute("cursosFinalizados", finalizados.getContent());
         model.addAttribute("modalidades", com.pucp.skillb_ia.model.enums.ModalidadCurso.values());
         return "admin/admin-cursos";
     }
@@ -688,10 +730,22 @@ public class AdminViewController {
     // ============================================================
 
     @GetMapping({"/experiencia", "/admin-experiencia.html"})
-    public String experiencia(Model model) {
-        model.addAttribute("cvsPendientes", adminUsuarioService.listarCvsPendientes());
-        model.addAttribute("cvsRevisados", adminUsuarioService.listarCvsRevisados());
-        model.addAttribute("cvsRechazados", adminUsuarioService.listarCvsRechazados());
+    public String experiencia(@RequestParam(required = false) String tab,
+                              @RequestParam(required = false) Integer paginaPendientes,
+                              @RequestParam(required = false) Integer paginaRevisados,
+                              @RequestParam(required = false) Integer paginaRechazados,
+                              Model model) {
+        // Paginación en el servidor (tema 5.7): una página por pestaña.
+        Page<AdminUsuarioService.CvFila> pendientes = com.pucp.skillb_ia.util.Paginador.paginar(adminUsuarioService.listarCvsPendientes(), paginaPendientes);
+        Page<AdminUsuarioService.CvFila> revisados = com.pucp.skillb_ia.util.Paginador.paginar(adminUsuarioService.listarCvsRevisados(), paginaRevisados);
+        Page<AdminUsuarioService.CvFila> rechazados = com.pucp.skillb_ia.util.Paginador.paginar(adminUsuarioService.listarCvsRechazados(), paginaRechazados);
+        model.addAttribute("paginaPendientes", pendientes);
+        model.addAttribute("paginaRevisados", revisados);
+        model.addAttribute("paginaRechazados", rechazados);
+        model.addAttribute("cvsPendientes", pendientes.getContent());
+        model.addAttribute("cvsRevisados", revisados.getContent());
+        model.addAttribute("cvsRechazados", rechazados.getContent());
+        model.addAttribute("tab", "revisados".equals(tab) || "rechazados".equals(tab) ? tab : "pendientes");
         return "admin/admin-experiencia";
     }
 

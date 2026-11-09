@@ -75,7 +75,7 @@
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title">En curso</h3>
-                <span class="badge bg-green-lt text-green ms-2" th:text="${#lists.size(cursosVigentes)}">0</span>
+                <span class="badge bg-green-lt text-green ms-2" th:text="${paginaVigentes.totalElements}">0</span>
                 <span class="text-secondary small ms-2">Cursos cuya fecha de fin aún no pasó (o sin fecha de fin).</span>
             </div>
             <div class="table-responsive">
@@ -100,14 +100,17 @@
                     </tbody>
                 </table>
             </div>
-            <div class="pagination-wrap" th:if="${!#lists.isEmpty(cursosVigentes)}">
-                <div id="cursosVigentesPaginationInfo" class="text-secondary small">Mostrando cursos en curso</div>
-                <ul id="cursosVigentesPagination" class="pagination pagination-sm m-0"></ul>
-            </div>
+            <!-- Paginación en el servidor: cada tabla tiene su formulario y conserva la página de la otra. -->
+            <form id="paginacionVigentes" method="get" th:action="@{/admin/cursos}">
+                <input type="hidden" name="paginaFinalizados" th:value="${paginaFinalizados.number + 1}">
+            </form>
+            <th:block th:if="${!#lists.isEmpty(cursosVigentes)}">
+                <div th:replace="~{fragments/paginacion :: paginacion(${paginaVigentes}, 'paginacionVigentes', 'curso(s) en curso', 'paginaVigentes')}"></div>
+            </th:block>
 
             <div class="card-header border-top mt-2">
                 <h3 class="card-title">Caducados</h3>
-                <span class="badge bg-secondary-lt ms-2" th:text="${#lists.size(cursosFinalizados)}">0</span>
+                <span class="badge bg-secondary-lt ms-2" th:text="${paginaFinalizados.totalElements}">0</span>
                 <span class="text-secondary small ms-2">Cursos cuya fecha de fin ya pasó.</span>
             </div>
             <div class="table-responsive">
@@ -132,10 +135,12 @@
                     </tbody>
                 </table>
             </div>
-            <div class="pagination-wrap" th:if="${!#lists.isEmpty(cursosFinalizados)}">
-                <div id="cursosFinalizadosPaginationInfo" class="text-secondary small">Mostrando cursos caducados</div>
-                <ul id="cursosFinalizadosPagination" class="pagination pagination-sm m-0"></ul>
-            </div>
+            <form id="paginacionFinalizados" method="get" th:action="@{/admin/cursos}">
+                <input type="hidden" name="paginaVigentes" th:value="${paginaVigentes.number + 1}">
+            </form>
+            <th:block th:if="${!#lists.isEmpty(cursosFinalizados)}">
+                <div th:replace="~{fragments/paginacion :: paginacion(${paginaFinalizados}, 'paginacionFinalizados', 'curso(s) caducado(s)', 'paginaFinalizados')}"></div>
+            </th:block>
         </div>
     </main>
 </div>
@@ -271,8 +276,6 @@
 
 <script th:src="@{/tabler/js/tabler.min.js}"></script>
 <script th:src="@{/js/validacion-formularios.js}"></script>
-<script th:src="@{/js/admin-js/admin-table-pagination.js}"></script>
-<script th:src="@{/js/admin-js/admin-cursos.js}"></script>
 <script>
     // Si el curso es autodidacta, la fecha de inicio/fin dejan de ser obligatorias
     // (ya tiene "horas" como su duración). Aplica tanto al modal de creación como a

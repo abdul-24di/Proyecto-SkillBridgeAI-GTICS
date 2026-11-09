@@ -1,5 +1,17 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 9 de Noviembre 2026 — Correo, validaciones, notificaciones y tablas sin JavaScript
+
+- **Correo de invitación:** si no se envía, el Admin ve el aviso (crear, carga masiva y reenviar), queda "Error al enviar correo" en la auditoría y la causa en el log (`[EMAIL]`). El enlace usa la dirección real del servidor si `APP_BASE_URL` quedó en localhost. Ver README, sección de correo.
+- **Foros del colaborador:** la nueva publicación se valida con `@Valid` + `BindingResult` (`ColForoPublicacionForm`); los errores vuelven al mismo modal y al mismo foro (antes llevaba al detalle de otro foro). Corregido el `fetch` de imágenes sin token CSRF.
+- **Notificaciones nuevas:** PM crea proyecto → RM; RM aprueba o rechaza una asignación → PM; PM responde en el foro → autor de la publicación.
+- **Tablas y filtros en el servidor (tema 5.7):** `util/Paginador` (`Page`, `PageRequest`) + fragmento `fragments/paginacion.html`; filtros como formularios GET. Se aplicó a Admin (usuarios, habilidades, cursos, experiencia), Colaborador (proyectos, foros, explorar) y PM (proyectos, foros, asignaciones, actividades, reportes). Se borraron los `*-table-pagination.js` y scripts de filtros, y tres scripts de foros con datos falsos que no se usaban.
+- **Comentario de rechazo:** fragmento `fragments/comentario-rechazo.html` con un mismo diseño en CV, actividades devueltas, asignaciones y evidencias rechazadas; el PM ahora ve el motivo cuando el RM rechaza su proyecto.
+- **Otros:** el motivo de cancelación del PM ahora se envía; los modales que se reabren tras un error usan `window.tabler` (antes fallaban con `bootstrap is not defined`).
+- **Tests:** 774 en verde (7 nuevos en `MejorasCorreoForoPaginacionTests`).
+
+---
+
 ## Sesión 4 de Noviembre 2026 — Preparación para el test de seguridad y pre-registro
 
 Detalle en la sección 2B de [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md).

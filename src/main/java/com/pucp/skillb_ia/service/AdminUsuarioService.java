@@ -16,6 +16,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import com.pucp.skillb_ia.util.Paginador;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -88,7 +90,7 @@ public class AdminUsuarioService {
     public record RolConteo(String rolEtiqueta, String rolBadgeClase, String barraClase, long total, int porcentaje) {
     }
 
-    public record ResultadoCargaMasiva(int creados, List<String> errores) {
+    public record ResultadoCargaMasiva(int creados, List<String> errores, int sinCorreo) {
         public boolean tieneErrores() { return !errores.isEmpty(); }
     }
 
@@ -134,6 +136,17 @@ public class AdminUsuarioService {
         return usuarioRepository.findAllWithRol().stream().map(this::aFila).toList();
     }
 
+    /** Directorio filtrado y paginado en el servidor (antes lo hacía admin-usuarios.js). */
+    @Transactional(readOnly = true)
+    public Page<UsuarioFila> listarPagina(String busqueda, String rol, String estado, Integer pagina) {
+        List<UsuarioFila> filtradas = listar().stream()
+                .filter(u -> Paginador.contiene((u.nombreCompleto() != null ? u.nombreCompleto() : "") + " " + u.correo(), busqueda))
+                .filter(u -> Paginador.coincide(u.rolEtiqueta(), rol))
+                .filter(u -> Paginador.coincide(u.estado(), estado))
+                .toList();
+        return Paginador.paginar(filtradas, pagina);
+    }
+
     @Transactional(readOnly = true)
     public ResumenUsuarios resumen() {
         List<UsuarioFila> filas = listar();
@@ -160,9 +173,10 @@ public class AdminUsuarioService {
     }
 
     @Transactional
-    public void crear(String correo, String rolEtiqueta, Usuario admin) {
+    // Devuelve si el correo de invitación salió (la cuenta se crea igual; el enlace se puede reenviar).
+    public boolean crear(String correo, String rolEtiqueta, Usuario admin) {
         String rolNombre = resolverRolAsignable(rolEtiqueta);
-        authService.invitarUsuario(correo.trim(), rolNombre, admin);
+        return authService.invitar(correo.trim(), rolNombre, admin).correoEnviado();
     }
 
     @Transactional
@@ -243,10 +257,10 @@ public class AdminUsuarioService {
     }
 
     @Transactional
-    public void reenviarActivacion(Long usuarioId, Usuario admin) {
+    public boolean reenviarActivacion(Long usuarioId, Usuario admin) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
-        authService.reenviarActivacion(usuario, admin);
+        return authService.reenviarActivacion(usuario, admin);
     }
 
     // Fila cruda leída del archivo (CSV o Excel), antes de validar. `completa`
@@ -265,7 +279,7 @@ public class AdminUsuarioService {
         // Cada fila envía un correo y agota el cupo diario de Gmail: se evita una carga accidental o abusiva.
         if (filasCrudas.size() > MAX_FILAS_CARGA_MASIVA) {
             return new ResultadoCargaMasiva(0, List.of("El archivo tiene " + filasCrudas.size()
-                    + " filas. El máximo por carga es " + MAX_FILAS_CARGA_MASIVA + "."));
+                    + " filas. El máximo por carga es " + MAX_FILAS_CARGA_MASIVA + "."), 0);
         }
 
         List<String> errores = new ArrayList<>();
@@ -305,17 +319,20 @@ public class AdminUsuarioService {
         }
 
         if (!errores.isEmpty()) {
-            return new ResultadoCargaMasiva(0, errores);
+            return new ResultadoCargaMasiva(0, errores, 0);
         }
 
+        int sinCorreo = 0;
         for (String[] fila : filasValidas) {
-            crear(fila[0], fila[1], admin);
+            if (!crear(fila[0], fila[1], admin)) {
+                sinCorreo++;
+            }
         }
 
         auditoriaService.registrar(admin, "CARGA_MASIVA_USUARIOS", "USUARIO", null,
                 "Cargó " + filasValidas.size() + " usuario(s) mediante archivo.");
 
-        return new ResultadoCargaMasiva(filasValidas.size(), errores);
+        return new ResultadoCargaMasiva(filasValidas.size(), errores, sinCorreo);
     }
 
     private List<FilaCruda> leerFilas(MultipartFile archivo) throws IOException {

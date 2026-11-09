@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI - Revisar Experiencia</title>
     <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
     <link rel="stylesheet" th:href="@{/css/admin-css/admin-common.css}">
     <link rel="stylesheet" th:href="@{/css/admin-css/admin-topbar.css}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -100,10 +101,9 @@
                             </div>
                         </div>
                         <div class="form-hint mt-3">Al aprobar el registro, estos datos quedan en el perfil del colaborador.</div>
-                        <div th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'RECHAZADO' and colaborador.motivoRechazo != null}"
-                             class="alert alert-danger mt-3 mb-0">
-                            <strong>Motivo del rechazo:</strong> <span th:text="${colaborador.motivoRechazo}">Motivo</span>
-                        </div>
+                        <th:block th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'RECHAZADO' and colaborador.motivoRechazo != null}">
+                            <div th:replace="~{fragments/comentario-rechazo :: comentario('Motivo del rechazo enviado al colaborador', ${colaborador.motivoRechazo}, null)}"></div>
+                        </th:block>
                     </div>
                 </div>
 

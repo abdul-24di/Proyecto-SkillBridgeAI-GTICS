@@ -142,7 +142,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr th:each="colab : ${reporte.colaboradores}" class="pm-reporte-colab-row">
+        <tr th:each="colab : ${paginaColaboradores.content}">
           <td class="fw-semibold" th:text="${colab.nombre}">Ana Torres</td>
           <td th:text="${colab.horasSemanales + ' h/sem'}">12 h/sem</td>
           <td th:text="${colab.actividadesAsignadas}">5</td>
@@ -161,10 +161,13 @@
     </table>
   </div>
 
-  <div class="pagination-wrap">
-    <div id="colaboradoresPaginationInfo" class="text-secondary small">Mostrando colaboradores</div>
-    <ul id="colaboradoresPagination" class="pagination pagination-sm m-0"></ul>
-  </div>
+  <!-- Paginación en el servidor (10 por página). -->
+  <form id="paginacionColaboradores" method="get" th:action="@{/pm/reportes/detalle}">
+    <input type="hidden" name="proyectoId" th:value="${reporte.proyecto.id}">
+  </form>
+  <th:block th:if="${!#lists.isEmpty(reporte.colaboradores)}">
+    <div class="px-3" th:replace="~{fragments/paginacion :: paginacion(${paginaColaboradores}, 'paginacionColaboradores', 'colaborador(es)', 'pagina')}"></div>
+  </th:block>
 
   <div class="report-note">
     <span class="report-note-icon">i</span>
@@ -179,7 +182,5 @@
 </main>
 </div>
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
-<script src="../../static/js/pm-js/pm-reporte-detalle.js" th:src="@{/js/pm-js/pm-reporte-detalle.js}"></script>
 </body>
 </html>

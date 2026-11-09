@@ -86,60 +86,66 @@
         <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
 
         <ul class="explore-tabs list-unstyled mb-0">
-            <li><button type="button" class="explore-tab active" data-panel="panelProyectos">
+            <!-- Las pestañas son enlaces: el servidor decide qué panel mostrar (parámetro "panel"). -->
+            <li><a th:href="@{/colaborador/explorar(panel='proyectos')}" class="explore-tab text-decoration-none" th:classappend="${panel == 'proyectos'} ? 'active'">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
                 Proyectos
-            </button></li>
-            <li><button type="button" class="explore-tab" data-panel="panelColaboradores">
+            </a></li>
+            <li><a th:href="@{/colaborador/explorar(panel='colaboradores')}" class="explore-tab text-decoration-none" th:classappend="${panel == 'colaboradores'} ? 'active'">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M19 8v6M16 11h6"/></svg>
                 Colaboradores
-            </button></li>
-            <li><button type="button" class="explore-tab" data-panel="panelCursos">
+            </a></li>
+            <li><a th:href="@{/colaborador/explorar(panel='cursos')}" class="explore-tab text-decoration-none" th:classappend="${panel == 'cursos'} ? 'active'">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 9L12 5 2 9l10 4 10-4v6"/><path d="M6 10.6V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.4"/></svg>
                 Cursos
-            </button></li>
+            </a></li>
         </ul>
 
         <!-- ===== PANEL PROYECTOS ===== -->
-        <div class="explore-panel" id="panelProyectos">
-            <div class="card section-card mb-4">
+        <div class="explore-panel" id="panelProyectos" th:classappend="${panel != 'proyectos'} ? 'd-none'">
+            <form id="filtrosExplorarProyectos" class="card section-card mb-4" method="get" th:action="@{/colaborador/explorar}">
+                <input type="hidden" name="panel" value="proyectos">
                 <div class="explore-filters">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-6">
-                            <label class="form-label">Buscar</label>
+                        <div class="col-md-5">
+                            <label class="form-label" for="projectSearch">Buscar</label>
                             <div class="input-icon">
                                 <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
-                                <input type="text" id="projectSearch" class="form-control" placeholder="Buscar proyecto...">
+                                <input type="text" id="projectSearch" name="busqueda" class="form-control" placeholder="Buscar proyecto..." maxlength="100" th:value="${busqueda}">
                             </div>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Estado</label>
-                            <select id="projectStatusFilter" class="form-select">
-                                <option value="all">Todos</option>
-                                <option value="EN_REVISION">En planificación</option>
-                                <option value="ACTIVO">Activo</option>
-                                <option value="EN_ESPERA">Pausado</option>
-                                <option value="FINALIZADO">Completado</option>
-                                <option value="CANCELADO">Cancelado</option>
+                        <div class="col-md-2">
+                            <label class="form-label" for="projectStatusFilter">Estado</label>
+                            <select id="projectStatusFilter" name="estadoProyecto" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="EN_REVISION" th:selected="${estadoProyecto == 'EN_REVISION'}">En planificación</option>
+                                <option value="ACTIVO" th:selected="${estadoProyecto == 'ACTIVO'}">Activo</option>
+                                <option value="EN_ESPERA" th:selected="${estadoProyecto == 'EN_ESPERA'}">Pausado</option>
+                                <option value="FINALIZADO" th:selected="${estadoProyecto == 'FINALIZADO'}">Completado</option>
+                                <option value="CANCELADO" th:selected="${estadoProyecto == 'CANCELADO'}">Cancelado</option>
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Postulaciones</label>
-                            <select id="projectApplicationsFilter" class="form-select">
-                                <option value="all">Todas</option>
-                                <option value="abiertas">Abiertas</option>
-                                <option value="cerradas">Cerradas</option>
+                        <div class="col-md-2">
+                            <label class="form-label" for="projectApplicationsFilter">Postulaciones</label>
+                            <select id="projectApplicationsFilter" name="postulaciones" class="form-select">
+                                <option value="">Todas</option>
+                                <option value="abiertas" th:selected="${postulaciones == 'abiertas'}">Abiertas</option>
+                                <option value="cerradas" th:selected="${postulaciones == 'cerradas'}">Cerradas</option>
                             </select>
+                        </div>
+                        <div class="col-md-3 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill">Filtrar</button>
+                            <a th:href="@{/colaborador/explorar(panel='proyectos')}" class="btn btn-outline-secondary flex-fill">Limpiar</a>
                         </div>
                     </div>
                 </div>
-            </div>
+            </form>
 
             <div id="projectAccordion">
-                <div th:if="${proyectos.isEmpty()}" class="card"><div class="empty-state">Todavía no hay proyectos registrados en la organización.</div></div>
+                <div th:if="${proyectos.isEmpty()}" class="card"><div class="empty-state"
+                     th:text="${paginaProyectos.totalElements == 0 and (busqueda != null or estadoProyecto != null or postulaciones != null)} ? 'Ningún proyecto coincide con los filtros.' : 'Todavía no hay proyectos registrados en la organización.'">Todavía no hay proyectos registrados en la organización.</div></div>
 
-                <div th:each="v : ${proyectos}" class="project-accordion-item"
-                     th:attr="data-project-name=${v.proyecto.nombre},data-estado=${v.proyecto.estado.name()},data-postulaciones=${v.postulacionesAbiertas} ? 'abiertas' : 'cerradas'">
+                <div th:each="v : ${proyectos}" class="project-accordion-item">
                     <div class="project-accordion-header" data-toggle-project>
                         <div>
                             <div class="project-accordion-title">
@@ -195,10 +201,9 @@
                 </div>
             </div>
 
-            <div class="pagination-wrap">
-                <div id="projectPaginationInfo" class="text-secondary small">Mostrando proyectos</div>
-                <ul id="projectPagination" class="pagination pagination-sm m-0"></ul>
-            </div>
+            <th:block th:if="${!proyectos.isEmpty()}">
+                <div th:replace="~{fragments/paginacion :: paginacion(${paginaProyectos}, 'filtrosExplorarProyectos', 'proyecto(s)', 'pagina')}"></div>
+            </th:block>
 
             <div class="card section-card mt-4">
                 <div class="card-header section-header">
@@ -223,39 +228,43 @@
         </div>
 
         <!-- ===== PANEL COLABORADORES ===== -->
-        <div class="explore-panel d-none" id="panelColaboradores">
+        <div class="explore-panel" id="panelColaboradores" th:classappend="${panel != 'colaboradores'} ? 'd-none'">
 
             <div class="collab-list-view" id="collabListView">
-                <div class="card section-card mb-4">
+                <form id="filtrosExplorarColaboradores" class="card section-card mb-4" method="get" th:action="@{/colaborador/explorar}">
+                    <input type="hidden" name="panel" value="colaboradores">
                     <div class="explore-filters">
                         <div class="row g-3 align-items-end">
-                            <div class="col-md-8">
-                                <label class="form-label">Buscar</label>
+                            <div class="col-md-6">
+                                <label class="form-label" for="collabSearch">Buscar</label>
                                 <div class="input-icon">
                                     <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
-                                    <input type="text" id="collabSearch" class="form-control" placeholder="Buscar por nombre, cargo o habilidad...">
+                                    <input type="text" id="collabSearch" name="busquedaColab" class="form-control" placeholder="Buscar por nombre, cargo o habilidad..." maxlength="100" th:value="${busquedaColab}">
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Nivel</label>
-                                <select id="collabLevelFilter" class="form-select">
-                                    <option value="all">Todos</option>
-                                    <option value="JUNIOR">Junior</option>
-                                    <option value="SEMI_SENIOR">Semi-Senior</option>
-                                    <option value="SENIOR">Senior</option>
+                            <div class="col-md-3">
+                                <label class="form-label" for="collabLevelFilter">Nivel</label>
+                                <select id="collabLevelFilter" name="nivel" class="form-select">
+                                    <option value="">Todos</option>
+                                    <option value="JUNIOR" th:selected="${nivelFiltro == 'JUNIOR'}">Junior</option>
+                                    <option value="SEMI_SENIOR" th:selected="${nivelFiltro == 'SEMI_SENIOR'}">Semi-Senior</option>
+                                    <option value="SENIOR" th:selected="${nivelFiltro == 'SENIOR'}">Senior</option>
                                 </select>
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-fill">Filtrar</button>
+                                <a th:href="@{/colaborador/explorar(panel='colaboradores')}" class="btn btn-outline-secondary flex-fill">Limpiar</a>
                             </div>
                         </div>
                     </div>
-                </div>
+                </form>
 
                 <div id="collabList">
                     <div th:if="${colaboradoresExplorar.isEmpty()}" class="card">
-                        <div class="empty-state">No hay otros colaboradores registrados todavía.</div>
+                        <div class="empty-state" th:text="${totalColaboradores > 0} ? 'Ningún colaborador coincide con los filtros.' : 'No hay otros colaboradores registrados todavía.'">No hay otros colaboradores registrados todavía.</div>
                     </div>
 
-                    <div th:each="c : ${colaboradoresExplorar}" class="collab-card"
-                         th:attr="data-nivel=${c.nivelExperiencia != null ? c.nivelExperiencia.name() : ''}">
+                    <div th:each="c : ${colaboradoresExplorar}" class="collab-card">
                         <div class="collab-card-name" th:text="|${c.nombre} ${c.apellido}|">Nombre Apellido</div>
                         <div class="collab-card-role" th:text="${c.cargo?.nombre ?: 'Sin cargo asignado'}">Cargo</div>
                         <span th:if="${c.nivelExperiencia != null}" class="badge bg-secondary-lt mb-1"
@@ -284,10 +293,9 @@
                     </div>
                 </div>
 
-                <div class="pagination-wrap">
-                    <div id="collabPaginationInfo" class="text-secondary small">Mostrando colaboradores</div>
-                    <ul id="collabPagination" class="pagination pagination-sm m-0"></ul>
-                </div>
+                <th:block th:if="${!colaboradoresExplorar.isEmpty()}">
+                    <div th:replace="~{fragments/paginacion :: paginacion(${paginaColaboradores}, 'filtrosExplorarColaboradores', 'colaborador(es)', 'paginaColab')}"></div>
+                </th:block>
             </div>
 
             <div th:each="c : ${colaboradoresExplorar}" class="modal modal-blur fade col-modal" th:id="'collabModal-' + ${c.id}" tabindex="-1" aria-hidden="true">
@@ -374,33 +382,38 @@
 
 
         <!-- ===== PANEL CURSOS ===== -->
-        <div class="explore-panel d-none" id="panelCursos">
-            <div class="card section-card mb-4">
+        <div class="explore-panel" id="panelCursos" th:classappend="${panel != 'cursos'} ? 'd-none'">
+            <form id="filtrosExplorarCursos" class="card section-card mb-4" method="get" th:action="@{/colaborador/explorar}">
+                <input type="hidden" name="panel" value="cursos">
                 <div class="explore-filters">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-8">
-                            <label class="form-label">Buscar</label>
+                        <div class="col-md-6">
+                            <label class="form-label" for="courseSearch">Buscar</label>
                             <div class="input-icon">
                                 <span class="input-icon-addon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg></span>
-                                <input type="text" id="courseSearch" class="form-control" placeholder="Buscar curso...">
+                                <input type="text" id="courseSearch" name="busquedaCurso" class="form-control" placeholder="Buscar curso..." maxlength="100" th:value="${busquedaCurso}">
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Categoría</label>
-                            <select id="courseCategoryFilter" class="form-select">
-                                <option value="all">Todas</option>
-                                <option th:each="cat : ${categoriasCurso}" th:value="${cat}" th:text="${cat}"></option>
+                        <div class="col-md-3">
+                            <label class="form-label" for="courseCategoryFilter">Categoría</label>
+                            <select id="courseCategoryFilter" name="categoriaCurso" class="form-select">
+                                <option value="">Todas</option>
+                                <option th:each="cat : ${categoriasCurso}" th:value="${cat}" th:text="${cat}" th:selected="${cat == categoriaCursoFiltro}"></option>
                             </select>
+                        </div>
+                        <div class="col-md-3 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-fill">Filtrar</button>
+                            <a th:href="@{/colaborador/explorar(panel='cursos')}" class="btn btn-outline-secondary flex-fill">Limpiar</a>
                         </div>
                     </div>
                 </div>
-            </div>
+            </form>
 
             <div id="courseAccordion">
-                <div th:if="${cursosDisponibles.isEmpty()}" class="card"><div class="empty-state">No hay cursos activos en el catálogo por ahora.</div></div>
+                <div th:if="${cursosDisponibles.isEmpty()}" class="card"><div class="empty-state"
+                     th:text="${busquedaCurso != null or categoriaCursoFiltro != null} ? 'Ningún curso coincide con los filtros.' : 'No hay cursos activos en el catálogo por ahora.'">No hay cursos activos en el catálogo por ahora.</div></div>
 
-                <div th:each="v : ${cursosDisponibles}" class="project-accordion-item"
-                     th:attr="data-course-name=${v.curso.nombre},data-course-category=${v.curso.categoria}">
+                <div th:each="v : ${cursosDisponibles}" class="project-accordion-item">
                     <div class="project-accordion-header" data-toggle-course>
                         <div>
                             <div class="project-accordion-title">
@@ -449,10 +462,9 @@
                 </div>
             </div>
 
-            <div class="pagination-wrap">
-                <div id="coursePaginationInfo" class="text-secondary small">Mostrando cursos</div>
-                <ul id="coursePagination" class="pagination pagination-sm m-0"></ul>
-            </div>
+            <th:block th:if="${!cursosDisponibles.isEmpty()}">
+                <div th:replace="~{fragments/paginacion :: paginacion(${paginaCursos}, 'filtrosExplorarCursos', 'curso(s)', 'paginaCurso')}"></div>
+            </th:block>
 
             <div class="card section-card mt-4">
                 <div class="card-header section-header">
@@ -564,7 +576,6 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
-<script src="../../static/js/col-js/col-table-pagination.js" th:src="@{/js/col-js/col-table-pagination.js}"></script>
 <script src="../../static/js/col-js/col-explorar.js" th:src="@{/js/col-js/col-explorar.js}"></script>
 </body>
 </html>

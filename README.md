@@ -32,8 +32,16 @@ $env:MAIL_PASSWORD = "contraseña_de_aplicacion"
 $env:APP_BASE_URL = "http://localhost:8080"
 ```
 
-En despliegue, `APP_BASE_URL` debe ser la URL pública de la aplicación para que
-los enlaces de activación sean válidos. Estas credenciales nunca deben
+Si el correo no se puede enviar (variables vacías, contraseña inválida o puerto
+SMTP bloqueado), el Administrador ve un aviso en pantalla, queda un registro
+"Error al enviar correo" en la auditoría y la causa aparece en el log con el
+prefijo `[EMAIL]`. Al arrancar, si falta `MAIL_USERNAME`, el log lo avisa.
+
+En despliegue (por ejemplo Docker en la nube) las variables deben pasarse al
+contenedor (`-e MAIL_USERNAME=... -e MAIL_PASSWORD=... -e APP_BASE_URL=http://IP:8080`).
+`APP_BASE_URL` debe ser la URL pública de la aplicación para que los enlaces de
+activación sean válidos; si se olvida y queda en `localhost`, el enlace se arma
+con la dirección con la que el Admin entró al sistema. Estas credenciales nunca deben
 guardarse en `application.properties` ni versionarse.
 
 Toda contraseña nueva (activación, recuperación y cambio desde el perfil de

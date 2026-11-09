@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI — Mis Proyectos</title>
     <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-proyectos.css" th:href="@{/css/col-css/col-proyectos.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
@@ -118,35 +119,39 @@
 
 
 
-        <div class="card section-card mb-4">
-            <div class="search-bar-wrap">
-                <div class="input-icon">
+        <!-- Búsqueda y pestañas en el servidor: formulario GET (sin JavaScript). -->
+        <form id="filtrosProyectos" class="card section-card mb-4" method="get" th:action="@{/colaborador/proyectos}">
+            <div class="search-bar-wrap d-flex gap-2">
+                <div class="input-icon flex-fill">
           <span class="input-icon-addon">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg>
           </span>
-                    <input id="searchInput" type="text" class="form-control" placeholder="Buscar proyecto...">
+                    <input id="searchInput" name="busqueda" type="text" class="form-control" placeholder="Buscar proyecto..." maxlength="100" th:value="${busqueda}">
                 </div>
+                <input type="hidden" name="estado" th:value="${estadoFiltro}">
+                <button type="submit" class="btn btn-primary">Buscar</button>
             </div>
 
+            <!-- Cada pestaña envía el formulario con su estado (el botón pisa al hidden). -->
             <div class="filter-tabs">
-                <button type="button" class="filter-tab active" data-filter="Todos">Todos</button>
-                <button type="button" class="filter-tab" data-filter="ACTIVA">Activos</button>
-                <button type="button" class="filter-tab" data-filter="PENDIENTE">Pendientes</button>
-                <button type="button" class="filter-tab" data-filter="FINALIZADA">Finalizados</button>
-                <button type="button" class="filter-tab" data-filter="RECHAZADA">Rechazados</button>
+                <button type="submit" name="estado" value="Todos" class="filter-tab" th:classappend="${estadoFiltro == 'Todos'} ? 'active'">Todos</button>
+                <button type="submit" name="estado" value="ACTIVA" class="filter-tab" th:classappend="${estadoFiltro == 'ACTIVA'} ? 'active'">Activos</button>
+                <button type="submit" name="estado" value="PENDIENTE" class="filter-tab" th:classappend="${estadoFiltro == 'PENDIENTE'} ? 'active'">Pendientes</button>
+                <button type="submit" name="estado" value="FINALIZADA" class="filter-tab" th:classappend="${estadoFiltro == 'FINALIZADA'} ? 'active'">Finalizados</button>
+                <button type="submit" name="estado" value="RECHAZADA" class="filter-tab" th:classappend="${estadoFiltro == 'RECHAZADA'} ? 'active'">Rechazados</button>
             </div>
-
-
-        </div>
+        </form>
 
 
         <div class="row row-cards">
-            <div th:if="${misAsignaciones.isEmpty()}" class="col-12">
+            <div th:if="${totalAsignaciones == 0}" class="col-12">
                 <div class="card"><div class="empty-state">Aún no tienes proyectos ni solicitudes registradas.</div></div>
             </div>
+            <div th:if="${totalAsignaciones > 0 and misAsignaciones.isEmpty()}" class="col-12">
+                <div class="card"><div class="empty-state">No tienes proyectos que coincidan con la búsqueda o la pestaña elegida.</div></div>
+            </div>
 
-            <div th:each="asig : ${misAsignaciones}" class="col-sm-6 col-xl-4 project-card-wrap"
-                 th:attr="data-status=${asig.estado.name()}">
+            <div th:each="asig : ${misAsignaciones}" class="col-sm-6 col-xl-4 project-card-wrap">
                 <div class="card project-card">
                     <div class="card-body">
 
@@ -167,8 +172,11 @@
                             Falta aprobación
                         </div>
 
-                        <div class="project-description mt-2"
-                             th:text="${asig.estado.name() == 'RECHAZADA'} ? (${asig.motivoRechazo != null} ? ${asig.motivoRechazo} : 'Sin motivo especificado.') : ${asig.proyecto.descripcion}">
+                        <th:block th:if="${asig.estado.name() == 'RECHAZADA'}">
+                            <div th:replace="~{fragments/comentario-rechazo :: comentario('Motivo del rechazo', ${asig.motivoRechazo != null ? asig.motivoRechazo : 'Sin motivo especificado.'}, null)}"></div>
+                        </th:block>
+                        <div class="project-description mt-2" th:unless="${asig.estado.name() == 'RECHAZADA'}"
+                             th:text="${asig.proyecto.descripcion}">
                             Descripción
                         </div>
 
@@ -196,14 +204,9 @@
             </div>
         </div>
 
-        <div class="pagination-wrap">
-            <div id="proyectosPaginationInfo" class="text-secondary small">Mostrando proyectos</div>
-            <ul id="proyectosPagination" class="pagination pagination-sm m-0"></ul>
-        </div>
-
-        <div id="emptyFiltroState" class="card" style="display:none">
-            <div class="empty-state" id="emptyFiltroMensaje">No tienes proyectos en esta sección.</div>
-        </div>
+        <th:block th:if="${!misAsignaciones.isEmpty()}">
+            <div th:replace="~{fragments/paginacion :: paginacion(${paginaProyectos}, 'filtrosProyectos', 'proyecto(s)', 'pagina')}"></div>
+        </th:block>
 
     </main>
 
@@ -211,8 +214,6 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/col-js/col-table-pagination.js" th:src="@{/js/col-js/col-table-pagination.js}"></script>
-<script src="../../static/js/col-js/col-proyectos.js" th:src="@{/js/col-js/col-proyectos.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
 </body>
 </html>

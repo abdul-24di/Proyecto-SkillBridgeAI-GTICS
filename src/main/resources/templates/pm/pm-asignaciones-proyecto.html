@@ -89,7 +89,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Activa'}" class="pm-asig-activa-row">
+          <tr th:each="asig : ${paginaActivas.content}">
             <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Nombre</td>
             <td th:text="${asig.origenTexto}">Origen</td>
             <td th:text="${asig.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
@@ -98,17 +98,23 @@
               <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" th:data-bs-target="|#modalFinalizarAsig${asig.asignacion.id}|">Finalizar</button>
             </td>
           </tr>
-          <tr th:if="${#lists.isEmpty(asignaciones.?[estadoTexto == 'Activa'])}">
+          <tr th:if="${paginaActivas.totalElements == 0}">
             <td colspan="5" class="text-center text-secondary py-3">No hay colaboradores activos en este proyecto.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="pagination-wrap">
-      <div id="activasPaginationInfo" class="text-secondary small">Mostrando colaboradores</div>
-      <ul id="activasPagination" class="pagination pagination-sm m-0"></ul>
-    </div>
+    <!-- Paginación en el servidor: cada tabla tiene su formulario y conserva la página de las demás. -->
+    <form id="paginacionActivas" method="get" th:action="@{/pm/proyectos/asignaciones}">
+      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+      <input type="hidden" name="paginaPendientes" th:value="${paginaPendientes.number + 1}">
+      <input type="hidden" name="paginaTramite" th:value="${paginaTramite.number + 1}">
+      <input type="hidden" name="paginaHistorial" th:value="${paginaHistorial.number + 1}">
+    </form>
+    <th:block th:if="${paginaActivas.totalElements > 0}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaActivas}, 'paginacionActivas', 'colaborador(es)', 'paginaActivas')}"></div>
+    </th:block>
   </div>
 
   <!-- PROPUESTAS PENDIENTES DEL PM -->
@@ -128,7 +134,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="pend : ${pendientesPm}" class="pm-asig-pendiente-row">
+          <tr th:each="pend : ${paginaPendientes.content}">
             <td class="fw-semibold" th:text="${pend.colaboradorNombre}">Nombre</td>
             <td th:text="${pend.origenTexto}">Origen</td>
             <td th:text="${pend.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
@@ -196,17 +202,22 @@
               </div>
             </td>
           </tr>
-          <tr th:if="${#lists.isEmpty(pendientesPm)}">
+          <tr th:if="${paginaPendientes.totalElements == 0}">
             <td colspan="5" class="text-center text-secondary py-3">No tienes propuestas pendientes de revisión.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="pagination-wrap">
-      <div id="pendientesPmPaginationInfo" class="text-secondary small">Mostrando propuestas</div>
-      <ul id="pendientesPmPagination" class="pagination pagination-sm m-0"></ul>
-    </div>
+    <form id="paginacionPendientes" method="get" th:action="@{/pm/proyectos/asignaciones}">
+      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+      <input type="hidden" name="paginaActivas" th:value="${paginaActivas.number + 1}">
+      <input type="hidden" name="paginaTramite" th:value="${paginaTramite.number + 1}">
+      <input type="hidden" name="paginaHistorial" th:value="${paginaHistorial.number + 1}">
+    </form>
+    <th:block th:if="${paginaPendientes.totalElements > 0}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaPendientes}, 'paginacionPendientes', 'propuesta(s)', 'paginaPendientes')}"></div>
+    </th:block>
   </div>
 
   <!-- PROPONER AL RM -->
@@ -235,23 +246,28 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Pendiente'}" class="pm-asig-tramite-row">
+          <tr th:each="asig : ${paginaTramite.content}">
             <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Nombre</td>
             <td th:text="${asig.origenTexto}">Origen</td>
             <td th:text="${asig.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
             <td><span class="badge" th:classappend="${asig.estadoClase}" th:text="${asig.estadoTexto}">Estado</span></td>
           </tr>
-          <tr th:if="${#lists.isEmpty(asignaciones.?[estadoTexto == 'Pendiente'])}">
+          <tr th:if="${paginaTramite.totalElements == 0}">
             <td colspan="4" class="text-center text-secondary py-3">No hay asignaciones en trámite.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="pagination-wrap">
-      <div id="tramitePaginationInfo" class="text-secondary small">Mostrando asignaciones</div>
-      <ul id="tramitePagination" class="pagination pagination-sm m-0"></ul>
-    </div>
+    <form id="paginacionTramite" method="get" th:action="@{/pm/proyectos/asignaciones}">
+      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+      <input type="hidden" name="paginaActivas" th:value="${paginaActivas.number + 1}">
+      <input type="hidden" name="paginaPendientes" th:value="${paginaPendientes.number + 1}">
+      <input type="hidden" name="paginaHistorial" th:value="${paginaHistorial.number + 1}">
+    </form>
+    <th:block th:if="${paginaTramite.totalElements > 0}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaTramite}, 'paginacionTramite', 'asignación(es)', 'paginaTramite')}"></div>
+    </th:block>
   </div>
 </section>
 
@@ -271,23 +287,28 @@
           </tr>
         </thead>
         <tbody>
-          <tr th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Rechazada' or asig.estadoTexto == 'Finalizada'}" class="pm-asig-historial-row">
+          <tr th:each="asig : ${paginaHistorial.content}">
             <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Ana Torres</td>
             <td th:text="${asig.origenTexto}">Origen</td>
             <td><span class="badge" th:classappend="${asig.estadoClase}" th:text="${asig.estadoTexto}">Activa</span></td>
             <td th:text="${#temporals.format(asig.asignacion.fechaActivacion != null ? asig.asignacion.fechaActivacion : asig.asignacion.fechaSolicitud, 'dd MMM yyyy')}">01 Sep 2026</td>
           </tr>
-          <tr th:if="${#lists.isEmpty(asignaciones.?[estadoTexto == 'Rechazada' or estadoTexto == 'Finalizada'])}">
+          <tr th:if="${paginaHistorial.totalElements == 0}">
             <td colspan="4" class="text-center text-secondary py-3">El historial está vacío.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="pagination-wrap">
-      <div id="historialPaginationInfo" class="text-secondary small">Mostrando historial</div>
-      <ul id="historialPagination" class="pagination pagination-sm m-0"></ul>
-    </div>
+    <form id="paginacionHistorial" method="get" th:action="@{/pm/proyectos/asignaciones}">
+      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+      <input type="hidden" name="paginaActivas" th:value="${paginaActivas.number + 1}">
+      <input type="hidden" name="paginaPendientes" th:value="${paginaPendientes.number + 1}">
+      <input type="hidden" name="paginaTramite" th:value="${paginaTramite.number + 1}">
+    </form>
+    <th:block th:if="${paginaHistorial.totalElements > 0}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaHistorial}, 'paginacionHistorial', 'registro(s)', 'paginaHistorial')}"></div>
+    </th:block>
   </div>
 </section>
 
@@ -377,8 +398,6 @@
 </th:block>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
-<script src="../../static/js/pm-js/pm-asignaciones-proyecto.js" th:src="@{/js/pm-js/pm-asignaciones-proyecto.js}"></script>
 <script th:if="${abrirModalProponer != null}">
   document.addEventListener("DOMContentLoaded", function () {
     var modalEl = document.getElementById("proposeCollaboratorModal");

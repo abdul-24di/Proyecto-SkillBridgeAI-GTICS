@@ -5,7 +5,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 // Envía correos reales por SMTP cuando MAIL_USERNAME/MAIL_PASSWORD están
 // configurados (ver application.properties). Si no lo están (por ejemplo, un
@@ -26,10 +30,31 @@ public class EmailService {
         this.mailSender = mailSender;
         this.remitente = remitente;
         this.baseUrl = baseUrl;
+        // En el servidor esto explica en el log por qué no llegan los correos.
+        if (remitente == null || remitente.isBlank()) {
+            log.warn("[EMAIL] Correo desactivado: falta la variable de entorno MAIL_USERNAME (y MAIL_PASSWORD). "
+                    + "Los enlaces solo se mostrarán en este log.");
+        }
     }
 
-    public void enviarActivacion(String correo, String enlaceActivacion) {
-        String enlaceCompleto = baseUrl + enlaceActivacion;
+    // Base de los enlaces de los correos. Si APP_BASE_URL no se configuró (queda localhost) pero la petición
+    // llega por otra dirección, como la IP pública del servidor, se usa esa: si no, el enlace apuntaría a
+    // la PC de quien lo abre.
+    private String urlBase() {
+        if (baseUrl.contains("localhost")
+                && RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes atributos) {
+            HttpServletRequest peticion = atributos.getRequest();
+            String host = peticion.getServerName();
+            if (!"localhost".equals(host) && !"127.0.0.1".equals(host)) {
+                return ServletUriComponentsBuilder.fromContextPath(peticion).build().toUriString();
+            }
+        }
+        return baseUrl;
+    }
+
+    // Devuelve true solo si el correo salió por SMTP.
+    public boolean enviarActivacion(String correo, String enlaceActivacion) {
+        String enlaceCompleto = urlBase() + enlaceActivacion;
         String asunto = "Activa tu cuenta en SkillBridge AI";
         String cuerpo = "Hola,\n\n"
                 + "Se creó una cuenta para ti en SkillBridge AI. Para activarla, completar tus datos (y subir tu CV si eres colaborador) y elegir tu contraseña, "
@@ -40,7 +65,9 @@ public class EmailService {
 
         if (!enviar(correo, asunto, cuerpo)) {
             log.info("[EMAIL] Activación de cuenta -> {} | enlace: {}", correo, enlaceCompleto);
+            return false;
         }
+        return true;
     }
 
     // Se avisa por correo porque, mientras su registro está en revisión, el colaborador
@@ -51,7 +78,7 @@ public class EmailService {
                 + "El Administrador revisó tu registro y lo devolvió con la siguiente observación:\n\n"
                 + motivo + "\n\n"
                 + "Inicia sesión, corrige lo indicado y vuelve a subir tu CV en PDF para que lo revise de nuevo:\n\n"
-                + baseUrl + "/login\n\n"
+                + urlBase() + "/login\n\n"
                 + "— SkillBridge AI";
 
         if (!enviar(correo, asunto, cuerpo)) {
@@ -69,7 +96,7 @@ public class EmailService {
                 + "Fecha de fin: " + fechaFin + "\n"
                 + "Duración: " + horas + "\n\n"
                 + "Al terminar, sube la evidencia de finalización desde \"Mis cursos\" en tu perfil:\n\n"
-                + baseUrl + "/colaborador/perfil#mis-cursos\n\n"
+                + urlBase() + "/colaborador/perfil#mis-cursos\n\n"
                 + "— SkillBridge AI";
 
         if (!enviar(correo, asunto, cuerpo)) {
@@ -92,6 +119,8 @@ public class EmailService {
     }
 
     // Devuelve true si intentó enviar por SMTP (con o sin éxito), false si cayó al modo log-only.
+    // true solo si el correo salió. Antes devolvía true aunque el envío fallara, y el error quedaba oculto
+    // (en el servidor el Admin veía "se envió su correo" aunque nunca llegara).
     private boolean enviar(String destinatario, String asunto, String cuerpo) {
         if (remitente == null || remitente.isBlank()) {
             return false;
@@ -103,9 +132,10 @@ public class EmailService {
             mensaje.setSubject(asunto);
             mensaje.setText(cuerpo);
             mailSender.send(mensaje);
+            return true;
         } catch (Exception e) {
-            log.warn("[EMAIL] No se pudo enviar el correo a {}: {}", destinatario, e.getMessage());
+            log.error("[EMAIL] No se pudo enviar el correo a {}. Causa: {}", destinatario, e.getMessage(), e);
+            return false;
         }
-        return true;
     }
 }

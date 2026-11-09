@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SkillBridge AI — Detalle del proyecto</title>
   <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-detalle-proyecto.css" th:href="@{/css/rm-css/rm-detalle-proyecto.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
@@ -223,10 +224,9 @@
           <strong>Justificación de presupuesto solicitado:</strong>
           <span th:text="${proyecto.proyecto.justificacionPresupuesto != null and !proyecto.proyecto.justificacionPresupuesto.isBlank() ? proyecto.proyecto.justificacionPresupuesto : 'Sin justificación registrada.'}">Justificación.</span>
         </div>
-        <div class="alert alert-danger mt-3 mb-0"
-             th:if="${proyecto.proyecto.motivoRechazo != null and !proyecto.proyecto.motivoRechazo.isBlank()}">
-          <strong>Motivo de rechazo:</strong> <span th:text="${proyecto.proyecto.motivoRechazo}">Motivo.</span>
-        </div>
+        <th:block th:if="${proyecto.proyecto.motivoRechazo != null and !proyecto.proyecto.motivoRechazo.isBlank()}">
+          <div th:replace="~{fragments/comentario-rechazo :: comentario('Motivo de rechazo enviado al PM', ${proyecto.proyecto.motivoRechazo}, null)}"></div>
+        </th:block>
         <!-- TASK-060: motivo registrado al cancelar o finalizar el proyecto. -->
         <div class="alert mt-3 mb-0"
              th:if="${(proyecto.proyecto.estado.name() == 'CANCELADO' or proyecto.proyecto.estado.name() == 'FINALIZADO') and proyecto.proyecto.motivoCierre != null and !proyecto.proyecto.motivoCierre.isBlank()}"

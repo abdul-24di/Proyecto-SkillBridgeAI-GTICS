@@ -63,27 +63,27 @@
 
         <ul class="nav nav-tabs mb-3" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-pendientes" type="button">
+                <button class="nav-link" th:classappend="${tab == 'pendientes'} ? 'active'" data-bs-toggle="tab" data-bs-target="#tab-pendientes" type="button">
                     Pendientes de revisar
-                    <span class="badge bg-yellow-lt text-yellow ms-1" th:text="${#lists.size(cvsPendientes)}">0</span>
+                    <span class="badge bg-yellow-lt text-yellow ms-1" th:text="${paginaPendientes.totalElements}">0</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-revisados" type="button">
+                <button class="nav-link" th:classappend="${tab == 'revisados'} ? 'active'" data-bs-toggle="tab" data-bs-target="#tab-revisados" type="button">
                     Aprobados
-                    <span class="badge bg-green-lt text-green ms-1" th:text="${#lists.size(cvsRevisados)}">0</span>
+                    <span class="badge bg-green-lt text-green ms-1" th:text="${paginaRevisados.totalElements}">0</span>
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-rechazados" type="button">
+                <button class="nav-link" th:classappend="${tab == 'rechazados'} ? 'active'" data-bs-toggle="tab" data-bs-target="#tab-rechazados" type="button">
                     Rechazados
-                    <span class="badge bg-red-lt text-red ms-1" th:text="${#lists.size(cvsRechazados)}">0</span>
+                    <span class="badge bg-red-lt text-red ms-1" th:text="${paginaRechazados.totalElements}">0</span>
                 </button>
             </li>
         </ul>
 
         <div class="tab-content">
-            <div class="tab-pane fade show active" id="tab-pendientes">
+            <div class="tab-pane fade" th:classappend="${tab == 'pendientes'} ? 'show active'" id="tab-pendientes">
                 <div class="card">
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table table-hover">
@@ -112,20 +112,21 @@
                                     <a th:href="@{/admin/experiencia/{id}(id=${cv.id()})}" class="btn btn-primary btn-sm">Revisar</a>
                                 </td>
                             </tr>
-                            <tr id="cvPendientesNoResults" class="d-none" th:if="${!#lists.isEmpty(cvsPendientes)}">
-                                <td colspan="5" class="text-center text-secondary py-4">Ningún CV coincide con los filtros aplicados.</td>
-                            </tr>
                             </tbody>
                         </table>
                     </div>
-                    <div class="pagination-wrap" th:if="${!#lists.isEmpty(cvsPendientes)}">
-                        <div id="cvPendientesPaginationInfo" class="text-secondary small">Mostrando CVs pendientes</div>
-                        <ul id="cvPendientesPagination" class="pagination pagination-sm m-0"></ul>
-                    </div>
+                    <th:block th:if="${!#lists.isEmpty(cvsPendientes)}">
+                        <form id="paginacionPendientes" method="get" th:action="@{/admin/experiencia}">
+                            <input type="hidden" name="tab" value="pendientes">
+                            <input type="hidden" name="paginaRevisados" th:value="${paginaRevisados.number + 1}">
+                            <input type="hidden" name="paginaRechazados" th:value="${paginaRechazados.number + 1}">
+                        </form>
+                        <div th:replace="~{fragments/paginacion :: paginacion(${paginaPendientes}, 'paginacionPendientes', 'registro(s)', 'paginaPendientes')}"></div>
+                    </th:block>
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="tab-revisados">
+            <div class="tab-pane fade" th:classappend="${tab == 'revisados'} ? 'show active'" id="tab-revisados">
                 <div class="card">
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table table-hover">
@@ -153,20 +154,21 @@
                                     <a th:href="@{/admin/experiencia/{id}(id=${cv.id()})}" class="btn btn-outline-secondary btn-sm">Ver experiencia</a>
                                 </td>
                             </tr>
-                            <tr id="cvRevisadosNoResults" class="d-none" th:if="${!#lists.isEmpty(cvsRevisados)}">
-                                <td colspan="5" class="text-center text-secondary py-4">Ningún CV coincide con los filtros aplicados.</td>
-                            </tr>
                             </tbody>
                         </table>
                     </div>
-                    <div class="pagination-wrap" th:if="${!#lists.isEmpty(cvsRevisados)}">
-                        <div id="cvRevisadosPaginationInfo" class="text-secondary small">Mostrando registros aprobados</div>
-                        <ul id="cvRevisadosPagination" class="pagination pagination-sm m-0"></ul>
-                    </div>
+                    <th:block th:if="${!#lists.isEmpty(cvsRevisados)}">
+                        <form id="paginacionRevisados" method="get" th:action="@{/admin/experiencia}">
+                            <input type="hidden" name="tab" value="revisados">
+                            <input type="hidden" name="paginaPendientes" th:value="${paginaPendientes.number + 1}">
+                            <input type="hidden" name="paginaRechazados" th:value="${paginaRechazados.number + 1}">
+                        </form>
+                        <div th:replace="~{fragments/paginacion :: paginacion(${paginaRevisados}, 'paginacionRevisados', 'registro(s)', 'paginaRevisados')}"></div>
+                    </th:block>
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="tab-rechazados">
+            <div class="tab-pane fade" th:classappend="${tab == 'rechazados'} ? 'show active'" id="tab-rechazados">
                 <div class="card">
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table table-hover">
@@ -195,23 +197,22 @@
                                     <a th:href="@{/admin/experiencia/{id}(id=${cv.id()})}" class="btn btn-outline-secondary btn-sm">Ver detalle</a>
                                 </td>
                             </tr>
-                            <tr id="cvRechazadosNoResults" class="d-none" th:if="${!#lists.isEmpty(cvsRechazados)}">
-                                <td colspan="5" class="text-center text-secondary py-4">Ningún registro coincide con los filtros aplicados.</td>
-                            </tr>
                             </tbody>
                         </table>
                     </div>
-                    <div class="pagination-wrap" th:if="${!#lists.isEmpty(cvsRechazados)}">
-                        <div id="cvRechazadosPaginationInfo" class="text-secondary small">Mostrando registros rechazados</div>
-                        <ul id="cvRechazadosPagination" class="pagination pagination-sm m-0"></ul>
-                    </div>
+                    <th:block th:if="${!#lists.isEmpty(cvsRechazados)}">
+                        <form id="paginacionRechazados" method="get" th:action="@{/admin/experiencia}">
+                            <input type="hidden" name="tab" value="rechazados">
+                            <input type="hidden" name="paginaPendientes" th:value="${paginaPendientes.number + 1}">
+                            <input type="hidden" name="paginaRevisados" th:value="${paginaRevisados.number + 1}">
+                        </form>
+                        <div th:replace="~{fragments/paginacion :: paginacion(${paginaRechazados}, 'paginacionRechazados', 'registro(s)', 'paginaRechazados')}"></div>
+                    </th:block>
                 </div>
             </div>
         </div>
     </main>
 </div>
 <script th:src="@{/tabler/js/tabler.min.js}"></script>
-<script th:src="@{/js/admin-js/admin-table-pagination.js}"></script>
-<script th:src="@{/js/admin-js/admin-experiencia.js}"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI — Actividades del Proyecto</title>
     <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
     <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
     <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
 
@@ -84,7 +85,7 @@
                     <tr th:if="${actividades.isEmpty()}">
                         <td colspan="6" class="text-center text-secondary py-3">Todavía no has creado actividades en este proyecto.</td>
                     </tr>
-                    <tr th:each="act : ${actividades}" class="pm-activity-row" style="cursor:pointer"
+                    <tr th:each="act : ${actividades}" style="cursor:pointer"
                         data-bs-toggle="modal" th:attr="data-bs-target='#detalleActividadModal-' + ${act.actividad.id}">
                         <td class="fw-semibold" th:text="${act.colaboradorNombre}">Nombre</td>
                         <td th:text="${act.titulo}">Título</td>
@@ -100,10 +101,13 @@
                 </table>
             </div>
 
-            <div class="pagination-wrap">
-                <div id="actividadesPaginationInfo" class="text-secondary small">Mostrando actividades</div>
-                <ul id="actividadesPagination" class="pagination pagination-sm m-0"></ul>
-            </div>
+            <!-- Paginación en el servidor (10 por página). -->
+            <form id="paginacionActividades" method="get" th:action="@{/pm/actividades}">
+                <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+            </form>
+            <th:block th:if="${!actividades.isEmpty()}">
+                <div th:replace="~{fragments/paginacion :: paginacion(${paginaActividades}, 'paginacionActividades', 'actividad(es)', 'pagina')}"></div>
+            </th:block>
         </div>
 
     </main></div>
@@ -192,10 +196,9 @@
                     <div th:if="${act.actividad.evidenciaUrl != null}" class="mb-3">
                         <a th:data-evidencia="@{${act.actividad.evidenciaUrl}}" onclick="showEvidenciaModal(this.getAttribute('data-evidencia')); return false;" href="#" class="btn btn-outline-secondary btn-sm">Ver evidencia adjuntada</a>
                     </div>
-                    <div th:if="${act.actividad.comentarioDevolucion != null}" class="alert alert-warning small mb-0">
-                        <div class="fw-semibold">Tú devolviste esta actividad antes:</div>
-                        <div th:text="${act.actividad.comentarioDevolucion}"></div>
-                    </div>
+                    <th:block th:if="${act.actividad.comentarioDevolucion != null}">
+                        <div th:replace="~{fragments/comentario-rechazo :: comentario('Tu comentario al devolverla', ${act.actividad.comentarioDevolucion}, null)}"></div>
+                    </th:block>
                 </div>
                 <div class="modal-footer" th:if="${act.puedeConfirmar or act.puedeDevolver or act.puedeEditar or act.puedeEliminar}">
                     <div th:if="${act.puedeConfirmar or act.puedeDevolver}" class="w-100 mb-3 pb-3 border-bottom">
@@ -271,8 +274,6 @@
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
-<script src="../../static/js/pm-js/pm-actividades.js" th:src="@{/js/pm-js/pm-actividades.js}"></script>
 <script th:if="${abrirModalNuevaActividad != null}">
   document.addEventListener("DOMContentLoaded", function () {
     var modalEl = document.getElementById("nuevaActividadModal");

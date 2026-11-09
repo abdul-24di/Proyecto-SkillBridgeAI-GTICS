@@ -22,6 +22,8 @@ import com.pucp.skillb_ia.model.VotoRespuesta;
 import com.pucp.skillb_ia.model.enums.TipoVoto;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
+import com.pucp.skillb_ia.service.NotificacionService;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +57,7 @@ public class PmForoService {
 
     private final AuditoriaService auditoriaService;
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
+    private final NotificacionService notificacionService;
 
     public PmForoService(ForoRepository foroRepository,
                          PublicacionForoRepository publicacionRepository,
@@ -64,7 +67,9 @@ public class PmForoService {
                          VotoPublicacionRepository votoPublicacionRepository,
                          VotoRespuestaRepository votoRespuestaRepository,
                          AuditoriaService auditoriaService,
-                         ArchivoAlmacenamientoService archivoAlmacenamientoService) {
+                         ArchivoAlmacenamientoService archivoAlmacenamientoService,
+                         NotificacionService notificacionService) {
+        this.notificacionService = notificacionService;
         this.foroRepository = foroRepository;
         this.publicacionRepository = publicacionRepository;
         this.respuestaRepository = respuestaRepository;
@@ -257,7 +262,17 @@ public class PmForoService {
         respuesta.setPublicacion(publicacion);
         respuesta.setAutor(pm);
         respuesta.setContenido(contenido);
-        return respuestaRepository.save(respuesta);
+        RespuestaForo guardada = respuestaRepository.save(respuesta);
+
+        // Igual que en el foro del colaborador: se avisa al autor, salvo que se responda a sí mismo.
+        if (!publicacion.getAutor().getId().equals(pm.getId())) {
+            notificacionService.crear(publicacion.getAutor(), "RESPUESTA_FORO", CategoriaNotificacion.MENSAJE,
+                    "Nueva respuesta en tu publicación",
+                    pm.getNombre() + " " + pm.getApellido() + " respondió tu publicación \""
+                            + publicacion.getTitulo() + "\".",
+                    "FORO", publicacion.getForo().getId());
+        }
+        return guardada;
     }
 
     public static boolean contenidoForoVacio(String contenido) {

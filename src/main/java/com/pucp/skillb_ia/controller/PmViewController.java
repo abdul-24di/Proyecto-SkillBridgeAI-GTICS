@@ -1,6 +1,9 @@
 package com.pucp.skillb_ia.controller;
 
 import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.util.Paginador;
+import org.springframework.data.domain.Page;
+import java.util.List;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
@@ -106,9 +109,29 @@ public class PmViewController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping({"/proyectos", "/pm-proyectos.html"})
-    public String proyectos(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+    public String proyectos(@AuthenticationPrincipal UsuarioDetails principal,
+                            @RequestParam(required = false) String busqueda,
+                            @RequestParam(required = false) String estado,
+                            @RequestParam(required = false) String prioridad,
+                            @RequestParam(required = false) Integer pagina,
+                            Model model) {
         Usuario pm = principal.getUsuario();
-        model.addAttribute("proyectos", pmProyectoService.listar(pm));
+        // Filtros y paginación en el servidor (antes en pm-proyectos.js), 6 tarjetas por página.
+        List<com.pucp.skillb_ia.dto.PmProyectoView> todos = pmProyectoService.listar(pm);
+        List<com.pucp.skillb_ia.dto.PmProyectoView> filtrados = todos.stream()
+                .filter(p -> Paginador.contiene(p.getProyecto().getNombre() + " " +
+                        (p.getProyecto().getDescripcion() != null ? p.getProyecto().getDescripcion() : "") + " " +
+                        p.getRequisitos().stream().map(r -> r.getHabilidad()).toList(), busqueda))
+                .filter(p -> Paginador.coincide(p.getEstadoTexto(), estado))
+                .filter(p -> Paginador.coincide(p.getProyecto().getPrioridad() != null ? p.getProyecto().getPrioridad().toString() : "", prioridad))
+                .toList();
+        Page<com.pucp.skillb_ia.dto.PmProyectoView> paginaProyectos = Paginador.paginar(filtrados, pagina, 6);
+        model.addAttribute("paginaProyectos", paginaProyectos);
+        model.addAttribute("proyectos", paginaProyectos.getContent());
+        model.addAttribute("totalProyectos", todos.size());
+        model.addAttribute("busqueda", busqueda);
+        model.addAttribute("estadoFiltro", estado);
+        model.addAttribute("prioridadFiltro", prioridad);
         model.addAttribute("pm", pm);
         return "pm/pm-proyectos";
     }
@@ -280,11 +303,33 @@ public class PmViewController {
 
     @GetMapping({"/proyectos/asignaciones", "/pm-asignaciones-proyecto.html"})
     public String asignaciones(@RequestParam("proyectoId") Long proyectoId,
+                               @RequestParam(required = false) Integer paginaActivas,
+                               @RequestParam(required = false) Integer paginaPendientes,
+                               @RequestParam(required = false) Integer paginaTramite,
+                               @RequestParam(required = false) Integer paginaHistorial,
                                @AuthenticationPrincipal UsuarioDetails principal,
                                Model model) {
         Usuario pm = principal.getUsuario();
-        model.addAttribute("asignaciones", pmAsignacionService.listarPorProyecto(proyectoId, pm));
-        model.addAttribute("pendientesPm", pmAsignacionService.listarPendientesPm(proyectoId, pm));
+        var todas = pmAsignacionService.listarPorProyecto(proyectoId, pm);
+        var pendientes = pmAsignacionService.listarPendientesPm(proyectoId, pm);
+        // La lista completa se usa para los modales de "Finalizar"; las tablas se paginan en el servidor (10 por página).
+        model.addAttribute("asignaciones", todas);
+        var activas = todas.stream().filter(a -> "Activa".equals(a.getEstadoTexto())).toList();
+        var tramite = todas.stream().filter(a -> "Pendiente".equals(a.getEstadoTexto())).toList();
+        var historial = todas.stream().filter(a -> "Rechazada".equals(a.getEstadoTexto()) || "Finalizada".equals(a.getEstadoTexto())).toList();
+        // Si un rechazo volvió con error, se abre la página donde está esa propuesta para poder mostrar su modal.
+        Object rechazarId = model.getAttribute("abrirModalRechazarId");
+        if (rechazarId != null) {
+            for (int i = 0; i < pendientes.size(); i++) {
+                if (rechazarId.equals(pendientes.get(i).getAsignacion().getId())) {
+                    paginaPendientes = i / Paginador.TAMANIO_PAGINA + 1;
+                }
+            }
+        }
+        model.addAttribute("paginaActivas", Paginador.paginar(activas, paginaActivas));
+        model.addAttribute("paginaPendientes", Paginador.paginar(pendientes, paginaPendientes));
+        model.addAttribute("paginaTramite", Paginador.paginar(tramite, paginaTramite));
+        model.addAttribute("paginaHistorial", Paginador.paginar(historial, paginaHistorial));
         model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
         // Colaboradores disponibles para proponer (rol COLABORADOR activos)
         model.addAttribute("colaboradoresDisponibles",
@@ -398,10 +443,25 @@ public class PmViewController {
 
     @GetMapping({"/actividades", "/pm-actividades.html"})
     public String actividades(@RequestParam("proyectoId") Long proyectoId,
+                              @RequestParam(required = false) Integer pagina,
                               @AuthenticationPrincipal UsuarioDetails principal,
                               Model model) {
         Usuario pm = principal.getUsuario();
-        model.addAttribute("actividades", pmActividadService.listarPorProyecto(proyectoId, pm));
+        var todas = pmActividadService.listarPorProyecto(proyectoId, pm);
+        // Si un modal de editar/detalle volvió con error, se abre la página donde está esa actividad.
+        Object idConError = model.getAttribute("abrirModalEditarActividadId") != null
+                ? model.getAttribute("abrirModalEditarActividadId") : model.getAttribute("abrirModalDetalleActividadId");
+        if (idConError != null) {
+            for (int i = 0; i < todas.size(); i++) {
+                if (idConError.equals(todas.get(i).getActividad().getId())) {
+                    pagina = i / Paginador.TAMANIO_PAGINA + 1;
+                }
+            }
+        }
+        // Paginación en el servidor (antes pm-actividades.js), 10 por página.
+        var paginaActividades = Paginador.paginar(todas, pagina);
+        model.addAttribute("paginaActividades", paginaActividades);
+        model.addAttribute("actividades", paginaActividades.getContent());
         model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
         // Colaboradores activos del proyecto para asignar actividades
         model.addAttribute("colaboradoresActivos",
@@ -535,10 +595,20 @@ public class PmViewController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping({"/foros", "/pm-foros.html"})
-    public String foros(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+    public String foros(@AuthenticationPrincipal UsuarioDetails principal,
+                        @RequestParam(required = false) String tab,
+                        @RequestParam(required = false) Integer paginaComunidad,
+                        @RequestParam(required = false) Integer paginaMios,
+                        Model model) {
         Usuario pm = principal.getUsuario();
-        model.addAttribute("foros", pmForoService.listarForosPm(pm));
-        model.addAttribute("forosComunidad", pmForoService.listarForosComunidad());
+        // Paginación en el servidor (antes pm-foros.js), 6 foros por pestaña.
+        var pagComunidad = Paginador.paginar(pmForoService.listarForosComunidad(), paginaComunidad, 6);
+        var pagMios = Paginador.paginar(pmForoService.listarForosPm(pm), paginaMios, 6);
+        model.addAttribute("paginaComunidad", pagComunidad);
+        model.addAttribute("paginaMios", pagMios);
+        model.addAttribute("forosComunidad", pagComunidad.getContent());
+        model.addAttribute("foros", pagMios.getContent());
+        model.addAttribute("tab", "mios".equals(tab) ? "mios" : "comunidad");
         model.addAttribute("pm", pm);
         return "pm/pm-foros";
     }
@@ -730,19 +800,28 @@ public class PmViewController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping({"/reportes", "/pm-reportes.html"})
-    public String reportes(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+    public String reportes(@AuthenticationPrincipal UsuarioDetails principal,
+                           @RequestParam(required = false) Integer pagina,
+                           Model model) {
         Usuario pm = principal.getUsuario();
-        model.addAttribute("proyectos", pmProyectoService.listar(pm));
+        // Paginación en el servidor (antes pm-reportes.js), 6 tarjetas por página.
+        var paginaReportes = Paginador.paginar(pmProyectoService.listar(pm), pagina, 6);
+        model.addAttribute("paginaReportes", paginaReportes);
+        model.addAttribute("proyectos", paginaReportes.getContent());
         model.addAttribute("pm", pm);
         return "pm/pm-reportes";
     }
 
     @GetMapping({"/reportes/detalle", "/pm-reporte-detalle.html"})
     public String reporteDetalle(@RequestParam("proyectoId") Long proyectoId,
+                                 @RequestParam(required = false) Integer pagina,
                                  @AuthenticationPrincipal UsuarioDetails principal,
                                  Model model) {
         Usuario pm = principal.getUsuario();
-        model.addAttribute("reporte", pmReporteService.obtener(proyectoId, pm));
+        var reporte = pmReporteService.obtener(proyectoId, pm);
+        model.addAttribute("reporte", reporte);
+        // La tabla de métricas se pagina en el servidor (antes pm-reporte-detalle.js), 10 por página.
+        model.addAttribute("paginaColaboradores", Paginador.paginar(reporte.getColaboradores(), pagina));
         model.addAttribute("pm", pm);
         return "pm/pm-reporte-detalle";
     }

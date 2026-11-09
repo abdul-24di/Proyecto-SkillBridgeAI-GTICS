@@ -146,30 +146,41 @@
       <div class="card-header section-header">
         <div><h3 class="card-title mb-1">Portafolio de proyectos</h3><div class="section-description">Estados oficiales: En revisión, Activo, Rechazado, En espera, Cancelado y Finalizado.</div></div>
       </div>
-      <div class="card-body projects-filters">
+      <!-- Filtros en el servidor: formulario GET (sin JavaScript). -->
+      <form id="filtrosProyectosPm" class="card-body projects-filters" method="get" th:action="@{/pm/proyectos}">
         <div class="row g-3 align-items-end">
-          <div class="col-xl-5 col-md-6"><label class="form-label">Buscar</label><input id="searchInput" class="form-control" placeholder="Nombre, tecnología o habilidad"></div>
-          <div class="col-xl-3 col-md-6"><label class="form-label">Estado</label><select id="statusFilter" class="form-select"><option value="all">Todos</option><option>En revisión</option><option>Activo</option><option>Rechazado</option><option>En espera</option><option>Cancelado</option><option>Finalizado</option></select></div>
-          <div class="col-xl-2 col-md-6">
-            <label class="form-label">Prioridad</label>
-            <select id="priorityFilter" class="form-select">
-              <option value="all">Todas</option>
-              <option value="ALTA">Alta</option>
-              <option value="MEDIA">Media</option>
-              <option value="BAJA">Baja</option>
+          <div class="col-xl-4 col-md-6"><label class="form-label" for="searchInput">Buscar</label><input id="searchInput" name="busqueda" class="form-control" placeholder="Nombre, tecnología o habilidad" maxlength="100" th:value="${busqueda}"></div>
+          <div class="col-xl-3 col-md-6">
+            <label class="form-label" for="statusFilter">Estado</label>
+            <select id="statusFilter" name="estado" class="form-select">
+              <option value="">Todos</option>
+              <option value="En revisión" th:selected="${estadoFiltro == 'En revisión'}">En revisión</option>
+              <option value="Activo" th:selected="${estadoFiltro == 'Activo'}">Activo</option>
+              <option value="Rechazado" th:selected="${estadoFiltro == 'Rechazado'}">Rechazado</option>
+              <option value="En espera" th:selected="${estadoFiltro == 'En espera'}">En espera</option>
+              <option value="Cancelado" th:selected="${estadoFiltro == 'Cancelado'}">Cancelado</option>
+              <option value="Finalizado" th:selected="${estadoFiltro == 'Finalizado'}">Finalizado</option>
             </select>
           </div>
-          <div class="col-xl-2 col-md-6 d-grid"><button id="clearFilters" class="btn btn-outline-secondary" type="button">Limpiar</button></div>
+          <div class="col-xl-2 col-md-6">
+            <label class="form-label" for="priorityFilter">Prioridad</label>
+            <select id="priorityFilter" name="prioridad" class="form-select">
+              <option value="">Todas</option>
+              <option value="ALTA" th:selected="${prioridadFiltro == 'ALTA'}">Alta</option>
+              <option value="MEDIA" th:selected="${prioridadFiltro == 'MEDIA'}">Media</option>
+              <option value="BAJA" th:selected="${prioridadFiltro == 'BAJA'}">Baja</option>
+            </select>
+          </div>
+          <div class="col-xl-3 col-md-6 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Filtrar</button>
+            <a th:href="@{/pm/proyectos}" class="btn btn-outline-secondary flex-fill">Limpiar</a>
+          </div>
         </div>
-      </div>
+      </form>
     </div>
 
     <div id="projectGrid" class="row row-cards">
-      <div th:each="p : ${proyectos}" class="col-xl-6 project-item"
-           th:data-name="${p.proyecto.nombre.toLowerCase()}"
-           th:data-desc="${p.proyecto.descripcion != null ? p.proyecto.descripcion.toLowerCase() : ''}"
-           th:data-status="${p.estadoTexto}"
-           th:data-priority="${p.proyecto.prioridad}">
+      <div th:each="p : ${proyectos}" class="col-xl-6 project-item">
         <div class="card project-card">
           <div class="card-body">
             <div class="d-flex justify-content-between gap-3 align-items-start flex-wrap">
@@ -208,17 +219,16 @@
         </div>
       </div>
 
-      <div id="emptyState" class="col-12 d-none">
+      <div th:if="${proyectos.isEmpty()}" class="col-12">
         <div class="card">
-          <div class="empty-state">No se encontraron proyectos.</div>
+          <div class="empty-state" th:text="${totalProyectos > 0} ? 'Ningún proyecto coincide con los filtros.' : 'Todavía no has creado proyectos.'">No se encontraron proyectos.</div>
         </div>
       </div>
     </div>
 
-    <div class="pagination-wrap">
-      <div id="projectsPaginationInfo" class="text-secondary small">Mostrando proyectos</div>
-      <ul id="projectsPagination" class="pagination pagination-sm m-0"></ul>
-    </div>
+    <th:block th:if="${!proyectos.isEmpty()}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaProyectos}, 'filtrosProyectosPm', 'proyecto(s)', 'pagina')}"></div>
+    </th:block>
   </main>
 </div>
 <div class="modal modal-blur fade pm-modal" id="cancelProjectModal" tabindex="-1" aria-labelledby="cancelProjectTitle" aria-hidden="true">
@@ -229,6 +239,5 @@
   </div></div>
 </div>
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
-<script src="../../static/js/pm-js/pm-proyectos.js" th:src="@{/js/pm-js/pm-proyectos.js?v=3}"></script>
+<script src="../../static/js/pm-js/pm-proyectos.js" th:src="@{/js/pm-js/pm-proyectos.js?v=4}"></script>
 </body></html>

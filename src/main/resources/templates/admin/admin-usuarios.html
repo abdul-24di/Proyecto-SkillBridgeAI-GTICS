@@ -167,33 +167,35 @@
         </div>
       </div>
 
-      <div class="card-body border-bottom">
+      <!-- Filtros en el servidor: formulario GET (sin JavaScript). -->
+      <form id="filtrosUsuarios" class="card-body border-bottom" method="get" th:action="@{/admin/usuarios}">
         <div class="row g-3 align-items-end">
           <div class="col-xl-4 col-md-6">
             <label for="userSearch" class="form-label">Buscar usuario</label>
-            <input id="userSearch" class="form-control" type="text" placeholder="Nombre o correo">
+            <input id="userSearch" name="busqueda" class="form-control" type="text" placeholder="Nombre o correo" maxlength="100" th:value="${busqueda}">
           </div>
           <div class="col-xl-3 col-md-6">
             <label for="userRoleFilter" class="form-label">Rol</label>
-            <select id="userRoleFilter" class="form-select">
-              <option value="all">Todos</option>
-              <option th:each="etiqueta : ${rolesDisponibles}" th:value="${etiqueta}" th:text="${etiqueta}"></option>
+            <select id="userRoleFilter" name="rol" class="form-select">
+              <option value="">Todos</option>
+              <option th:each="etiqueta : ${rolesDisponibles}" th:value="${etiqueta}" th:text="${etiqueta}" th:selected="${etiqueta == rolFiltro}"></option>
             </select>
           </div>
-          <div class="col-xl-3 col-md-6">
+          <div class="col-xl-2 col-md-6">
             <label for="userStatusFilter" class="form-label">Estado</label>
-            <select id="userStatusFilter" class="form-select">
-              <option value="all">Todos</option>
-              <option value="Activo">Activo</option>
-              <option value="Pendiente">Pendiente de activación</option>
-              <option value="Inactivo">Inactivo</option>
+            <select id="userStatusFilter" name="estado" class="form-select">
+              <option value="">Todos</option>
+              <option value="Activo" th:selected="${estadoFiltro == 'Activo'}">Activo</option>
+              <option value="Pendiente" th:selected="${estadoFiltro == 'Pendiente'}">Pendiente de activación</option>
+              <option value="Inactivo" th:selected="${estadoFiltro == 'Inactivo'}">Inactivo</option>
             </select>
           </div>
-          <div class="col-xl-2 d-grid">
-            <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary">Limpiar filtros</button>
+          <div class="col-xl-3 col-md-6 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Filtrar</button>
+            <a th:href="@{/admin/usuarios}" class="btn btn-outline-secondary flex-fill">Limpiar</a>
           </div>
         </div>
-      </div>
+      </form>
 
       <div class="table-responsive">
         <table class="table table-vcenter card-table mb-0">
@@ -209,8 +211,7 @@
           </thead>
           <tbody>
             <tr th:each="u : ${usuarios}"
-                th:classappend="${u.pendiente()} ? 'table-warning-row' : (${!u.activo()} ? 'opacity-75' : '')"
-                th:attr="data-search=${#strings.toLowerCase((u.nombreCompleto() != null ? u.nombreCompleto() : '') + ' ' + u.correo())},data-role=${u.rolEtiqueta()},data-status=${u.estado()}">
+                th:classappend="${u.pendiente()} ? 'table-warning-row' : (${!u.activo()} ? 'opacity-75' : '')">
               <td class="d-flex align-items-center gap-2" th:if="${!u.pendiente()}">
                 <span class="avatar avatar-sm bg-blue-lt text-blue" th:text="${u.iniciales()}">SA</span>
                 <span class="fw-semibold" th:text="${u.nombreCompleto()}">Sofía Alarcón</span>
@@ -256,19 +257,14 @@
               </td>
             </tr>
             <tr th:if="${#lists.isEmpty(usuarios)}">
-              <td colspan="6" class="text-center text-secondary py-4">No hay usuarios registrados todavía.</td>
-            </tr>
-            <tr id="userNoResults" class="d-none" th:if="${!#lists.isEmpty(usuarios)}">
-              <td colspan="6" class="text-center text-secondary py-4">Ningún usuario coincide con los filtros aplicados.</td>
+              <td colspan="6" class="text-center text-secondary py-4"
+                  th:text="${busqueda != null or rolFiltro != null or estadoFiltro != null} ? 'Ningún usuario coincide con los filtros aplicados.' : 'No hay usuarios registrados todavía.'">No hay usuarios registrados todavía.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="pagination-wrap">
-        <div id="userPaginationInfo" class="text-secondary small">Mostrando usuarios</div>
-        <ul id="userPagination" class="pagination pagination-sm m-0"></ul>
-      </div>
+      <div class="px-3 pb-3" th:replace="~{fragments/paginacion :: paginacion(${paginaUsuarios}, 'filtrosUsuarios', 'usuario(s)', 'pagina')}"></div>
     </div>
 
   </main>
@@ -463,7 +459,5 @@
 <script th:src="@{/js/validacion-formularios.js}"></script>
 <script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
 <script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
-<script src="../../static/js/admin-js/admin-table-pagination.js" th:src="@{/js/admin-js/admin-table-pagination.js}"></script>
-<script src="../../static/js/admin-js/admin-usuarios.js" th:src="@{/js/admin-js/admin-usuarios.js}"></script>
 </body>
 </html>

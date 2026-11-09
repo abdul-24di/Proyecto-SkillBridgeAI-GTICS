@@ -173,32 +173,35 @@
                 </button>
               </div>
 
-              <div class="card-body border-bottom">
+              <!-- Filtros en el servidor: formulario GET (sin JavaScript). -->
+              <form id="filtrosHabilidades" class="card-body border-bottom" method="get" th:action="@{/admin/habilidades}">
+                <input type="hidden" name="paginaCategorias" th:value="${paginaCategorias.number + 1}">
                 <div class="row g-3 align-items-end">
-                  <div class="col-xl-5 col-md-6">
+                  <div class="col-xl-4 col-md-6">
                     <label for="skillSearch" class="form-label">Buscar habilidad</label>
-                    <input id="skillSearch" class="form-control" type="text" placeholder="Ej. Java, Scrum, AWS...">
+                    <input id="skillSearch" name="busqueda" class="form-control" type="text" placeholder="Ej. Java, Scrum, AWS..." maxlength="100" th:value="${busqueda}">
                   </div>
                   <div class="col-xl-3 col-md-6">
                     <label for="skillCategoryFilter" class="form-label">Categoría</label>
-                    <select id="skillCategoryFilter" class="form-select">
-                      <option value="all">Todas</option>
-                      <option th:each="cat : ${categorias}" th:value="${cat.nombre}" th:text="${cat.nombre}"></option>
+                    <select id="skillCategoryFilter" name="categoria" class="form-select">
+                      <option value="">Todas</option>
+                      <option th:each="cat : ${categorias}" th:value="${cat.nombre}" th:text="${cat.nombre}" th:selected="${cat.nombre == categoriaFiltro}"></option>
                     </select>
                   </div>
                   <div class="col-xl-2 col-md-6">
                     <label for="skillStatusFilter" class="form-label">Estado</label>
-                    <select id="skillStatusFilter" class="form-select">
-                      <option value="all">Todas</option>
-                      <option value="Activa">Activas</option>
-                      <option value="Desactivada">Desactivadas</option>
+                    <select id="skillStatusFilter" name="estado" class="form-select">
+                      <option value="">Todas</option>
+                      <option value="Activa" th:selected="${estadoFiltro == 'Activa'}">Activas</option>
+                      <option value="Desactivada" th:selected="${estadoFiltro == 'Desactivada'}">Desactivadas</option>
                     </select>
                   </div>
-                  <div class="col-xl-2 d-grid">
-                    <button type="button" id="clearSkillFiltersBtn" class="btn btn-outline-secondary">Limpiar</button>
+                  <div class="col-xl-3 col-md-6 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-fill">Filtrar</button>
+                    <a th:href="@{/admin/habilidades}" class="btn btn-outline-secondary flex-fill">Limpiar</a>
                   </div>
                 </div>
-              </div>
+              </form>
 
               <div class="table-responsive">
                 <table class="table table-vcenter card-table mb-0">
@@ -212,8 +215,7 @@
                     </tr>
                   </thead>
                   <tbody id="skillsTableBody">
-                    <tr th:each="h : ${habilidades}" th:classappend="${!h.activa()} ? 'opacity-75' : ''"
-                        th:attr="data-search=${#strings.toLowerCase(h.nombre())},data-category=${h.categoriaNombre()},data-status=${h.activa() ? 'Activa' : 'Desactivada'}">
+                    <tr th:each="h : ${habilidades}" th:classappend="${!h.activa()} ? 'opacity-75' : ''">
                       <td class="fw-semibold" th:text="${h.nombre()}">Java</td>
                       <td><span class="badge" th:classappend="${h.categoriaBadgeClase()}" th:text="${h.categoriaNombre()}">Técnico</span></td>
                       <td th:text="${h.colaboradores()}">32</td>
@@ -238,19 +240,14 @@
                       </td>
                     </tr>
                     <tr th:if="${#lists.isEmpty(habilidades)}">
-                      <td colspan="5" class="text-center text-secondary py-4">No hay habilidades registradas todavía.</td>
-                    </tr>
-                    <tr id="skillNoResults" class="d-none" th:if="${!#lists.isEmpty(habilidades)}">
-                      <td colspan="5" class="text-center text-secondary py-4">Ninguna habilidad coincide con los filtros aplicados.</td>
+                      <td colspan="5" class="text-center text-secondary py-4"
+                          th:text="${busqueda != null or categoriaFiltro != null or estadoFiltro != null} ? 'Ninguna habilidad coincide con los filtros aplicados.' : 'No hay habilidades registradas todavía.'">No hay habilidades registradas todavía.</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              <div class="pagination-wrap">
-                <div id="skillPaginationInfo" class="text-secondary small">Mostrando habilidades</div>
-                <ul id="skillPagination" class="pagination pagination-sm m-0"></ul>
-              </div>
+              <div th:replace="~{fragments/paginacion :: paginacion(${paginaHabilidades}, 'filtrosHabilidades', 'habilidad(es)', 'pagina')}"></div>
             </div>
 
             <!-- Sección: Categorías -->
@@ -277,7 +274,7 @@
                     </tr>
                   </thead>
                   <tbody id="categoriesTableBody">
-                    <tr th:each="c : ${todasCategorias}" th:classappend="${!c.activa()} ? 'opacity-75' : ''" data-category-row>
+                    <tr th:each="c : ${todasCategorias}" th:classappend="${!c.activa()} ? 'opacity-75' : ''">
                       <td><span class="badge" th:classappend="${c.badgeClase()}" th:text="${c.nombre()}">Técnico</span></td>
                       <td class="text-secondary" th:text="${c.descripcion() != null ? c.descripcion() : '—'}">—</td>
                       <td th:text="${c.habilidades()}">12</td>
@@ -310,10 +307,14 @@
                 </table>
               </div>
 
-              <div class="pagination-wrap">
-                <div id="categoryPaginationInfo" class="text-secondary small">Mostrando categorías</div>
-                <ul id="categoryPagination" class="pagination pagination-sm m-0"></ul>
-              </div>
+              <!-- Formulario propio de la tabla de categorías: conserva los filtros y la página de habilidades. -->
+              <form id="paginacionCategorias" method="get" th:action="@{/admin/habilidades}">
+                <input type="hidden" name="busqueda" th:value="${busqueda}">
+                <input type="hidden" name="categoria" th:value="${categoriaFiltro}">
+                <input type="hidden" name="estado" th:value="${estadoFiltro}">
+                <input type="hidden" name="pagina" th:value="${paginaHabilidades.number + 1}">
+              </form>
+              <div th:replace="~{fragments/paginacion :: paginacion(${paginaCategorias}, 'paginacionCategorias', 'categoría(s)', 'paginaCategorias')}"></div>
             </div>
 
           </div><!-- fin tab-pane habilidades -->
@@ -613,7 +614,5 @@
 <script th:src="@{/js/validacion-formularios.js}"></script>
 <script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
 <script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
-<script src="../../static/js/admin-js/admin-table-pagination.js" th:src="@{/js/admin-js/admin-table-pagination.js}"></script>
-<script src="../../static/js/admin-js/admin-habilidades.js" th:src="@{/js/admin-js/admin-habilidades.js}"></script>
 </body>
 </html>

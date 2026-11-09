@@ -97,6 +97,11 @@ public class AuthService {
     // los define el propio usuario al activar (ver C1).
     @Transactional
     public Usuario invitarUsuario(String correo, String nombreRol, Usuario creadoPorAdmin) {
+        return invitar(correo, nombreRol, creadoPorAdmin).usuario();
+    }
+
+    @Transactional
+    public Invitacion invitar(String correo, String nombreRol, Usuario creadoPorAdmin) {
         correo = validarCorreo(correo);
         if (usuarioRepository.existsByCorreo(correo)) {
             throw new IllegalArgumentException("Ya existe un usuario con el correo " + correo);
@@ -116,26 +121,33 @@ public class AuthService {
         // passwordHash, nombre y apellido quedan NULL hasta que el usuario active su cuenta.
         usuario = usuarioRepository.save(usuario);
 
-        enviarNuevoTokenActivacion(usuario);
+        boolean correoEnviado = enviarNuevoTokenActivacion(usuario);
 
         auditoriaService.registrar(creadoPorAdmin, "CREAR_USUARIO", "USUARIO", usuario.getId(),
                 "Creó el usuario " + correo + " con rol " + nombreRol + ".");
 
-        return usuario;
+        return new Invitacion(usuario, correoEnviado);
+    }
+
+    // Usuario creado y si el correo de invitación salió de verdad: si el servidor de correo falla, la
+    // cuenta igual queda creada (el enlace se puede reenviar), pero el Admin tiene que saberlo.
+    public record Invitacion(Usuario usuario, boolean correoEnviado) {
     }
 
     // El botón "Reenviar enlace" del panel de Admin llama a esto (C2) —
     // invalida cualquier token de activación anterior sin usar y genera uno nuevo.
+    // Devuelve si el correo se envió.
     @Transactional
-    public void reenviarActivacion(Usuario usuario, Usuario solicitadoPorAdmin) {
-        enviarNuevoTokenActivacion(usuario);
+    public boolean reenviarActivacion(Usuario usuario, Usuario solicitadoPorAdmin) {
+        boolean enviado = enviarNuevoTokenActivacion(usuario);
         if (solicitadoPorAdmin != null) {
             auditoriaService.registrar(solicitadoPorAdmin, "REENVIAR_ACTIVACION", "USUARIO", usuario.getId(),
                     "Reenvió el enlace de activación a " + usuario.getCorreo() + ".");
         }
+        return enviado;
     }
 
-    private void enviarNuevoTokenActivacion(Usuario usuario) {
+    private boolean enviarNuevoTokenActivacion(Usuario usuario) {
         // Al reenviar, el enlace anterior que no se usó deja de servir.
         anularTokensPendientes(usuario, TipoToken.ACTIVACION);
 
@@ -147,11 +159,18 @@ public class AuthService {
         tokenUsuarioRepository.save(token);
 
         String enlace = "/activar-cuenta?token=" + token.getToken();
-        emailService.enviarActivacion(usuario.getCorreo(), enlace);
+        boolean enviado = emailService.enviarActivacion(usuario.getCorreo(), enlace);
 
         // Acción automática del sistema — usuario null en el log (consideraciones_bd_v4.md: NULL = sistema).
-        auditoriaService.registrar(null, "ENVIO_CORREO_ACTIVACION", "USUARIO", usuario.getId(),
-                "Se envió el correo de activación a " + usuario.getCorreo() + ".");
+        if (enviado) {
+            auditoriaService.registrar(null, "ENVIO_CORREO_ACTIVACION", "USUARIO", usuario.getId(),
+                    "Se envió el correo de activación a " + usuario.getCorreo() + ".");
+        } else {
+            auditoriaService.registrar(null, "ERROR_CORREO", "USUARIO", usuario.getId(),
+                    "No se pudo enviar el correo de activación a " + usuario.getCorreo()
+                            + ". Revisa la configuración del correo del servidor.");
+        }
+        return enviado;
     }
 
     public ResultadoToken validarTokenActivacion(String token) {

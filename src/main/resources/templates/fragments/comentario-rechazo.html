@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Comentario de rechazo o devolución, igual en todo el sistema: quién lo escribió, qué dijo y qué hacer.
+  Uso: <th:block th:if="${...}"><div th:replace="~{fragments/comentario-rechazo :: comentario('Comentario del PM', ${texto}, 'Qué hacer')}"></div></th:block>
+  Requiere /css/comentario-rechazo.css en la vista. El tercer parámetro puede ser null.
+-->
+<div th:fragment="comentario(autor, texto, siguientePaso)" class="comentario-rechazo" role="note">
+    <span class="comentario-rechazo-icono" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9h8M8 13h6"/><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-5l-5 3v-3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/></svg>
+    </span>
+    <div class="comentario-rechazo-cuerpo">
+        <div class="comentario-rechazo-autor" th:text="${autor}">Comentario del PM</div>
+        <blockquote class="comentario-rechazo-texto" th:text="${texto}">Motivo del rechazo</blockquote>
+        <div class="comentario-rechazo-paso" th:if="${siguientePaso != null}" th:text="${siguientePaso}">Qué hacer ahora</div>
+    </div>
+</div>
+</body>
+</html>

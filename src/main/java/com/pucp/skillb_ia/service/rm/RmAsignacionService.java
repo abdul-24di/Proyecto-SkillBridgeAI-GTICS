@@ -437,6 +437,17 @@ public class RmAsignacionService {
                     "ASIGNACION", asignacion.getId());
         }
 
+        // El PM también decide sobre su equipo: se le avisa si ya quedó activa o si ahora le toca aprobar.
+        Usuario colaborador = asignacion.getColaborador();
+        notificacionService.crear(asignacion.getProyecto().getPm(),
+                asignacion.getEstado() == EstadoAsignacion.ACTIVA ? "ASIGNACION_ACTIVA" : "ASIGNACION_PENDIENTE_PM",
+                CategoriaNotificacion.ASIGNACION,
+                asignacion.getEstado() == EstadoAsignacion.ACTIVA ? "Asignación activa" : "Asignación pendiente de tu aprobación",
+                "El RM aprobó a " + colaborador.getNombre() + " " + colaborador.getApellido() + " en el proyecto \""
+                        + asignacion.getProyecto().getNombre() + "\""
+                        + (asignacion.getEstado() == EstadoAsignacion.ACTIVA ? "; ya forma parte del equipo." : "; falta tu aprobación."),
+                "PROYECTO", asignacion.getProyecto().getId());
+
 
         auditoriaService.registrar(
                 rm, "APROBACION_ASIGNACION", "ASIGNACION", asignacion.getId(),
@@ -462,6 +473,11 @@ public class RmAsignacionService {
                 "Tu asignación al proyecto \"" + asignacion.getProyecto().getNombre()
                         + "\" fue rechazada. Motivo: " + motivoLimpio,
                 "ASIGNACION", asignacion.getId());
+        notificacionService.crear(asignacion.getProyecto().getPm(), "ASIGNACION_RECHAZADA_RM", CategoriaNotificacion.ASIGNACION,
+                "Asignación rechazada por el RM",
+                "El RM rechazó a " + asignacion.getColaborador().getNombre() + " " + asignacion.getColaborador().getApellido()
+                        + " en el proyecto \"" + asignacion.getProyecto().getNombre() + "\". Motivo: " + motivoLimpio,
+                "PROYECTO", asignacion.getProyecto().getId());
 
         auditoriaService.registrar(
                 rm, "RECHAZO_ASIGNACION", "ASIGNACION", asignacion.getId(),

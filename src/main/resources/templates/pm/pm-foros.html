@@ -52,16 +52,16 @@
 
             <ul class="nav nav-tabs nav-fill mb-4" data-bs-toggle="tabs">
                 <li class="nav-item">
-                    <a href="#tab-comunidad" class="nav-link active" data-bs-toggle="tab">Comunidad</a>
+                    <a href="#tab-comunidad" class="nav-link" th:classappend="${tab == 'comunidad'} ? 'active'" data-bs-toggle="tab">Comunidad</a>
                 </li>
                 <li class="nav-item">
-                    <a href="#tab-mis-proyectos" class="nav-link" data-bs-toggle="tab">Mis Proyectos</a>
+                    <a href="#tab-mis-proyectos" class="nav-link" th:classappend="${tab == 'mios'} ? 'active'" data-bs-toggle="tab">Mis Proyectos</a>
                 </li>
             </ul>
 
             <div class="tab-content">
                 <!-- ===================== COMUNIDAD ===================== -->
-                <div class="tab-pane active show" id="tab-comunidad">
+                <div class="tab-pane" th:classappend="${tab == 'comunidad'} ? 'active show'" id="tab-comunidad">
                     <div class="row row-cards">
                         <div th:each="foro : ${forosComunidad}" class="col-md-6 col-lg-4 pm-foro-item">
                             <div class="card card-link-pop">
@@ -90,14 +90,18 @@
                             Todavía no hay foros de comunidad disponibles.
                         </div>
                     </div>
-                    <div class="pagination-wrap mt-3">
-                        <div id="forosPaginationInfo" class="text-secondary small">Mostrando foros</div>
-                        <ul id="forosPagination" class="pagination pagination-sm m-0"></ul>
-                    </div>
+                    <!-- Paginación en el servidor; cada pestaña conserva la página de la otra. -->
+                    <form id="paginacionComunidad" method="get" th:action="@{/pm/foros}">
+                        <input type="hidden" name="tab" value="comunidad">
+                        <input type="hidden" name="paginaMios" th:value="${paginaMios.number + 1}">
+                    </form>
+                    <th:block th:if="${!#lists.isEmpty(forosComunidad)}">
+                        <div th:replace="~{fragments/paginacion :: paginacion(${paginaComunidad}, 'paginacionComunidad', 'foro(s)', 'paginaComunidad')}"></div>
+                    </th:block>
                 </div>
 
                 <!-- ===================== MIS PROYECTOS ===================== -->
-                <div class="tab-pane" id="tab-mis-proyectos">
+                <div class="tab-pane" th:classappend="${tab == 'mios'} ? 'active show'" id="tab-mis-proyectos">
                     <div class="row row-cards">
                         <div th:each="foro : ${foros}" class="col-md-6 col-lg-4 pm-foro-item">
                             <div class="card card-link-pop">
@@ -127,10 +131,13 @@
                             No tienes proyectos activos con foros asignados aún.
                         </div>
                     </div>
-                    <div class="pagination-wrap mt-3">
-                        <div id="forosMisProyectosPaginationInfo" class="text-secondary small">Mostrando foros</div>
-                        <ul id="forosMisProyectosPagination" class="pagination pagination-sm m-0"></ul>
-                    </div>
+                    <form id="paginacionMios" method="get" th:action="@{/pm/foros}">
+                        <input type="hidden" name="tab" value="mios">
+                        <input type="hidden" name="paginaComunidad" th:value="${paginaComunidad.number + 1}">
+                    </form>
+                    <th:block th:if="${!#lists.isEmpty(foros)}">
+                        <div th:replace="~{fragments/paginacion :: paginacion(${paginaMios}, 'paginacionMios', 'foro(s)', 'paginaMios')}"></div>
+                    </th:block>
                 </div>
             </div>
         </div>
@@ -138,7 +145,5 @@
 
 </div>
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
-<script src="../../static/js/pm-js/pm-foros.js" th:src="@{/js/pm-js/pm-foros.js}"></script>
 </body>
 </html>

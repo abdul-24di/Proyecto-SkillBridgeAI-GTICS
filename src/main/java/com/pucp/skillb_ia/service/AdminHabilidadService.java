@@ -6,6 +6,8 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.repository.CategoriaHabilidadRepository;
 import com.pucp.skillb_ia.repository.ColaboradorHabilidadRepository;
 import com.pucp.skillb_ia.repository.HabilidadRepository;
+import com.pucp.skillb_ia.util.Paginador;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -143,6 +145,17 @@ public class AdminHabilidadService {
                 .sorted(Comparator.comparing(Habilidad::getNombre))
                 .map(this::aFila)
                 .toList();
+    }
+
+    /** Catálogo filtrado y paginado en el servidor (antes lo hacía admin-habilidades.js). */
+    @Transactional(readOnly = true)
+    public Page<HabilidadFila> listarPagina(String busqueda, String categoria, String estado, Integer pagina) {
+        List<HabilidadFila> filtradas = listar().stream()
+                .filter(h -> Paginador.contiene(h.nombre(), busqueda))
+                .filter(h -> Paginador.coincide(h.categoriaNombre(), categoria))
+                .filter(h -> Paginador.coincide(h.activa() ? "Activa" : "Desactivada", estado))
+                .toList();
+        return Paginador.paginar(filtradas, pagina);
     }
 
     @Transactional(readOnly = true)

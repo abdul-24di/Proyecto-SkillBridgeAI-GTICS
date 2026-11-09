@@ -7,6 +7,7 @@
     <title>Registro | SkillBridge AI</title>
     <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
     <link rel="stylesheet" href="../../static/css/auth-css/auth.css" th:href="@{/css/auth-css/auth.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
 </head>
 <body class="auth-page">
 <div class="auth-shell">
@@ -23,8 +24,9 @@
             <p class="auth-subtitle centered" th:if="${usuario.cvEstado != null and usuario.cvEstado.name() == 'RECHAZADO'}">
                 El Administrador devolvió tu último CV con observaciones.
             </p>
-            <div class="auth-alert error" th:if="${usuario.cvEstado != null and usuario.cvEstado.name() == 'RECHAZADO' and usuario.motivoRechazo != null}"
-                 th:text="${usuario.motivoRechazo}">Motivo</div>
+            <th:block th:if="${usuario.cvEstado != null and usuario.cvEstado.name() == 'RECHAZADO' and usuario.motivoRechazo != null}">
+                <div th:replace="~{fragments/comentario-rechazo :: comentario('Observación del Administrador', ${usuario.motivoRechazo}, 'Puedes subir un CV corregido desde tu perfil.')}"></div>
+            </th:block>
             <a th:href="@{/colaborador/dashboard}" class="auth-submit" style="text-decoration:none">Ir a mi panel</a>
         </th:block>
 
@@ -37,7 +39,9 @@
         <!-- Rechazado o sin CV: debe subir uno -->
         <th:block th:if="${usuario.registroEstado != null and (usuario.registroEstado.name() == 'RECHAZADO' or (usuario.registroEstado.name() == 'PENDIENTE' and usuario.cvUrl == null))}">
             <h2 class="auth-title centered" th:text="${usuario.registroEstado.name() == 'RECHAZADO'} ? 'Tu registro necesita correcciones' : 'Falta tu CV'">Registro</h2>
-            <div class="auth-alert error" th:if="${usuario.motivoRechazo != null}" th:text="${usuario.motivoRechazo}">Motivo</div>
+            <th:block th:if="${usuario.motivoRechazo != null}">
+                <div th:replace="~{fragments/comentario-rechazo :: comentario('Observación del Administrador', ${usuario.motivoRechazo}, 'Corrige lo indicado y vuelve a subir tu CV.')}"></div>
+            </th:block>
             <p class="auth-subtitle centered">Sube tu CV en PDF (máximo 5 MB) para que el Administrador lo revise.</p>
         </th:block>
 

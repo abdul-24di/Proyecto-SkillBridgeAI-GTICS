@@ -1,6 +1,11 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.dto.col.ColForoPublicacionForm;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.service.pm.PmForoService;
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import com.pucp.skillb_ia.service.EvaluacionService;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Foro;
@@ -8,6 +13,8 @@ import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.col.*;
+import com.pucp.skillb_ia.util.Paginador;
+import org.springframework.data.domain.Page;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -104,13 +111,28 @@ public class ColaboradorViewController {
     }
 
     @GetMapping({"/proyectos", "/col-proyectos.html"})
-    public String projects(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+    public String projects(@AuthenticationPrincipal UsuarioDetails principal,
+                           @RequestParam(required = false) String busqueda,
+                           @RequestParam(required = false) String estado,
+                           @RequestParam(required = false) Integer pagina,
+                           Model model) {
         if (principal == null) {
             return "redirect:/login";
         }
 
-        List<Asignacion> misAsignaciones = colaboradorProyectoService.listarMisAsignaciones(principal.getUsuario());
-        model.addAttribute("misAsignaciones", misAsignaciones);
+        // Filtro y paginación en el servidor (antes en col-proyectos.js), 6 tarjetas por página.
+        List<Asignacion> todas = colaboradorProyectoService.listarMisAsignaciones(principal.getUsuario());
+        List<Asignacion> filtradas = todas.stream()
+                .filter(a -> Paginador.coincide(a.getEstado().name(), estado))
+                .filter(a -> Paginador.contiene(a.getProyecto().getNombre() + " " +
+                        (a.getProyecto().getDescripcion() != null ? a.getProyecto().getDescripcion() : ""), busqueda))
+                .toList();
+        Page<Asignacion> paginaProyectos = Paginador.paginar(filtradas, pagina, 6);
+        model.addAttribute("paginaProyectos", paginaProyectos);
+        model.addAttribute("misAsignaciones", paginaProyectos.getContent());
+        model.addAttribute("totalAsignaciones", todas.size());
+        model.addAttribute("busqueda", busqueda);
+        model.addAttribute("estadoFiltro", estado == null || estado.isBlank() ? "Todos" : estado);
         return "col/col-proyectos";
     }
 
@@ -219,16 +241,38 @@ public class ColaboradorViewController {
 
 
     @GetMapping({"/foros", "/col-foros.html"})
-    public String foros(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+    public String foros(@AuthenticationPrincipal UsuarioDetails principal,
+                        @RequestParam(required = false) String busqueda,
+                        @RequestParam(required = false) String tab,
+                        @RequestParam(required = false) Integer paginaComunidad,
+                        @RequestParam(required = false) Integer paginaMios,
+                        Model model) {
         if (principal == null) {
             return "redirect:/login";
         }
         Usuario colaborador = principal.getUsuario();
         model.addAttribute("colaborador", colaborador);
-        model.addAttribute("forosComunidad", colaboradorForoService.listarForosComunidad());
-        model.addAttribute("forosMisProyectos", colaboradorForoService.listarForosDeMisProyectos(colaborador));
+
+        // Búsqueda y paginación en el servidor (antes en JS), 6 foros por página en cada pestaña.
+        List<Foro> comunidad = colaboradorForoService.listarForosComunidad().stream()
+                .filter(f -> Paginador.contiene(f.getNombre() + " " + (f.getProyecto() != null ? f.getProyecto().getNombre() : ""), busqueda))
+                .toList();
+        List<Foro> mios = colaboradorForoService.listarForosDeMisProyectos(colaborador).stream()
+                .filter(f -> Paginador.contiene(f.getNombre() + " " + (f.getProyecto() != null ? f.getProyecto().getNombre() : ""), busqueda))
+                .toList();
+        Page<Foro> pagComunidad = Paginador.paginar(comunidad, paginaComunidad, 6);
+        Page<Foro> pagMios = Paginador.paginar(mios, paginaMios, 6);
+        model.addAttribute("paginaComunidad", pagComunidad);
+        model.addAttribute("paginaMios", pagMios);
+        model.addAttribute("forosComunidad", pagComunidad.getContent());
+        model.addAttribute("forosMisProyectos", pagMios.getContent());
+        model.addAttribute("busqueda", busqueda);
+        model.addAttribute("tab", "mios".equals(tab) ? "mios" : "comunidad");
         model.addAttribute("forosParaPublicar", colaboradorForoService.listarForosParaPublicar(colaborador));
         model.addAttribute("etiquetas", colaboradorForoService.listarEtiquetas());
+        if (!model.containsAttribute("colForoPublicacionForm")) {
+            model.addAttribute("colForoPublicacionForm", new ColForoPublicacionForm());
+        }
         return "col/col-foros";
     }
 
@@ -246,28 +290,48 @@ public class ColaboradorViewController {
             model.addAttribute("publicaciones", colaboradorForoService.listarPublicacionesConRespuestas(colaborador, foroId));
             model.addAttribute("etiquetas", colaboradorForoService.listarEtiquetas());
             model.addAttribute("puedeParticipar", colaboradorForoService.puedeParticipar(colaborador, foro));
+            if (!model.containsAttribute("colForoPublicacionForm")) {
+                model.addAttribute("colForoPublicacionForm", new ColForoPublicacionForm());
+            }
             return "col/col-foro-detalle";
         } catch (IllegalArgumentException e) {
             return "redirect:/colaborador/foros";
         }
     }
 
+    // Si hay errores se vuelve a la página desde donde se publicó (el listado de foros o el detalle del
+    // foro), con el modal abierto y lo escrito conservado; antes iba siempre al detalle del foro elegido.
     @PostMapping("/foro/publicar")
-    public String publicarForo(@RequestParam("foroId") Long foroId,
-                               @RequestParam("titulo") String titulo,
-                               @RequestParam("contenido") String contenido,
-                               @RequestParam(value = "etiquetaId", required = false) Long etiquetaId,
+    public String publicarForo(@Valid @ModelAttribute("colForoPublicacionForm") ColForoPublicacionForm form,
+                               BindingResult result,
                                @AuthenticationPrincipal UsuarioDetails principal,
                                RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
-        try {
-            colaboradorForoService.crearPublicacion(principal.getUsuario(), foroId, titulo, contenido, etiquetaId);
-            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
-            redirectAttributes.addFlashAttribute("mensajeExito", "Publicación creada correctamente.");
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        // Un editor con solo espacios o etiquetas vacías (<p><br></p>) no es contenido.
+        if (!result.hasFieldErrors("contenido") && PmForoService.contenidoForoVacio(form.getContenido())) {
+            result.rejectValue("contenido", "contenido.vacio", "El contenido de la publicación es obligatorio.");
         }
-        return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
+        if (!result.hasErrors()) {
+            try {
+                colaboradorForoService.crearPublicacion(principal.getUsuario(), form.getForoId(), form.getTitulo(),
+                        form.getContenido(), form.getEtiquetaId());
+                request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+                redirectAttributes.addFlashAttribute("mensajeExito", "Publicación creada correctamente.");
+                redirectAttributes.addAttribute("foroId", form.getForoId());
+                return "redirect:/colaborador/foros/detalle";
+            } catch (IllegalArgumentException e) {
+                // Por ejemplo, un foro donde ya no puede participar: el error va al selector del foro.
+                result.rejectValue("foroId", "foro.invalido", e.getMessage());
+            }
+        }
+        redirectAttributes.addFlashAttribute("colForoPublicacionForm", form);
+        redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.colForoPublicacionForm", result);
+        redirectAttributes.addFlashAttribute("abrirModalNuevaPublicacion", true);
+        if ("detalle".equals(form.getOrigen()) && form.getForoId() != null) {
+            redirectAttributes.addAttribute("foroId", form.getForoId());
+            return "redirect:/colaborador/foros/detalle";
+        }
+        return "redirect:/colaborador/foros";
     }
 
     @PostMapping("/foro/publicacion/{publicacionId}/eliminar")
@@ -379,23 +443,73 @@ public class ColaboradorViewController {
     }
 
     @GetMapping({"/explorar", "/col-explorar.html"})
-    public String explore(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
+    public String explore(@AuthenticationPrincipal UsuarioDetails principal,
+                          @RequestParam(required = false) String panel,
+                          @RequestParam(required = false) String busqueda,
+                          @RequestParam(required = false) String estadoProyecto,
+                          @RequestParam(required = false) String postulaciones,
+                          @RequestParam(required = false) Integer pagina,
+                          @RequestParam(required = false) String busquedaColab,
+                          @RequestParam(required = false) String nivel,
+                          @RequestParam(required = false) Integer paginaColab,
+                          @RequestParam(required = false) String busquedaCurso,
+                          @RequestParam(required = false) String categoriaCurso,
+                          @RequestParam(required = false) Integer paginaCurso,
+                          Model model) {
         if (principal == null) {
             return "redirect:/login";
         }
         Usuario colaborador = principal.getUsuario();
-        model.addAttribute("proyectos", colaboradorProyectoService.listarTodosLosProyectos(colaborador));
+        // Pestaña activa y filtros en el servidor (antes los manejaba col-explorar.js); 6 por página.
+        String panelActivo = "colaboradores".equals(panel) || "cursos".equals(panel) ? panel : "proyectos";
+        model.addAttribute("panel", panelActivo);
+
+        // --- Proyectos ---
+        List<com.pucp.skillb_ia.dto.ColProyectoDisponibleView> proyectos = colaboradorProyectoService.listarTodosLosProyectos(colaborador).stream()
+                .filter(v -> Paginador.contiene(v.getProyecto().getNombre() + " " +
+                        (v.getProyecto().getDescripcion() != null ? v.getProyecto().getDescripcion() : ""), busqueda))
+                .filter(v -> Paginador.coincide(v.getProyecto().getEstado().name(), estadoProyecto))
+                .filter(v -> Paginador.coincide(v.isPostulacionesAbiertas() ? "abiertas" : "cerradas", postulaciones))
+                .toList();
+        Page<com.pucp.skillb_ia.dto.ColProyectoDisponibleView> paginaProyectos = Paginador.paginar(proyectos, pagina, 6);
+        model.addAttribute("paginaProyectos", paginaProyectos);
+        model.addAttribute("proyectos", paginaProyectos.getContent());
+        model.addAttribute("busqueda", busqueda);
+        model.addAttribute("estadoProyecto", estadoProyecto);
+        model.addAttribute("postulaciones", postulaciones);
         model.addAttribute("misSolicitudes", colaboradorProyectoService.listarMisSolicitudes(colaborador));
         model.addAttribute("misHabilidades", colaboradorPerfilService.listarHabilidades(colaborador));
 
-        model.addAttribute("cursosDisponibles", colaboradorCursoService.listarCursosDisponibles(colaborador));
+        // --- Cursos ---
+        List<com.pucp.skillb_ia.dto.CursoDisponibleView> cursos = colaboradorCursoService.listarCursosDisponibles(colaborador).stream()
+                .filter(v -> Paginador.contiene(v.getCurso().getNombre() + " " +
+                        (v.getCurso().getDescripcion() != null ? v.getCurso().getDescripcion() : ""), busquedaCurso))
+                .filter(v -> Paginador.coincide(v.getCurso().getCategoria(), categoriaCurso))
+                .toList();
+        Page<com.pucp.skillb_ia.dto.CursoDisponibleView> paginaCursos = Paginador.paginar(cursos, paginaCurso, 6);
+        model.addAttribute("paginaCursos", paginaCursos);
+        model.addAttribute("cursosDisponibles", paginaCursos.getContent());
+        model.addAttribute("busquedaCurso", busquedaCurso);
+        model.addAttribute("categoriaCursoFiltro", categoriaCurso);
         model.addAttribute("misSolicitudesCursos", colaboradorCursoService.listarMisSolicitudes(colaborador));
         model.addAttribute("categoriasCurso", colaboradorCursoService.listarCategorias());
 
-
-        List<Usuario> colaboradoresExplorar = colaboradorExplorarService.listarColaboradores(colaborador);
-        model.addAttribute("colaboradoresExplorar", colaboradoresExplorar);
-        model.addAttribute("perfilesExplorar", colaboradorExplorarService.obtenerPerfiles(colaboradoresExplorar));
+        // --- Colaboradores (busca por nombre, cargo o habilidades validadas) ---
+        List<Usuario> todosColaboradores = colaboradorExplorarService.listarColaboradores(colaborador);
+        var perfiles = colaboradorExplorarService.obtenerPerfiles(todosColaboradores);
+        List<Usuario> colaboradoresFiltrados = todosColaboradores.stream()
+                .filter(c -> Paginador.contiene(c.getNombre() + " " + c.getApellido() + " " +
+                        (c.getCargo() != null ? c.getCargo().getNombre() : "") + " " +
+                        (perfiles.get(c.getId()).getResumenHabilidades() != null ? perfiles.get(c.getId()).getResumenHabilidades() : ""), busquedaColab))
+                .filter(c -> Paginador.coincide(c.getNivelExperiencia() != null ? c.getNivelExperiencia().name() : "", nivel))
+                .toList();
+        Page<Usuario> paginaColaboradores = Paginador.paginar(colaboradoresFiltrados, paginaColab, 6);
+        model.addAttribute("paginaColaboradores", paginaColaboradores);
+        model.addAttribute("colaboradoresExplorar", paginaColaboradores.getContent());
+        model.addAttribute("totalColaboradores", todosColaboradores.size());
+        model.addAttribute("perfilesExplorar", perfiles);
+        model.addAttribute("busquedaColab", busquedaColab);
+        model.addAttribute("nivelFiltro", nivel);
 
         return "col/col-explorar";
     }
@@ -431,7 +545,7 @@ public class ColaboradorViewController {
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
-        return "redirect:/colaborador/explorar";
+        return "redirect:/colaborador/explorar?panel=cursos";
     }
 
     // ============================================================

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SkillBridge AI — Detalle del Proyecto</title>
   <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
   <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
   <link rel="stylesheet" href="../../static/css/pm-css/pm-detalle-proyecto.css" th:href="@{/css/pm-css/pm-detalle-proyecto.css}">
   <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
@@ -61,6 +62,11 @@
         <a th:if="${proyecto.puedeCancelar}" href="#" data-bs-toggle="modal" data-bs-target="#cancelProjectModal" class="btn btn-outline-danger">Cancelar proyecto</a>
       </div>
     </div>
+
+    <!-- Comentario del RM cuando rechazó la propuesta del proyecto. -->
+    <th:block th:if="${proyecto.proyecto.estado.name() == 'RECHAZADO' and proyecto.proyecto.motivoRechazo != null and !proyecto.proyecto.motivoRechazo.isBlank()}">
+      <div class="mb-4" th:insert="~{fragments/comentario-rechazo :: comentario('El RM rechazó este proyecto', ${proyecto.proyecto.motivoRechazo}, 'Revisa las observaciones y crea una nueva propuesta con los ajustes.')}"></div>
+    </th:block>
 
     <!-- TASK-060: motivo registrado por el RM al cancelar o finalizar el proyecto. -->
     <div class="alert mb-4"

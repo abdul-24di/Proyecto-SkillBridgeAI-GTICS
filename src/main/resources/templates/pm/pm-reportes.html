@@ -85,16 +85,15 @@
 
             </div>
 
-            <div class="pagination-wrap">
-                <div id="reportesPaginationInfo" class="text-secondary small">Mostrando proyectos</div>
-                <ul id="reportesPagination" class="pagination pagination-sm m-0"></ul>
-            </div>
+            <!-- Paginación en el servidor (6 por página). -->
+            <form id="paginacionReportes" method="get" th:action="@{/pm/reportes}"></form>
+            <th:block th:if="${!#lists.isEmpty(proyectos)}">
+                <div th:replace="~{fragments/paginacion :: paginacion(${paginaReportes}, 'paginacionReportes', 'proyecto(s)', 'pagina')}"></div>
+            </th:block>
         </div>
     </main>
 
 </div>
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-<script src="../../static/js/pm-js/pm-table-pagination.js" th:src="@{/js/pm-js/pm-table-pagination.js}"></script>
-<script src="../../static/js/pm-js/pm-reportes.js" th:src="@{/js/pm-js/pm-reportes.js}"></script>
 </body>
 </html>

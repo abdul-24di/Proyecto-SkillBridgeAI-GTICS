@@ -18,6 +18,8 @@ import com.pucp.skillb_ia.repository.ProyectoHabilidadRequeridaRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.CierreAsignacionesService;
+import com.pucp.skillb_ia.service.NotificacionService;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
@@ -38,6 +40,7 @@ public class PmProyectoService {
     private final HabilidadRepository habilidadRepository;
     private final AuditoriaService auditoriaService;
     private final CierreAsignacionesService cierreAsignacionesService;
+    private final NotificacionService notificacionService;
 
     public PmProyectoService(ProyectoRepository proyectoRepository,
                              AsignacionRepository asignacionRepository,
@@ -45,7 +48,9 @@ public class PmProyectoService {
                              ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository,
                              HabilidadRepository habilidadRepository,
                              AuditoriaService auditoriaService,
-                             CierreAsignacionesService cierreAsignacionesService) {
+                             CierreAsignacionesService cierreAsignacionesService,
+                             NotificacionService notificacionService) {
+        this.notificacionService = notificacionService;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.actividadRepository = actividadRepository;
@@ -145,6 +150,12 @@ public class PmProyectoService {
 
         auditoriaService.registrar(pm, "CREAR", "PROYECTO", saved.getId(),
                 "PM creó el proyecto '" + nombre + "' en estado EN_REVISION.");
+        // El RM es quien lo revisa y le asigna presupuesto: sin este aviso no se entera.
+        notificacionService.crearParaTodosLosRm("PROYECTO_EN_REVISION", CategoriaNotificacion.PROYECTO,
+                "Nuevo proyecto por revisar",
+                pm.getNombre() + " " + pm.getApellido() + " creó el proyecto \"" + nombre
+                        + "\" y espera tu revisión.",
+                "PROYECTO", saved.getId());
         return saved;
     }
 
@@ -173,6 +184,8 @@ public class PmProyectoService {
                 "PM canceló el proyecto '" + proyecto.getNombre() + "'. Asignaciones pendientes rechazadas: "
                         + resultado.pendientesRechazadas() + ". Asignaciones activas finalizadas: "
                         + resultado.activasFinalizadas() + ".");
+        // Por diseño (PmProyectoCancelacionTests) los RM no reciben notificación al cancelar:
+        // el proyecto aún estaba en revisión y la acción queda en la auditoría.
         return resultado;
     }
 

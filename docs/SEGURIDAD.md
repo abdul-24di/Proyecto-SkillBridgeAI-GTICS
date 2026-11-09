@@ -169,6 +169,5 @@ El filtro corta a una IP que abusa, pero un ataque distribuido (muchas IPs) o qu
 - Nombres de prototipo (Abraham Ramirez, Sofía Alarcón, Abdon Vallejo, iniciales AR/SA/AV) como texto de ejemplo en varias plantillas.
 - Teléfono del RM y PM acepta 7–20 dígitos; Admin, pre-registro y colaborador exigen 9.
 - PM: mensajes sin tildes en `PmProyectoForm`.
-- Si falla el servidor de correo, la pantalla igual dice que se envió la invitación; el fallo solo queda en el log. Se puede reenviar desde la lista de usuarios.
 - Aviso "próximamente" en el Asistente IA del PM (`pm-asistente-ia.html`). El del colaborador y la pestaña Chat de su detalle de proyecto ya lo tienen; los chats del colaborador y del PM funcionan.
 - En la BD de demo, Java, Spring Boot y AWS existen dos veces (`Técnico` y `[DEMO] Tecnologia`) porque `datos_demo_rm_proyectos.sql` crea su propia categoría.

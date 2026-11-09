@@ -182,3 +182,8 @@ html,
 body {
   overflow-x: clip;
 }
+
+/* Iniciales del usuario sin foto: el <style> de cada vista aclara el fondo de .avatar y el texto blanco no se ve. */
+.topbar span.user-avatar:not([style*="background-image"]) {
+  background-color: rgba(255, 255, 255, .16);
+}

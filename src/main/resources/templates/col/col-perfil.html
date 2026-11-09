@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>SkillBridge AI — Perfil Profesional</title>
     <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-perfil.css" th:href="@{/css/col-css/col-perfil.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
@@ -382,9 +383,9 @@
                                       th:text="${mc.estado.name() == 'COMPLETADO'} ? 'Completado' : (${mc.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'Evidencia en revisión' : (${mc.estado.name() == 'NO_COMPLETADO'} ? 'No completado' : 'En curso'))">En curso</span>
                             </div>
 
-                            <div class="form-hint text-red mt-1" th:if="${mc.estado.name() == 'EN_CURSO' and mc.evidenciaUrl != null}">
-                                Tu evidencia anterior fue rechazada. Motivo: <span th:text="${mc.motivoRespuesta}"></span>. Puedes volver a subirla cuando quieras, sin límite de fecha.
-                            </div>
+                            <th:block th:if="${mc.estado.name() == 'EN_CURSO' and mc.evidenciaUrl != null}">
+                                <div th:replace="~{fragments/comentario-rechazo :: comentario('El RM rechazó tu evidencia', ${mc.motivoRespuesta != null ? mc.motivoRespuesta : 'Sin motivo especificado.'}, 'Puedes volver a subirla cuando quieras, sin límite de fecha.')}"></div>
+                            </th:block>
 
                             <div class="form-hint mt-1" th:if="${mc.estado.name() == 'EVIDENCIA_PENDIENTE'}">
                                 Evidencia enviada el <span th:text="${#temporals.format(mc.fechaEvidencia, 'dd/MM/yyyy')}">01/01/2026</span>, esperando revisión del Resource Manager.
@@ -912,7 +913,7 @@
 <script>
     if (new URLSearchParams(location.search).get("tab") === "cuenta") {
         document.addEventListener("DOMContentLoaded", () => {
-            new bootstrap.Tab(document.getElementById("tabLinkCuenta")).show();
+            new (window.bootstrap || window.tabler).Tab(document.getElementById("tabLinkCuenta")).show();
         });
     }
 </script>

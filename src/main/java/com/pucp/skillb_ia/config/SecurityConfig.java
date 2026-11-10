@@ -9,6 +9,13 @@ import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,6 +45,15 @@ public class SecurityConfig {
     @Value("${app.limite.formularios-por-minuto:20}")
     private int maxFormulariosPorMinuto;
 
+    // Rutas de la API REST (chat del PM, chat del colaborador y notificaciones).
+    private static final RequestMatcher RUTAS_API = new OrRequestMatcher(
+            PathPatternRequestMatcher.withDefaults().matcher("/api/**"),
+            PathPatternRequestMatcher.withDefaults().matcher("/pm/api/**"),
+            PathPatternRequestMatcher.withDefaults().matcher("/colaborador/api/**"));
+
+    private final AuthenticationEntryPoint sinSesionApi = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
+    private final AuthenticationEntryPoint irAlLogin = new LoginUrlAuthenticationEntryPoint("/login");
+
     // BCrypt para password_hash — lo usa AuthService al activar la cuenta (A6)
     // y al restablecer la contraseña.
     @Bean
@@ -56,7 +72,16 @@ public class SecurityConfig {
             // Con sesión activa, /login lleva al panel del rol: no se puede iniciar otra sesión encima.
             .addFilterBefore(new SesionActivaLoginFilter(), UsernamePasswordAuthenticationFilter.class)
             // Rol equivocado: se registra el intento en la auditoría y se muestra la página 403 propia.
-            .exceptionHandling(excepciones -> excepciones.accessDeniedHandler(accesoDenegadoHandler))
+            .exceptionHandling(excepciones -> excepciones
+                    .accessDeniedHandler(accesoDenegadoHandler)
+                    // Sin sesión: la API REST (JSON) responde 401 y todo lo demás sigue redirigiendo al login.
+                    .authenticationEntryPoint((request, response, ex) -> {
+                        if (RUTAS_API.matches(request)) {
+                            sinSesionApi.commence(request, response, ex);
+                        } else {
+                            irAlLogin.commence(request, response, ex);
+                        }
+                    }))
             .authorizeHttpRequests(auth -> auth
                 // Las páginas de error (403, 404, 429, 500...) deben verse también sin sesión.
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()

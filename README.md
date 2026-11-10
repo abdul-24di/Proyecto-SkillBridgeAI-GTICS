@@ -132,3 +132,19 @@ memoria y no se conecta a MySQL ni modifica la base de desarrollo.
 ```powershell
 .\mvnw.cmd test
 ```
+
+Para obtener además el reporte de cobertura (JaCoCo):
+
+```powershell
+.\mvnw.cmd clean verify
+```
+
+El reporte queda en `target/site/jacoco/index.html`. Los resultados y la cobertura por
+paquete están en [`docs/informe/07-resultados-testeo.md`](docs/informe/07-resultados-testeo.md).
+
+## API REST
+
+Los 8 endpoints REST (chat del PM, chat del colaborador y notificaciones), sus fichas y
+su seguridad están en [`docs/informe/04-apis-rest.md`](docs/informe/04-apis-rest.md). La colección de
+Postman está en `docs/informe/postman/`. Antes de ejecutarla hay que cambiar `baseUrl` y escribir la
+contraseña demo en la variable `password`.

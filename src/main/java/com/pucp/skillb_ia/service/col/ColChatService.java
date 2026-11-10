@@ -70,6 +70,11 @@ public class ColChatService {
         if (contenido == null || contenido.trim().isEmpty()) {
             throw new IllegalArgumentException("El mensaje no puede estar vacío.");
         }
+        // Mismas reglas que el chat del PM (PmChatService).
+        String contenidoLimpio = contenido.trim();
+        if (contenidoLimpio.length() > 1000) {
+            throw new IllegalArgumentException("El mensaje no puede superar los 1000 caracteres.");
+        }
 
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
@@ -82,7 +87,7 @@ public class ColChatService {
         Mensaje mensaje = new Mensaje();
         mensaje.setConversacion(conversacion);
         mensaje.setAutor(colaborador);
-        mensaje.setContenido(contenido);
+        mensaje.setContenido(contenidoLimpio);
 
         Mensaje guardado = mensajeRepository.save(mensaje);
         return new PmMensajeView(guardado, colaborador.getId());

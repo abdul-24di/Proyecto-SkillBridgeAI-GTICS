@@ -1,5 +1,14 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 10 de Noviembre 2026 — Documentación: API REST, Postman y cobertura
+
+- **API REST:** los errores del chat (PM y colaborador) y de las notificaciones ahora responden JSON `{"error": ...}` con 400 o 409 (antes redirigían con 302), con la clase nueva `ApiErrorAdvice` (`@RestControllerAdvice` solo para los 3 controladores REST). Sin sesión, `/api/**`, `/pm/api/**` y `/colaborador/api/**` responden 401; las vistas siguen yendo al login. El chat del colaborador tiene las mismas reglas que el del PM (máximo 1000 caracteres, sin espacios al inicio y al final) y su vista muestra el error real.
+- **Cobertura:** plugin JaCoCo en el `pom.xml`; `mvnw clean verify` genera `target/site/jacoco/index.html`. Cobertura de líneas: 65.1 %.
+- **Documentación (`docs/informe/`):** sección 4 (tabla de endpoints, seguridad y fichas en el formato de la clase 9.2), sección 7 (pruebas por módulo, cobertura y resultados de Postman), colección de Postman (26 peticiones, 32 tests aprobados) y capturas.
+- **Tests:** 782 en verde (8 nuevos en `ApiRestTests`).
+
+---
+
 ## Sesión 9 de Noviembre 2026 — Correo, validaciones, notificaciones y tablas sin JavaScript
 
 - **Correo de invitación:** si no se envía, el Admin ve el aviso (crear, carga masiva y reenviar), queda "Error al enviar correo" en la auditoría y la causa en el log (`[EMAIL]`). El enlace usa la dirección real del servidor si `APP_BASE_URL` quedó en localhost. Ver README, sección de correo.

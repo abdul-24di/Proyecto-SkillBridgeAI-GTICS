@@ -151,9 +151,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }),
                 body: formData.toString()
             })
-            .then(res => {
-                if(!res.ok) throw new Error("Error enviando mensaje");
-                return res.json();
+            .then(async res => {
+                // La API responde {"error": "..."} cuando algo falla (ver ApiErrorAdvice).
+                const payload = await res.json().catch(() => ({}));
+                if(!res.ok) throw new Error(payload.error || "No se pudo enviar el mensaje.");
+                return payload;
             })
             .then(msg => {
                 messageInput.value = '';
@@ -161,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(err => {
                 console.error(err);
-                alert("No se pudo enviar el mensaje");
+                alert(err.message);
             })
             .finally(() => {
                 btnEnviar.disabled = false;

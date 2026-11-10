@@ -12,6 +12,7 @@
             <a href="../col/col-dashboard.html" th:classappend="${activeSection == 'dashboard'} ? 'active' : ''" th:href="@{/colaborador/dashboard}">Dashboard</a>
             <a href="../col/col-proyectos.html" th:classappend="${activeSection == 'proyectos'} ? 'active' : ''" th:href="@{/colaborador/proyectos}">Mis proyectos</a>
             <a href="../col/col-foros.html" th:classappend="${activeSection == 'foros'} ? 'active' : ''" th:href="@{/colaborador/foros}">Foros</a>
+            <a href="../col/col-chat.html" th:classappend="${activeSection == 'chat'} ? 'active' : ''" th:href="@{/colaborador/chat}">Chat</a>
             <a href="../col/col-asistente.html" th:classappend="${activeSection == 'asistente'} ? 'active' : ''" th:href="@{/colaborador/asistente}">Asistente</a>
             <a href="../col/col-perfil.html" th:classappend="${activeSection == 'perfil'} ? 'active' : ''" th:href="@{/colaborador/perfil}">Perfil Profesional</a>
             <a href="../col/col-explorar.html" th:classappend="${activeSection == 'explorar'} ? 'active' : ''" th:href="@{/colaborador/explorar}">Explorar</a>
@@ -28,7 +29,11 @@
                 <span class="badge bg-red notification-dot"></span>
             </a>
             <a href="../col/col-perfil.html" th:href="@{/colaborador/perfil}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
-                <span th:if="${usuarioActual?.fotoUrl != null and !usuarioActual.fotoUrl.isEmpty()}" class="avatar avatar-sm user-avatar" th:style="'background-image: url(' + @{${usuarioActual.fotoUrl}} + ')'"></span>
+                <span th:if="${usuarioActual != null and usuarioActual.fotoUrl != null and !#strings.isEmpty(usuarioActual.fotoUrl)}"
+                      class="avatar avatar-sm user-avatar"
+                      th:style="|background-image: url('@{${usuarioActual.fotoUrl}}')|">
+                </span>
+
                 <span th:unless="${usuarioActual?.fotoUrl != null and !usuarioActual.fotoUrl.isEmpty()}" class="avatar avatar-sm user-avatar"
                       th:text="${usuarioActual != null ? ((#strings.isEmpty(usuarioActual.nombre) ? '' : #strings.substring(usuarioActual.nombre,0,1)) + (#strings.isEmpty(usuarioActual.apellido) ? '' : #strings.substring(usuarioActual.apellido,0,1))) : 'PK'}">PK</span>
                 <div class="user-meta">

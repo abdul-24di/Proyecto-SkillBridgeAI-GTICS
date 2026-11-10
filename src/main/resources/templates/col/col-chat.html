@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
 
 <style>
-  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+
   .avatar {
       object-fit: contain !important;
       object-position: center !important;
@@ -23,15 +23,7 @@
       background-repeat: no-repeat !important;
       background-color: #f8f9fa;
   }
-  
-  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
-  /*
-  .avatar {
-      object-fit: contain !important;
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-  }
-  */
+
 </style>
 
 </head>
@@ -105,18 +97,20 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 
-<!-- Scripts para AJAX Chat -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const channelButtons = document.querySelectorAll('.channel-item');
-    let activeProjectId = document.getElementById('activeProjectId') ? document.getElementById('activeProjectId').value : null;
-    const messageList = document.getElementById('messageList');
-    const channelTitle = document.getElementById('channelTitle');
-    const chatForm = document.getElementById('chatForm');
-    const messageInput = document.getElementById('messageInput');
-    const btnEnviar = document.getElementById('btnEnviar');
-    let chatInterval = null;
 
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const channelButtons = document.querySelectorAll('.channel-item');
+        let activeProjectId = document.getElementById('activeProjectId') ? document.getElementById('activeProjectId').value : null;
+        const messageList = document.getElementById('messageList');
+        const channelTitle = document.getElementById('channelTitle');
+        const chatForm = document.getElementById('chatForm');
+        const messageInput = document.getElementById('messageInput');
+        const btnEnviar = document.getElementById('btnEnviar');
+        let chatInterval = null;
+
+<<<<<<< Updated upstream
     if (activeProjectId && channelTitle) {
         // Find active button to set title
         const activeButton = document.querySelector(`.channel-item[data-channel-id='${activeProjectId}']`);
@@ -187,12 +181,97 @@ document.addEventListener('DOMContentLoaded', function() {
         if(messages.length === 0) {
             messageList.innerHTML = '<div class="text-center py-5 text-secondary">Aún no hay mensajes en este chat.</div>';
             return;
+=======
+        if (messageInput) {
+            messageInput.maxLength = 1000;
+>>>>>>> Stashed changes
         }
 
-        let html = '';
-        messages.forEach(msg => {
-            if(msg.esPropio) {
-                html += `
+        if (activeProjectId && channelTitle) {
+            const activeButton = document.querySelector(`.channel-item[data-channel-id='${activeProjectId}']`);
+            if (activeButton) channelTitle.textContent = '# ' + activeButton.dataset.channelName;
+
+            loadMessages();
+            chatInterval = setInterval(loadMessages, 5000); // Polling cada 5 segundos
+        }
+
+        channelButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                window.location.href = `/colaborador/chat?proyectoId=${this.dataset.channelId}`;
+            });
+        });
+
+        if (chatForm) {
+            chatForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const text = messageInput.value.trim();
+                if (!text || !activeProjectId) return;
+
+                btnEnviar.disabled = true;
+
+                const formData = new URLSearchParams();
+                formData.append('proyectoId', activeProjectId);
+                formData.append('contenido', text);
+
+                fetch('/colaborador/api/chat/enviar', {
+                    method: 'POST',
+                    headers: csrfHeaders({
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }),
+                    body: formData.toString()
+                })
+                    .then(res => {
+                        if (!res.ok) {
+                            return res.json().catch(() => ({})).then(body => {
+                                throw new Error(body.error || "No se pudo enviar el mensaje");
+                            });
+                        }
+                        return res.json();
+                    })
+                    .then(() => {
+                        messageInput.value = '';
+                        loadMessages();
+                    })
+                    .catch(err => {
+                        alert(err.message);
+                    })
+                    .finally(() => {
+                        btnEnviar.disabled = false;
+                        messageInput.focus();
+                    });
+            });
+        }
+
+        function loadMessages() {
+            if (!activeProjectId) return;
+
+            fetch(`/colaborador/api/chat/mensajes?proyectoId=${activeProjectId}`)
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().catch(() => ({})).then(body => {
+                            throw new Error(body.error || "No se pudo cargar el chat");
+                        });
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    renderMessages(data);
+                })
+                .catch(err => {
+                    messageList.innerHTML = '<div class="text-center py-5 text-danger">' + escapeHtml(err.message) + '</div>';
+                });
+        }
+
+        function renderMessages(messages) {
+            if (messages.length === 0) {
+                messageList.innerHTML = '<div class="text-center py-5 text-secondary">Aún no hay mensajes en este chat.</div>';
+                return;
+            }
+
+            let html = '';
+            messages.forEach(msg => {
+                if (msg.esPropio) {
+                    html += `
                 <div class="message-row own">
                     <div>
                         <div class="message-meta">
@@ -203,8 +282,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <span class="avatar avatar-sm bg-blue text-white">${escapeHtml(msg.autorIniciales)}</span>
                 </div>`;
-            } else {
-                html += `
+                } else {
+                    html += `
                 <div class="message-row">
                     <span class="avatar avatar-sm bg-blue-lt text-blue">${escapeHtml(msg.autorIniciales)}</span>
                     <div>
@@ -215,33 +294,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="message-bubble bg-light">${escapeHtml(msg.contenido)}</div>
                     </div>
                 </div>`;
+                }
+            });
+
+            const wasAtBottom = isScrollAtBottom(messageList);
+            messageList.innerHTML = html;
+            if (wasAtBottom) {
+                scrollToBottom(messageList);
             }
-        });
-
-        const wasAtBottom = isScrollAtBottom(messageList);
-        messageList.innerHTML = html;
-        if(wasAtBottom) {
-            scrollToBottom(messageList);
         }
-    }
 
-    function escapeHtml(unsafe) {
-        return (unsafe || '').toString()
-             .replace(/&/g, "&amp;")
-             .replace(/</g, "&lt;")
-             .replace(/>/g, "&gt;")
-             .replace(/"/g, "&quot;")
-             .replace(/'/g, "&#039;");
-    }
+        function escapeHtml(unsafe) {
+            return (unsafe || '').toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
-    function isScrollAtBottom(el) {
-        return el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
-    }
+        function isScrollAtBottom(el) {
+            return el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
+        }
 
-    function scrollToBottom(el) {
-        el.scrollTop = el.scrollHeight;
-    }
-});
+        function scrollToBottom(el) {
+            el.scrollTop = el.scrollHeight;
+        }
+    });
 </script>
+
+
+
 </body>
 </html>

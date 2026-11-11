@@ -16,7 +16,20 @@ public interface ConversacionUsuarioRepository extends JpaRepository<Conversacio
     List<ConversacionUsuario> findByConversacion(Conversacion conversacion);
     List<ConversacionUsuario> findByUsuario(Usuario usuario);
 
+
+    ConversacionUsuario findByConversacionAndUsuario(Conversacion conversacion, Usuario usuario);
+
+    @Modifying
+    @Query(value = "INSERT INTO conversacion_usuario (conversacion_id, usuario_id, ultimo_leido_id) " +
+            "VALUES (:conversacionId, :usuarioId, :mensajeId) " +
+            "ON DUPLICATE KEY UPDATE ultimo_leido_id = :mensajeId", nativeQuery = true)
+    void marcarLeido(@Param("conversacionId") Long conversacionId,
+                     @Param("usuarioId") Long usuarioId,
+                     @Param("mensajeId") Long mensajeId);
+
     @Modifying
     @Query(value = "INSERT INTO conversacion_usuario (conversacion_id, usuario_id) VALUES (:conversacionId, :usuarioId)", nativeQuery = true)
     void agregarMiembro(@Param("conversacionId") Long conversacionId, @Param("usuarioId") Long usuarioId);
+
+
 }

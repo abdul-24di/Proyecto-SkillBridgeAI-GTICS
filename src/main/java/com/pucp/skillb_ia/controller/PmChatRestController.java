@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 
 @RestController
@@ -28,6 +29,14 @@ public class PmChatRestController {
                                                                 @AuthenticationPrincipal UsuarioDetails principal) {
         Usuario pm = principal.getUsuario();
         return ResponseEntity.ok(pmChatService.listarContactos(proyectoId, pm));
+    }
+
+
+    @GetMapping("/noleidos")
+    public ResponseEntity<Map<String, Long>> getNoLeidos(@RequestParam("proyectoId") Long proyectoId,
+                                                         @AuthenticationPrincipal UsuarioDetails principal) {
+        Usuario pm = principal.getUsuario();
+        return ResponseEntity.ok(pmChatService.obtenerNoLeidos(proyectoId, pm));
     }
 
 

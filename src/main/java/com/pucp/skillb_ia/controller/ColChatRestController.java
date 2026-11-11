@@ -10,6 +10,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/colaborador/api/chat")
@@ -28,6 +29,14 @@ public class ColChatRestController {
             @AuthenticationPrincipal UsuarioDetails principal) {
         Usuario colaborador = principal.getUsuario();
         return ResponseEntity.ok(colChatService.listarContactos(proyectoId, colaborador));
+    }
+
+    @GetMapping("/noleidos")
+    public ResponseEntity<Map<String, Long>> getNoLeidos(
+            @RequestParam(value = "proyectoId", required = false) Long proyectoId,
+            @AuthenticationPrincipal UsuarioDetails principal) {
+        Usuario colaborador = principal.getUsuario();
+        return ResponseEntity.ok(colChatService.obtenerNoLeidos(proyectoId, colaborador));
     }
 
 
@@ -65,6 +74,4 @@ public class ColChatRestController {
         }
         return ResponseEntity.ok(mensaje);
     }
-
-
 }

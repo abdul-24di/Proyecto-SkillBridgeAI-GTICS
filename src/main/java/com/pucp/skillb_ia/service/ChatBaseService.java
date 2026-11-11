@@ -18,9 +18,7 @@ import com.pucp.skillb_ia.repository.MensajeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 
 @Service
@@ -154,6 +152,48 @@ public class ChatBaseService {
             vistas.add(new PmMensajeView(m, usuarioActualId));
         }
         return vistas;
+    }
+
+    @Transactional
+    public void marcarLeida(Conversacion conversacion, Usuario usuario) {
+        Mensaje ultimo = mensajeRepository.findFirstByConversacionOrderByIdDesc(conversacion);
+        if (ultimo == null) {
+            return;
+        }
+        conversacionUsuarioRepository.marcarLeido(conversacion.getId(), usuario.getId(), ultimo.getId());
+    }
+
+    private long contarNoLeidos(Conversacion conversacion, Usuario usuario) {
+        long ultimoLeido = 0;
+        ConversacionUsuario fila = conversacionUsuarioRepository.findByConversacionAndUsuario(conversacion, usuario);
+        if (fila != null && fila.getUltimoLeidoId() != null) {
+            ultimoLeido = fila.getUltimoLeidoId();
+        }
+        return mensajeRepository.countByConversacionAndIdGreaterThanAndAutorNot(conversacion, ultimoLeido, usuario);
+    }
+
+
+    @Transactional(readOnly = true)
+    public Map<String, Long> contarNoLeidosPorChat(Proyecto proyecto, Usuario yo, List<Usuario> otros) {
+        Map<String, Long> resultado = new HashMap<>();
+
+        Optional<Conversacion> grupal = conversacionRepository
+                .findFirstByProyectoAndTipoOrderByIdAsc(proyecto, TipoConversacion.GRUPAL);
+        if (grupal.isPresent()) {
+            resultado.put("grupo", contarNoLeidos(grupal.get(), yo));
+        } else {
+            resultado.put("grupo", 0L);
+        }
+
+        for (Usuario otro : otros) {
+            Conversacion privada = buscarPrivada(proyecto, yo, otro);
+            long cantidad = 0;
+            if (privada != null) {
+                cantidad = contarNoLeidos(privada, yo);
+            }
+            resultado.put(String.valueOf(otro.getId()), cantidad);
+        }
+        return resultado;
     }
 
     private Mensaje guardar(Conversacion conversacion, Usuario autor, String texto) {

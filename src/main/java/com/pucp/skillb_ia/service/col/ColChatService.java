@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ColChatService {
@@ -122,6 +123,7 @@ public class ColChatService {
         validarAcceso(proyecto, colaborador);
 
         Conversacion conversacion = chatBaseService.obtenerOCrearGrupal(proyecto);
+        chatBaseService.marcarLeida(conversacion, colaborador);
         return chatBaseService.listar(conversacion, colaborador.getId());
     }
 
@@ -136,7 +138,7 @@ public class ColChatService {
 
     // ---------------- Chat privado ----------------
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PmMensajeView> obtenerMensajesPrivados(Long proyectoId, Long otroUsuarioId, Usuario colaborador) {
         Proyecto proyecto = buscarProyecto(proyectoId);
         validarAcceso(proyecto, colaborador);
@@ -146,6 +148,7 @@ public class ColChatService {
         if (conversacion == null) {
             return new ArrayList<>();
         }
+        chatBaseService.marcarLeida(conversacion, colaborador);
         return chatBaseService.listar(conversacion, colaborador.getId());
     }
 
@@ -158,4 +161,33 @@ public class ColChatService {
 
         return chatBaseService.enviarPrivado(proyecto, colaborador, otro, contenido.trim());
     }
+
+
+    // ---------------- Mensajes no leídos ----------------
+
+    @Transactional(readOnly = true)
+    public Map<String, Long> obtenerNoLeidos(Long proyectoId, Usuario colaborador) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        validarAcceso(proyecto, colaborador);
+
+        List<Usuario> otros = new ArrayList<>();
+        otros.add(proyecto.getPm());
+
+        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        for (Asignacion a : activas) {
+            Usuario otro = a.getColaborador();
+            if (!otro.getId().equals(colaborador.getId())) {
+                otros.add(otro);
+            }
+        }
+        return chatBaseService.contarNoLeidosPorChat(proyecto, colaborador, otros);
+    }
+
+
+
+
+
+
+
+
 }

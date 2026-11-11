@@ -522,7 +522,7 @@ class RmProyectoViewTests {
                 .andExpect(flash().attribute("mensajeError", MENSAJE_SIN_PRESUPUESTO));
         Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
         org.junit.jupiter.api.Assertions.assertEquals(EstadoProyecto.EN_REVISION, proyecto.getEstado());
-        org.junit.jupiter.api.Assertions.assertNull(proyecto.getRmRevisor());
+        org.junit.jupiter.api.Assertions.assertEquals(rmId, proyecto.getRmRevisor().getId());
         org.junit.jupiter.api.Assertions.assertEquals(auditorias, logAuditoriaRepository.count());
     }
 

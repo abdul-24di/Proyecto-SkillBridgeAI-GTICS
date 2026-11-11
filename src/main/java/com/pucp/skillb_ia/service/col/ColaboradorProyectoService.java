@@ -190,7 +190,7 @@ public class ColaboradorProyectoService {
     // ============================================================
     @Transactional
     public void solicitarIncorporacion(Usuario colaborador, Long proyectoId, Long habilidadId,
-                                       String mensaje, String habilidadesRelevantes) {
+                                       String mensaje) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("El proyecto seleccionado no existe."));
 
@@ -260,8 +260,6 @@ public class ColaboradorProyectoService {
         asignacion.setHorasSemanales(horasDeEsePerfil);
         asignacion.setOrigen(OrigenAsignacion.SOLICITADA_COLABORADOR);
         asignacion.setHabilidadSolicitada(habilidad);
-        asignacion.setHabilidadesRelevantes(habilidadesRelevantes == null || habilidadesRelevantes.isBlank()
-                ? null : habilidadesRelevantes.trim());
         asignacion.setMensajeSolicitud(mensaje == null || mensaje.isBlank() ? null : mensaje.trim());
 
         Asignacion guardada = asignacionRepository.save(asignacion);

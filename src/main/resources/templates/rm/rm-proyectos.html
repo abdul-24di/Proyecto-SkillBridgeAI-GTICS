@@ -514,8 +514,15 @@
                   <div>
                     <div class="meta-label">Prioridad</div>
                     <div class="meta-value">
-                      <span class="badge priority-badge" th:classappend="${item.prioridadClase}"
-                            th:text="${item.prioridadTexto}">Media</span>
+
+
+                                       <span class="badge bg-red-lt text-red"
+                                             th:if="${item.proyecto.fechaInicio != null and item.proyecto.fechaInicio.isBefore(#temporals.createToday().plusDays(diasUrgencia + 1)) and item.proyecto.estado.name() == 'EN_REVISION'}">Inicio próximo</span>
+                      <span class="badge bg-red-lt text-red"
+                            th:if="${item.proyecto.rmRevisor == null and (item.proyecto.estado.name() == 'EN_REVISION' or item.proyecto.estado.name() == 'ACTIVO' or item.proyecto.estado.name() == 'EN_ESPERA')}">Sin RM</span>
+                      <span class="badge bg-blue-lt text-blue" th:if="${item.proyecto.rmRevisor != null}"
+                            th:text="|RM: ${item.proyecto.rmRevisor.nombre} ${item.proyecto.rmRevisor.apellido}|">RM</span>
+
                     </div>
                   </div>
                 </div>

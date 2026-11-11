@@ -1,6 +1,3 @@
-/* Comportamiento de la vista Explorar: acordeones y modales.
-   Las pestañas, filtros y paginación ahora se resuelven en el servidor (ColaboradorViewController). */
-/* ================= PROYECTOS ================= */
 
 document.querySelectorAll("#projectAccordion [data-toggle-project]").forEach(header => {
     header.addEventListener("click", () => header.closest(".project-accordion-item").classList.toggle("open"));
@@ -16,10 +13,9 @@ applyModalEl?.addEventListener("show.bs.modal", (event) => {
     document.getElementById("applyModalTitle").textContent = "Postulación al " + btn.dataset.projectName;
     document.getElementById("applyProyectoId").value = btn.dataset.projectId;
     document.getElementById("applyMessageInput").value = "";
-    document.getElementById("applyHabilidadesRelevantesInput").value = "";
 
-    // Copiamos las opciones de perfil (habilidades con cupo) de ESTE
-    // proyecto hacia el <select> del modal — cada proyecto tiene las suyas.
+
+
     const item = btn.closest(".project-accordion-item");
     const plantilla = item.querySelector(".perfil-options-template");
     const select = document.getElementById("applyPerfilSelect");
@@ -28,31 +24,10 @@ applyModalEl?.addEventListener("show.bs.modal", (event) => {
         select.append(plantilla.content.cloneNode(true));
     }
 
-    // Reiniciamos los chips de habilidades marcadas de una postulación anterior.
-    document.querySelectorAll("#applySkillsWrap .apply-skill-chip").forEach(chip => chip.classList.remove("active"));
+
+
 });
 
-
-
-document.querySelectorAll("#applySkillsWrap .apply-skill-chip").forEach(chip => {
-    chip.addEventListener("click", () => {
-        chip.classList.toggle("active");
-        const seleccionadas = [];
-        document.querySelectorAll("#applySkillsWrap .apply-skill-chip.active").forEach(c => seleccionadas.push(c.dataset.skill));
-        document.getElementById("applyHabilidadesRelevantesInput").value = seleccionadas.join(", ");
-    });
-});
-
-const applySkillSearchInput = document.getElementById("applySkillSearchInput");
-applySkillSearchInput?.addEventListener("input", () => {
-    const texto = applySkillSearchInput.value.trim().toLowerCase();
-    document.querySelectorAll("#applySkillsWrap .apply-skill-chip").forEach(chip => {
-        const coincide = chip.dataset.skill.toLowerCase().includes(texto);
-        chip.style.display = coincide ? "" : "none";
-    });
-});
-
-/* ================= COLABORADORES ================= */
 
 
 function mostrarPerfilColaborador(colaboradorId) {

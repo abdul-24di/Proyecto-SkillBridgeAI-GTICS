@@ -135,7 +135,7 @@ $(function () {
         $.ajax({ url: apiBase + "/companeros", method: "GET", data: { proyectoId: proyectoId }, cache: false })
             .done(function (contactos) {
                 if (!$.isArray(contactos)) { errorLista(); return; }
-                totalIntegrantes = contactos.length + 1;   // los contactos + yo
+                totalIntegrantes = contactos.length + 1;
                 pintarContactos(contactos);
                 actualizarPuntos();
             })

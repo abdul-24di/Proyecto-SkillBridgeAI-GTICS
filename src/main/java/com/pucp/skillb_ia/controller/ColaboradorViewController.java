@@ -481,7 +481,7 @@ public class ColaboradorViewController {
         model.addAttribute("estadoProyecto", estadoProyecto);
         model.addAttribute("postulaciones", postulaciones);
         model.addAttribute("misSolicitudes", colaboradorProyectoService.listarMisSolicitudes(colaborador));
-        model.addAttribute("misHabilidades", colaboradorPerfilService.listarHabilidades(colaborador));
+
 
         // --- Cursos ---
         List<com.pucp.skillb_ia.dto.CursoDisponibleView> cursos = colaboradorCursoService.listarCursosDisponibles(colaborador).stream()
@@ -522,11 +522,10 @@ public class ColaboradorViewController {
                                          @RequestParam Long proyectoId,
                                          @RequestParam(required = false) Long habilidadId,
                                          @RequestParam(required = false) String mensaje,
-                                         @RequestParam(required = false) String habilidadesRelevantes,
                                          RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
         try {
-            colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, habilidadId, mensaje, habilidadesRelevantes);
+            colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, habilidadId, mensaje);
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Tu solicitud fue enviada. Quedará pendiente de aprobación del PM y del RM.");
         } catch (IllegalArgumentException e) {

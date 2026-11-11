@@ -50,6 +50,7 @@ public class RmSolicitudPersonalService {
     private final RmProyectoConsultaService proyectoConsultaService;
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
+    private final RmResponsableService rmResponsableService;
 
     public RmSolicitudPersonalService(
             SolicitudPersonalRepository solicitudRepository,
@@ -57,6 +58,7 @@ public class RmSolicitudPersonalService {
             UsuarioRepository usuarioRepository,
             RmProyectoConsultaService proyectoConsultaService,
             AuditoriaService auditoriaService,
+            RmResponsableService rmResponsableService,
             NotificacionService notificacionService) {
         this.solicitudRepository = solicitudRepository;
         this.proyectoRepository = proyectoRepository;
@@ -64,6 +66,7 @@ public class RmSolicitudPersonalService {
         this.proyectoConsultaService = proyectoConsultaService;
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
+        this.rmResponsableService = rmResponsableService;
     }
 
     @Transactional(readOnly = true)
@@ -173,6 +176,7 @@ public class RmSolicitudPersonalService {
     public void iniciarAtencion(Long id, Long rmId) {
         Usuario rm = obtenerRm(rmId);
         SolicitudPersonal solicitud = obtenerEntidad(id);
+        rmResponsableService.validarResponsable(solicitud.getProyecto(), rm);
         if (solicitud.getEstado() != EstadoSolicitudPersonal.PENDIENTE) {
             throw new IllegalStateException("Solo una solicitud pendiente puede pasar a atención.");
         }
@@ -196,6 +200,7 @@ public class RmSolicitudPersonalService {
     public void marcarAtendida(Long id, Long rmId) {
         Usuario rm = obtenerRm(rmId);
         SolicitudPersonal solicitud = obtenerEntidad(id);
+        rmResponsableService.validarResponsable(solicitud.getProyecto(), rm);
         if (solicitud.getEstado() != EstadoSolicitudPersonal.EN_ATENCION) {
             throw new IllegalStateException("Solo una solicitud en atención puede marcarse como atendida.");
         }

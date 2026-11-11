@@ -91,7 +91,10 @@ public class RmProyectoView {
     }
 
     public String getTextoBusqueda() {
-        return proyecto.getNombre() + " " + pmNombre;
+        String rm = proyecto.getRmRevisor() == null
+                ? "sin asignar"
+                : proyecto.getRmRevisor().getNombre() + " " + proyecto.getRmRevisor().getApellido();
+        return proyecto.getNombre() + " " + pmNombre + " " + rm;
     }
 
     public boolean isConVacantesParaDotacion() {

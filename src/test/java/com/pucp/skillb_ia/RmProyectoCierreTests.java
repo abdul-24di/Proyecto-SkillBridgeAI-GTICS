@@ -446,6 +446,7 @@ class RmProyectoCierreTests {
         nuevo.setJustificacionPrioridad("Prueba de cierre.");
         nuevo.setColaboradoresRequeridos(3);
         nuevo.setPm(pm);
+        nuevo.setRmRevisor(rm);
         nuevo.setPresupuesto(new BigDecimal("50000.00"));
         nuevo.setFechaInicio(LocalDate.now());
         nuevo.setFechaFinEstimada(LocalDate.now().plusMonths(2));

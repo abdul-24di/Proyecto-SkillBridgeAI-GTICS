@@ -131,6 +131,7 @@ class RmProyectoViewTests {
         proyecto.setPrioridad(Prioridad.MEDIA);
         proyecto.setJustificacionPrioridad("Validación de la consulta del Resource Manager.");
         proyecto.setPm(pm);
+        proyecto.setRmRevisor(rm);
         proyectoId = proyectoRepository.save(proyecto).getId();
     }
 
@@ -1751,6 +1752,7 @@ class RmProyectoViewTests {
                 mock(RmSolicitudPersonalService.class), mock(RmCertificadoService.class),
                 mock(RmEducacionService.class), mock(RmForoConsultaService.class), mock(RmReporteService.class),
                 mock(RmReporteExportService.class), mock(RmCursoService.class), mock(RmPresupuestoService.class),
+                mock(RmResponsableService.class),
                 mock(EvaluacionService.class));
     }
 

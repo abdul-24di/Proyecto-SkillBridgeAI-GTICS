@@ -538,6 +538,7 @@ class RmDashboardTests {
         RmCursoService cursoService = mock(RmCursoService.class);
         RmPresupuestoService presupuestoService = mock(RmPresupuestoService.class);
         EvaluacionService evaluacionService = mock(EvaluacionService.class);
+        RmResponsableService responsableService = mock(RmResponsableService.class);
 
         RmAsignacionView postulacion = asignacion(
                 OrigenAsignacion.SOLICITADA_COLABORADOR, false, true);
@@ -562,7 +563,10 @@ class RmDashboardTests {
         RmViewController controller = new RmViewController(
                 perfilService, colaboradorService, proyectoService, revisionService,
                 asignacionService, solicitudService, certificadoService, educacionService, foroService,
-                reporteService, reporteExportService, cursoService, presupuestoService, evaluacionService);
+                reporteService, reporteExportService, cursoService, presupuestoService,
+                responsableService, evaluacionService);
+
+
         ConcurrentModel model = new ConcurrentModel();
 
         assertEquals("rm/rm-dashboard", controller.dashboard(model));
@@ -754,7 +758,10 @@ class RmDashboardTests {
                 mock(RmAsignacionService.class), mock(RmSolicitudPersonalService.class),
                 mock(RmCertificadoService.class), mock(RmEducacionService.class), mock(RmForoConsultaService.class),
                 mock(RmReporteService.class), mock(RmReporteExportService.class), mock(RmCursoService.class),
-                mock(RmPresupuestoService.class), mock(EvaluacionService.class));
+                mock(RmPresupuestoService.class), mock(RmResponsableService.class),
+                mock(EvaluacionService.class));
+
+
         ConcurrentModel modelo = new ConcurrentModel();
         assertEquals("rm/rm-dashboard", controller.dashboard(modelo));
         assertEquals(0, modelo.getAttribute("totalAccionesPendientes"));

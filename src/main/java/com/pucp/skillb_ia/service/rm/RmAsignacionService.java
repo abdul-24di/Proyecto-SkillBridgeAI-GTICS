@@ -38,6 +38,7 @@ public class RmAsignacionService {
     private static final String CLAVE_MAX_ASIGNACIONES = "MAX_ASIGNACIONES_POR_COLABORADOR";
     private static final int MAX_ASIGNACIONES_POR_DEFECTO = 3;
     private static final BigDecimal MAX_HORAS_SEMANALES = new BigDecimal("168");
+    private final RmResponsableService rmResponsableService;
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
     // Cupos del proyecto (TASK-034): ocupan cupo las asignaciones activas y las pendientes.
     public static final int MAX_JUSTIFICACION_CUPO = 500;
@@ -107,6 +108,7 @@ public class RmAsignacionService {
             RmPresupuestoService presupuestoService,
             DisponibilidadService disponibilidadService,
             NotificacionService notificacionService,
+            RmResponsableService rmResponsableService,
             EvaluacionService evaluacionService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
@@ -118,6 +120,7 @@ public class RmAsignacionService {
         this.disponibilidadService = disponibilidadService;
         this.notificacionService = notificacionService;
         this.evaluacionService = evaluacionService;
+        this.rmResponsableService = rmResponsableService;
     }
 
 
@@ -341,6 +344,7 @@ public class RmAsignacionService {
             Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = obtenerProyectoAsignable(proyectoId);
+        rmResponsableService.validarResponsable(proyecto, rm);
         Usuario colaborador = obtenerColaboradorAsignable(colaboradorId);
         validarHoras(horasSemanales);
         // A20 / sección 13: nunca se propone sin presupuesto suficiente — el RM
@@ -405,6 +409,7 @@ public class RmAsignacionService {
         Usuario rm = obtenerRm(rmId);
         Asignacion asignacion = obtenerEntidad(asignacionId);
         validarDecisionRm(asignacion);
+        rmResponsableService.validarResponsable(asignacion.getProyecto(), rm);
         obtenerProyectoAsignable(asignacion.getProyecto().getId());
         // Al aprobar, el RM reserva el costo de esta asignación (sección 6/7.1).
         presupuestoService.validarPresupuestoSuficiente(
@@ -461,6 +466,7 @@ public class RmAsignacionService {
         Usuario rm = obtenerRm(rmId);
         Asignacion asignacion = obtenerEntidad(asignacionId);
         validarDecisionRm(asignacion);
+        rmResponsableService.validarResponsable(asignacion.getProyecto(), rm);
         String motivoLimpio = textoObligatorio(motivo, "Debes indicar el motivo del rechazo.", 300);
 
         asignacion.setEstado(EstadoAsignacion.RECHAZADA);
@@ -494,6 +500,7 @@ public class RmAsignacionService {
             Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Asignacion asignacion = obtenerEntidad(asignacionId);
+        rmResponsableService.validarResponsable(asignacion.getProyecto(), rm);
         if (asignacion.getEstado() != EstadoAsignacion.ACTIVA) {
             throw new IllegalStateException("Solo se puede finalizar una asignación activa.");
         }

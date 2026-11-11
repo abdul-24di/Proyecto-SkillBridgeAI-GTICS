@@ -689,9 +689,10 @@ CREATE TABLE configuracion_sistema (
 INSERT INTO configuracion_sistema (clave, valor, descripcion) VALUES
     ('MAX_ASIGNACIONES_POR_COLABORADOR', '3', 'Límite de asignaciones activas simultáneas por colaborador'),
     ('TOPE_HORAS_EXTRA_BONO', '20', 'Máximo de horas extra pagables como bono por mes'),
-    ('NOMBRE_ORGANIZACION', 'SkillBridge AI', 'Nombre visible de la organización');
-
-
+    ('NOMBRE_ORGANIZACION', 'SkillBridge AI', 'Nombre visible de la organización'),
+    ('MAX_PROYECTOS_POR_RM', '5', 'Máximo de proyectos (en revisión, activos o en espera) a cargo de un RM'),
+    ('DIAS_URGENCIA_INICIO', '7', 'Un proyecto con inicio en estos días o menos se considera urgente'),
+    ('DIAS_MAX_SIN_REVISAR', '2', 'Días en revisión sin RM o sin revisar antes de escalar el proyecto');
 -- =====================================================================
 -- 25A. DOCUMENTOS DEL PROYECTO
 -- =====================================================================

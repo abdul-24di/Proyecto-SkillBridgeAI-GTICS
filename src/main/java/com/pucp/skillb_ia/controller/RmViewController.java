@@ -2,6 +2,7 @@ package com.pucp.skillb_ia.controller;
 
 import com.pucp.skillb_ia.service.CierreAsignacionesService;
 import com.pucp.skillb_ia.service.EvaluacionService;
+import com.pucp.skillb_ia.service.rm.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,19 +22,6 @@ import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.model.enums.NivelExperiencia;
 import com.pucp.skillb_ia.security.UsuarioDetails;
-import com.pucp.skillb_ia.service.rm.RmColaboradorConsultaService;
-import com.pucp.skillb_ia.service.rm.RmAsignacionService;
-import com.pucp.skillb_ia.service.rm.RmPerfilService;
-import com.pucp.skillb_ia.service.rm.RmProyectoConsultaService;
-import com.pucp.skillb_ia.service.rm.RmProyectoRevisionService;
-import com.pucp.skillb_ia.service.rm.RmSolicitudPersonalService;
-import com.pucp.skillb_ia.service.rm.RmCertificadoService;
-import com.pucp.skillb_ia.service.rm.RmEducacionService;
-import com.pucp.skillb_ia.service.rm.RmForoConsultaService;
-import com.pucp.skillb_ia.service.rm.RmReporteExportService;
-import com.pucp.skillb_ia.service.rm.RmReporteService;
-import com.pucp.skillb_ia.service.rm.RmCursoService;
-import com.pucp.skillb_ia.service.rm.RmPresupuestoService;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -78,6 +66,7 @@ public class RmViewController {
     private final RmCursoService rmCursoService;
     private final RmPresupuestoService rmPresupuestoService;
     private final EvaluacionService evaluacionService;
+    private final RmResponsableService rmResponsableService;
 
     public RmViewController(
             RmPerfilService rmPerfilService,
@@ -93,6 +82,7 @@ public class RmViewController {
             RmReporteExportService rmReporteExportService,
             RmCursoService rmCursoService,
             RmPresupuestoService rmPresupuestoService,
+            RmResponsableService rmResponsableService,
             EvaluacionService evaluacionService) {
         this.rmPerfilService = rmPerfilService;
         this.rmColaboradorConsultaService = rmColaboradorConsultaService;
@@ -108,6 +98,7 @@ public class RmViewController {
         this.rmCursoService = rmCursoService;
         this.rmPresupuestoService = rmPresupuestoService;
         this.evaluacionService = evaluacionService;
+        this.rmResponsableService = rmResponsableService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -212,18 +203,31 @@ public class RmViewController {
         model.addAttribute("totalPendientesRm", contadores.pendientesRm());
         model.addAttribute("totalEnRevision", contadores.enRevision());
         model.addAttribute("proyectoNoEncontrado", Boolean.TRUE.equals(noEncontrado));
+        model.addAttribute("diasUrgencia", rmResponsableService.diasUrgenciaInicio());
+
         return "rm/rm-proyectos";
     }
 
     @GetMapping({"/proyectos/detalle", "/rm-detalle-proyecto.html"})
     public String projectDetail(
             @RequestParam(name = "id", required = false) Long proyectoId,
+            @AuthenticationPrincipal UsuarioDetails principal,
             Model model) {
         if (proyectoId == null) return "redirect:/rm/proyectos";
         try {
             RmProyectoView proyecto = rmProyectoConsultaService.obtener(proyectoId);
             model.addAttribute("proyecto", proyecto);
             model.addAttribute("resumen", proyecto.getResumenPresupuesto());
+
+            // Responsable de revisión y urgencia
+            com.pucp.skillb_ia.model.Proyecto entidad = proyecto.getProyecto();
+            boolean esResponsable = principal != null && entidad.getRmRevisor() != null
+                    && entidad.getRmRevisor().getId().equals(principal.getUsuario().getId());
+            model.addAttribute("responsableNombre", entidad.getRmRevisor() == null ? null
+                    : entidad.getRmRevisor().getNombre() + " " + entidad.getRmRevisor().getApellido());
+            model.addAttribute("esResponsable", esResponsable);
+            model.addAttribute("proyectoGestionable", rmResponsableService.esGestionable(entidad));
+            model.addAttribute("motivoUrgencia", rmResponsableService.motivoUrgencia(entidad));
             model.addAttribute("foroId", rmForoConsultaService
                     .buscarIdPorProyecto(proyecto.getProyecto()).orElse(null));
             model.addAttribute("proyectoAsignable",
@@ -403,6 +407,37 @@ public class RmViewController {
             return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
         }
     }
+
+    @PostMapping("/proyectos/{id}/tomar")
+    public String takeProject(
+            @PathVariable("id") Long proyectoId,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmResponsableService.tomar(proyectoId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Ahora eres el Resource Manager responsable de este proyecto.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
+    }
+
+    @PostMapping("/proyectos/{id}/liberar")
+    public String releaseProject(
+            @PathVariable("id") Long proyectoId,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            rmResponsableService.liberar(proyectoId, principal.getUsuario());
+            redirectAttributes.addFlashAttribute("mensajeExito", "Liberaste el proyecto. Vuelve a la bolsa de proyectos sin asignar.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
+    }
+
 
     // Zona de riesgo del detalle: éxito y error vuelven al detalle del proyecto.
     @PostMapping("/proyectos/{id}/cancelar")

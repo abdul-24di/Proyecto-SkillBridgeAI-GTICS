@@ -24,19 +24,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
-// Épica 2 — Historia de Inicio de sesión + Historia de Gestión de sesión.
-// El formulario de auth/login.html ya usa los nombres por defecto de Spring
-// Security (username/password/remember-me), así que se integra directo con
-// formLogin() en vez de manejar la sesión a mano. El resumen de las defensas
-// está en docs/SEGURIDAD.md.
+
 @Configuration
 public class SecurityConfig {
-
-    // Firma las cookies de "Recordarme". No puede estar escrita en el repositorio: en la nube se define con
-    // la variable de entorno REMEMBER_ME_KEY. Si falta, se genera una al arrancar (las cookies dejan de
-    // valer al reiniciar, pero nunca queda una clave conocida).
-    @Value("${REMEMBER_ME_KEY:#{T(java.util.UUID).randomUUID().toString()}}")
-    private String claveRecordarme;
 
     // Peticiones por IP y por minuto (ver LimiteSolicitudesFilter).
     @Value("${app.limite.peticiones-por-minuto:300}")
@@ -128,11 +118,6 @@ public class SecurityConfig {
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout")
                 .permitAll()
-            )
-
-            .rememberMe(remember -> remember
-                .key(claveRecordarme)
-                .rememberMeParameter("remember-me")
             );
         return http.build();
     }

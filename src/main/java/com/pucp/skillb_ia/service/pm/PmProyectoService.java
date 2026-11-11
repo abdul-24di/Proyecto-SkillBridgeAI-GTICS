@@ -20,6 +20,7 @@ import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.CierreAsignacionesService;
 import com.pucp.skillb_ia.service.NotificacionService;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
+import com.pucp.skillb_ia.service.rm.RmResponsableService;
 import org.springframework.stereotype.Service;
 import com.pucp.skillb_ia.service.ChatBaseService;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +44,7 @@ public class PmProyectoService {
     private final CierreAsignacionesService cierreAsignacionesService;
     private final NotificacionService notificacionService;
     private final ChatBaseService chatBaseService;
+    private final RmResponsableService rmResponsableService;
 
 
     public PmProyectoService(ProyectoRepository proyectoRepository,
@@ -53,9 +55,11 @@ public class PmProyectoService {
                              AuditoriaService auditoriaService,
                              CierreAsignacionesService cierreAsignacionesService,
                              NotificacionService notificacionService,
-                             ChatBaseService chatBaseService) {
-        this.notificacionService = notificacionService;
+                             ChatBaseService chatBaseService,
+                             RmResponsableService rmResponsableService) {
         this.chatBaseService = chatBaseService;
+        this.rmResponsableService = rmResponsableService;
+        this.notificacionService = notificacionService;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.actividadRepository = actividadRepository;
@@ -128,6 +132,8 @@ public class PmProyectoService {
         proyecto.setEstado(EstadoProyecto.EN_REVISION);
         Proyecto saved = proyectoRepository.save(proyecto);
         chatBaseService.obtenerOCrearGrupal(saved);
+        // Asigna el RM responsable (menos cargado; si el proyecto es urgente, ignora el tope)
+        rmResponsableService.asignarAlCrear(saved);
 
         // Guardar habilidades requeridas
         if (habilidadIds != null) {

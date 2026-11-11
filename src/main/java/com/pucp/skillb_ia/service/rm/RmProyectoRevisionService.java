@@ -35,6 +35,8 @@ public class RmProyectoRevisionService {
     private final NotificacionService notificacionService;
     private final ActividadRepository actividadRepository;
     private final CierreAsignacionesService cierreAsignacionesService;
+    private final RmResponsableService rmResponsableService;
+
 
     public RmProyectoRevisionService(ProyectoRepository proyectoRepository,
                                      UsuarioRepository usuarioRepository,
@@ -42,7 +44,9 @@ public class RmProyectoRevisionService {
                                      RmPresupuestoService presupuestoService,
                                      NotificacionService notificacionService,
                                      ActividadRepository actividadRepository,
-                                     CierreAsignacionesService cierreAsignacionesService) {
+                                     CierreAsignacionesService cierreAsignacionesService,
+                                     RmResponsableService rmResponsableService) {
+        this.rmResponsableService = rmResponsableService;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
@@ -56,6 +60,7 @@ public class RmProyectoRevisionService {
     public EstadoProyecto asignarPresupuesto(Long proyectoId, BigDecimal presupuesto, Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = obtenerConPresupuestoEditable(proyectoId);
+        rmResponsableService.validarResponsable(proyecto, rm);
         BigDecimal presupuestoValidado = validarPresupuesto(presupuesto);
         RmPresupuestoService.ResumenPresupuesto resumen = presupuestoService.calcularResumen(proyecto);
         BigDecimal comprometidoYReservado = resumen.comprometido().add(resumen.reservado());
@@ -79,6 +84,7 @@ public class RmProyectoRevisionService {
     public void aprobar(Long proyectoId, Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = obtenerEnRevision(proyectoId);
+        rmResponsableService.validarResponsable(proyecto, rm);
         if (proyecto.getPresupuesto() == null || proyecto.getPresupuesto().signum() <= 0) {
             throw new IllegalArgumentException("Asigna un presupuesto válido antes de aprobar el proyecto.");
         }
@@ -102,6 +108,7 @@ public class RmProyectoRevisionService {
     public void rechazar(Long proyectoId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = obtenerEnRevision(proyectoId);
+        rmResponsableService.validarResponsable(proyecto, rm);
         String motivoValidado = motivo == null ? "" : motivo.trim();
         if (motivoValidado.isEmpty()) {
             throw new IllegalArgumentException("Debes registrar el motivo del rechazo.");
@@ -136,6 +143,7 @@ public class RmProyectoRevisionService {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el proyecto solicitado."));
+        rmResponsableService.validarResponsable(proyecto, rm);
         if (proyecto.getEstado() != EstadoProyecto.EN_REVISION
                 && proyecto.getEstado() != EstadoProyecto.ACTIVO
                 && proyecto.getEstado() != EstadoProyecto.EN_ESPERA) {
@@ -224,6 +232,8 @@ public class RmProyectoRevisionService {
         Usuario rm = obtenerRm(rmId);
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el proyecto solicitado."));
+
+        rmResponsableService.validarResponsable(proyecto, rm);
         if (!esProyectoCerrable(proyecto)) {
             throw new IllegalStateException("Solo se pueden " + accion + " proyectos activos o en espera.");
         }

@@ -701,13 +701,15 @@ class RmColaboradorViewTests {
                 .thenReturn(new RmColaboradorConsultaService.FiltrosColaborador("", "", "", ""));
         when(consulta.listarPaginaDirectorio(any(), any())).thenReturn(new RmColaboradorConsultaService.PaginaColaboradores(
                 List.of(), 1, 1, 0, new RmColaboradorConsultaService.ContadoresColaboradores(0, 0, 0, 0)));
+
         RmViewController controller = new RmViewController(
                 mock(RmPerfilService.class), consulta, mock(RmProyectoConsultaService.class),
                 mock(RmProyectoRevisionService.class), mock(RmAsignacionService.class),
                 mock(RmSolicitudPersonalService.class), mock(RmCertificadoService.class),
                 mock(RmEducacionService.class), mock(RmForoConsultaService.class), mock(RmReporteService.class),
                 mock(RmReporteExportService.class), mock(RmCursoService.class), mock(RmPresupuestoService.class),
-                mock(EvaluacionService.class));
+                mock(RmResponsableService.class), mock(EvaluacionService.class));
+
         ConcurrentModel modelo = new ConcurrentModel();
         assertEquals("rm/rm-colaboradores", controller.collaborators(null, null, null, null, null, null, modelo));
 

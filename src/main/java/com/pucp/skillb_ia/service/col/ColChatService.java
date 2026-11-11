@@ -1,17 +1,16 @@
 package com.pucp.skillb_ia.service.col;
 
+import com.pucp.skillb_ia.dto.ChatContactoView;
 import com.pucp.skillb_ia.dto.PmMensajeView;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Conversacion;
-import com.pucp.skillb_ia.model.Mensaje;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
-import com.pucp.skillb_ia.model.enums.TipoConversacion;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
-import com.pucp.skillb_ia.repository.ConversacionRepository;
-import com.pucp.skillb_ia.repository.MensajeRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
+import com.pucp.skillb_ia.repository.UsuarioRepository;
+import com.pucp.skillb_ia.service.ChatBaseService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,21 +20,19 @@ import java.util.List;
 @Service
 public class ColChatService {
 
-    private static final int MAX_LONGITUD_MENSAJE = 1000;
-
     private final AsignacionRepository asignacionRepository;
     private final ProyectoRepository proyectoRepository;
-    private final ConversacionRepository conversacionRepository;
-    private final MensajeRepository mensajeRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final ChatBaseService chatBaseService;
 
     public ColChatService(AsignacionRepository asignacionRepository,
                           ProyectoRepository proyectoRepository,
-                          ConversacionRepository conversacionRepository,
-                          MensajeRepository mensajeRepository) {
+                          UsuarioRepository usuarioRepository,
+                          ChatBaseService chatBaseService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
-        this.conversacionRepository = conversacionRepository;
-        this.mensajeRepository = mensajeRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.chatBaseService = chatBaseService;
     }
 
     public List<Proyecto> listarProyectosActivos(Usuario colaborador) {
@@ -49,6 +46,16 @@ public class ColChatService {
         return proyectos;
     }
 
+    // ---------------- Validaciones ----------------
+
+    private Proyecto buscarProyecto(Long proyectoId) {
+        if (proyectoId == null) {
+            throw new IllegalArgumentException("Debes seleccionar un proyecto.");
+        }
+        return proyectoRepository.findById(proyectoId)
+                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
+    }
+
     private void validarAcceso(Proyecto proyecto, Usuario colaborador) {
         List<Asignacion> asignaciones = asignacionRepository.findByColaboradorAndEstado(colaborador, EstadoAsignacion.ACTIVA);
 
@@ -59,82 +66,96 @@ public class ColChatService {
         }
 
         throw new IllegalArgumentException("No eres un colaborador activo de este proyecto.");
-
     }
 
-    @Transactional(readOnly = true)
-    public List<PmMensajeView> obtenerMensajes(Long proyectoId, Usuario colaborador) {
-
-        if (proyectoId == null) {
-            throw new IllegalArgumentException("Debes seleccionar un proyecto.");
+    // El otro usuario debe ser el PM del proyecto o un colaborador con asignación activa
+    private Usuario validarDestinatario(Proyecto proyecto, Long otroUsuarioId, Usuario colaborador) {
+        if (otroUsuarioId == null) {
+            throw new IllegalArgumentException("Debes seleccionar con quién chatear.");
+        }
+        if (otroUsuarioId.equals(colaborador.getId())) {
+            throw new IllegalArgumentException("No puedes escribirte a ti mismo.");
         }
 
-        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
+        Usuario otro = usuarioRepository.findById(otroUsuarioId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
 
+        if (proyecto.getPm().getId().equals(otroUsuarioId)) {
+            return otro;
+        }
+
+        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        for (Asignacion a : activas) {
+            if (a.getColaborador().getId().equals(otroUsuarioId)) {
+                return otro;
+            }
+        }
+
+        throw new IllegalArgumentException("Esa persona no es parte de este proyecto.");
+    }
+
+    // ---------------- Contactos de PM y colaboradores ----------------
+
+    @Transactional(readOnly = true)
+    public List<ChatContactoView> listarContactos(Long proyectoId, Usuario colaborador) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
         validarAcceso(proyecto, colaborador);
 
-        List<PmMensajeView> vistas = new ArrayList<>();
+        List<ChatContactoView> contactos = new ArrayList<>();
+        contactos.add(new ChatContactoView(proyecto.getPm(), "Project Manager"));
 
-        List<Conversacion> conversaciones = conversacionRepository.findByProyectoOrderByIdAsc(proyecto);
-
-        if (conversaciones.isEmpty()) {
-            return vistas;
+        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        for (Asignacion a : activas) {
+            Usuario otro = a.getColaborador();
+            if (!otro.getId().equals(colaborador.getId())) {
+                contactos.add(new ChatContactoView(otro, "Colaborador"));
+            }
         }
+        return contactos;
+    }
 
-        List<Mensaje> mensajes = mensajeRepository.findByConversacionOrderByFechaHoraAsc(conversaciones.get(0));
-        for (Mensaje m : mensajes) {
-            vistas.add(new PmMensajeView(m, colaborador.getId()));
-        }
-        return vistas;
+    // ---------------- Chat grupal ----------------
+
+    @Transactional
+    public List<PmMensajeView> obtenerMensajes(Long proyectoId, Usuario colaborador) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        validarAcceso(proyecto, colaborador);
+
+        Conversacion conversacion = chatBaseService.obtenerOCrearGrupal(proyecto);
+        return chatBaseService.listar(conversacion, colaborador.getId());
     }
 
     @Transactional
     public PmMensajeView enviarMensaje(Long proyectoId, String contenido, Usuario colaborador) {
-        if (proyectoId == null) {
-            throw new IllegalArgumentException("Debes seleccionar un proyecto para enviar un mensaje.");
-        }
-        if (contenido == null || contenido.trim().isEmpty()) {
-            throw new IllegalArgumentException("El mensaje no puede estar vacío.");
-        }
-<<<<<<< Updated upstream
-        // Mismas reglas que el chat del PM (PmChatService).
-        String contenidoLimpio = contenido.trim();
-        if (contenidoLimpio.length() > 1000) {
-            throw new IllegalArgumentException("El mensaje no puede superar los 1000 caracteres.");
-=======
-        String texto = contenido.trim();
-        if (texto.length() > MAX_LONGITUD_MENSAJE) {
-            throw new IllegalArgumentException("El mensaje no puede superar los " + MAX_LONGITUD_MENSAJE + " caracteres.");
->>>>>>> Stashed changes
-        }
-
-        Proyecto proyecto = proyectoRepository.findById(proyectoId)
-                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
-
+        chatBaseService.validarTexto(contenido);
+        Proyecto proyecto = buscarProyecto(proyectoId);
         validarAcceso(proyecto, colaborador);
 
+        return chatBaseService.enviarGrupal(proyecto, colaborador, contenido.trim());
+    }
 
-        Conversacion conversacion;
-        List<Conversacion> conversaciones = conversacionRepository.findByProyectoOrderByIdAsc(proyecto);
-        if (conversaciones.isEmpty()) {
-            conversacion = new Conversacion();
-            conversacion.setProyecto(proyecto);
-            conversacion.setTipo(TipoConversacion.GRUPAL);
-            conversacion = conversacionRepository.save(conversacion);
-        } else {
-            conversacion = conversaciones.get(0);
+    // ---------------- Chat privado ----------------
+
+    @Transactional(readOnly = true)
+    public List<PmMensajeView> obtenerMensajesPrivados(Long proyectoId, Long otroUsuarioId, Usuario colaborador) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        validarAcceso(proyecto, colaborador);
+        Usuario otro = validarDestinatario(proyecto, otroUsuarioId, colaborador);
+
+        Conversacion conversacion = chatBaseService.buscarPrivada(proyecto, colaborador, otro);
+        if (conversacion == null) {
+            return new ArrayList<>();
         }
+        return chatBaseService.listar(conversacion, colaborador.getId());
+    }
 
-        Mensaje mensaje = new Mensaje();
-        mensaje.setConversacion(conversacion);
-        mensaje.setAutor(colaborador);
-<<<<<<< Updated upstream
-        mensaje.setContenido(contenidoLimpio);
-=======
-        mensaje.setContenido(texto);
->>>>>>> Stashed changes
+    @Transactional
+    public PmMensajeView enviarMensajePrivado(Long proyectoId, Long otroUsuarioId, String contenido, Usuario colaborador) {
+        chatBaseService.validarTexto(contenido);
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        validarAcceso(proyecto, colaborador);
+        Usuario otro = validarDestinatario(proyecto, otroUsuarioId, colaborador);
 
-        Mensaje guardado = mensajeRepository.save(mensaje);
-        return new PmMensajeView(guardado, colaborador.getId());
+        return chatBaseService.enviarPrivado(proyecto, colaborador, otro, contenido.trim());
     }
 }

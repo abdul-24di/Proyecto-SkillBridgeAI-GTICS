@@ -21,6 +21,7 @@ import com.pucp.skillb_ia.service.CierreAsignacionesService;
 import com.pucp.skillb_ia.service.NotificacionService;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import org.springframework.stereotype.Service;
+import com.pucp.skillb_ia.service.ChatBaseService;
 import org.springframework.web.multipart.MultipartFile;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,8 @@ public class PmProyectoService {
     private final AuditoriaService auditoriaService;
     private final CierreAsignacionesService cierreAsignacionesService;
     private final NotificacionService notificacionService;
+    private final ChatBaseService chatBaseService;
+
 
     public PmProyectoService(ProyectoRepository proyectoRepository,
                              AsignacionRepository asignacionRepository,
@@ -49,8 +52,10 @@ public class PmProyectoService {
                              HabilidadRepository habilidadRepository,
                              AuditoriaService auditoriaService,
                              CierreAsignacionesService cierreAsignacionesService,
-                             NotificacionService notificacionService) {
+                             NotificacionService notificacionService,
+                             ChatBaseService chatBaseService) {
         this.notificacionService = notificacionService;
+        this.chatBaseService = chatBaseService;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.actividadRepository = actividadRepository;
@@ -122,6 +127,7 @@ public class PmProyectoService {
         proyecto.setPm(pm);
         proyecto.setEstado(EstadoProyecto.EN_REVISION);
         Proyecto saved = proyectoRepository.save(proyecto);
+        chatBaseService.obtenerOCrearGrupal(saved);
 
         // Guardar habilidades requeridas
         if (habilidadIds != null) {

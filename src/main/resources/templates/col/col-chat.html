@@ -7,323 +7,71 @@
     <title>SkillBridge AI — Chat</title>
     <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
-    <link rel="stylesheet" href="../../static/css/pm-css/pm-chat.css" th:href="@{/css/pm-css/pm-chat.css}">
+    <link rel="stylesheet" href="../../static/css/chat.css" th:href="@{/css/chat.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
-
-<style>
-
-  .avatar {
-      object-fit: contain !important;
-      object-position: center !important;
-      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
-  }
-  span.avatar {
-      background-size: contain !important;
-      background-position: center !important;
-      background-repeat: no-repeat !important;
-      background-color: #f8f9fa;
-  }
-
-</style>
-
 </head>
 <body>
 <div class="app-shell">
 
-<header class="topbar" th:replace="~{fragments/col-topbar :: topbar('chat')}"></header>
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('chat')}"></header>
 
-<main class="page-wrap">
-    <div class="breadcrumb-wrap">
-        <a th:href="@{/colaborador/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
-        <span class="breadcrumb-separator">›</span>
-        <span class="text-secondary">Chat</span>
-    </div>
+    <main class="page-wrap">
+        <div class="breadcrumb-wrap">
+            <a th:href="@{/colaborador/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
+            <span class="breadcrumb-separator">›</span>
+            <span class="text-secondary">Chat</span>
+        </div>
 
-    <div class="chat-layout">
-        <aside class="card section-card channel-panel">
-            <div class="card-header section-header">
-                <div><h3 class="card-title mb-1">Canales</h3></div>
-            </div>
-            <div class="channel-list">
-                <div class="channel-group-label" th:if="${not #lists.isEmpty(proyectos)}">Proyectos Activos</div>
-                
-                <button th:each="proy : ${proyectos}" 
-                        class="channel-item" 
-                        th:classappend="${proy.id == proyectoIdSeleccionado} ? 'active' : ''"
-                        th:data-channel-id="${proy.id}" 
-                        th:data-channel-name="${proy.nombre}"
-                        th:text="'# ' + ${proy.nombre}">
-                    # Nombre Proyecto
-                </button>
-                
-                <div th:if="${#lists.isEmpty(proyectos)}" class="text-secondary small p-3 text-center">
-                    No estás asignado a ningún proyecto actualmente.
+        <div class="sb-chat" id="chatApp" data-api-base="/colaborador/api/chat" data-page-url="/colaborador/chat"
+             th:data-project-id="${proyectoIdSeleccionado}" th:data-user-id="${usuarioIdSeleccionado}">
+            <aside class="sb-chat__sidebar">
+                <div class="sb-chat__picker" th:if="${not #lists.isEmpty(proyectos)}">
+                    <label class="sb-chat__label" for="proyectoSelect">Proyecto</label>
+                    <select id="proyectoSelect" class="form-select">
+                        <option value="" disabled th:selected="${proyectoIdSeleccionado == null}">Selecciona un proyecto</option>
+                        <option th:each="proy : ${proyectos}" th:value="${proy.id}" th:text="${proy.nombre}"
+                                th:selected="${proy.id == proyectoIdSeleccionado}">Proyecto</option>
+                    </select>
                 </div>
-            </div>
-        </aside>
+                <div th:if="${proyectoIdSeleccionado != null}" id="contactList" class="sb-chat__list" aria-label="Conversaciones"></div>
+            </aside>
 
-        <section class="card section-card chat-panel">
-            <div th:if="${proyectoIdSeleccionado == null and not #lists.isEmpty(proyectos)}" class="d-flex align-items-center justify-content-center h-100 text-secondary">
-                Selecciona un canal de la izquierda para comenzar a chatear.
-            </div>
-            
-            <div th:if="${proyectoIdSeleccionado != null}" class="d-flex flex-column h-100">
-                <div class="chat-header">
-                    <div>
-                        <div class="fw-bold fs-3" id="channelTitle"># Cargando...</div>
-                        <div class="small text-secondary">Chat grupal del equipo (PM + Colaboradores)</div>
-                    </div>
+            <section class="sb-chat__panel">
+                <div th:if="${proyectoIdSeleccionado != null}" class="d-flex flex-column h-100" style="min-height:0">
+                    <header class="sb-chat__header">
+                        <span class="sb-avatar sb-avatar--lg sb-avatar--group" id="chatAvatar" aria-hidden="true"></span>
+                        <div class="sb-chat__header-text">
+                            <h2 class="sb-chat__title" id="chatTitulo"><th:block th:each="p : ${proyectos}"><th:block th:if="${p.id == proyectoIdSeleccionado}" th:text="${p.nombre}">Proyecto</th:block></th:block></h2>
+                            <p class="sb-chat__subtitle" id="chatSubtitulo">Chat del equipo</p>
+                        </div>
+                        <span class="sb-chat__status" id="chatEstadoConexion" hidden>Sin conexión</span>
+                    </header>
+
+                    <div id="messageList" class="sb-chat__messages" role="log" aria-live="polite"></div>
+
+                    <div id="chatError" class="sb-chat__alert" role="alert" hidden></div>
+                    <form id="chatForm" class="sb-chat__composer" novalidate>
+                        <input id="messageInput" type="text" maxlength="1000" autocomplete="off"
+                               placeholder="Escribe un mensaje…" aria-label="Mensaje">
+                        <button type="submit" class="sb-chat__send" id="btnEnviar" aria-label="Enviar mensaje">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </button>
+                    </form>
                 </div>
-                
-                <div id="messageList" class="message-list flex-fill overflow-auto">
-                    <!-- Los mensajes se cargarán por AJAX -->
-                    <div class="text-center py-5 text-secondary">Cargando mensajes...</div>
+
+                <div th:if="${proyectoIdSeleccionado == null}" class="sb-state">
+                    <div class="sb-state__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+                    <h3 th:text="${#lists.isEmpty(proyectos)} ? 'Aún no tienes chats' : 'Elige un proyecto'">Elige un proyecto</h3>
+                    <p th:text="${#lists.isEmpty(proyectos)} ? 'Cuando participes en un proyecto activo, su chat aparecerá aquí.' : 'Selecciona un proyecto para ver sus conversaciones.'">Selecciona un proyecto para ver sus conversaciones.</p>
                 </div>
-                
-                <form id="chatForm" class="chat-composer mt-3">
-                    <input type="hidden" id="activeProjectId" th:value="${proyectoIdSeleccionado}">
-                    <input id="messageInput" class="form-control me-2" placeholder="Escribe un mensaje al equipo" autocomplete="off">
-                    <button type="submit" class="btn btn-primary" id="btnEnviar">Enviar</button>
-                </form>
-            </div>
-            
-            <div th:if="${#lists.isEmpty(proyectos)}" class="d-flex align-items-center justify-content-center h-100 text-secondary">
-                No tienes proyectos disponibles para chatear.
-            </div>
-        </section>
-    </div>
-</main>
+            </section>
+        </div>
+    </main>
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
-
-
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const channelButtons = document.querySelectorAll('.channel-item');
-        let activeProjectId = document.getElementById('activeProjectId') ? document.getElementById('activeProjectId').value : null;
-        const messageList = document.getElementById('messageList');
-        const channelTitle = document.getElementById('channelTitle');
-        const chatForm = document.getElementById('chatForm');
-        const messageInput = document.getElementById('messageInput');
-        const btnEnviar = document.getElementById('btnEnviar');
-        let chatInterval = null;
-
-<<<<<<< Updated upstream
-    if (activeProjectId && channelTitle) {
-        // Find active button to set title
-        const activeButton = document.querySelector(`.channel-item[data-channel-id='${activeProjectId}']`);
-        if(activeButton) channelTitle.textContent = '# ' + activeButton.dataset.channelName;
-        
-        loadMessages();
-        chatInterval = setInterval(loadMessages, 3000); // Polling cada 3 segundos
-    }
-
-    channelButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            window.location.href = `/colaborador/chat?proyectoId=${this.dataset.channelId}`;
-        });
-    });
-
-    if(chatForm) {
-        chatForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const text = messageInput.value.trim();
-            if(!text || !activeProjectId) return;
-            
-            btnEnviar.disabled = true;
-            
-            const formData = new URLSearchParams();
-            formData.append('proyectoId', activeProjectId);
-            formData.append('contenido', text);
-
-            fetch('/colaborador/api/chat/enviar', {
-                method: 'POST',
-                headers: csrfHeaders({
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }),
-                body: formData.toString()
-            })
-            .then(async res => {
-                // La API responde {"error": "..."} cuando algo falla (ver ApiErrorAdvice).
-                const payload = await res.json().catch(() => ({}));
-                if(!res.ok) throw new Error(payload.error || "No se pudo enviar el mensaje.");
-                return payload;
-            })
-            .then(msg => {
-                messageInput.value = '';
-                loadMessages(); // reload to show new msg
-            })
-            .catch(err => {
-                console.error(err);
-                alert(err.message);
-            })
-            .finally(() => {
-                btnEnviar.disabled = false;
-                messageInput.focus();
-            });
-        });
-    }
-
-    function loadMessages() {
-        if(!activeProjectId) return;
-        
-        fetch(`/colaborador/api/chat/mensajes?proyectoId=${activeProjectId}`)
-        .then(res => res.json())
-        .then(data => {
-            renderMessages(data);
-        })
-        .catch(console.error);
-    }
-
-    function renderMessages(messages) {
-        if(messages.length === 0) {
-            messageList.innerHTML = '<div class="text-center py-5 text-secondary">Aún no hay mensajes en este chat.</div>';
-            return;
-=======
-        if (messageInput) {
-            messageInput.maxLength = 1000;
->>>>>>> Stashed changes
-        }
-
-        if (activeProjectId && channelTitle) {
-            const activeButton = document.querySelector(`.channel-item[data-channel-id='${activeProjectId}']`);
-            if (activeButton) channelTitle.textContent = '# ' + activeButton.dataset.channelName;
-
-            loadMessages();
-            chatInterval = setInterval(loadMessages, 5000); // Polling cada 5 segundos
-        }
-
-        channelButtons.forEach(btn => {
-            btn.addEventListener('click', function() {
-                window.location.href = `/colaborador/chat?proyectoId=${this.dataset.channelId}`;
-            });
-        });
-
-        if (chatForm) {
-            chatForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const text = messageInput.value.trim();
-                if (!text || !activeProjectId) return;
-
-                btnEnviar.disabled = true;
-
-                const formData = new URLSearchParams();
-                formData.append('proyectoId', activeProjectId);
-                formData.append('contenido', text);
-
-                fetch('/colaborador/api/chat/enviar', {
-                    method: 'POST',
-                    headers: csrfHeaders({
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }),
-                    body: formData.toString()
-                })
-                    .then(res => {
-                        if (!res.ok) {
-                            return res.json().catch(() => ({})).then(body => {
-                                throw new Error(body.error || "No se pudo enviar el mensaje");
-                            });
-                        }
-                        return res.json();
-                    })
-                    .then(() => {
-                        messageInput.value = '';
-                        loadMessages();
-                    })
-                    .catch(err => {
-                        alert(err.message);
-                    })
-                    .finally(() => {
-                        btnEnviar.disabled = false;
-                        messageInput.focus();
-                    });
-            });
-        }
-
-        function loadMessages() {
-            if (!activeProjectId) return;
-
-            fetch(`/colaborador/api/chat/mensajes?proyectoId=${activeProjectId}`)
-                .then(res => {
-                    if (!res.ok) {
-                        return res.json().catch(() => ({})).then(body => {
-                            throw new Error(body.error || "No se pudo cargar el chat");
-                        });
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    renderMessages(data);
-                })
-                .catch(err => {
-                    messageList.innerHTML = '<div class="text-center py-5 text-danger">' + escapeHtml(err.message) + '</div>';
-                });
-        }
-
-        function renderMessages(messages) {
-            if (messages.length === 0) {
-                messageList.innerHTML = '<div class="text-center py-5 text-secondary">Aún no hay mensajes en este chat.</div>';
-                return;
-            }
-
-            let html = '';
-            messages.forEach(msg => {
-                if (msg.esPropio) {
-                    html += `
-                <div class="message-row own">
-                    <div>
-                        <div class="message-meta">
-                            <strong>${escapeHtml(msg.autorNombre)}</strong>
-                            <span>${msg.hora}</span>
-                        </div>
-                        <div class="message-bubble">${escapeHtml(msg.contenido)}</div>
-                    </div>
-                    <span class="avatar avatar-sm bg-blue text-white">${escapeHtml(msg.autorIniciales)}</span>
-                </div>`;
-                } else {
-                    html += `
-                <div class="message-row">
-                    <span class="avatar avatar-sm bg-blue-lt text-blue">${escapeHtml(msg.autorIniciales)}</span>
-                    <div>
-                        <div class="message-meta">
-                            <strong>${escapeHtml(msg.autorNombre)}</strong>
-                            <span>${msg.hora}</span>
-                        </div>
-                        <div class="message-bubble bg-light">${escapeHtml(msg.contenido)}</div>
-                    </div>
-                </div>`;
-                }
-            });
-
-            const wasAtBottom = isScrollAtBottom(messageList);
-            messageList.innerHTML = html;
-            if (wasAtBottom) {
-                scrollToBottom(messageList);
-            }
-        }
-
-        function escapeHtml(unsafe) {
-            return (unsafe || '').toString()
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        function isScrollAtBottom(el) {
-            return el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
-        }
-
-        function scrollToBottom(el) {
-            el.scrollTop = el.scrollHeight;
-        }
-    });
-</script>
-
-
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="../../static/js/chat.js" th:src="@{/js/chat.js}"></script>
 
 </body>
 </html>

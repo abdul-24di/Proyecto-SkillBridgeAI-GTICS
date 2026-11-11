@@ -1,0 +1,187 @@
+package com.pucp.skillb_ia.service;
+
+import com.pucp.skillb_ia.dto.PmMensajeView;
+import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.Conversacion;
+import com.pucp.skillb_ia.model.ConversacionUsuario;
+import com.pucp.skillb_ia.model.ConversacionUsuarioId;
+import com.pucp.skillb_ia.model.Mensaje;
+import com.pucp.skillb_ia.model.Proyecto;
+import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
+import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
+import com.pucp.skillb_ia.model.enums.TipoConversacion;
+import com.pucp.skillb_ia.repository.AsignacionRepository;
+import com.pucp.skillb_ia.repository.ConversacionRepository;
+import com.pucp.skillb_ia.repository.ConversacionUsuarioRepository;
+import com.pucp.skillb_ia.repository.MensajeRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+
+@Service
+public class ChatBaseService {
+
+    private static final int MAX_LONGITUD_MENSAJE = 1000;
+
+    private final ConversacionRepository conversacionRepository;
+    private final ConversacionUsuarioRepository conversacionUsuarioRepository;
+    private final MensajeRepository mensajeRepository;
+    private final AsignacionRepository asignacionRepository;
+    private final NotificacionService notificacionService;
+
+    public ChatBaseService(ConversacionRepository conversacionRepository,
+                           ConversacionUsuarioRepository conversacionUsuarioRepository,
+                           MensajeRepository mensajeRepository,
+                           AsignacionRepository asignacionRepository,
+                           NotificacionService notificacionService) {
+        this.conversacionRepository = conversacionRepository;
+        this.conversacionUsuarioRepository = conversacionUsuarioRepository;
+        this.mensajeRepository = mensajeRepository;
+        this.asignacionRepository = asignacionRepository;
+        this.notificacionService = notificacionService;
+    }
+
+    public void validarTexto(String contenido) {
+        if (contenido == null || contenido.trim().isEmpty()) {
+            throw new IllegalArgumentException("El mensaje no puede estar vacío.");
+        }
+        if (contenido.trim().length() > MAX_LONGITUD_MENSAJE) {
+            throw new IllegalArgumentException("El mensaje no puede superar los " + MAX_LONGITUD_MENSAJE + " caracteres.");
+        }
+    }
+
+    // ---------------- Chat grupal ----------------
+
+
+    @Transactional
+    public Conversacion obtenerOCrearGrupal(Proyecto proyecto) {
+        Optional<Conversacion> existente = conversacionRepository
+                .findFirstByProyectoAndTipoOrderByIdAsc(proyecto, TipoConversacion.GRUPAL);
+        if (existente.isPresent()) {
+            return existente.get();
+        }
+        Conversacion nueva = new Conversacion();
+        nueva.setProyecto(proyecto);
+        nueva.setTipo(TipoConversacion.GRUPAL);
+        return conversacionRepository.save(nueva);
+    }
+
+    @Transactional
+    public PmMensajeView enviarGrupal(Proyecto proyecto, Usuario autor, String texto) {
+
+        //Buscamos la conversación grupal del proyecto. En caso de que aun no exista, la creamos
+        Conversacion conversacion = obtenerOCrearGrupal(proyecto);
+
+        Mensaje guardado = guardar(conversacion, autor, texto);
+
+
+        List<Usuario> destinatarios = new ArrayList<>();
+        Usuario pm = proyecto.getPm();
+        if (!pm.getId().equals(autor.getId())) {
+            destinatarios.add(pm);
+        }
+        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        for (Asignacion a : activas) {
+            Usuario col = a.getColaborador();
+            if (!col.getId().equals(autor.getId())) {
+                destinatarios.add(col);
+            }
+        }
+
+        String titulo = recortar("Nuevo mensaje en " + proyecto.getNombre(), 150);
+        String descripcion = recortar(nombreCompleto(autor) + ": " + texto, 200);
+        for (Usuario destinatario : destinatarios) {
+            notificacionService.crear(destinatario, "MENSAJE_GRUPAL", CategoriaNotificacion.MENSAJE,
+                    titulo, descripcion, "CHAT", proyecto.getId());
+        }
+
+        return new PmMensajeView(guardado, autor.getId());
+    }
+
+    // ---------------- Chat privado ----------------
+    public Conversacion buscarPrivada(Proyecto proyecto, Usuario a, Usuario b) {
+        List<Conversacion> privadas = conversacionRepository
+                .findByProyectoAndTipoOrderByIdAsc(proyecto, TipoConversacion.PRIVADA);
+
+        for (Conversacion c : privadas) {
+            boolean estaA = false;
+            boolean estaB = false;
+            List<ConversacionUsuario> miembros = conversacionUsuarioRepository.findByConversacion(c);
+            for (ConversacionUsuario m : miembros) {
+                Long id = m.getUsuario().getId();
+                if (id.equals(a.getId())) estaA = true;
+                if (id.equals(b.getId())) estaB = true;
+            }
+            if (estaA && estaB) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    @Transactional
+    public PmMensajeView enviarPrivado(Proyecto proyecto, Usuario autor, Usuario otro, String texto) {
+        Conversacion conversacion = buscarPrivada(proyecto, autor, otro);
+        if (conversacion == null) {
+            conversacion = new Conversacion();
+            conversacion.setProyecto(proyecto);
+            conversacion.setTipo(TipoConversacion.PRIVADA);
+            conversacion = conversacionRepository.save(conversacion);
+            agregarMiembro(conversacion, autor);
+            agregarMiembro(conversacion, otro);
+        }
+
+        Mensaje guardado = guardar(conversacion, autor, texto);
+
+        String titulo = recortar("Mensaje de " + nombreCompleto(autor), 150);
+        String descripcion = recortar(proyecto.getNombre() + ": " + texto, 200);
+        notificacionService.crear(otro, "MENSAJE_PRIVADO", CategoriaNotificacion.MENSAJE,
+                titulo, descripcion, "CHAT_PRIVADO", conversacion.getId());
+
+        return new PmMensajeView(guardado, autor.getId());
+    }
+
+
+    public List<PmMensajeView> listar(Conversacion conversacion, Long usuarioActualId) {
+        List<PmMensajeView> vistas = new ArrayList<>();
+        List<Mensaje> mensajes = mensajeRepository.findByConversacionOrderByFechaHoraAsc(conversacion);
+        for (Mensaje m : mensajes) {
+            vistas.add(new PmMensajeView(m, usuarioActualId));
+        }
+        return vistas;
+    }
+
+    private Mensaje guardar(Conversacion conversacion, Usuario autor, String texto) {
+        Mensaje mensaje = new Mensaje();
+        mensaje.setConversacion(conversacion);
+        mensaje.setAutor(autor);
+        mensaje.setContenido(texto);
+        return mensajeRepository.save(mensaje);
+    }
+
+    private void agregarMiembro(Conversacion conversacion, Usuario usuario) {
+        conversacionUsuarioRepository.agregarMiembro(conversacion.getId(), usuario.getId());
+    }
+
+    private String nombreCompleto(Usuario u) {
+        return u.getNombre() + " " + u.getApellido();
+    }
+
+    // Metodo que limita la longitud de un texto a una cantidad máxima de caracteres
+    private String recortar(String texto, int max) {
+
+        // Si el texto no supera el máximo permitido, se devuelve completo
+        if (texto.length() <= max) {
+            return texto;
+        }
+
+        // Si supera el límite, se recorta dejando espacio para agregar "..." al final
+        return texto.substring(0, max - 3) + "...";
+    }
+
+}

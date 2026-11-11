@@ -276,7 +276,7 @@ function filterDocs() {
 document.getElementById("docSearch")?.addEventListener("input", filterDocs);
 document.getElementById("docCategoryFilter")?.addEventListener("change", filterDocs);
 
-/* ================= FORO (tab del proyecto) ================= */
+/* ================= FORO ================= */
 if (window.location.hash === "#tab-foro") {
     const tabBtn = document.getElementById("tabForoBtn");
     const Tab = window.bootstrap?.Tab || window.tabler?.bootstrap?.Tab;
@@ -290,34 +290,9 @@ document.getElementById("projectForumSearch")?.addEventListener("input", functio
     });
 });
 
-/* ================= CHAT (tab del proyecto) ================= */
-function sendChatMessage() {
-    const input = document.getElementById("chatInput");
-    const text = input.value.trim();
-    if (!text) return;
-    const messages = document.getElementById("chatMessages");
-    const d = new Date();
-    const time = d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0");
-    const row = document.createElement("div");
-    row.className = "chat-msg chat-msg-own";
-    row.innerHTML = `<div class="chat-bubble"><div class="chat-bubble-author">Paweł Kuna<span class="chat-bubble-time">${time}</span></div>${text}</div>`;
-    messages.appendChild(row);
-    messages.scrollTop = messages.scrollHeight;
-    input.value = "";
-}
 
-document.getElementById("chatSendBtn")?.addEventListener("click", sendChatMessage);
-document.getElementById("chatInput")?.addEventListener("keydown", (e) => { if (e.key === "Enter") sendChatMessage(); });
 
-document.querySelectorAll(".chat-contact").forEach(c => {
-    c.addEventListener("click", () => {
-        document.querySelectorAll(".chat-contact").forEach(x => x.classList.remove("active"));
-        c.classList.add("active");
-    });
-});
-// ---------------- Foro (tab) — reusa los datos y el componente de tarjeta reales ----------------
-// Esta página muestra el proyecto A, así que filtramos por ese scope. Cuando se conecte
-// a la BD real, este id vendrá del proyecto que efectivamente se está viendo.
+
 const projectForumList = document.getElementById("projectForumList");
 if (projectForumList && typeof posts !== "undefined") {
     const projectPosts = posts.filter(p => p.scope === "proyectoA");

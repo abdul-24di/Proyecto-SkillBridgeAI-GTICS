@@ -45,8 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// La API REST (chat del PM, chat del colaborador y notificaciones) responde sus errores en JSON con su
-// código HTTP, en vez de redirigir como las vistas. Sin sesión responde 401.
+
 @SpringBootTest
 @ActiveProfiles("test")
 class ApiRestTests {
@@ -141,7 +140,7 @@ class ApiRestTests {
     }
 
     @Test
-    void elColaboradorRecibe409SiElPmAunNoInicioElChat() throws Exception {
+    void elColaboradorPuedeEscribirEnElChatGrupalAunqueElPmNoLoHayaAbierto() throws Exception {
         Usuario colaborador = usuario("col", "COLABORADOR");
         Proyecto proyecto = proyecto(usuario("pm", "PROJECT_MANAGER"));
         asignar(colaborador, proyecto);
@@ -149,8 +148,8 @@ class ApiRestTests {
 
         mvc.perform(post("/colaborador/api/chat/enviar")
                         .param("proyectoId", proyecto.getId().toString()).param("contenido", "Hola"))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("El chat del proyecto aún no ha sido iniciado por el PM."));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido").value("Hola"));
     }
 
     @Test

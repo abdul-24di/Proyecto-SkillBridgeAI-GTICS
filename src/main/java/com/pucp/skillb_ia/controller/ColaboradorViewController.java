@@ -228,12 +228,15 @@ public class ColaboradorViewController {
 
     @GetMapping({"/chat", "/col-chat.html"})
     public String chat(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
-                       @AuthenticationPrincipal UsuarioDetails principal, 
+                       @RequestParam(value = "usuarioId", required = false) Long usuarioId,
+                       @AuthenticationPrincipal UsuarioDetails principal,
                        Model model) {
         Usuario colaborador = principal.getUsuario();
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("proyectos", colChatService.listarProyectosActivos(colaborador));
         model.addAttribute("proyectoIdSeleccionado", proyectoId);
+        model.addAttribute("usuarioIdSeleccionado", usuarioId);
+
         return "col/col-chat";
     }
 

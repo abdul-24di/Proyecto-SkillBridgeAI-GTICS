@@ -914,12 +914,15 @@ public class PmViewController {
 
     @GetMapping({"/chat", "/pm-chat.html"})
     public String chat(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
-                       @AuthenticationPrincipal UsuarioDetails principal, 
+                       @RequestParam(value = "usuarioId", required = false) Long usuarioId,
+                       @AuthenticationPrincipal UsuarioDetails principal,
                        Model model) {
         Usuario pm = principal.getUsuario();
         model.addAttribute("pm", pm);
         model.addAttribute("proyectos", pmChatService.listarProyectosDelPm(pm));
         model.addAttribute("proyectoIdSeleccionado", proyectoId);
+        model.addAttribute("usuarioIdSeleccionado", usuarioId);
+
         return "pm/pm-chat";
     }
 

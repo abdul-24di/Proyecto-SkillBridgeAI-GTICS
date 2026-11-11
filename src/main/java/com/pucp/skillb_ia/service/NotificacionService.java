@@ -19,13 +19,20 @@ public class NotificacionService {
     private final AsignacionRepository asignacionRepository;
     private final ForoRepository foroRepository;
     private final DocumentoRepository documentoRepository;
+    private final ConversacionRepository conversacionRepository;
+    private final ConversacionUsuarioRepository conversacionUsuarioRepository;
+
 
     public NotificacionService(NotificacionRepository notificacionRepository,
                                UsuarioRepository usuarioRepository,
                                ActividadRepository actividadRepository,
                                AsignacionRepository asignacionRepository,
                                ForoRepository foroRepository,
-                               DocumentoRepository documentoRepository) {
+                               DocumentoRepository documentoRepository,
+                               ConversacionRepository conversacionRepository,
+                               ConversacionUsuarioRepository conversacionUsuarioRepository) {
+        this.conversacionRepository = conversacionRepository;
+        this.conversacionUsuarioRepository = conversacionUsuarioRepository;
         this.notificacionRepository = notificacionRepository;
         this.usuarioRepository = usuarioRepository;
         this.actividadRepository = actividadRepository;
@@ -111,7 +118,7 @@ public class NotificacionService {
                 url(item));
     }
 
-    //Armamos el enlace al que redirige al hacer click en la notificación
+        //Armamos el enlace al que redirige al hacer click en la notificación
         private String url(Notificacion item) {
 
         String rolNombre = item.getUsuario().getRol().getNombre();
@@ -122,9 +129,7 @@ public class NotificacionService {
         if ("ASIGNACION".equals(item.getEntidad()) && item.getEntidadId() != null) {
             if (esColaborador) return "/colaborador/proyectos/detalle?asignacionId=" + item.getEntidadId();
             if (esPm) {
-                // If it's an assignment, the ID is asignacionId. To get project, we'd need to query.
-                // But the easiest is just go to mis proyectos if we can't fetch it easily here without injecting repository.
-                // Or maybe the notification description says it, but we can redirect to /pm/proyectos
+
                 return "/pm/proyectos";
             }
         }
@@ -180,7 +185,7 @@ public class NotificacionService {
             if (documentoOpt.isPresent()) {
                 Documento documento = documentoOpt.get();
                 if (esPm) return "/pm/proyectos/detalle?id=" + documento.getProyecto().getId();
-                if (esColaborador) return "/colaborador/proyectos/detalle?asignacionId=" + documento.getProyecto().getId(); // Assuming it matches or they can go to proyectos
+                if (esColaborador) return "/colaborador/proyectos/detalle?asignacionId=" + documento.getProyecto().getId();
             }
         }
 
@@ -189,11 +194,36 @@ public class NotificacionService {
             if (actividadOpt.isPresent()) {
                 Actividad actividad = actividadOpt.get();
                 if (esPm) return "/pm/actividades?proyectoId=" + actividad.getProyecto().getId();
-                if (esColaborador) return "/colaborador/proyectos/detalle?asignacionId=" + actividad.getProyecto().getId(); // Needs logic but fallback ok
+                if (esColaborador) return "/colaborador/proyectos/detalle?asignacionId=" + actividad.getProyecto().getId();
             }
         }
 
-        // Default redirects based on role if no entity matched
+
+            if ("CHAT".equals(item.getEntidad()) && item.getEntidadId() != null) {
+                if (esPm) return "/pm/chat?proyectoId=" + item.getEntidadId();
+                if (esColaborador) return "/colaborador/chat?proyectoId=" + item.getEntidadId();
+            }
+
+
+            if ("CHAT_PRIVADO".equals(item.getEntidad()) && item.getEntidadId() != null) {
+                Optional<Conversacion> convOpt = conversacionRepository.findById(item.getEntidadId());
+                if (convOpt.isPresent()) {
+                    Conversacion conv = convOpt.get();
+                    Long otroId = null;
+                    List<ConversacionUsuario> miembros = conversacionUsuarioRepository.findByConversacion(conv);
+                    for (ConversacionUsuario m : miembros) {
+                        if (!m.getUsuario().getId().equals(item.getUsuario().getId())) {
+                            otroId = m.getUsuario().getId();
+                        }
+                    }
+                    if (otroId != null) {
+                        String base = esPm ? "/pm/chat" : "/colaborador/chat";
+                        return base + "?proyectoId=" + conv.getProyecto().getId() + "&usuarioId=" + otroId;
+                    }
+                }
+            }
+
+
         if (esPm) return "/pm/dashboard";
         if (esRm) return "/rm/dashboard";
         if (esColaborador) return "/colaborador/dashboard";

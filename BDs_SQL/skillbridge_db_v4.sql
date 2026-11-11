@@ -632,6 +632,7 @@ CREATE TABLE conversacion (
 CREATE TABLE conversacion_usuario (
     conversacion_id BIGINT NOT NULL,
     usuario_id      BIGINT NOT NULL,
+    ultimo_leido_id BIGINT NULL,
 
     PRIMARY KEY (conversacion_id, usuario_id),
 

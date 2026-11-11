@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class PmChatService {
@@ -78,6 +79,7 @@ public class PmChatService {
     public List<PmMensajeView> obtenerMensajes(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoDelPm(proyectoId, pm);
         Conversacion conversacion = chatBaseService.obtenerOCrearGrupal(proyecto);
+        chatBaseService.marcarLeida(conversacion, pm);
         return chatBaseService.listar(conversacion, pm.getId());
     }
 
@@ -93,7 +95,7 @@ public class PmChatService {
     }
 
     // ---------------- Chat privado con un colaborador ----------------
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PmMensajeView> obtenerMensajesPrivados(Long proyectoId, Long colaboradorId, Usuario pm) {
         Proyecto proyecto = proyectoDelPm(proyectoId, pm);
         Usuario colaborador = validarColaborador(proyecto, colaboradorId);
@@ -102,6 +104,7 @@ public class PmChatService {
         if (conversacion == null) {
             return new ArrayList<>();
         }
+        chatBaseService.marcarLeida(conversacion, pm);
         return chatBaseService.listar(conversacion, pm.getId());
     }
 
@@ -116,4 +119,23 @@ public class PmChatService {
 
         return chatBaseService.enviarPrivado(proyecto, pm, colaborador, contenido.trim());
     }
+
+
+    // ---------------- Mensajes no leídos ----------------
+
+    @Transactional(readOnly = true)
+    public Map<String, Long> obtenerNoLeidos(Long proyectoId, Usuario pm) {
+        Proyecto proyecto = proyectoDelPm(proyectoId, pm);
+
+        List<Usuario> otros = new ArrayList<>();
+        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        for (Asignacion a : activas) {
+            otros.add(a.getColaborador());
+        }
+        return chatBaseService.contarNoLeidosPorChat(proyecto, pm, otros);
+    }
+
+
+
+
 }

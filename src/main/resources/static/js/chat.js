@@ -137,9 +137,29 @@ $(function () {
                 if (!$.isArray(contactos)) { errorLista(); return; }
                 totalIntegrantes = contactos.length + 1;   // los contactos + yo
                 pintarContactos(contactos);
+                actualizarPuntos();
             })
             .fail(errorLista);
     }
+
+
+    function actualizarPuntos() {
+        $.ajax({ url: apiBase + "/noleidos", method: "GET", data: { proyectoId: proyectoId }, cache: false })
+            .done(function (conteos) {
+                if (!conteos || typeof conteos !== "object") { return; }
+
+                $("#contactList .sb-contact").each(function () {
+                    var $boton = $(this);
+                    var id = $boton.attr("data-usuario-id") || "";
+                    var clave = (id === "") ? "grupo" : id;
+                    var cantidad = conteos[clave] || 0;
+
+                    var mostrar = cantidad > 0 && !$boton.hasClass("is-active");
+                    $boton.toggleClass("has-unread", mostrar);
+                });
+            });
+    }
+
 
     function errorLista() {
         $("#contactList").empty().append($('<p class="sb-chat__hint"></p>')
@@ -227,6 +247,8 @@ $(function () {
                 }
                 marcarConexion(true);
                 pintarMensajes(mensajes);
+                actualizarPuntos();
+
             })
             .fail(function (xhr) {
                 if (token !== contadorSolicitud) { return; }

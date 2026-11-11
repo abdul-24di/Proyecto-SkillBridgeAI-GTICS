@@ -2,8 +2,6 @@ package com.pucp.skillb_ia.model;
 
 import jakarta.persistence.*;
 
-// Miembros de una conversación (chat) — se puebla con el PM + los
-// colaboradores con asignación activa al proyecto (A9). El RM nunca entra aquí.
 @Entity
 @Table(name = "conversacion_usuario")
 public class ConversacionUsuario {
@@ -21,6 +19,9 @@ public class ConversacionUsuario {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
+    @Column(name = "ultimo_leido_id")
+    private Long ultimoLeidoId;
+
     public ConversacionUsuarioId getId() { return id; }
     public void setId(ConversacionUsuarioId id) { this.id = id; }
 
@@ -29,4 +30,9 @@ public class ConversacionUsuario {
 
     public Usuario getUsuario() { return usuario; }
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+
+    public Long getUltimoLeidoId() { return ultimoLeidoId; }
+    public void setUltimoLeidoId(Long ultimoLeidoId) { this.ultimoLeidoId = ultimoLeidoId; }
+
+
 }

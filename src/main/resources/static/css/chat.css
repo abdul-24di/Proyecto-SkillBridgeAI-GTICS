@@ -171,3 +171,13 @@
     .sb-chat__panel { height: 70vh; min-height: 420px; }
     .sb-msg { max-width: 92%; }
 }
+
+
+.sb-contact { position: relative; }
+.sb-contact.has-unread::after {
+    content: "";
+    position: absolute; right: .8rem; top: 50%; transform: translateY(-50%);
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #2fb344;
+}
+.sb-contact.has-unread .sb-contact__name { font-weight: 800; }

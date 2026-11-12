@@ -7,7 +7,6 @@ CREATE DATABASE IF NOT EXISTS skillbridge_db
 USE skillbridge_db;
 
 
-
 -- =====================================================================
 -- 1. ROL 
 -- =====================================================================
@@ -230,6 +229,7 @@ CREATE TABLE certificado (
     motivo_rechazo  VARCHAR(300) NULL,
     nivel_aprobado  VARCHAR(20)  NULL,
     revisado_por    BIGINT       NULL,
+    rm_responsable_id   BIGINT NULL,
     fecha_subida    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_revision  DATETIME     NULL,
 
@@ -241,6 +241,9 @@ CREATE TABLE certificado (
 
     CONSTRAINT fk_certificado_revisor
         FOREIGN KEY (revisado_por) REFERENCES usuario(id),
+        
+	CONSTRAINT fk_certificado_rm_resp
+        FOREIGN KEY (rm_responsable_id) REFERENCES usuario(id),
 
     CONSTRAINT chk_certificado_estado
         CHECK (estado IN ('PENDIENTE','APROBADO','RECHAZADO'))
@@ -439,6 +442,7 @@ CREATE TABLE colaborador_curso (
     origen              VARCHAR(25) NOT NULL,
     estado              VARCHAR(25) NOT NULL DEFAULT 'SOLICITADO',
     asignado_por        BIGINT NULL,
+    rm_responsable_id   BIGINT NULL,
     motivo_respuesta            VARCHAR(500) NULL,
     justificacion_colaborador   VARCHAR(500) NULL,
     fecha_solicitud     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -453,7 +457,8 @@ CREATE TABLE colaborador_curso (
     CONSTRAINT fk_colcurso_curso FOREIGN KEY (curso_id) REFERENCES curso(id),
     CONSTRAINT fk_colcurso_asignador FOREIGN KEY (asignado_por) REFERENCES usuario(id),
     CONSTRAINT fk_colcurso_revisor_evidencia FOREIGN KEY (evidencia_revisada_por) REFERENCES usuario(id),
-
+	CONSTRAINT fk_colcurso_rm_resp FOREIGN KEY (rm_responsable_id) REFERENCES usuario(id),
+    
     CONSTRAINT chk_colcurso_origen
         CHECK (origen IN ('SOLICITUD_COLABORADOR','ASIGNADO_POR_RM')),
 
@@ -728,12 +733,14 @@ CREATE TABLE educacion (
     estado          VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE',
     motivo_rechazo  VARCHAR(300) NULL,
     revisado_por    BIGINT NULL,
+    rm_responsable_id   BIGINT NULL,
     activo          BOOLEAN NOT NULL DEFAULT TRUE,
     fecha_creacion  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_revision  DATETIME NULL,
 
     CONSTRAINT fk_educacion_colaborador FOREIGN KEY (colaborador_id) REFERENCES usuario(id),
-    CONSTRAINT fk_educacion_revisor FOREIGN KEY (revisado_por) REFERENCES usuario(id)
+    CONSTRAINT fk_educacion_revisor FOREIGN KEY (revisado_por) REFERENCES usuario(id),
+	CONSTRAINT fk_educacion_rm_resp FOREIGN KEY (rm_responsable_id) REFERENCES usuario(id)
 ) ENGINE=InnoDB;
 
 

@@ -6,10 +6,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Historia A23: el colaborador sube un certificado asociado a una habilidad;
-// el RM lo aprueba o rechaza (con motivo). C17: si se rechaza, no se elimina —
-// queda visible con el motivo, y el colaborador debe subir uno nuevo si quiere
-// reintentarlo.
+
 @Entity
 @Table(name = "certificado")
 public class Certificado {
@@ -21,6 +18,10 @@ public class Certificado {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "colaborador_id", nullable = false)
     private Usuario colaborador;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rm_responsable_id")
+    private Usuario rmResponsable;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "habilidad_id", nullable = false)
@@ -87,4 +88,9 @@ public class Certificado {
 
     public LocalDateTime getFechaRevision() { return fechaRevision; }
     public void setFechaRevision(LocalDateTime fechaRevision) { this.fechaRevision = fechaRevision; }
+
+
+    public Usuario getRmResponsable() { return rmResponsable; }
+    public void setRmResponsable(Usuario rmResponsable) { this.rmResponsable = rmResponsable; }
+
 }

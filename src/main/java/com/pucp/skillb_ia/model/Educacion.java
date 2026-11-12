@@ -18,6 +18,10 @@ public class Educacion {
     @JoinColumn(name = "colaborador_id", nullable = false)
     private Usuario colaborador;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rm_responsable_id")
+    private Usuario rmResponsable;
+
     @Column(nullable = false, length = 150)
     private String institucion;
 
@@ -102,4 +106,10 @@ public class Educacion {
 
     public LocalDateTime getFechaRevision() { return fechaRevision; }
     public void setFechaRevision(LocalDateTime fechaRevision) { this.fechaRevision = fechaRevision; }
+
+
+    public Usuario getRmResponsable() { return rmResponsable; }
+    public void setRmResponsable(Usuario rmResponsable) { this.rmResponsable = rmResponsable; }
+
+
 }

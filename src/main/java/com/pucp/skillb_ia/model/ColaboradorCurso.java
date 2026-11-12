@@ -19,6 +19,10 @@ public class ColaboradorCurso {
     @JoinColumn(name = "colaborador_id", nullable = false)
     private Usuario colaborador;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rm_responsable_id")
+    private Usuario rmResponsable;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "curso_id", nullable = false)
     private Curso curso;
@@ -125,4 +129,9 @@ public class ColaboradorCurso {
 
     public LocalDateTime getFechaRevisionEvidencia() { return fechaRevisionEvidencia; }
     public void setFechaRevisionEvidencia(LocalDateTime fechaRevisionEvidencia) { this.fechaRevisionEvidencia = fechaRevisionEvidencia; }
+
+
+    public Usuario getRmResponsable() { return rmResponsable; }
+    public void setRmResponsable(Usuario rmResponsable) { this.rmResponsable = rmResponsable; }
+
 }

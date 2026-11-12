@@ -40,27 +40,35 @@ public class RmForoConsultaService {
     private final VotoPublicacionRepository votoPublicacionRepository;
     private final VotoRespuestaRepository votoRespuestaRepository;
     private final AsignacionRepository asignacionRepository;
+    private final RmAlcanceService rmAlcanceService;
 
     public RmForoConsultaService(ForoRepository foroRepository,
                                  PublicacionForoRepository publicacionRepository,
                                  RespuestaForoRepository respuestaRepository,
                                  VotoPublicacionRepository votoPublicacionRepository,
                                  VotoRespuestaRepository votoRespuestaRepository,
-                                 AsignacionRepository asignacionRepository) {
+                                 AsignacionRepository asignacionRepository,
+                                 RmAlcanceService rmAlcanceService) {
         this.foroRepository = foroRepository;
         this.publicacionRepository = publicacionRepository;
         this.respuestaRepository = respuestaRepository;
         this.votoPublicacionRepository = votoPublicacionRepository;
         this.votoRespuestaRepository = votoRespuestaRepository;
         this.asignacionRepository = asignacionRepository;
+        this.rmAlcanceService = rmAlcanceService;
     }
 
-    /** El RM consulta todos los foros, incluidos los privados de proyecto. */
+    /** El RM ve el foro general y los foros de sus propios proyectos. */
     @Transactional(readOnly = true)
     public List<RmForoView> listar() {
-        return foroRepository.findTodosConProyectoYPm().stream()
-                .map(foro -> crearVista(foro, "fecha"))
-                .toList();
+        Long rmId = rmAlcanceService.idRmActual();
+        List<RmForoView> resultado = new ArrayList<>();
+        for (Foro foro : foroRepository.findTodosConProyectoYPm()) {
+            if (foro.getProyecto() == null || rmAlcanceService.puedeVer(foro.getProyecto(), rmId)) {
+                resultado.add(crearVista(foro, "fecha"));
+            }
+        }
+        return resultado;
     }
 
     /**
@@ -120,6 +128,10 @@ public class RmForoConsultaService {
     public RmForoView obtener(Long id, String orden) {
         Foro foro = foroRepository.findByIdConProyectoYPm(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el foro solicitado."));
+        if (foro.getProyecto() != null
+                && !rmAlcanceService.puedeVer(foro.getProyecto(), rmAlcanceService.idRmActual())) {
+            throw new IllegalArgumentException("No se encontró el foro solicitado.");
+        }
         return crearVista(foro, "votos".equalsIgnoreCase(orden) ? "votos" : "fecha");
     }
 

@@ -1408,14 +1408,59 @@ class RmProyectoViewTests {
         proyectoRepository.save(proyecto);
     }
 
+
+    @Test
+    void listadoMuestraSoloProyectosPropiosYSinResponsable() throws Exception {
+        autenticarRm();
+        String token = "filtrorm" + System.nanoTime();
+        Rol rolRm = rolRepository.findByNombre("RESOURCE_MANAGER").orElseThrow();
+        Usuario otroRm = new Usuario();
+        otroRm.setCorreo(token + "@skillbridge.test");
+        otroRm.setNombre("Otro");
+        otroRm.setApellido("Revisor");
+        otroRm.setRol(rolRm);
+        otroRm = usuarioRepository.save(otroRm);
+        Usuario pm = usuarioRepository.findById(pmId).orElseThrow();
+        Usuario miRm = usuarioRepository.findById(rmId).orElseThrow();
+
+        Proyecto propio = proyectoParaFiltro("Propio " + token, pm, miRm);
+        Proyecto ajeno = proyectoParaFiltro("Ajeno " + token, pm, otroRm);
+        Proyecto libre = proyectoParaFiltro("Libre " + token, pm, null);
+        try {
+            String html = renderizar("/rm/proyectos?busqueda=" + token);
+
+            org.junit.jupiter.api.Assertions.assertTrue(html.contains("Propio " + token));
+            org.junit.jupiter.api.Assertions.assertTrue(html.contains("Libre " + token));
+            org.junit.jupiter.api.Assertions.assertFalse(html.contains("Ajeno " + token));
+        } finally {
+            proyectoRepository.deleteById(propio.getId());
+            proyectoRepository.deleteById(ajeno.getId());
+            proyectoRepository.deleteById(libre.getId());
+            usuarioRepository.deleteById(otroRm.getId());
+        }
+    }
+
+    private Proyecto proyectoParaFiltro(String nombre, Usuario pm, Usuario rmResponsable) {
+        Proyecto proyecto = new Proyecto();
+        proyecto.setNombre(nombre);
+        proyecto.setDescripcion("Proyecto para probar el filtro por responsable.");
+        proyecto.setPrioridad(Prioridad.MEDIA);
+        proyecto.setJustificacionPrioridad("Prueba del filtro por RM responsable.");
+        proyecto.setPm(pm);
+        proyecto.setRmRevisor(rmResponsable);
+        return proyectoRepository.save(proyecto);
+    }
+
+
+
+
+
     private void autenticarRm() {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(rmDetails, null, rmDetails.getAuthorities()));
     }
 
-    // TASK-028: filtros GET y paginación del listado /rm/proyectos en el servidor.
-    // Lote de 10 proyectos con un token único; "Análisis {token} NN", NN = 01..10 (10 es el más reciente).
-    // {estado, prioridad, colaboradores requeridos (= vacantes, sin equipo activo)}
+
     private static final String[][] LOTE = {
             {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"},
             {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"}, {"ACTIVO", "ALTA", "2"},
@@ -1686,11 +1731,11 @@ class RmProyectoViewTests {
         RmProyectoConsultaService consulta = mock(RmProyectoConsultaService.class);
         when(consulta.normalizarFiltros(any(), any(), any(), any()))
                 .thenReturn(new RmProyectoConsultaService.FiltrosProyecto("", "", "", ""));
-        when(consulta.listarPagina(any(), any())).thenReturn(new RmProyectoConsultaService.PaginaProyectos(
+        when(consulta.listarPagina(any(), any(), any())).thenReturn(new RmProyectoConsultaService.PaginaProyectos(
                 List.of(), 1, 1, 0, new RmProyectoConsultaService.ContadoresProyectos(0, 0, 0, 0)));
         ConcurrentModel modelo = new ConcurrentModel();
         org.junit.jupiter.api.Assertions.assertEquals("rm/rm-proyectos",
-                controladorCon(consulta).projects(null, null, null, null, null, null, modelo));
+                controladorCon(consulta).projects(null, null, null, null, null, null, null, modelo));
         String html = renderizarVista("/rm/proyectos", "rm/rm-proyectos", modelo);
 
         org.junit.jupiter.api.Assertions.assertEquals(1, contar(html, "class=\"empty-state\""));

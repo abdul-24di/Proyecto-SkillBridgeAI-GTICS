@@ -14,7 +14,7 @@ public class RmRevisionScheduler {
 
     // Ejecuta diariamente a las 8:00 a. m. la revisión de proyectos pendientes,
     // asignando un RM cuando sea necesario o enviando recordatorios al responsable.
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 0 * * * *")
     public void escalarProyectos() {
         rmResponsableService.escalarProyectosEnRevision();
     }

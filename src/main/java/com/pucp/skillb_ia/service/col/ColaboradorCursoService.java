@@ -14,6 +14,7 @@ import com.pucp.skillb_ia.repository.NotificacionRepository;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
+import com.pucp.skillb_ia.service.RmRevisionAsignadorService;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +48,7 @@ public class ColaboradorCursoService {
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
     private final ColaboradorActividadService colaboradorActividadService;
     private final NotificacionRepository notificacionRepository;
+    private final RmRevisionAsignadorService rmRevisionAsignadorService;
 
     public ColaboradorCursoService(CursoRepository cursoRepository,
                                    ColaboradorCursoRepository colaboradorCursoRepository,
@@ -56,7 +58,8 @@ public class ColaboradorCursoService {
                                    ArchivoAlmacenamientoService archivoAlmacenamientoService,
                                    //@Lazy evita una dependencia circular entre los servicios,
                                    //haciendo que ColaboradorActividadService se inicialice cuando sea necesario.
-                                   @Lazy ColaboradorActividadService colaboradorActividadService) {
+                                   @Lazy ColaboradorActividadService colaboradorActividadService,
+                                   RmRevisionAsignadorService rmRevisionAsignadorService) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.auditoriaService = auditoriaService;
@@ -64,6 +67,7 @@ public class ColaboradorCursoService {
         this.notificacionRepository = notificacionRepository;
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
         this.colaboradorActividadService = colaboradorActividadService;
+        this.rmRevisionAsignadorService = rmRevisionAsignadorService;
     }
 
     // ============================================================
@@ -191,12 +195,13 @@ public class ColaboradorCursoService {
         solicitud.setOrigen(OrigenCurso.SOLICITUD_COLABORADOR);
         solicitud.setEstado(EstadoColaboradorCurso.SOLICITADO);
         solicitud.setJustificacion(validarJustificacion(justificacion));
+        solicitud.setRmResponsable(rmRevisionAsignadorService.elegirRm());
         ColaboradorCurso guardada = colaboradorCursoRepository.save(solicitud);
 
         auditoriaService.registrar(colaborador, "SOLICITAR_CURSO", "COLABORADOR_CURSO", guardada.getId(),
                 "Solicitó inscribirse al curso \"" + curso.getNombre() + "\".");
 
-        notificacionService.crearParaTodosLosRm("CURSO_SOLICITADO", CategoriaNotificacion.CURSO,
+        notificacionService.crearParaRm(guardada.getRmResponsable(), "CURSO_SOLICITADO", CategoriaNotificacion.CURSO,
                 "Nueva solicitud de curso",
                 colaborador.getNombre() + " " + colaborador.getApellido()
                         + " solicitó inscribirse al curso \"" + curso.getNombre() + "\".",
@@ -347,7 +352,11 @@ public class ColaboradorCursoService {
         String nombreArchivo = "evidencia-curso-" + colaborador.getId() + "-" + inscripcionId + "-" + UUID.randomUUID() + extension;
         String evidenciaUrl = archivoAlmacenamientoService.guardar(evidencia, "cursos-evidencia", nombreArchivo);
 
+        if (inscripcion.getRmResponsable() == null) {
+            inscripcion.setRmResponsable(rmRevisionAsignadorService.elegirRm());
+        }
         inscripcion.setEvidenciaUrl(evidenciaUrl);
+
         inscripcion.setFechaEvidencia(LocalDateTime.now());
         inscripcion.setEstado(EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
         // Al reenviar tras un rechazo, la revisión anterior deja de aplicar (queda en la auditoría).
@@ -358,7 +367,7 @@ public class ColaboradorCursoService {
         auditoriaService.registrar(colaborador, "SUBIR_EVIDENCIA_CURSO", "COLABORADOR_CURSO", inscripcion.getId(),
                 "Subió evidencia de finalización del curso \"" + inscripcion.getCurso().getNombre() + "\".");
 
-        notificacionService.crearParaTodosLosRm("EVIDENCIA_CURSO_PENDIENTE", CategoriaNotificacion.CURSO,
+        notificacionService.crearParaRm(inscripcion.getRmResponsable(), "EVIDENCIA_CURSO_PENDIENTE", CategoriaNotificacion.CURSO,
                 "Evidencia de curso pendiente de revisión",
                 colaborador.getNombre() + " " + colaborador.getApellido()
                         + " subió evidencia para el curso \"" + inscripcion.getCurso().getNombre() + "\".",

@@ -69,6 +69,29 @@ public class NotificacionService {
 
     }
 
+    // Avisa solo al RM responsable del proyecto. Si todavía no tiene RM no avisa a nadie
+    // cuando se le asigne uno, ese RM recibe su aviso de proyecto asignado.
+    @Transactional
+    public void crearParaRmDelProyecto(Proyecto proyecto, String tipo, CategoriaNotificacion categoria,
+                                       String titulo, String descripcion, String entidad, Long entidadId) {
+        Usuario rm = proyecto.getRmRevisor();
+        if (rm != null) {
+            crear(rm, tipo, categoria, titulo, descripcion, entidad, entidadId);
+        }
+    }
+
+
+
+    // Avisa a un RM concreto. Si no hay RM o avisa a nadie.
+    @Transactional
+    public void crearParaRm(Usuario rm, String tipo, CategoriaNotificacion categoria,
+                            String titulo, String descripcion, String entidad, Long entidadId) {
+        if (rm != null) {
+            crear(rm, tipo, categoria, titulo, descripcion, entidad, entidadId);
+        }
+    }
+
+
     //Creamos notificaciones para todos los Administradores
     @Transactional
     public void crearParaTodosLosAdmins(String tipo, CategoriaNotificacion categoria, String titulo, String descripcion, String entidad, Long entidadId) {

@@ -34,6 +34,10 @@ public interface ProyectoRepository extends JpaRepository<Proyecto, Long> {
     // Contamos los proyectos asignados al RM revisor según los estados especificados.
     long countByRmRevisorAndEstadoIn(Usuario rm, Collection<EstadoProyecto> estados);
 
+    // Obtenemos los proyectos supervisados por el RM incluyendo la información de sus PM
+    @Query("select p from Proyecto p join fetch p.pm where p.rmRevisor = :rm order by p.fechaCreacion desc")
+    List<Proyecto> findByRmRevisorConPm(@Param("rm") Usuario rm);
+
     // Realizamos la asignación del RM solo si el proyecto no tiene un revisor asignado.
     // Devuelve 1 si se actualizó el registro y 0 si no se cumplió la condición.
     @Modifying

@@ -1,4 +1,3 @@
-
 $(function () {
     var $app = $("#chatApp");
     if (!$app.length) { return; }
@@ -7,7 +6,13 @@ $(function () {
     var paginaChat = $app.attr("data-page-url") || "";
     var proyectoId = $app.attr("data-project-id") || "";
     var usuarioInicial = $app.attr("data-user-id") || "";
-    var nombreProyecto = $.trim($("#chatTitulo").text()) || $app.attr("data-project-name") || "Equipo";
+    var modoDirecto = $app.attr("data-mode") === "direct";
+    var pmId = $app.attr("data-peer-id") || "";
+    var inicialesPm = $app.attr("data-peer-initials") || "";
+    var nombrePm = modoDirecto ? $.trim($("#chatTitulo").text()) : "";
+    var nombreProyecto = modoDirecto
+        ? ($app.attr("data-project-name") || "Proyecto")
+        : ($.trim($("#chatTitulo").text()) || $app.attr("data-project-name") || "Equipo");
 
 
     $("#proyectoSelect").on("change", function () {
@@ -143,7 +148,21 @@ $(function () {
     }
 
 
+    // RM: la lista son proyectos; el servidor responde { idProyecto: cantidad }
+    function actualizarPuntosRm() {
+        $.ajax({ url: apiBase + "/noleidos", method: "GET", cache: false })
+            .done(function (conteos) {
+                if (!conteos || typeof conteos !== "object") { return; }
+                $("#contactList .sb-contact").each(function () {
+                    var $boton = $(this);
+                    var cantidad = conteos[$boton.attr("data-project-id")] || 0;
+                    $boton.toggleClass("has-unread", cantidad > 0 && !$boton.hasClass("is-active"));
+                });
+            });
+    }
+
     function actualizarPuntos() {
+        if (modoDirecto) { actualizarPuntosRm(); return; }
         $.ajax({ url: apiBase + "/noleidos", method: "GET", data: { proyectoId: proyectoId }, cache: false })
             .done(function (conteos) {
                 if (!conteos || typeof conteos !== "object") { return; }
@@ -210,7 +229,10 @@ $(function () {
         }
     }
 
-    $("#contactList").on("click", ".sb-contact", function () { abrirChat($(this)); });
+    $("#contactList").on("click", ".sb-contact", function () {
+        if (modoDirecto) { return; }   // en el RM cada proyecto es un enlace normal
+        abrirChat($(this));
+    });
 
     function abrirChat($boton) {
         var nuevoId = $boton.attr("data-usuario-id") || "";
@@ -357,10 +379,19 @@ $(function () {
     $("#messageInput").on("input", ocultarError);
 
 
-    pintarCabecera(nombreProyecto, subtituloGrupo(), "", true);
-    mostrarEsqueleto();
-    cargarMensajes();
-    cargarContactos();
+    if (modoDirecto) {
+        usuarioId = pmId;
+        pintarCabecera(nombrePm, "Project Manager · " + nombreProyecto, inicialesPm, false);
+        $("#messageInput").attr("placeholder", "Escribe un mensaje a " + primerNombre(nombrePm) + "…");
+        mostrarEsqueleto();
+        cargarMensajes();
+        actualizarPuntos();
+    } else {
+        pintarCabecera(nombreProyecto, subtituloGrupo(), "", true);
+        mostrarEsqueleto();
+        cargarMensajes();
+        cargarContactos();
+    }
 
 
     // El servidor avisa por WebSocket que hay un mensaje nuevo; la pantalla vuelve a pedirlos por AJAX.
@@ -378,7 +409,10 @@ $(function () {
             cliente.subscribe("/user/queue/chat", function (frame) {
                 var aviso = JSON.parse(frame.body);
 
-                if (String(aviso.proyectoId) !== String(proyectoId)) { return; }
+                if (String(aviso.proyectoId) !== String(proyectoId)) {
+                    if (modoDirecto) { actualizarPuntos(); }   // llegó algo de otro proyecto: encender su punto verde
+                    return;
+                }
 
                 var chatDelAviso = (aviso.usuarioId === null) ? "" : String(aviso.usuarioId);
                 if (chatDelAviso === usuarioId) {

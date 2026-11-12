@@ -26,6 +26,7 @@
 }
 
 
+
 .sb-chat__sidebar { display: flex; flex-direction: column; overflow: hidden; }
 .sb-chat__picker { padding: 1rem 1rem .85rem; border-bottom: 1px solid var(--sb-border); }
 .sb-chat__label {
@@ -181,3 +182,6 @@
     background: #2fb344;
 }
 .sb-contact.has-unread .sb-contact__name { font-weight: 800; }
+
+
+a.sb-contact, a.sb-contact:hover { text-decoration: none; color: inherit; }

@@ -15,7 +15,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.util.Map;
 
 
-@RestControllerAdvice(assignableTypes = {PmChatRestController.class, ColChatRestController.class})
+@RestControllerAdvice(assignableTypes = {PmChatRestController.class, ColChatRestController.class, RmChatRestController.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class ChatRestExceptionHandler {
 

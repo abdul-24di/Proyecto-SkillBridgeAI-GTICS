@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Chat RM</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
+    <link rel="stylesheet" href="../../static/css/chat.css" th:href="@{/css/chat.css}">
+    <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('chat')}"></header>
+
+    <main class="page-wrap">
+        <div class="breadcrumb-wrap">
+            <a th:href="@{/rm/proyectos}" class="breadcrumb-link">Proyectos</a>
+            <span class="breadcrumb-separator">›</span>
+            <span class="text-secondary">Chat con Project Managers</span>
+        </div>
+
+        <div class="sb-chat" id="chatApp" data-api-base="/rm/api/chat" data-mode="direct"
+             th:data-project-id="${proyectoSeleccionado != null} ? ${proyectoSeleccionado.id} : null"
+             th:data-project-name="${proyectoSeleccionado != null} ? ${proyectoSeleccionado.nombre} : null"
+             th:data-peer-id="${pmContacto != null} ? ${pmContacto.id} : null"
+             th:data-peer-initials="${pmContacto != null} ? ${pmContacto.iniciales} : null">
+
+            <aside class="sb-chat__sidebar">
+                <div id="contactList" class="sb-chat__list" aria-label="Chats por proyecto">
+                    <div class="sb-chat__section">Mis proyectos</div>
+                    <a th:each="proy : ${proyectos}" class="sb-contact"
+                       th:classappend="${proyectoSeleccionado != null and proy.id == proyectoSeleccionado.id} ? 'is-active' : ''"
+                       th:href="@{/rm/chat(proyectoId=${proy.id})}"
+                       th:data-project-id="${proy.id}">
+                        <span class="sb-avatar sb-avatar--group" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </span>
+                        <span class="sb-contact__text">
+                            <span class="sb-contact__name" th:text="${proy.nombre}">Proyecto</span>
+                            <span class="sb-contact__role" th:text="|PM: ${proy.pm.nombre} ${proy.pm.apellido}|">PM: Nombre</span>
+                        </span>
+                    </a>
+                    <p class="sb-chat__hint" th:if="${#lists.isEmpty(proyectos)}">Aún no tienes proyectos asignados.</p>
+                </div>
+            </aside>
+
+            <section class="sb-chat__panel">
+                <div th:if="${proyectoSeleccionado != null}" class="d-flex flex-column h-100" style="min-height:0">
+                    <header class="sb-chat__header">
+                        <span class="sb-avatar sb-avatar--lg" id="chatAvatar" aria-hidden="true"></span>
+                        <div class="sb-chat__header-text">
+                            <h2 class="sb-chat__title" id="chatTitulo" th:text="${pmContacto.nombre}">Project Manager</h2>
+                            <p class="sb-chat__subtitle" id="chatSubtitulo"
+                               th:text="'Project Manager - ' + ${proyectoSeleccionado.nombre}">
+                                Project Manager
+                            </p>
+                        </div>
+                        <span class="sb-chat__status" id="chatEstadoConexion" hidden>Sin conexión</span>
+                    </header>
+
+                    <div id="messageList" class="sb-chat__messages" role="log" aria-live="polite"></div>
+
+                    <div id="chatError" class="sb-chat__alert" role="alert" hidden></div>
+                    <form id="chatForm" class="sb-chat__composer" novalidate>
+                        <input id="messageInput" type="text" maxlength="1000" autocomplete="off"
+                               placeholder="Escribe un mensaje…" aria-label="Mensaje">
+                        <button type="submit" class="sb-chat__send" id="btnEnviar" aria-label="Enviar mensaje">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </button>
+                    </form>
+                </div>
+
+                <div th:if="${proyectoSeleccionado == null}" class="sb-state">
+                    <div class="sb-state__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+                    <h3>Aún no tienes chats</h3>
+                    <p>Cuando revises o apruebes un proyecto, podrás escribirle a su Project Manager desde aquí.</p>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+<script src="../../static/js/chat.js" th:src="@{/js/chat.js}"></script>
+
+</body>
+</html>

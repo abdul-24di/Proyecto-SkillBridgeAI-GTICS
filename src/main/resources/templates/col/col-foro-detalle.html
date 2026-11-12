@@ -93,7 +93,7 @@
             <div class="col-xl-9">
                 <div class="forum-post-list">
 
-                    <div th:each="pub : ${publicaciones}" class="card section-card mb-3">
+                    <div th:each="pub : ${publicaciones}" th:id="'pub-' + ${pub.publicacion.id}" class="card section-card mb-3">
                         <div class="card-body p-4">
                             <div class="d-flex align-items-start gap-3">
                                 <div class="text-center" style="min-width: 60px;">

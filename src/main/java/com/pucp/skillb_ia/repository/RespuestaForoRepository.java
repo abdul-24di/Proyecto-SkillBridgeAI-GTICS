@@ -2,6 +2,7 @@ package com.pucp.skillb_ia.repository;
 
 import com.pucp.skillb_ia.model.PublicacionForo;
 import com.pucp.skillb_ia.model.RespuestaForo;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,5 +27,17 @@ public interface RespuestaForoRepository extends JpaRepository<RespuestaForo, Lo
             @Param("publicacion") PublicacionForo publicacion);
 
     Optional<RespuestaForo> findByIdAndActivoTrue(Long id);
+
+
+    @Query("""
+            select r from RespuestaForo r
+            join fetch r.publicacion p
+            join fetch p.foro f
+            left join fetch f.proyecto
+            where r.activo = true and p.activo = true
+                            and r.contenido like concat('%', :k, '%')
+            order by r.esSolucion desc, r.fechaCreacion desc
+            """)
+    List<RespuestaForo> buscarPorPalabra(@Param("k") String k, Pageable pageable);
 }
 

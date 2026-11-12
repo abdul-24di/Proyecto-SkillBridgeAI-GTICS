@@ -23,6 +23,9 @@
          th:classappend="${activeSection == 'talent-matching'} ? 'active' : ''" th:href="@{/rm/talent-matching}">Talent Matching</a>
       <a href="../rm/rm-foros.html"
          th:classappend="${activeSection == 'foros'} ? 'active' : ''" th:href="@{/rm/foros}">Foros</a>
+      <a href="../rm/rm-chat.html"
+         th:classappend="${activeSection == 'chat'} ? 'active' : ''" th:href="@{/rm/chat}">Chat</a>
+
       <a href="../rm/rm-reporte-recursos.html"
          th:classappend="${activeSection == 'reportes'} ? 'active' : ''" th:href="@{/rm/reportes/recursos}">Reportes</a>
     </nav>
@@ -37,9 +40,21 @@
         <span class="badge bg-red notification-dot"></span>
       </a>
       <a href="../rm/rm-perfil.html" th:href="@{/rm/perfil}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
-        <span th:if="${!#strings.isEmpty(#strings.trim(rm?.fotoUrl ?: ''))}" class="avatar avatar-sm user-avatar" th:style="'background-image: url(' + @{${rm.fotoUrl}} + ')'"></span>
-        <span th:unless="${!#strings.isEmpty(#strings.trim(rm?.fotoUrl ?: ''))}" class="avatar avatar-sm user-avatar" th:text="|${#strings.isEmpty(rm?.nombre) ? '' : #strings.substring(rm.nombre, 0, 1)}${#strings.isEmpty(rm?.apellido) ? '' : #strings.substring(rm.apellido, 0, 1)}|">AR</span>
-        <div class="user-meta"><div class="fw-semibold" th:text="|${rm?.nombre} ${rm?.apellido}|">Abraham Ramirez</div><div class="small">Resource Manager</div></div>
+        <span th:if="${rm != null and rm.fotoUrl != null and !#strings.isEmpty(rm.fotoUrl)}"
+              class="avatar avatar-sm user-avatar"
+              th:style="|background-image: url('@{${rm.fotoUrl}}')|">
+        </span>
+
+        <span th:unless="${rm != null and rm.fotoUrl != null and !#strings.isEmpty(rm.fotoUrl)}"
+              class="avatar avatar-sm user-avatar"
+              th:text="${rm != null ? (rm.nombre != null ? #strings.substring(rm.nombre, 0, 1) : '') + (rm.apellido != null ? #strings.substring(rm.apellido, 0, 1) : '') : ''}">
+            AR
+        </span>
+
+        <div class="fw-semibold"
+             th:text="${rm != null ? (rm.nombre != null ? rm.nombre : '') + ' ' + (rm.apellido != null ? rm.apellido : '') : ''}">
+          Usuario
+        </div>
       </a><form th:action="@{/logout}" method="post" class="m-0 d-flex"><button type="submit" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
     <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>

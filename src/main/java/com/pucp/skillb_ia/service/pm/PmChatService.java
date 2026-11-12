@@ -48,9 +48,17 @@ public class PmChatService {
 
     // El colaborador debe tener asignación activa en el proyecto
     private Usuario validarColaborador(Proyecto proyecto, Long colaboradorId) {
+
         if (colaboradorId == null) {
             throw new IllegalArgumentException("Debes seleccionar con quién chatear.");
         }
+
+        // El RM del proyecto también puede escribirle al PM, y el PM le responde
+        Usuario rm = proyecto.getRmRevisor();
+        if (rm != null && rm.getId().equals(colaboradorId)) {
+            return rm;
+        }
+
         List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
         for (Asignacion a : activas) {
             if (a.getColaborador().getId().equals(colaboradorId)) {
@@ -67,6 +75,12 @@ public class PmChatService {
         Proyecto proyecto = proyectoDelPm(proyectoId, pm);
 
         List<ChatContactoView> contactos = new ArrayList<>();
+
+        Usuario rm = proyecto.getRmRevisor();
+        if (rm != null) {
+            contactos.add(new ChatContactoView(rm, "Resource Manager"));
+        }
+
         List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
         for (Asignacion a : activas) {
             contactos.add(new ChatContactoView(a.getColaborador(), "Colaborador"));
@@ -128,6 +142,11 @@ public class PmChatService {
         Proyecto proyecto = proyectoDelPm(proyectoId, pm);
 
         List<Usuario> otros = new ArrayList<>();
+
+        if (proyecto.getRmRevisor() != null) {
+            otros.add(proyecto.getRmRevisor());
+        }
+
         List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
         for (Asignacion a : activas) {
             otros.add(a.getColaborador());

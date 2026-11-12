@@ -240,7 +240,7 @@ public class NotificacionService {
                         }
                     }
                     if (otroId != null) {
-                        String base = esPm ? "/pm/chat" : "/colaborador/chat";
+                        String base = esPm ? "/pm/chat" : (esRm ? "/rm/chat" : "/colaborador/chat");
                         return base + "?proyectoId=" + conv.getProyecto().getId() + "&usuarioId=" + otroId;
                     }
                 }

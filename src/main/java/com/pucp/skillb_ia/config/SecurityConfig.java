@@ -39,7 +39,8 @@ public class SecurityConfig {
     private static final RequestMatcher RUTAS_API = new OrRequestMatcher(
             PathPatternRequestMatcher.withDefaults().matcher("/api/**"),
             PathPatternRequestMatcher.withDefaults().matcher("/pm/api/**"),
-            PathPatternRequestMatcher.withDefaults().matcher("/colaborador/api/**"));
+            PathPatternRequestMatcher.withDefaults().matcher("/colaborador/api/**"),
+            PathPatternRequestMatcher.withDefaults().matcher("/ws-chat/**"));
 
     private final AuthenticationEntryPoint sinSesionApi = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
     private final AuthenticationEntryPoint irAlLogin = new LoginUrlAuthenticationEntryPoint("/login");
@@ -79,6 +80,8 @@ public class SecurityConfig {
                 // regla anyRequest().authenticated() de abajo.
                 .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico", "/tabler/**", "/documentos/**", "/plantillas/**").permitAll()
                 .requestMatchers("/", "/login", "/login.html").permitAll()
+
+                    .requestMatchers("/ws-chat/**").hasAnyRole("PROJECT_MANAGER", "COLABORADOR")
                 .requestMatchers("/activar-cuenta", "/activar-cuenta.html").permitAll()
                 .requestMatchers("/recuperar", "/recuperar-contrasena.html").permitAll()
                 .requestMatchers("/verificar-codigo", "/verificar-codigo.html").permitAll()

@@ -362,10 +362,45 @@ $(function () {
     cargarMensajes();
     cargarContactos();
 
-    //Actualización automática cada 5 s
+
+    // El servidor avisa por WebSocket que hay un mensaje nuevo; la pantalla vuelve a pedirlos por AJAX.
+    function conectarWebSocket() {
+        var protocolo = (window.location.protocol === "https:") ? "wss://" : "ws://";
+
+        var cliente = new StompJs.Client({
+            brokerURL: protocolo + window.location.host + "/ws-chat",
+            reconnectDelay: 5000
+        });
+
+        cliente.onConnect = function () {
+            cargarMensajes();
+
+            cliente.subscribe("/user/queue/chat", function (frame) {
+                var aviso = JSON.parse(frame.body);
+
+                if (String(aviso.proyectoId) !== String(proyectoId)) { return; }
+
+                var chatDelAviso = (aviso.usuarioId === null) ? "" : String(aviso.usuarioId);
+                if (chatDelAviso === usuarioId) {
+                    cargarMensajes();
+                } else {
+                    actualizarPuntos();
+                }
+            });
+        };
+
+        cliente.activate();
+    }
+
+    var hayWebSocket = (typeof StompJs !== "undefined");
+    if (hayWebSocket) {
+        conectarWebSocket();
+    }
+
     setInterval(function () {
         if (!document.hidden) { cargarMensajes(); }
-    }, 5000);
+    }, hayWebSocket ? 30000 : 5000);
+
 
 
     document.addEventListener("shown.bs.tab", function (ev) {

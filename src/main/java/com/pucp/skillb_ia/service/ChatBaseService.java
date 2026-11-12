@@ -17,6 +17,9 @@ import com.pucp.skillb_ia.repository.ConversacionUsuarioRepository;
 import com.pucp.skillb_ia.repository.MensajeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 
@@ -31,12 +34,15 @@ public class ChatBaseService {
     private final MensajeRepository mensajeRepository;
     private final AsignacionRepository asignacionRepository;
     private final NotificacionService notificacionService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public ChatBaseService(ConversacionRepository conversacionRepository,
                            ConversacionUsuarioRepository conversacionUsuarioRepository,
                            MensajeRepository mensajeRepository,
                            AsignacionRepository asignacionRepository,
-                           NotificacionService notificacionService) {
+                           NotificacionService notificacionService,
+                           SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
         this.conversacionRepository = conversacionRepository;
         this.conversacionUsuarioRepository = conversacionUsuarioRepository;
         this.mensajeRepository = mensajeRepository;
@@ -98,6 +104,14 @@ public class ChatBaseService {
                     titulo, descripcion, "CHAT", proyecto.getId());
         }
 
+        //Aviso en tiempo real a todos los miembros
+        List<String> correos = new ArrayList<>();
+        correos.add(autor.getCorreo());
+        for (Usuario destinatario : destinatarios) {
+            correos.add(destinatario.getCorreo());
+        }
+        avisarPorWebSocket(correos, proyecto.getId(), null);
+
         return new PmMensajeView(guardado, autor.getId());
     }
 
@@ -140,6 +154,10 @@ public class ChatBaseService {
         String descripcion = recortar(proyecto.getNombre() + ": " + texto, 200);
         notificacionService.crear(otro, "MENSAJE_PRIVADO", CategoriaNotificacion.MENSAJE,
                 titulo, descripcion, "CHAT_PRIVADO", conversacion.getId());
+
+
+        avisarPorWebSocket(List.of(otro.getCorreo()), proyecto.getId(), autor.getId());
+        avisarPorWebSocket(List.of(autor.getCorreo()), proyecto.getId(), otro.getId());
 
         return new PmMensajeView(guardado, autor.getId());
     }
@@ -206,6 +224,32 @@ public class ChatBaseService {
 
     private void agregarMiembro(Conversacion conversacion, Usuario usuario) {
         conversacionUsuarioRepository.agregarMiembro(conversacion.getId(), usuario.getId());
+    }
+
+    private void avisarPorWebSocket(List<String> correos, Long proyectoId, Long otroUsuarioId) {
+        final String aviso = "{\"proyectoId\":" + proyectoId + ",\"usuarioId\":" + otroUsuarioId + "}";
+        final List<String> destinos = new ArrayList<>(correos);
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    enviarAvisos(destinos, aviso);
+                }
+            });
+        } else {
+            enviarAvisos(destinos, aviso);
+        }
+    }
+
+    private void enviarAvisos(List<String> correos, String aviso) {
+        for (String correo : correos) {
+            try {
+                messagingTemplate.convertAndSendToUser(correo, "/queue/chat", aviso);
+            } catch (Exception e) {
+                // El mensaje ya está guardado: si falla el aviso, la consulta de respaldo lo recoge
+            }
+        }
     }
 
     private String nombreCompleto(Usuario u) {

@@ -83,39 +83,62 @@
         </div>
     </header>
 
+
+
     <main class="page-wrap">
 
         <div class="page-head">
             <div>
                 <h1 class="page-title">Asistente SkillBridge</h1>
-                <div class="text-secondary">Tu asistente inteligente para proyectos y desarrollo profesional.</div>
+                <div class="text-secondary">Orientación profesional, cursos, proyectos y foros, según tu perfil real.</div>
             </div>
         </div>
 
+        <div class="ai-layout">
+            <aside class="card section-card">
+                <div class="card-body assistant-card">
+                    <div class="assistant-logo">AI</div>
+                    <div>
+                        <div class="fw-semibold">SkillBridge AI</div>
+                        <div class="small text-secondary">Usa solo tus datos y la información que ya puedes ver</div>
+                    </div>
+                </div>
+                <div class="quick-list">
+                    <button type="button" data-prompt="¿Qué debería mejorar en mi perfil profesional?">¿Qué debería mejorar en mi perfil?</button>
+                    <button type="button" data-prompt="Recomiéndame cursos del catálogo según mis habilidades.">Cursos recomendados para mí</button>
+                    <button type="button" data-prompt="¿Qué me falta para participar en un proyecto? Te diré cuál.">¿Qué me falta para un proyecto?</button>
+                    <button type="button" data-prompt="Busca en los foros información sobre ">Buscar en los foros…</button>
+                    <button type="button" data-prompt="¿Cómo voy en mi desarrollo profesional y cuáles son mis siguientes pasos?">Mi progreso y siguientes pasos</button>
+                </div>
+            </aside>
 
-
-
-        <div class="card section-card">
-            <div class="card-body text-center" style="padding: 5rem 1rem;">
-                <div style="font-size: 4.5rem; line-height: 1;">🤖</div>
-                <h1 class="mt-4 mb-2">Coming soon</h1>
-                <p class="text-secondary mb-0" style="font-size: 1.15rem; max-width: 480px; margin: 0 auto;">
-                    Esta sección todavía está en desarrollo.<br>
-                    Próximamente será completada.
-                </p>
-            </div>
+            <section class="card section-card ai-chat">
+                <div class="ai-chat-header">
+                    <div>
+                        <div class="fw-semibold">Conversación</div>
+                        <div class="small text-secondary">No cambia tu perfil ni te inscribe sin tu confirmación.</div>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="aiClear">Nueva conversación</button>
+                </div>
+                <div class="ai-messages" id="aiMessages" aria-live="polite"></div>
+                <form class="ai-composer" id="aiForm" autocomplete="off">
+                    <input type="text" id="aiInput" class="form-control" maxlength="1000"
+                           placeholder="Escribe tu pregunta…" aria-label="Tu pregunta">
+                    <button type="submit" class="btn btn-primary" id="aiSend">Enviar</button>
+                </form>
+            </section>
         </div>
-
-
-
-
-
-
 
     </main>
+
+
+
+
+
 </div>
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/csrf.js" th:src="@{/js/csrf.js}"></script>
 <script src="../../static/js/col-js/col-asistente.js" th:src="@{/js/col-js/col-asistente.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
 </body>

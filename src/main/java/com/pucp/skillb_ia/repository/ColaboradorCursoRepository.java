@@ -17,6 +17,8 @@ public interface ColaboradorCursoRepository extends JpaRepository<ColaboradorCur
     List<ColaboradorCurso> findByEstado(EstadoColaboradorCurso estado);
     long countByOrigenAndEstado(OrigenCurso origen, EstadoColaboradorCurso estado);
 
+    long countByRmResponsableAndEstadoIn(Usuario rmResponsable, List<EstadoColaboradorCurso> estados);
+
     @Query("""
             select cc from ColaboradorCurso cc
             join fetch cc.colaborador colaborador

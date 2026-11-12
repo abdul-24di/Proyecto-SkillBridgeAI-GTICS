@@ -185,9 +185,12 @@ public class RmViewController {
             @RequestParam(required = false) String prioridad,
             @RequestParam(required = false) String vacantes,
             @RequestParam(required = false) String pagina,
+            @AuthenticationPrincipal UsuarioDetails principal,
             Model model) {
         var filtros = rmProyectoConsultaService.normalizarFiltros(busqueda, estado, prioridad, vacantes);
-        var paginaProyectos = rmProyectoConsultaService.listarPagina(filtros, pagina);
+        Long rmId = principal == null ? null : principal.getUsuario().getId();
+        var paginaProyectos = rmProyectoConsultaService.listarPagina(filtros, pagina, rmId);
+
         var contadores = paginaProyectos.contadores();
         model.addAttribute("proyectos", paginaProyectos.filas());
         model.addAttribute("paginaActual", paginaProyectos.paginaActual());

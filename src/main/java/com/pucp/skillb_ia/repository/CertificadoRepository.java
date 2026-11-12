@@ -20,6 +20,12 @@ public interface CertificadoRepository extends JpaRepository<Certificado, Long> 
 
     long countByColaboradorAndEstado(Usuario colaborador, EstadoCertificado estado);
 
+
+    // Para repartir el trabajo entre RMs y contar lo que revisó cada uno
+    long countByRmResponsableAndEstado(Usuario rmResponsable, EstadoCertificado estado);
+
+    long countByRmResponsableIdAndFechaRevisionBetween(Long rmId, LocalDateTime inicio, LocalDateTime fin);
+
     long countByColaboradorAndHabilidadAndEstado(
             Usuario colaborador, Habilidad habilidad, EstadoCertificado estado);
 

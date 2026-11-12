@@ -21,13 +21,7 @@ import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -97,6 +91,7 @@ public class RmAsignacionService {
     private final DisponibilidadService disponibilidadService;
     private final NotificacionService notificacionService;
     private final EvaluacionService evaluacionService;
+    private final RmAlcanceService rmAlcanceService;
 
     public RmAsignacionService(
             AsignacionRepository asignacionRepository,
@@ -109,7 +104,8 @@ public class RmAsignacionService {
             DisponibilidadService disponibilidadService,
             NotificacionService notificacionService,
             RmResponsableService rmResponsableService,
-            EvaluacionService evaluacionService) {
+            EvaluacionService evaluacionService,
+            RmAlcanceService rmAlcanceService) {
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -120,15 +116,26 @@ public class RmAsignacionService {
         this.disponibilidadService = disponibilidadService;
         this.notificacionService = notificacionService;
         this.evaluacionService = evaluacionService;
+        this.rmAlcanceService = rmAlcanceService;
         this.rmResponsableService = rmResponsableService;
     }
 
-
+    // Listamos solo las asignaciones de los proyectos del RM que tiene la sesión iniciada
+    private List<Asignacion> asignacionesDelRm() {
+        Long rmId = rmAlcanceService.idRmActual();
+        List<Asignacion> propias = new ArrayList<>();
+        for (Asignacion asignacion : asignacionRepository.findAllConDetalleOrderByFechaSolicitudDesc()) {
+            if (rmAlcanceService.puedeVer(asignacion.getProyecto(), rmId)) {
+                propias.add(asignacion);
+            }
+        }
+        return propias;
+    }
 
     @Transactional(readOnly = true)
     public List<RmAsignacionView> listar() {
         int maxAsignaciones = obtenerMaxAsignaciones();
-        return asignacionRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
+        return asignacionesDelRm().stream()
                 .map(asignacion -> crearVista(asignacion, maxAsignaciones))
                 .toList();
     }
@@ -140,7 +147,7 @@ public class RmAsignacionService {
     @Transactional(readOnly = true)
     public List<RmAsignacionView> listarParaDashboard() {
         int maxAsignaciones = obtenerMaxAsignaciones();
-        return asignacionRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
+        return asignacionesDelRm().stream()
                 .filter(asignacion -> ESTADOS_PROYECTO_DASHBOARD.contains(asignacion.getProyecto().getEstado()))
                 .map(asignacion -> crearVista(asignacion, maxAsignaciones))
                 .toList();
@@ -180,7 +187,7 @@ public class RmAsignacionService {
      */
     @Transactional(readOnly = true)
     public PaginaAsignaciones listarPagina(FiltrosAsignacion filtros, String pagina) {
-        List<RmAsignacionView> conjunto = asignacionRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
+        List<RmAsignacionView> conjunto = asignacionesDelRm().stream()
                 .filter(asignacion -> filtros.proyectoId() == null
                         || filtros.proyectoId().equals(asignacion.getProyecto().getId()))
                 .map(this::crearVistaBasica)
@@ -213,6 +220,9 @@ public class RmAsignacionService {
     public RmAsignacionView obtener(Long asignacionId) {
         Asignacion asignacion = asignacionRepository.findByIdConDetalle(asignacionId)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la asignación solicitada."));
+        if (!rmAlcanceService.puedeVer(asignacion.getProyecto(), rmAlcanceService.idRmActual())) {
+            throw new IllegalArgumentException("No se encontró la asignación solicitada.");
+        }
         return crearVista(asignacion, obtenerMaxAsignaciones());
     }
 
@@ -315,9 +325,11 @@ public class RmAsignacionService {
 
     @Transactional(readOnly = true)
     public List<Proyecto> listarProyectosAsignables() {
+        Long rmId = rmAlcanceService.idRmActual();
         return proyectoRepository.findAllConPmOrderByFechaCreacionDesc().stream()
                 .filter(proyecto -> proyecto.getEstado() == EstadoProyecto.ACTIVO
                         || proyecto.getEstado() == EstadoProyecto.EN_ESPERA)
+                .filter(proyecto -> rmAlcanceService.puedeVer(proyecto, rmId))
                 .toList();
     }
 

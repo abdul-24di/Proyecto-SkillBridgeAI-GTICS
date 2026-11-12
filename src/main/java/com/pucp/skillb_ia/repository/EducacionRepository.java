@@ -66,4 +66,8 @@ public interface EducacionRepository extends JpaRepository<Educacion, Long> {
     long countByEstadoAndActivoTrue(@Param("estado") EstadoCertificado estado);
 
     long countByColaboradorAndEstadoAndActivoTrue(Usuario colaborador, EstadoCertificado estado);
+
+
+    long countByRmResponsableAndEstadoAndActivoTrue(Usuario rmResponsable, EstadoCertificado estado);
+
 }

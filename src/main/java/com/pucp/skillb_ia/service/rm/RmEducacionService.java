@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -46,35 +47,48 @@ public class RmEducacionService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
+    private final RmAlcanceService rmAlcanceService;
 
     public RmEducacionService(EducacionRepository educacionRepository,
                               UsuarioRepository usuarioRepository,
                               AuditoriaService auditoriaService,
-                              NotificacionService notificacionService) {
+                              NotificacionService notificacionService,
+                              RmAlcanceService rmAlcanceService) {
         this.educacionRepository = educacionRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
+        this.rmAlcanceService = rmAlcanceService;
     }
 
     @Transactional(readOnly = true)
     public List<RmEducacionView> listarPendientes() {
-        return educacionRepository.findActivasByEstadoConDetalle(EstadoCertificado.PENDIENTE).stream()
-                .map(educacion -> crearVista(educacion, 0))
-                .toList();
+        Long rmId = rmAlcanceService.idRmActual();
+        List<RmEducacionView> resultado = new ArrayList<>();
+        for (Educacion educacion : educacionRepository.findActivasByEstadoConDetalle(EstadoCertificado.PENDIENTE)) {
+            if (rmAlcanceService.puedeVerRevision(educacion.getRmResponsable(), rmId)) {
+                resultado.add(crearVista(educacion, 0));
+            }
+        }
+        return resultado;
     }
 
-    /** Historial: formaciones aprobadas o rechazadas, la revisión más reciente primero (TASK-061). */
+    /** Historial: formaciones aprobadas o rechazadas de este RM, la revisión más reciente primero. */
     @Transactional(readOnly = true)
     public List<RmEducacionView> listarRevisadas() {
-        return educacionRepository.findActivasRevisadasConDetalle().stream()
-                .map(educacion -> crearVista(educacion, 0))
-                .toList();
+        Long rmId = rmAlcanceService.idRmActual();
+        List<RmEducacionView> resultado = new ArrayList<>();
+        for (Educacion educacion : educacionRepository.findActivasRevisadasConDetalle()) {
+            if (rmAlcanceService.puedeVerRevision(educacion.getRmResponsable(), rmId)) {
+                resultado.add(crearVista(educacion, 0));
+            }
+        }
+        return resultado;
     }
 
     @Transactional(readOnly = true)
     public long contarPendientes() {
-        return educacionRepository.countByEstadoAndActivoTrue(EstadoCertificado.PENDIENTE);
+        return listarPendientes().size();
     }
 
     /** Instituciones distintas (sin repetir) de las formaciones recibidas, en orden alfabético. */
@@ -234,9 +248,13 @@ public class RmEducacionService {
     }
 
     private Educacion obtenerEntidad(Long id) {
-        return educacionRepository.findByIdConDetalle(id)
+        Educacion educacion = educacionRepository.findByIdConDetalle(id)
                 .filter(Educacion::isActivo)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la formación académica solicitada."));
+        if (!rmAlcanceService.puedeVerRevision(educacion.getRmResponsable(), rmAlcanceService.idRmActual())) {
+            throw new IllegalArgumentException("No se encontró la formación académica solicitada.");
+        }
+        return educacion;
     }
 
     private Usuario obtenerRm(Long id) {

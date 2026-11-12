@@ -14,6 +14,7 @@ import com.pucp.skillb_ia.repository.ProyectoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -44,22 +45,31 @@ public class RmProyectoConsultaService {
     private final AsignacionRepository asignacionRepository;
     private final ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository;
     private final RmPresupuestoService presupuestoService;
+    private final RmAlcanceService rmAlcanceService;
 
     public RmProyectoConsultaService(ProyectoRepository proyectoRepository,
                                      AsignacionRepository asignacionRepository,
                                      ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository,
-                                     RmPresupuestoService presupuestoService) {
+                                     RmPresupuestoService presupuestoService,
+                                     RmAlcanceService rmAlcanceService) {
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.habilidadRequeridaRepository = habilidadRequeridaRepository;
         this.presupuestoService = presupuestoService;
+        this.rmAlcanceService = rmAlcanceService;
     }
 
+    // Solo devuelve los proyectos del RM que tiene la sesión iniciada.
     @Transactional(readOnly = true)
     public List<RmProyectoView> listar() {
-        return proyectoRepository.findAllConPmOrderByFechaCreacionDesc().stream()
-                .map(this::crearVista)
-                .toList();
+        Long rmId = rmAlcanceService.idRmActual();
+        List<RmProyectoView> resultado = new ArrayList<>();
+        for (Proyecto proyecto : proyectoRepository.findAllConPmOrderByFechaCreacionDesc()) {
+            if (rmAlcanceService.puedeVer(proyecto, rmId)) {
+                resultado.add(crearVista(proyecto));
+            }
+        }
+        return resultado;
     }
 
     /**
@@ -84,8 +94,23 @@ public class RmProyectoConsultaService {
      */
     @Transactional(readOnly = true)
     public PaginaProyectos listarPagina(FiltrosProyecto filtros, String pagina) {
-        List<RmProyectoView> todos = listar();
+        return armarPagina(listar(), filtros, pagina);
+    }
+
+    /**
+     * Igual que listarPagina(filtros, pagina), pero solo con los proyectos que el RM puede ver:
+     * los que tiene a su cargo y los que todavía no tienen RM responsable.
+     * Si rmId es null no se filtra por responsable.
+     */
+    @Transactional(readOnly = true)
+    public PaginaProyectos listarPagina(FiltrosProyecto filtros, String pagina, Long rmId) {
+        return armarPagina(listar(), filtros, pagina);
+    }
+
+
+    private PaginaProyectos armarPagina(List<RmProyectoView> todos, FiltrosProyecto filtros, String pagina) {
         String busqueda = filtros.busqueda() == null ? "" : filtros.busqueda().toLowerCase(LOCALE_BUSQUEDA);
+
         List<RmProyectoView> filtrados = todos.stream()
                 .filter(item -> busqueda.isEmpty()
                         || item.getTextoBusqueda().toLowerCase(LOCALE_BUSQUEDA).contains(busqueda))
@@ -132,6 +157,9 @@ public class RmProyectoConsultaService {
     public RmProyectoView obtener(Long id) {
         Proyecto proyecto = proyectoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el proyecto solicitado."));
+        if (!rmAlcanceService.puedeVer(proyecto, rmAlcanceService.idRmActual())) {
+            throw new IllegalArgumentException("No se encontró el proyecto solicitado.");
+        }
         proyecto.getPm().getNombre();
         return crearVista(proyecto);
     }

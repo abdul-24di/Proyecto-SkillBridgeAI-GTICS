@@ -109,7 +109,7 @@ public class PmAsignacionService {
                 "PM propuso al colaborador ID " + colaboradorId
                 + " para el proyecto '" + proyecto.getNombre() + "'.");
 
-        notificacionService.crearParaTodosLosRm("ASIGNACION_PENDIENTE_RM", CategoriaNotificacion.ASIGNACION,
+        notificacionService.crearParaRmDelProyecto(proyecto, "ASIGNACION_PENDIENTE_RM", CategoriaNotificacion.ASIGNACION,
                 "Asignación pendiente de tu aprobación",
                 "El PM del proyecto \"" + proyecto.getNombre() + "\" propuso a " + colaborador.getNombre()
                         + " " + colaborador.getApellido() + ".",

@@ -25,10 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 public class RmCursoService {
@@ -38,7 +35,7 @@ public class RmCursoService {
     private static final List<EstadoColaboradorCurso> ESTADOS_DUPLICADOS =
             List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO,
                     EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
-    // Paginación en el servidor (TASK-030).
+
     public static final int TAMANIO_PAGINA_CATALOGO = 6;
     public static final int TAMANIO_PAGINA_BANDEJA = 10;
     public static final List<String> OPCIONES_DURACION = List.of("corta", "media", "larga");
@@ -110,13 +107,16 @@ public class RmCursoService {
     private final AuditoriaService auditoriaService;
     private final ColaboradorCursoService colaboradorCursoService;
 
+    private final RmAlcanceService rmAlcanceService;
+
     public RmCursoService(CursoRepository cursoRepository,
                           ColaboradorCursoRepository colaboradorCursoRepository,
                           UsuarioRepository usuarioRepository,
                           NotificacionService notificacionService,
                           EmailService emailService,
                           AuditoriaService auditoriaService,
-                          ColaboradorCursoService colaboradorCursoService) {
+                          ColaboradorCursoService colaboradorCursoService,
+                          RmAlcanceService rmAlcanceService) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -124,6 +124,25 @@ public class RmCursoService {
         this.emailService = emailService;
         this.auditoriaService = auditoriaService;
         this.colaboradorCursoService = colaboradorCursoService;
+        this.rmAlcanceService = rmAlcanceService;
+    }
+
+    // Solo las inscripciones asignadas al RM que tiene la sesión iniciada
+    private List<ColaboradorCurso> inscripcionesDelRm() {
+        Long rmId = rmAlcanceService.idRmActual();
+        List<ColaboradorCurso> propias = new ArrayList<>();
+        for (ColaboradorCurso inscripcion : colaboradorCursoRepository.findAllConDetalle()) {
+            if (rmAlcanceService.puedeVerRevision(inscripcion.getRmResponsable(), rmId)) {
+                propias.add(inscripcion);
+            }
+        }
+        return propias;
+    }
+
+    private void validarDueno(ColaboradorCurso inscripcion, String mensaje) {
+        if (!rmAlcanceService.puedeVerRevision(inscripcion.getRmResponsable(), rmAlcanceService.idRmActual())) {
+            throw new IllegalArgumentException(mensaje);
+        }
     }
 
     /**
@@ -201,8 +220,13 @@ public class RmCursoService {
     /** Solicitudes de colaboradores en estado SOLICITADO (para el dashboard del RM). */
     @Transactional(readOnly = true)
     public long contarSolicitudesPendientes() {
-        return colaboradorCursoRepository.countByOrigenAndEstado(
-                OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        long total = 0;
+        for (ColaboradorCurso inscripcion : inscripcionesDelRm()) {
+            if (esSolicitudPendiente(inscripcion)) {
+                total++;
+            }
+        }
+        return total;
     }
 
     /**
@@ -211,7 +235,7 @@ public class RmCursoService {
      */
     @Transactional(readOnly = true)
     public RmCursoView.Bandeja obtenerBandeja(FiltrosBandeja filtros, String pagina) {
-        List<ColaboradorCurso> todas = colaboradorCursoRepository.findAllConDetalle();
+        List<ColaboradorCurso> todas = inscripcionesDelRm();
         FiltroEstadoBandeja estado = filtros.estado();
         OrigenCurso origen = filtros.origen();
         String textoBusqueda = normalizar(filtros.busqueda());
@@ -279,6 +303,7 @@ public class RmCursoService {
         inscripcion.setOrigen(OrigenCurso.ASIGNADO_POR_RM);
         inscripcion.setEstado(EstadoColaboradorCurso.EN_CURSO);
         inscripcion.setAsignadoPor(rm);
+        inscripcion.setRmResponsable(rm);
         inscripcion.setFechaRespuesta(LocalDateTime.now());
         inscripcion.setMotivoRespuesta(validarMotivo(motivo, "El motivo de la asignación es obligatorio."));
         inscripcion = colaboradorCursoRepository.save(inscripcion);
@@ -395,6 +420,7 @@ public class RmCursoService {
     private ColaboradorCurso obtenerSolicitudPendiente(Long id) {
         ColaboradorCurso inscripcion = colaboradorCursoRepository.findByIdConDetalle(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la solicitud de curso."));
+        validarDueno(inscripcion, "No se encontró la solicitud de curso.");
         if (!esSolicitudPendiente(inscripcion)) {
             throw new IllegalStateException("La solicitud ya fue gestionada o no fue enviada por un colaborador.");
         }
@@ -404,6 +430,7 @@ public class RmCursoService {
     private ColaboradorCurso obtenerEvidenciaPendiente(Long id) {
         ColaboradorCurso inscripcion = colaboradorCursoRepository.findByIdConDetalle(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la inscripción al curso."));
+        validarDueno(inscripcion, "No se encontró la inscripción al curso.");
         if (inscripcion.getEstado() != EstadoColaboradorCurso.EVIDENCIA_PENDIENTE) {
             throw new IllegalStateException("Esta inscripción no tiene una evidencia pendiente de revisión.");
         }

@@ -18,10 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @Service
 public class RmSolicitudPersonalService {
@@ -51,6 +48,7 @@ public class RmSolicitudPersonalService {
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
     private final RmResponsableService rmResponsableService;
+    private final RmAlcanceService rmAlcanceService;
 
     public RmSolicitudPersonalService(
             SolicitudPersonalRepository solicitudRepository,
@@ -59,7 +57,8 @@ public class RmSolicitudPersonalService {
             RmProyectoConsultaService proyectoConsultaService,
             AuditoriaService auditoriaService,
             RmResponsableService rmResponsableService,
-            NotificacionService notificacionService) {
+            NotificacionService notificacionService,
+            RmAlcanceService rmAlcanceService) {
         this.solicitudRepository = solicitudRepository;
         this.proyectoRepository = proyectoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -67,11 +66,24 @@ public class RmSolicitudPersonalService {
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
         this.rmResponsableService = rmResponsableService;
+        this.rmAlcanceService = rmAlcanceService;
+    }
+
+    // Listamos solo las solicitudes de los proyectos del RM que tiene la sesión iniciada
+    private List<SolicitudPersonal> solicitudesDelRm() {
+        Long rmId = rmAlcanceService.idRmActual();
+        List<SolicitudPersonal> propias = new ArrayList<>();
+        for (SolicitudPersonal solicitud : solicitudRepository.findAllConDetalleOrderByFechaSolicitudDesc()) {
+            if (rmAlcanceService.puedeVer(solicitud.getProyecto(), rmId)) {
+                propias.add(solicitud);
+            }
+        }
+        return propias;
     }
 
     @Transactional(readOnly = true)
     public List<RmSolicitudPersonalView> listar() {
-        return solicitudRepository.findAllConDetalleOrderByFechaSolicitudDesc().stream()
+        return solicitudesDelRm().stream()
                 .map(this::crearVista)
                 .toList();
     }
@@ -97,7 +109,7 @@ public class RmSolicitudPersonalService {
      */
     @Transactional(readOnly = true)
     public PaginaSolicitudes listarPagina(FiltrosSolicitud filtros, String pagina) {
-        List<SolicitudPersonal> todas = solicitudRepository.findAllConDetalleOrderByFechaSolicitudDesc();
+        List<SolicitudPersonal> todas = solicitudesDelRm();
         ContadoresSolicitudes contadores = new ContadoresSolicitudes(
                 contarPorEstado(todas, EstadoSolicitudPersonal.PENDIENTE),
                 contarPorEstado(todas, EstadoSolicitudPersonal.EN_ATENCION),
@@ -165,7 +177,7 @@ public class RmSolicitudPersonalService {
                 guardada.getId(), "El PM solicitó " + cantidad + " colaborador(es) para "
                         + proyecto.getNombre() + ".");
 
-        notificacionService.crearParaTodosLosRm("SOLICITUD_PERSONAL_PENDIENTE", CategoriaNotificacion.PROYECTO,
+        notificacionService.crearParaRmDelProyecto(proyecto, "SOLICITUD_PERSONAL_PENDIENTE", CategoriaNotificacion.PROYECTO,
                 "Solicitud de personal pendiente",
                 "El PM del proyecto \"" + proyecto.getNombre() + "\" solicitó " + cantidad + " colaborador(es).",
                 "SOLICITUD_PERSONAL", guardada.getId());
@@ -241,8 +253,12 @@ public class RmSolicitudPersonalService {
     }
 
     private SolicitudPersonal obtenerEntidad(Long id) {
-        return solicitudRepository.findByIdConDetalle(id)
+        SolicitudPersonal solicitud = solicitudRepository.findByIdConDetalle(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró la solicitud de personal."));
+        if (!rmAlcanceService.puedeVer(solicitud.getProyecto(), rmAlcanceService.idRmActual())) {
+            throw new IllegalArgumentException("No se encontró la solicitud de personal.");
+        }
+        return solicitud;
     }
 
     private Usuario obtenerRm(Long id) {

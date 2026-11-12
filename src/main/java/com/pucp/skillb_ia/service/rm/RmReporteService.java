@@ -58,10 +58,26 @@ public class RmReporteService {
     private final ProyectoRepository proyectoRepository;
     private final ActividadRepository actividadRepository;
 
+    private final RmAlcanceService rmAlcanceService;
+
     public RmReporteService(ProyectoRepository proyectoRepository,
-                            ActividadRepository actividadRepository) {
+                            ActividadRepository actividadRepository,
+                            RmAlcanceService rmAlcanceService) {
         this.proyectoRepository = proyectoRepository;
         this.actividadRepository = actividadRepository;
+        this.rmAlcanceService = rmAlcanceService;
+    }
+
+    // Solo los proyectos del RM que tiene la sesión iniciada
+    private List<Proyecto> proyectosDelRm() {
+        Long rmId = rmAlcanceService.idRmActual();
+        List<Proyecto> propios = new ArrayList<>();
+        for (Proyecto proyecto : proyectoRepository.findAllConPmOrderByFechaCreacionDesc()) {
+            if (rmAlcanceService.puedeVer(proyecto, rmId)) {
+                propios.add(proyecto);
+            }
+        }
+        return propios;
     }
 
     /** Reporte de un solo mes, sin filtro de prioridad. */
@@ -93,7 +109,7 @@ public class RmReporteService {
                 .computeIfAbsent(actividad.getProyecto().getId(), clave -> new ArrayList<>())
                 .add(actividad));
 
-        List<Proyecto> todos = proyectoRepository.findAllConPmOrderByFechaCreacionDesc();
+        List<Proyecto> todos = proyectosDelRm();
         String proyectoNombre = todos.stream()
                 .filter(proyecto -> proyecto.getId().equals(proyectoId))
                 .map(Proyecto::getNombre)
@@ -182,7 +198,7 @@ public class RmReporteService {
 
     @Transactional(readOnly = true)
     public List<RmReporteView.Opcion> listarProyectos() {
-        return proyectoRepository.findAllConPmOrderByFechaCreacionDesc().stream()
+        return proyectosDelRm().stream()
                 .map(proyecto -> new RmReporteView.Opcion(
                         proyecto.getId().toString(), proyecto.getNombre()))
                 .toList();

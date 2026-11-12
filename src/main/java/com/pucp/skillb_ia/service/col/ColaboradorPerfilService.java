@@ -11,6 +11,7 @@ import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
+import com.pucp.skillb_ia.service.RmRevisionAsignadorService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -58,6 +59,7 @@ public class ColaboradorPerfilService {
     private final NotificacionService notificacionService;
     private final String uploadDir;
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
+    private final RmRevisionAsignadorService rmRevisionAsignadorService;
 
     public ColaboradorPerfilService(UsuarioRepository usuarioRepository,
                                     ColaboradorHabilidadRepository colaboradorHabilidadRepository,
@@ -70,7 +72,8 @@ public class ColaboradorPerfilService {
                                     AuditoriaService auditoriaService,
                                     NotificacionService notificacionService,
                                     @Value("${app.upload-dir:uploads}") String uploadDir,
-                                    ArchivoAlmacenamientoService archivoAlmacenamientoService) {
+                                    ArchivoAlmacenamientoService archivoAlmacenamientoService,
+                                    RmRevisionAsignadorService rmRevisionAsignadorService) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.habilidadRepository = habilidadRepository;
@@ -83,6 +86,7 @@ public class ColaboradorPerfilService {
         this.notificacionService = notificacionService;
         this.uploadDir = uploadDir;
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
+        this.rmRevisionAsignadorService = rmRevisionAsignadorService;
     }
 
     //Listado de categorías activas
@@ -455,6 +459,7 @@ public class ColaboradorPerfilService {
         certificadoEntidad.setHabilidad(habilidad);
         certificadoEntidad.setArchivoUrl(archivoUrl);
         certificadoEntidad.setEstado(EstadoCertificado.PENDIENTE);
+        certificadoEntidad.setRmResponsable(rmRevisionAsignadorService.elegirRm());
         certificadoRepository.save(certificadoEntidad);
 
         auditoriaService.registrar(colaborador, "AGREGAR_HABILIDAD", "COLABORADOR_HABILIDAD", habilidad.getId(),
@@ -614,6 +619,7 @@ public class ColaboradorPerfilService {
         certificado.setArchivoUrl(archivoUrl);
 
         certificado.setEstado(EstadoCertificado.PENDIENTE);
+        certificado.setRmResponsable(rmRevisionAsignadorService.elegirRm());
         certificado = certificadoRepository.save(certificado);
 
         //Si el colaborador cambia su nivel de dominio, la habilidad vuelve a quedar pendiente de validación.
@@ -632,7 +638,7 @@ public class ColaboradorPerfilService {
                 certificado.getId(), "Subió un certificado para la habilidad \""
                         + habilidad.getNombre() + "\".");
 
-        notificacionService.crearParaTodosLosRm("CERTIFICADO_PENDIENTE", CategoriaNotificacion.HABILIDAD,
+        notificacionService.crearParaRm(certificado.getRmResponsable(), "CERTIFICADO_PENDIENTE", CategoriaNotificacion.HABILIDAD,
                 "Certificado pendiente de revisión",
                 colaborador.getNombre() + " " + colaborador.getApellido()
                         + " subió un certificado para \"" + habilidad.getNombre() + "\".",
@@ -771,6 +777,7 @@ public class ColaboradorPerfilService {
         educacion.setFechaFin(fechaFin);
         educacion.setActual(false);
         educacion.setArchivoUrl(archivoUrl);
+        educacion.setRmResponsable(rmRevisionAsignadorService.elegirRm());
         educacionRepository.save(educacion);
 
         auditoriaService.registrar(colaborador, "AGREGAR_EDUCACION", "EDUCACION", educacion.getId(),
@@ -784,7 +791,7 @@ public class ColaboradorPerfilService {
 
     private void notificarRmEducacionPendiente(Educacion educacion) {
         Usuario colaborador = educacion.getColaborador();
-        notificacionService.crearParaTodosLosRm("EDUCACION_PENDIENTE", CategoriaNotificacion.HABILIDAD,
+        notificacionService.crearParaRm(educacion.getRmResponsable(), "EDUCACION_PENDIENTE", CategoriaNotificacion.HABILIDAD,
                 "Formación académica pendiente de revisión",
                 colaborador.getNombre() + " " + colaborador.getApellido()
                         + " agregó \"" + educacion.getTitulo() + "\" (" + educacion.getInstitucion() + ") a su perfil.",

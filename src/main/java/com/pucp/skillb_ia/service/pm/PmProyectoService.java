@@ -162,12 +162,6 @@ public class PmProyectoService {
 
         auditoriaService.registrar(pm, "CREAR", "PROYECTO", saved.getId(),
                 "PM creó el proyecto '" + nombre + "' en estado EN_REVISION.");
-        // El RM es quien lo revisa y le asigna presupuesto: sin este aviso no se entera.
-        notificacionService.crearParaTodosLosRm("PROYECTO_EN_REVISION", CategoriaNotificacion.PROYECTO,
-                "Nuevo proyecto por revisar",
-                pm.getNombre() + " " + pm.getApellido() + " creó el proyecto \"" + nombre
-                        + "\" y espera tu revisión.",
-                "PROYECTO", saved.getId());
         return saved;
     }
 

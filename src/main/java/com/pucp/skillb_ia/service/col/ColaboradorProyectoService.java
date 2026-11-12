@@ -274,7 +274,7 @@ public class ColaboradorProyectoService {
                 "Solicitud de incorporación pendiente",
                 descripcionSolicitud, "ASIGNACION", guardada.getId());
 
-        notificacionService.crearParaTodosLosRm("SOLICITUD_INCORPORACION", CategoriaNotificacion.ASIGNACION,
+        notificacionService.crearParaRmDelProyecto(proyecto, "SOLICITUD_INCORPORACION", CategoriaNotificacion.ASIGNACION,
                 "Solicitud de incorporación pendiente",
                 descripcionSolicitud, "ASIGNACION", guardada.getId());
 

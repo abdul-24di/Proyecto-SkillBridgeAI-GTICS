@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -45,32 +46,45 @@ public class RmCertificadoService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final NotificacionService notificacionService;
+    private final RmAlcanceService rmAlcanceService;
 
     public RmCertificadoService(CertificadoRepository certificadoRepository,
                                 ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                 UsuarioRepository usuarioRepository,
                                 AuditoriaService auditoriaService,
-                                NotificacionService notificacionService) {
+                                NotificacionService notificacionService,
+                                RmAlcanceService rmAlcanceService) {
         this.certificadoRepository = certificadoRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.notificacionService = notificacionService;
+        this.rmAlcanceService = rmAlcanceService;
     }
 
     @Transactional(readOnly = true)
     public List<RmCertificadoView> listarPendientes() {
-        return certificadoRepository.findByEstadoConDetalle(EstadoCertificado.PENDIENTE).stream()
-                .map(this::crearVista)
-                .toList();
+        Long rmId = rmAlcanceService.idRmActual();
+        List<RmCertificadoView> resultado = new ArrayList<>();
+        for (Certificado certificado : certificadoRepository.findByEstadoConDetalle(EstadoCertificado.PENDIENTE)) {
+            if (rmAlcanceService.puedeVerRevision(certificado.getRmResponsable(), rmId)) {
+                resultado.add(crearVista(certificado));
+            }
+        }
+        return resultado;
     }
 
     @Transactional(readOnly = true)
     public List<RmCertificadoView> listarHistorial(Long colaboradorId) {
         obtenerColaborador(colaboradorId);
-        return certificadoRepository.findByColaboradorIdConDetalle(colaboradorId).stream()
-                .map(this::crearVista)
-                .toList();
+        Long rmId = rmAlcanceService.idRmActual();
+        List<RmCertificadoView> resultado = new ArrayList<>();
+        for (Certificado certificado : certificadoRepository.findByColaboradorIdConDetalle(colaboradorId)) {
+            if (rmAlcanceService.puedeVerRevision(certificado.getRmResponsable(), rmId)) {
+                resultado.add(crearVista(certificado));
+            }
+        }
+        return resultado;
     }
 
     /** Nombres de habilidad distintos (sin repetir) de los certificados recibidos, en orden alfabético. */
@@ -126,8 +140,13 @@ public class RmCertificadoService {
     @Transactional(readOnly = true)
     public long contarRevisadosHoy() {
         LocalDate hoy = LocalDate.now();
-        return certificadoRepository.countByFechaRevisionBetween(
-                hoy.atStartOfDay(), hoy.plusDays(1).atStartOfDay());
+        Long rmId = rmAlcanceService.idRmActual();
+        if (rmId == null) {
+            return certificadoRepository.countByFechaRevisionBetween(
+                    hoy.atStartOfDay(), hoy.plusDays(1).atStartOfDay());
+        }
+        return certificadoRepository.countByRmResponsableIdAndFechaRevisionBetween(
+                rmId, hoy.atStartOfDay(), hoy.plusDays(1).atStartOfDay());
     }
 
     @Transactional
@@ -289,8 +308,12 @@ public class RmCertificadoService {
     }
 
     private Certificado obtenerEntidad(Long id) {
-        return certificadoRepository.findByIdConDetalle(id)
+        Certificado certificado = certificadoRepository.findByIdConDetalle(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el certificado solicitado."));
+        if (!rmAlcanceService.puedeVerRevision(certificado.getRmResponsable(), rmAlcanceService.idRmActual())) {
+            throw new IllegalArgumentException("No se encontró el certificado solicitado.");
+        }
+        return certificado;
     }
 
     private ColaboradorHabilidad obtenerHabilidadDelPerfil(Certificado certificado) {

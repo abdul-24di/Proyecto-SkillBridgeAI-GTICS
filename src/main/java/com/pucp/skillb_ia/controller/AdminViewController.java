@@ -51,6 +51,7 @@ public class AdminViewController {
     private final AdminCargoService adminCargoService;
     private final AdminConfiguracionService adminConfiguracionService;
     private final AdminAuditoriaService adminAuditoriaService;
+    private final com.pucp.skillb_ia.service.AdminReporteService adminReporteService;
     private final AdminPerfilService adminPerfilService;
     private final AdminCursoService adminCursoService;
     private final ColaboradorPerfilService colaboradorPerfilService;
@@ -65,7 +66,9 @@ public class AdminViewController {
                                 AdminCursoService adminCursoService,
                                 ColaboradorPerfilService colaboradorPerfilService,
                                 com.pucp.skillb_ia.service.admin.AdminForoService adminForoService,
-                                com.pucp.skillb_ia.service.pm.PmForoService pmForoService) {
+                                com.pucp.skillb_ia.service.pm.PmForoService pmForoService,
+                                com.pucp.skillb_ia.service.AdminReporteService adminReporteService) {
+        this.adminReporteService = adminReporteService;
         this.adminUsuarioService = adminUsuarioService;
         this.adminHabilidadService = adminHabilidadService;
         this.adminConfiguracionService = adminConfiguracionService;
@@ -91,6 +94,8 @@ public class AdminViewController {
 
     @GetMapping({"/dashboard", "/admin-dashboard.html"})
     public String dashboard(Model model) {
+        // Fecha de hoy para el enlace "Acciones auditadas hoy" → auditoría filtrada por hoy.
+        model.addAttribute("hoy", LocalDate.now());
         model.addAttribute("resumenUsuarios", adminUsuarioService.resumen());
         model.addAttribute("usuariosPendientes", adminUsuarioService.listar().stream()
                 .filter(AdminUsuarioService.UsuarioFila::pendiente)
@@ -574,6 +579,80 @@ public class AdminViewController {
 
             libro.write(response.getOutputStream());
         }
+    }
+
+    // ============================================================
+    // REPORTES: "Usuarios y accesos" (por mes) y "Actividad de auditoría" (por rango de fechas)
+    // ============================================================
+
+    @GetMapping({"/reportes", "/admin-reportes.html"})
+    public String reportes(@RequestParam(required = false) String tab,
+                           @RequestParam(required = false) String mes,
+                           @RequestParam(required = false) String desde,
+                           @RequestParam(required = false) String hasta,
+                           Model model) {
+        String pestana = "auditoria".equals(tab) ? "auditoria" : "usuarios";
+        model.addAttribute("tab", pestana);
+
+        java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+        model.addAttribute("mes", periodo.toString());
+        model.addAttribute("reporteUsuarios", adminReporteService.usuarios(periodo));
+
+        LocalDate[] rango = leerRango(desde, hasta);
+        model.addAttribute("desde", rango[0]);
+        model.addAttribute("hasta", rango[1]);
+        try {
+            model.addAttribute("reporteAuditoria", adminReporteService.auditoria(rango[0], rango[1]));
+        } catch (IllegalArgumentException e) {
+            // Rango inválido (invertido o mayor a un año): se avisa y se muestra el mes actual.
+            model.addAttribute("errorRango", e.getMessage());
+            java.time.YearMonth actual = java.time.YearMonth.now();
+            model.addAttribute("desde", actual.atDay(1));
+            model.addAttribute("hasta", LocalDate.now());
+            model.addAttribute("reporteAuditoria", adminReporteService.auditoria(actual.atDay(1), LocalDate.now()));
+        }
+        model.addAttribute("hoy", LocalDate.now());
+        return "admin/admin-reportes";
+    }
+
+    @GetMapping("/reportes/excel")
+    public org.springframework.http.ResponseEntity<byte[]> reportesExcel(@RequestParam(required = false) String tab,
+                                                                         @RequestParam(required = false) String mes,
+                                                                         @RequestParam(required = false) String desde,
+                                                                         @RequestParam(required = false) String hasta) {
+        byte[] contenido;
+        String archivo;
+        if ("auditoria".equals(tab)) {
+            LocalDate[] rango = leerRango(desde, hasta);
+            contenido = adminReporteService.excelAuditoria(adminReporteService.auditoria(rango[0], rango[1]));
+            archivo = "reporte-auditoria-" + rango[0] + "-a-" + rango[1] + ".xlsx";
+        } else {
+            java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+            contenido = adminReporteService.excelUsuarios(adminReporteService.usuarios(periodo));
+            archivo = "reporte-usuarios-" + periodo + ".xlsx";
+        }
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(com.pucp.skillb_ia.util.ReporteExcel.TIPO_CONTENIDO))
+                .body(contenido);
+    }
+
+    // Rango del reporte de auditoría: por defecto, del 1 del mes actual a hoy. Una fecha mal escrita usa el
+    // valor por defecto (el formulario usa input type="date", así que solo pasa si se edita la URL).
+    private LocalDate[] leerRango(String desde, String hasta) {
+        LocalDate fin = LocalDate.now();
+        LocalDate inicio = fin.withDayOfMonth(1);
+        try {
+            if (hasta != null && !hasta.isBlank()) fin = LocalDate.parse(hasta.trim());
+        } catch (java.time.format.DateTimeParseException ignorado) {
+            // se mantiene hoy
+        }
+        try {
+            if (desde != null && !desde.isBlank()) inicio = LocalDate.parse(desde.trim());
+        } catch (java.time.format.DateTimeParseException ignorado) {
+            // se mantiene el 1 del mes
+        }
+        return new LocalDate[]{inicio, fin};
     }
 
     // ============================================================

@@ -147,6 +147,36 @@ body {
   box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
 }
 
+/* Tarjetas y barras del dashboard que llevan a su sección */
+.summary-card-link,
+.role-bar-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+.summary-card-link:hover,
+.summary-card-link:focus-visible {
+  color: inherit;
+  text-decoration: none;
+  border-color: #206bc4;
+  box-shadow: 0 4px 14px rgba(32, 107, 196, .15);
+}
+
+.role-bar-link {
+  border-radius: 6px;
+  padding: .35rem .5rem;
+  margin: 0 -.5rem;
+}
+
+.role-bar-link:hover,
+.role-bar-link:focus-visible {
+  color: inherit;
+  text-decoration: none;
+  background-color: #f1f5fb;
+}
+
 .summary-number-budget {
   margin-top: .15rem;
   color: #182433;

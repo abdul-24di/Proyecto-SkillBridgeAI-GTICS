@@ -22,6 +22,11 @@ public class ActivarCuentaForm {
     @Pattern(regexp = PoliticaTelefono.REGEX, message = PoliticaTelefono.MENSAJE)
     private String telefono;
 
+    // DNI de todos los roles. El formato se valida aquí; que no se repita y la consulta a la API, en DniService.
+    @NotBlank(message = "Ingresa tu DNI.")
+    @Pattern(regexp = "^[0-9]{8}$", message = "El DNI debe tener exactamente 8 dígitos, sin espacios ni letras.")
+    private String dni;
+
     @Size(max = 500, message = "La descripción no puede superar los 500 caracteres.")
     private String descripcion;
 
@@ -57,6 +62,8 @@ public class ActivarCuentaForm {
     public void setToken(String token) { this.token = token; }
     public String getNombreCompleto() { return nombreCompleto; }
     public void setNombreCompleto(String nombreCompleto) { this.nombreCompleto = nombreCompleto; }
+    public String getDni() { return dni; }
+    public void setDni(String dni) { this.dni = dni; }
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
     public String getDescripcion() { return descripcion; }

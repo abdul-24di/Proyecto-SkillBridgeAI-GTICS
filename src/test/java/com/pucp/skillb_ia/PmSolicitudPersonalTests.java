@@ -99,7 +99,8 @@ class PmSolicitudPersonalTests {
     }
 
     @Test
-    void creaLaSolicitudConPrgAuditoriaYNotificacionALosRm() throws Exception {
+    void creaLaSolicitudConPrgAuditoriaYNotificacionAlRmResponsable() throws Exception {
+        Usuario otroRm = obtenerUsuario("rm.otro.solicitud@skillbridge.test", "Raúl", "Otro", obtenerRol("RESOURCE_MANAGER"));
         mockMvc.perform(post(ruta(proyecto))
                         .param("cantidad", "2")
                         .param("perfiles", "  Backend Java y QA  ")
@@ -126,6 +127,8 @@ class PmSolicitudPersonalTests {
         assertEquals("SOLICITUD_PERSONAL", notificaciones.get(0).getEntidad());
         assertTrue(notificaciones.get(0).getDescripcion().contains(proyecto.getNombre()));
         assertTrue(notificacionesPendientes(pm, solicitud).isEmpty(), "El PM no recibe la notificación de los RM.");
+        assertTrue(notificacionesPendientes(otroRm, solicitud).isEmpty(),
+                "Solo el RM responsable del proyecto recibe la solicitud.");
     }
 
     @Test
@@ -560,6 +563,8 @@ class PmSolicitudPersonalTests {
         nuevo.setJustificacionPrioridad("Prueba de solicitud de personal.");
         nuevo.setColaboradoresRequeridos(5);
         nuevo.setPm(pm);
+        // El proyecto tiene un RM responsable: es quien recibe las solicitudes de personal.
+        nuevo.setRmRevisor(rm);
         return proyectoRepository.save(nuevo);
     }
 

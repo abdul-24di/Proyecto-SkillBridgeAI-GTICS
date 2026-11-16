@@ -8,9 +8,14 @@ import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.repository.ActividadRepository;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.ProyectoRepository;
+import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
+import com.pucp.skillb_ia.service.PenalizacionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -19,10 +24,23 @@ public class PmDashboardService {
     private final ProyectoRepository proyectoRepository;
     private final ActividadRepository actividadRepository;
     private final AsignacionRepository asignacionRepository;
+    private final PenalizacionService penalizacionService;
+
+    // Al llegar a este número de strikes en un proyecto se notifica al PM (ver PenalizacionService).
+    public static final int MAXIMO_STRIKES = 3;
+
+    // Fila del panel "Strikes del equipo" del dashboard del PM.
+    public record StrikeColaborador(Long colaboradorId, String colaboradorNombre, String iniciales,
+                                    Long proyectoId, String proyectoNombre, int strikes) {
+        public boolean enLimite() { return strikes >= MAXIMO_STRIKES; }
+        public int porcentaje() { return Math.min(100, strikes * 100 / MAXIMO_STRIKES); }
+    }
 
     public PmDashboardService(ProyectoRepository proyectoRepository,
                               ActividadRepository actividadRepository,
-                              AsignacionRepository asignacionRepository) {
+                              AsignacionRepository asignacionRepository,
+                              PenalizacionService penalizacionService) {
+        this.penalizacionService = penalizacionService;
         this.proyectoRepository = proyectoRepository;
         this.actividadRepository = actividadRepository;
         this.asignacionRepository = asignacionRepository;
@@ -51,6 +69,36 @@ public class PmDashboardService {
     @Transactional(readOnly = true)
     public List<Actividad> getActividadesPendientes(Usuario pm) {
         return actividadRepository.findByPmAndEstadoConDetalle(pm, EstadoActividad.EN_REVISION);
+    }
+
+    // Colaboradores activos de los proyectos del PM (activos o en espera) con al menos un strike en ese proyecto,
+    // de más a menos strikes. Un mismo colaborador aparece una vez por proyecto.
+    @Transactional(readOnly = true)
+    public List<StrikeColaborador> getStrikesEquipo(Usuario pm) {
+        List<Proyecto> proyectos = new ArrayList<>(proyectoRepository.findByPmAndEstado(pm, EstadoProyecto.ACTIVO));
+        proyectos.addAll(proyectoRepository.findByPmAndEstado(pm, EstadoProyecto.EN_ESPERA));
+
+        List<StrikeColaborador> resultado = new ArrayList<>();
+        for (Proyecto proyecto : proyectos) {
+            for (Asignacion asignacion : asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA)) {
+                Usuario colaborador = asignacion.getColaborador();
+                int strikes = penalizacionService.contarStrikes(colaborador, proyecto);
+                if (strikes > 0) {
+                    resultado.add(new StrikeColaborador(colaborador.getId(),
+                            colaborador.getNombre() + " " + colaborador.getApellido(),
+                            iniciales(colaborador), proyecto.getId(), proyecto.getNombre(), strikes));
+                }
+            }
+        }
+        resultado.sort(Comparator.comparingInt(StrikeColaborador::strikes).reversed()
+                .thenComparing(StrikeColaborador::colaboradorNombre));
+        return resultado;
+    }
+
+    private String iniciales(Usuario usuario) {
+        String n = usuario.getNombre() == null || usuario.getNombre().isEmpty() ? "" : usuario.getNombre().substring(0, 1);
+        String a = usuario.getApellido() == null || usuario.getApellido().isEmpty() ? "" : usuario.getApellido().substring(0, 1);
+        return (n + a).toUpperCase();
     }
 
     @Transactional(readOnly = true)

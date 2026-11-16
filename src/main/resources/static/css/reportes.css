@@ -1,0 +1,7 @@
+/* Reportes del Admin, del PM y del colaborador */
+.reporte-kpi { height: 100%; }
+.reporte-kpi-numero { font-size: 1.6rem; font-weight: 700; line-height: 1.2; color: #182433; }
+.reporte-barra-fila { margin-bottom: .65rem; }
+.reporte-barra-fila:last-child { margin-bottom: 0; }
+.reporte-barra-fila .progress { margin-top: .25rem; }
+.reporte-filtros .form-label { margin-bottom: .25rem; }

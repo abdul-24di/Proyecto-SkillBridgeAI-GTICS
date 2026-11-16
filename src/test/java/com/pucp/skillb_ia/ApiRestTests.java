@@ -172,6 +172,26 @@ class ApiRestTests {
                 .andExpect(jsonPath("$.esPropio").value(true));
     }
 
+    // ---------- Asistente del colaborador ----------
+
+    @Test
+    void lasAccionesDelAsistenteSinIdOConJsonInvalidoResponden400YNo500() throws Exception {
+        autenticar(usuario("col", "COLABORADOR"));
+
+        mvc.perform(post("/colaborador/api/asistente/acciones/solicitar-curso")
+                        .contentType("application/json").content("{\"justificacion\":\"Lo necesito.\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Debes seleccionar un curso."));
+        mvc.perform(post("/colaborador/api/asistente/acciones/solicitar-proyecto")
+                        .contentType("application/json").content("{\"habilidadId\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Debes seleccionar un proyecto."));
+        mvc.perform(post("/colaborador/api/asistente/mensaje")
+                        .contentType("application/json").content("{\"mensaje\": "))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Debes enviar los datos en formato JSON."));
+    }
+
     // ---------- Notificaciones ----------
 
     @Test

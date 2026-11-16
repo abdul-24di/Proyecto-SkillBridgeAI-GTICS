@@ -78,12 +78,27 @@ public class AdminForoService {
 
     @Transactional
     public void publicar(Long foroId, String titulo, String contenido, Usuario autor) {
+        // Mismas reglas que la publicación del PM (PmForoService.publicar). Antes un anuncio vacío se guardaba.
+        if (titulo == null || titulo.isBlank()) {
+            throw new IllegalArgumentException("El título del anuncio es obligatorio.");
+        }
+        String tituloLimpio = titulo.trim();
+        if (tituloLimpio.length() > 200) {
+            throw new IllegalArgumentException("El título no puede superar los 200 caracteres.");
+        }
+        // El editor envía "<p><br></p>" cuando no se escribió nada: se mira el texto sin etiquetas.
+        if (contenido == null || contenido.replaceAll("<[^>]*>", "").replace("&nbsp;", " ").isBlank()) {
+            throw new IllegalArgumentException("El contenido del anuncio es obligatorio.");
+        }
+        if (contenido.length() > 10000) {
+            throw new IllegalArgumentException("El contenido no puede superar los 10000 caracteres.");
+        }
         Foro foro = obtenerForo(foroId);
         PublicacionForo pub = new PublicacionForo();
         pub.setForo(foro);
         pub.setAutor(autor);
-        pub.setTitulo(titulo);
-        pub.setContenido(contenido);
+        pub.setTitulo(tituloLimpio);
+        pub.setContenido(contenido.trim());
         pub.setActivo(true);
         publicacionForoRepository.save(pub);
     }

@@ -156,7 +156,8 @@ public class AdminAuditoriaService {
     }
 
     // Dashboard: acciones auditadas en un día; altura es el % respecto del día con más acciones (para la columna).
-    public record DiaActividad(String etiqueta, long total, int altura, boolean hoy) {
+    // fecha sirve para que la columna lleve a la auditoría filtrada por ese día.
+    public record DiaActividad(String etiqueta, long total, int altura, boolean hoy, LocalDate fecha) {
     }
 
     // Últimos `dias` días (hoy incluido), del más antiguo al más reciente, aunque alguno no tenga acciones.
@@ -171,7 +172,7 @@ public class AdminAuditoriaService {
         return porDia.entrySet().stream()
                 .map(e -> new DiaActividad(e.getKey().format(DIA_FORMATO), e.getValue(),
                         e.getValue() == 0 ? 0 : (int) Math.max(4, Math.round(e.getValue() * 100.0 / maximo)),
-                        e.getKey().equals(hoy)))
+                        e.getKey().equals(hoy), e.getKey()))
                 .toList();
     }
 

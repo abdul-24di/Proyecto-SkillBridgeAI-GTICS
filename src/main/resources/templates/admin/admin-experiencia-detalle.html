@@ -95,6 +95,14 @@
                                 <div class="text-secondary small">Teléfono</div>
                                 <div th:text="${colaborador.telefono != null ? colaborador.telefono : 'No indicado'}">999999999</div>
                             </div>
+                            <div class="col-md-6">
+                                <div class="text-secondary small">DNI</div>
+                                <div>
+                                    <span th:text="${colaborador.dni != null ? colaborador.dni : 'No registrado'}">45678912</span>
+                                    <span class="badge bg-green-lt text-green ms-1" th:if="${colaborador.dni != null and colaborador.dniVerificado}">Verificado</span>
+                                    <span class="badge bg-yellow-lt text-yellow ms-1" th:if="${colaborador.dni != null and !colaborador.dniVerificado}">Sin verificar</span>
+                                </div>
+                            </div>
                             <div class="col-12">
                                 <div class="text-secondary small">Sobre sí mismo</div>
                                 <div th:text="${colaborador.descripcion != null ? colaborador.descripcion : 'No indicado'}">Descripción</div>

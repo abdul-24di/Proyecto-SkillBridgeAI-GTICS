@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Mi desempeño</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+  <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+  <link rel="stylesheet" href="../../static/css/reportes.css" th:href="@{/css/reportes.css}">
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('desempeno')}"></header>
+
+  <main class="page-wrap" th:with="d=${desempeno}">
+    <div class="page-head page-head-stack-mobile mb-3">
+      <div>
+        <h2 class="page-title">Mi desempeño</h2>
+        <div class="text-secondary mt-1">Tus horas, entregas, strikes y cursos del mes.</div>
+      </div>
+    </div>
+
+    <form class="card card-body mb-3 reporte-filtros" method="get" th:action="@{/colaborador/desempeno}">
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-4 col-md-3">
+          <label class="form-label" for="mesDesempeno">Mes</label>
+          <input id="mesDesempeno" type="month" name="mes" class="form-control" th:value="${mes}" th:max="${mesMaximo}">
+        </div>
+        <div class="col-auto"><button type="submit" class="btn btn-primary">Ver</button></div>
+        <div class="col-auto ms-auto">
+          <a class="btn btn-outline-success" th:href="@{/colaborador/desempeno/excel(mes=${mes})}">Descargar Excel</a>
+        </div>
+      </div>
+    </form>
+
+    <div class="row row-cards mb-3">
+      <div class="col-6 col-lg-3"><div class="card card-body reporte-kpi"><div class="text-secondary small">Horas completadas</div><div class="reporte-kpi-numero" th:text="${d.horas()} + ' h'">0 h</div><div class="small text-secondary text-capitalize" th:text="${d.etiquetaMes()}">mes</div></div></div>
+      <div class="col-6 col-lg-3"><div class="card card-body reporte-kpi"><div class="text-secondary small">Actividades completadas</div><div class="reporte-kpi-numero" th:text="${d.completadas()}">0</div><div class="small text-secondary" th:text="${d.puntualidad()} + '% a tiempo'">0% a tiempo</div></div></div>
+      <div class="col-6 col-lg-3"><div class="card card-body reporte-kpi"><div class="text-secondary small">Strikes del mes</div><div class="reporte-kpi-numero" th:classappend="${d.strikes() > 0} ? 'text-red'" th:text="${d.strikes()}">0</div><div class="small text-secondary" th:text="${d.devoluciones()} + ' devoluciones'">0 devoluciones</div></div></div>
+      <div class="col-6 col-lg-3"><div class="card card-body reporte-kpi"><div class="text-secondary small">Vencidas sin completar</div><div class="reporte-kpi-numero" th:classappend="${d.vencidas() > 0} ? 'text-red'" th:text="${d.vencidas()}">0</div><div class="small text-secondary" th:text="${#lists.size(d.cursos())} + ' cursos completados'">0 cursos</div></div></div>
+    </div>
+
+    <div class="row row-cards">
+      <div class="col-lg-7">
+        <div class="card mb-3">
+          <div class="card-header"><h3 class="card-title">Horas por proyecto</h3></div>
+          <div class="table-responsive" th:unless="${#lists.isEmpty(d.porProyecto())}">
+            <table class="table table-vcenter card-table">
+              <thead><tr><th>Proyecto</th><th class="text-end">Completadas</th><th class="text-end">A tiempo</th><th class="text-end">Tarde</th><th class="text-end">Horas</th></tr></thead>
+              <tbody>
+                <tr th:each="f : ${d.porProyecto()}">
+                  <td th:text="${f.proyecto()}">Proyecto</td>
+                  <td class="text-end" th:text="${f.completadas()}">0</td>
+                  <td class="text-end" th:text="${f.aTiempo()}">0</td>
+                  <td class="text-end" th:classappend="${f.tardias() > 0} ? 'text-orange'" th:text="${f.tardias()}">0</td>
+                  <td class="text-end fw-semibold" th:text="${f.horas()} + ' h'">0 h</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card-body text-center text-secondary" th:if="${#lists.isEmpty(d.porProyecto())}">No completaste actividades en este mes.</div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Cursos completados</h3></div>
+          <div class="list-group list-group-flush" th:unless="${#lists.isEmpty(d.cursos())}">
+            <div class="list-group-item d-flex justify-content-between" th:each="c : ${d.cursos()}">
+              <span th:text="${c.nombre()}">Curso</span>
+              <span class="text-secondary" th:text="${c.horas() != null ? c.horas() + ' h' : ''}">10 h</span>
+            </div>
+          </div>
+          <div class="card-body text-center text-secondary" th:if="${#lists.isEmpty(d.cursos())}">No completaste cursos en este mes.</div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Últimos 6 meses</h3></div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table">
+              <thead><tr><th>Mes</th><th class="text-end">Horas</th><th class="text-end">Completadas</th><th class="text-end">Strikes</th></tr></thead>
+              <tbody>
+                <tr th:each="f : ${d.historial()}">
+                  <td class="text-capitalize" th:text="${f.mes()}">mes</td>
+                  <td class="text-end" th:text="${f.horas()} + ' h'">0 h</td>
+                  <td class="text-end" th:text="${f.completadas()}">0</td>
+                  <td class="text-end" th:classappend="${f.strikes() > 0} ? 'text-red'" th:text="${f.strikes()}">0</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+</body>
+</html>

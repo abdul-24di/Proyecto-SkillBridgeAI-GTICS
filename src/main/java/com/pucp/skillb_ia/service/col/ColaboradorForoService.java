@@ -31,6 +31,9 @@ import java.util.UUID;
 public class ColaboradorForoService {
 
     private static final int TITULO_MAXIMO = 200;
+    // Mismos topes que el foro del PM (PmForoPublicacionForm y PmForoRespuestaForm).
+    private static final int CONTENIDO_PUBLICACION_MAXIMO = 10000;
+    private static final int CONTENIDO_RESPUESTA_MAXIMO = 5000;
 
     //Para la subida de imagenes dentro del contenido (editor Quill)
     private static final Set<String> TIPOS_IMAGEN_PERMITIDOS =
@@ -275,7 +278,7 @@ public class ColaboradorForoService {
         Foro foro = validarAccesoEscritura(colaborador, foroId);
 
         String tituloValidado = validarTitulo(titulo);
-        String contenidoValidado = validarContenido(contenido);
+        String contenidoValidado = validarContenido(contenido, CONTENIDO_PUBLICACION_MAXIMO, "La publicación");
         Etiqueta etiqueta = obtenerEtiquetaOpcional(etiquetaId);
 
         PublicacionForo publicacion = new PublicacionForo();
@@ -301,7 +304,7 @@ public class ColaboradorForoService {
         }
 
         String tituloValidado = validarTitulo(titulo);
-        String contenidoValidado = validarContenido(contenido);
+        String contenidoValidado = validarContenido(contenido, CONTENIDO_PUBLICACION_MAXIMO, "La publicación");
         Etiqueta etiqueta = obtenerEtiquetaOpcional(etiquetaId);
 
         publicacion.setTitulo(tituloValidado);
@@ -362,7 +365,7 @@ public class ColaboradorForoService {
         PublicacionForo publicacion = buscarPublicacionActiva(publicacionId);
         validarAccesoEscritura(colaborador, publicacion.getForo().getId());
 
-        String contenidoValidado = validarContenido(contenido);
+        String contenidoValidado = validarContenido(contenido, CONTENIDO_RESPUESTA_MAXIMO, "La respuesta");
 
         RespuestaForo respuesta = new RespuestaForo();
         respuesta.setPublicacion(publicacion);
@@ -391,7 +394,7 @@ public class ColaboradorForoService {
             throw new IllegalArgumentException("No puedes editar una respuesta que no es tuya.");
         }
 
-        String contenidoValidado = validarContenido(contenido);
+        String contenidoValidado = validarContenido(contenido, CONTENIDO_RESPUESTA_MAXIMO, "La respuesta");
         respuesta.setContenido(contenidoValidado);
         respuestaForoRepository.save(respuesta);
 
@@ -493,11 +496,15 @@ public class ColaboradorForoService {
         return tituloLimpio;
     }
 
-    private String validarContenido(String contenido) {
+    private String validarContenido(String contenido, int maximo, String que) {
         if (contenido == null || esContenidoVacio(contenido)) {
             throw new IllegalArgumentException("Escribe algo antes de publicar.");
         }
-        return contenido.trim();
+        String limpio = contenido.trim();
+        if (limpio.length() > maximo) {
+            throw new IllegalArgumentException(que + " no puede superar los " + maximo + " caracteres.");
+        }
+        return limpio;
     }
 
     //El editor de texto (Quill) manda algo como "<p><br></p>" cuando no se escribió nada,

@@ -11,6 +11,7 @@ import com.pucp.skillb_ia.service.CierreAsignacionesService;
 import com.pucp.skillb_ia.service.pm.PmActividadService;
 import com.pucp.skillb_ia.service.pm.PmAsignacionService;
 import com.pucp.skillb_ia.service.pm.PmChatService;
+import com.pucp.skillb_ia.service.pm.PmDashboardService;
 import com.pucp.skillb_ia.service.pm.PmForoService;
 import com.pucp.skillb_ia.service.pm.PmPerfilService;
 import com.pucp.skillb_ia.service.pm.PmProyectoService;
@@ -100,7 +101,9 @@ public class PmViewController {
         model.addAttribute("totalAsignaciones", pmDashboardService.getCountAsignacionesEnRevision(pm));
         model.addAttribute("actividadesPendientes", pmDashboardService.getActividadesPendientes(pm));
         model.addAttribute("proyectosAtencion", pmDashboardService.getProyectosQueNecesitanAtencion(pm));
-        
+        model.addAttribute("strikesEquipo", pmDashboardService.getStrikesEquipo(pm));
+        model.addAttribute("maximoStrikes", PmDashboardService.MAXIMO_STRIKES);
+
         return "pm/pm-dashboard";
     }
 
@@ -812,14 +815,36 @@ public class PmViewController {
         return "pm/pm-reportes";
     }
 
+    @GetMapping("/reportes/excel")
+    public org.springframework.http.ResponseEntity<byte[]> reporteExcel(@RequestParam("proyectoId") Long proyectoId,
+                                                                        @RequestParam(required = false) String mes,
+                                                                        @AuthenticationPrincipal UsuarioDetails principal) {
+        Usuario pm = principal.getUsuario();
+        java.time.YearMonth periodo = (mes == null || mes.isBlank()) ? null : com.pucp.skillb_ia.util.Periodo.leer(mes);
+        var reporte = pmReporteService.obtener(proyectoId, pm);
+        byte[] contenido = pmReporteService.excelAvance(reporte.getProyecto().getNombre(),
+                pmReporteService.avance(proyectoId, pm, periodo));
+        String archivo = "reporte-proyecto-" + proyectoId + (periodo == null ? "" : "-" + periodo) + ".xlsx";
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(com.pucp.skillb_ia.util.ReporteExcel.TIPO_CONTENIDO))
+                .body(contenido);
+    }
+
     @GetMapping({"/reportes/detalle", "/pm-reporte-detalle.html"})
     public String reporteDetalle(@RequestParam("proyectoId") Long proyectoId,
                                  @RequestParam(required = false) Integer pagina,
+                                 @RequestParam(required = false) String mes,
                                  @AuthenticationPrincipal UsuarioDetails principal,
                                  Model model) {
         Usuario pm = principal.getUsuario();
         var reporte = pmReporteService.obtener(proyectoId, pm);
         model.addAttribute("reporte", reporte);
+        // Avance: sin mes = todo el proyecto; con mes = actividades con fecha límite en ese mes.
+        java.time.YearMonth periodo = (mes == null || mes.isBlank()) ? null : com.pucp.skillb_ia.util.Periodo.leer(mes);
+        model.addAttribute("mes", periodo == null ? "" : periodo.toString());
+        model.addAttribute("mesMaximo", java.time.YearMonth.now().toString());
+        model.addAttribute("avance", pmReporteService.avance(proyectoId, pm, periodo));
         // La tabla de métricas se pagina en el servidor (antes pm-reporte-detalle.js), 10 por página.
         model.addAttribute("paginaColaboradores", Paginador.paginar(reporte.getColaboradores(), pagina));
         model.addAttribute("pm", pm);

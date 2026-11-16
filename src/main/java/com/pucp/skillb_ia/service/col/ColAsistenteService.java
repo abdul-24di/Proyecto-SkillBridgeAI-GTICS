@@ -105,6 +105,10 @@ public class ColAsistenteService {
 
 
     public void confirmarSolicitudCurso(Long colaboradorId, Long cursoId, String justificacion) {
+        // Sin esta validación, un cursoId vacío llegaba al repositorio y respondía 500 en vez de 400.
+        if (cursoId == null) {
+            throw new IllegalArgumentException("Debes seleccionar un curso.");
+        }
         Usuario colaborador = usuarioRepository.findById(colaboradorId)
                 .orElseThrow(() -> new IllegalArgumentException("No encontramos tu usuario."));
         colaboradorCursoService.solicitarInscripcion(colaborador, cursoId, justificacion);
@@ -113,6 +117,9 @@ public class ColAsistenteService {
     }
 
     public void confirmarSolicitudProyecto(Long colaboradorId, Long proyectoId, Long habilidadId, String mensaje) {
+        if (proyectoId == null) {
+            throw new IllegalArgumentException("Debes seleccionar un proyecto.");
+        }
         Usuario colaborador = usuarioRepository.findById(colaboradorId)
                 .orElseThrow(() -> new IllegalArgumentException("No encontramos tu usuario."));
         colaboradorProyectoService.solicitarIncorporacion(colaborador, proyectoId, habilidadId, mensaje);

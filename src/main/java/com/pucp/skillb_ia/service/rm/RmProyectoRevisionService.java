@@ -88,6 +88,15 @@ public class RmProyectoRevisionService {
         if (proyecto.getPresupuesto() == null || proyecto.getPresupuesto().signum() <= 0) {
             throw new IllegalArgumentException("Asigna un presupuesto válido antes de aprobar el proyecto.");
         }
+        // Un proyecto activo necesita su rango de fechas: lo usan las actividades, las asignaciones y el presupuesto.
+        // El RM puede definirlas en la misma pantalla de revisión (mismas reglas que cambiarFechas).
+        if (proyecto.getFechaInicio() == null || proyecto.getFechaFinEstimada() == null) {
+            throw new IllegalArgumentException(
+                    "Define la fecha de inicio y la fecha de fin estimada antes de aprobar el proyecto.");
+        }
+        if (!proyecto.getFechaFinEstimada().isAfter(proyecto.getFechaInicio())) {
+            throw new IllegalArgumentException("La fecha de fin debe ser posterior a la fecha de inicio.");
+        }
 
         proyecto.setEstado(EstadoProyecto.ACTIVO);
         proyecto.setRmRevisor(rm);

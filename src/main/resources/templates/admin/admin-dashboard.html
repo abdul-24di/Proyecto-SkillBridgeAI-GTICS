@@ -87,7 +87,7 @@
 
     <div class="row row-cards mb-4">
       <div class="col-sm-6 col-lg-3">
-        <div class="card summary-card">
+        <a class="card summary-card summary-card-link" href="admin-usuarios.html" th:href="@{/admin/usuarios}">
           <div class="card-body d-flex align-items-center gap-3">
             <div class="summary-icon bg-blue-lt text-blue">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -98,10 +98,10 @@
               <div class="small text-secondary" th:text="${resumenUsuarios.activos()} + ' activos.'">4 roles activos.</div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
       <div class="col-sm-6 col-lg-3">
-        <div class="card summary-card">
+        <a class="card summary-card summary-card-link" href="admin-usuarios.html" th:href="@{/admin/usuarios(estado='Pendiente')}">
           <div class="card-body d-flex align-items-center gap-3">
             <div class="summary-icon bg-yellow-lt text-yellow">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
@@ -112,10 +112,10 @@
               <div class="small text-secondary">Invitaciones sin completar.</div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
       <div class="col-sm-6 col-lg-3">
-        <div class="card summary-card">
+        <a class="card summary-card summary-card-link" href="admin-habilidades.html" th:href="@{/admin/habilidades(estado='Activa')}">
           <div class="card-body d-flex align-items-center gap-3">
             <div class="summary-icon bg-azure-lt text-azure">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg>
@@ -126,10 +126,11 @@
               <div class="small text-secondary">En el catálogo de la organización.</div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
       <div class="col-sm-6 col-lg-3">
-        <div class="card summary-card">
+        <a class="card summary-card summary-card-link" href="admin-auditoria.html"
+           th:href="@{/admin/auditoria(desde=${hoy},hasta=${hoy})}">
           <div class="card-body d-flex align-items-center gap-3">
             <div class="summary-icon bg-green-lt text-green">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -140,7 +141,7 @@
               <div class="small text-secondary">Ver detalle en Auditoría.</div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
     </div>
 
@@ -154,7 +155,9 @@
             </div>
           </div>
           <div class="card-body role-bars">
-            <div class="role-bar-row" th:each="rol : ${usuariosPorRol}">
+            <a class="role-bar-row role-bar-link" th:each="rol : ${usuariosPorRol}"
+               href="admin-usuarios.html" th:href="@{/admin/usuarios(rol=${rol.rolEtiqueta()})}"
+               th:title="'Ver los usuarios con rol ' + ${rol.rolEtiqueta()}">
               <div class="d-flex justify-content-between small mb-1">
                 <span class="badge" th:classappend="${rol.rolBadgeClase()}" th:text="${rol.rolEtiqueta()}">Colaborador</span>
                 <span class="text-secondary"><strong class="text-body" th:text="${rol.total()}">10</strong>
@@ -164,7 +167,7 @@
                 <div class="progress-bar" th:classappend="${rol.barraClase()}"
                      th:style="'width:' + ${rol.porcentaje()} + '%'" style="width:62%"></div>
               </div>
-            </div>
+            </a>
           </div>
         </div>
       </div>
@@ -180,14 +183,16 @@
           <div class="card-body">
             <div class="activity-chart" role="img"
                  th:attr="aria-label=${'Acciones por día: ' + #strings.listJoin(actividadSemana.![etiqueta() + ' ' + total()], ', ')}">
-              <div class="activity-col" th:each="dia : ${actividadSemana}">
+              <a class="activity-col activity-col-link" th:each="dia : ${actividadSemana}"
+                 href="admin-auditoria.html" th:href="@{/admin/auditoria(desde=${dia.fecha()},hasta=${dia.fecha()})}"
+                 th:title="'Ver las acciones del ' + ${dia.etiqueta()}">
                 <div class="activity-value" th:text="${dia.total()}">4</div>
                 <div class="activity-track">
                   <div class="activity-bar" th:classappend="${dia.hoy()} ? 'is-today'"
                        th:style="'height:' + ${dia.altura()} + '%'" style="height:60%"></div>
                 </div>
                 <div class="activity-label" th:classappend="${dia.hoy()} ? 'fw-semibold text-body'" th:text="${dia.etiqueta()}">lun 22</div>
-              </div>
+              </a>
             </div>
           </div>
           <div class="card-footer text-end">
@@ -218,7 +223,8 @@
               </thead>
               <tbody>
                 <tr th:each="u : ${usuariosPendientes}">
-                  <td th:text="${u.correo()}">renato.silva@skillbridge.com</td>
+                  <td><a href="admin-usuarios.html" th:href="@{/admin/usuarios(busqueda=${u.correo()},estado='Pendiente')}"
+                         th:text="${u.correo()}">renato.silva@skillbridge.com</a></td>
                   <td><span class="badge" th:classappend="${u.rolBadgeClase()}" th:text="${u.rolEtiqueta()}">Colaborador</span></td>
                   <td class="text-secondary" th:text="${u.fechaCreacion()}">05 sep 2026</td>
                   <td class="text-end">

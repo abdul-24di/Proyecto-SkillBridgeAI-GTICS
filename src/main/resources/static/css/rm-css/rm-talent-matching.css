@@ -1,23 +1,11 @@
 /* =========================================================
    SKILLBRIDGE AI
-   TALENT MATCHING - RESOURCE MANAGER
-   ========================================================= */
-
-/* =========================================================
-   PAGE
+   TALENT MATCHING & ASISTENTE IA - RESOURCE MANAGER
    ========================================================= */
 
 .page-title {
   margin: 0;
 }
-
-/* =========================================================
-   SECTIONS
-   ========================================================= */
-
-/* =========================================================
-   LEFT PANEL
-   ========================================================= */
 
 .sticky-col {
   position: sticky;
@@ -30,11 +18,14 @@
 }
 
 .skill-scroll {
-  max-height: 220px;
+  max-height: 240px;
   overflow-y: auto;
 }
 
 .project-item {
+  display: block;
+  text-decoration: none;
+  color: inherit;
   margin-bottom: .75rem;
   padding: .9rem 1rem;
   border: 1px solid #e1e5eb;
@@ -55,6 +46,8 @@
 .project-item:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(24, 36, 51, .06);
+  text-decoration: none;
+  color: inherit;
 }
 
 .project-item.selected {
@@ -107,10 +100,6 @@
   margin-bottom: 0;
 }
 
-/* =========================================================
-   SELECTED PROJECT
-   ========================================================= */
-
 .selected-project-card {
   border-color: #d7e7ff;
 }
@@ -160,10 +149,6 @@
   font-weight: 700;
 }
 
-/* =========================================================
-   RESULTS
-   ========================================================= */
-
 .results-head {
   display: flex;
   justify-content: space-between;
@@ -171,10 +156,6 @@
   gap: 1rem;
   margin-bottom: 16px;
 }
-
-/* =========================================================
-   CANDIDATES
-   ========================================================= */
 
 .candidate-card {
   height: 100%;
@@ -251,22 +232,99 @@
   margin-top: 1rem;
   padding-top: .85rem;
   border-top: 1px solid #edf0f4;
+  flex-wrap: wrap;
 }
 
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
+/* Asistente IA RM integrado */
+.rm-ai-quick-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.rm-ai-quick-btn {
+  border: 1px solid #dbe3ee;
+  border-radius: 7px;
+  background: #fff;
+  padding: .45rem .75rem;
+  font-size: .82rem;
+  color: #334155;
+  transition: all .15s ease;
+}
+
+.rm-ai-quick-btn:hover {
+  border-color: #206bc4;
+  background: #f8fbff;
+  color: #206bc4;
+}
+
+.rm-ai-messages {
+  max-height: 460px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.rm-ai-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: .7rem;
+  max-width: 90%;
+}
+
+.rm-ai-msg.own {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.rm-ai-bubble {
+  padding: .8rem .95rem;
+  border-radius: 9px;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+  color: #1e293b;
+}
+
+.rm-ai-msg.own .rm-ai-bubble {
+  background: #206bc4;
+  border-color: #206bc4;
+  color: #fff;
+}
+
+.rm-ai-par {
+  margin: 0 0 .45rem 0;
+}
+
+.rm-ai-par:last-child {
+  margin-bottom: 0;
+}
+
+.rm-ai-list {
+  margin: .3rem 0 .5rem 1.2rem;
+  padding: 0;
+}
+
+.rm-ai-card {
+  margin-top: .6rem;
+  padding: .7rem .85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
 
 @media (max-width: 991px) {
   .sticky-col {
     position: static;
   }
-
   .scroll-panel,
   .skill-scroll {
     max-height: none;
   }
-
   .results-head {
     align-items: flex-start;
     flex-direction: column;
@@ -274,15 +332,12 @@
 }
 
 @media (max-width: 767px) {
-
   .meta-grid {
     grid-template-columns: 1fr;
   }
-
   .candidate-actions {
     flex-direction: column;
   }
-
   .candidate-actions .btn {
     width: 100%;
   }

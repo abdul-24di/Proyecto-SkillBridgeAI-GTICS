@@ -67,6 +67,9 @@ public class RmViewController {
     private final RmPresupuestoService rmPresupuestoService;
     private final EvaluacionService evaluacionService;
     private final RmResponsableService rmResponsableService;
+    private final RmTalentMatchingService rmTalentMatchingService;
+    private final RmAsistenteService rmAsistenteService;
+    private final RmAsistenteContextoService rmAsistenteContextoService;
 
     public RmViewController(
             RmPerfilService rmPerfilService,
@@ -84,6 +87,34 @@ public class RmViewController {
             RmPresupuestoService rmPresupuestoService,
             RmResponsableService rmResponsableService,
             EvaluacionService evaluacionService) {
+        this(rmPerfilService, rmColaboradorConsultaService, rmProyectoConsultaService,
+                rmProyectoRevisionService, rmAsignacionService, rmSolicitudPersonalService,
+                rmCertificadoService, rmEducacionService, rmForoConsultaService,
+                rmReporteService, rmReporteExportService, rmCursoService,
+                rmPresupuestoService, rmResponsableService, evaluacionService,
+                null, null, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public RmViewController(
+            RmPerfilService rmPerfilService,
+            RmColaboradorConsultaService rmColaboradorConsultaService,
+            RmProyectoConsultaService rmProyectoConsultaService,
+            RmProyectoRevisionService rmProyectoRevisionService,
+            RmAsignacionService rmAsignacionService,
+            RmSolicitudPersonalService rmSolicitudPersonalService,
+            RmCertificadoService rmCertificadoService,
+            RmEducacionService rmEducacionService,
+            RmForoConsultaService rmForoConsultaService,
+            RmReporteService rmReporteService,
+            RmReporteExportService rmReporteExportService,
+            RmCursoService rmCursoService,
+            RmPresupuestoService rmPresupuestoService,
+            RmResponsableService rmResponsableService,
+            EvaluacionService evaluacionService,
+            RmTalentMatchingService rmTalentMatchingService,
+            RmAsistenteService rmAsistenteService,
+            RmAsistenteContextoService rmAsistenteContextoService) {
         this.rmPerfilService = rmPerfilService;
         this.rmColaboradorConsultaService = rmColaboradorConsultaService;
         this.rmProyectoConsultaService = rmProyectoConsultaService;
@@ -99,6 +130,9 @@ public class RmViewController {
         this.rmPresupuestoService = rmPresupuestoService;
         this.evaluacionService = evaluacionService;
         this.rmResponsableService = rmResponsableService;
+        this.rmTalentMatchingService = rmTalentMatchingService;
+        this.rmAsistenteService = rmAsistenteService;
+        this.rmAsistenteContextoService = rmAsistenteContextoService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -1581,9 +1615,10 @@ public class RmViewController {
         return "redirect:/rm/asignaciones/solicitudes-colaboradores/detalle?id=" + solicitudId;
     }
 
-    @GetMapping({"/talent-matching", "/rm-talent-matching.html"})
+    @GetMapping({"/talent-matching", "/rm-talent-matching.html", "/asistente"})
     public String talentMatching(
             @RequestParam(name = "proyectoId", required = false) String proyectoIdTexto,
+            jakarta.servlet.http.HttpSession session,
             Model model) {
         // TASK-026: la ruta muestra el proyecto solo si proyectoId es un proyecto existente;
         // vacío, mal formado o inexistente => ruta canónica "Talent Matching" (sin inventar un proyecto).
@@ -1595,8 +1630,100 @@ public class RmViewController {
         } catch (IllegalArgumentException ignorado) {
             // NumberFormatException también es IllegalArgumentException.
         }
-        model.addAttribute("proyectoContexto", proyectoContexto);
+        cargarVistaTalentMatchingYAsistente(proyectoContexto, session, model);
         return "rm/rm-talent-matching";
+    }
+
+    @PostMapping("/talent-matching/asistente/mensaje")
+    public String enviarMensajeAsistenteRm(
+            @jakarta.validation.Valid @org.springframework.web.bind.annotation.ModelAttribute("rmAsistenteMensajeForm")
+            com.pucp.skillb_ia.dto.RmAsistenteMensajeForm form,
+            org.springframework.validation.BindingResult result,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            jakarta.servlet.http.HttpSession session,
+            Model model,
+            RedirectAttributes redirectAttributes) {
+        RmProyectoView proyectoContexto = null;
+        if (form.getProyectoId() != null) {
+            try {
+                proyectoContexto = rmProyectoConsultaService.obtener(form.getProyectoId());
+            } catch (IllegalArgumentException ignorado) {
+                proyectoContexto = null;
+            }
+        }
+        if (result.hasErrors()) {
+            cargarVistaTalentMatchingYAsistente(proyectoContexto, session, model);
+            return "rm/rm-talent-matching";
+        }
+        try {
+            Long rmId = principal != null ? principal.getUsuario().getId() : null;
+            rmAsistenteService.responder(rmId, form.getProyectoId(), form.getMensaje(), session);
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return proyectoContexto != null
+                ? "redirect:/rm/talent-matching?proyectoId=" + proyectoContexto.getProyecto().getId() + "#rmAsistenteSeccion"
+                : "redirect:/rm/talent-matching#rmAsistenteSeccion";
+    }
+
+    @PostMapping("/talent-matching/asistente/limpiar")
+    public String limpiarAsistenteRm(
+            @RequestParam(name = "proyectoId", required = false) Long proyectoId,
+            jakarta.servlet.http.HttpSession session,
+            RedirectAttributes redirectAttributes) {
+        rmAsistenteService.limpiarHistorial(session);
+        redirectAttributes.addFlashAttribute("mensajeExito", "Conversación con el Asistente IA del RM reiniciada.");
+        return proyectoId != null
+                ? "redirect:/rm/talent-matching?proyectoId=" + proyectoId + "#rmAsistenteSeccion"
+                : "redirect:/rm/talent-matching#rmAsistenteSeccion";
+    }
+
+    @PostMapping("/talent-matching/proponer")
+    public String proponerDesdeTalentMatching(
+            @RequestParam("proyectoId") Long proyectoId,
+            @RequestParam("colaboradorId") Long colaboradorId,
+            @RequestParam(name = "horasSemanales", required = false) String horasSemanalesTexto,
+            @RequestParam(name = "justificacion", required = false) String justificacion,
+            @RequestParam(name = "motivoCapacidad", required = false) String motivoCapacidad,
+            @RequestParam(name = "justificacionCupo", required = false) String justificacionCupo,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes redirectAttributes) {
+        if (principal == null) return "redirect:/login";
+        try {
+            BigDecimal horasSemanales = convertirDecimal(
+                    horasSemanalesTexto, "Las horas semanales deben ser un número válido.");
+            rmAsistenteService.proponerDesdeTalentMatching(
+                    principal.getUsuario().getId(), proyectoId, colaboradorId,
+                    horasSemanales, justificacion, motivoCapacidad, justificacionCupo);
+            redirectAttributes.addFlashAttribute("mensajeExito",
+                    "Propuesta enviada al Project Manager correctamente desde Talent Matching.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:/rm/talent-matching?proyectoId=" + proyectoId;
+    }
+
+    private void cargarVistaTalentMatchingYAsistente(RmProyectoView proyectoContexto,
+                                                     jakarta.servlet.http.HttpSession session,
+                                                     Model model) {
+        var matching = rmTalentMatchingService.construirMatching(proyectoContexto);
+        Long idSeleccionado = matching.proyectoSeleccionado() != null
+                ? matching.proyectoSeleccionado().getProyecto().getId()
+                : null;
+        model.addAttribute("proyectoContexto", proyectoContexto);
+        model.addAttribute("matching", matching);
+        model.addAttribute("proyectosConVacantes", matching.proyectosConVacantes());
+        model.addAttribute("proyectoSeleccionado", matching.proyectoSeleccionado());
+        model.addAttribute("habilidadesFaltantes", matching.habilidadesFaltantes());
+        model.addAttribute("recomendaciones", matching.recomendaciones());
+        model.addAttribute("kpisAsistente", rmAsistenteContextoService.obtenerKpis());
+        model.addAttribute("consultasRapidas", rmAsistenteContextoService.listarConsultasRapidas(idSeleccionado));
+        model.addAttribute("turnosAsistente", rmAsistenteService.obtenerTurnos(session));
+        if (!model.containsAttribute("rmAsistenteMensajeForm")) {
+            com.pucp.skillb_ia.dto.RmAsistenteMensajeForm form = new com.pucp.skillb_ia.dto.RmAsistenteMensajeForm();
+            form.setProyectoId(idSeleccionado);
+            model.addAttribute("rmAsistenteMensajeForm", form);
+        }
     }
 
     @GetMapping({"/foros", "/rm-foros.html"})

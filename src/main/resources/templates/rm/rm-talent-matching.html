@@ -1,521 +1,476 @@
 <!doctype html>
-<html lang="es"
-      xmlns:th="http://www.thymeleaf.org">
-
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="utf-8">
-    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <title>SkillBridge AI — Talent Matching RM</title>
-
-  <!-- Tabler local -->
-  <link rel="stylesheet"
-        href="../../static/tabler/css/tabler.min.css"
-        th:href="@{/tabler/css/tabler.min.css}">
-
-  <!-- Estilos compartidos RM -->
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-common.css"
-        th:href="@{/css/rm-css/rm-common.css}">
-
-  <!-- Estilos específicos de la vista -->
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-talent-matching.css"
-        th:href="@{/css/rm-css/rm-talent-matching.css}">
-
-  <!-- Topbar RM compartida -->
-  <link rel="stylesheet"
-        href="../../static/css/rm-css/rm-topbar.css"
-        th:href="@{/css/rm-css/rm-topbar.css}">
-
-<style>
-  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
-  .avatar {
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-talent-matching.css" th:href="@{/css/rm-css/rm-talent-matching.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+  <style>
+    .avatar {
       object-fit: contain !important;
       object-position: center !important;
-      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
-  }
-  span.avatar {
+      background-color: #f8f9fa;
+    }
+    span.avatar {
       background-size: contain !important;
       background-position: center !important;
       background-repeat: no-repeat !important;
       background-color: #f8f9fa;
-  }
-  
-  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
-  /*
-  .avatar {
-      object-fit: contain !important;
-      background-size: contain !important;
-      background-repeat: no-repeat !important;
-  }
-  */
-</style>
-
+    }
+  </style>
 </head>
-
 <body>
 <div class="app-shell">
 
-  <!-- TOPBAR COMPARTIDA -->
-  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('talent-matching')}">
-
-    <!-- Fallback para previsualización directa sin Thymeleaf -->
-    <div class="container-xl">
-
-      <a href="rm-dashboard.html" class="brand" th:href="@{/rm/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
-
-      <nav class="main-nav" aria-label="Navegación principal">
-        <a href="rm-dashboard.html" th:href="@{/rm/dashboard}">Dashboard</a>
-        <a href="rm-proyectos.html" th:href="@{/rm/proyectos}">Proyectos</a>
-        <a href="rm-colaboradores.html" th:href="@{/rm/colaboradores}">Colaboradores</a>
-        <a href="rm-asignaciones.html" th:href="@{/rm/asignaciones}">Asignaciones</a>
-        <a href="rm-talent-matching.html" class="active" th:href="@{/rm/talent-matching}">Talent Matching</a>
-        <a href="rm-foros.html" th:href="@{/rm/foros}">Foros</a>
-        <a href="rm-reporte-recursos.html" th:href="@{/rm/reportes/recursos}">Reportes</a>
-      </nav>
-
-      <div class="user-area">
-
-        <a href="#"
-           class="notification-link position-relative"
-           aria-label="Notificaciones">
-
-          <svg xmlns="http://www.w3.org/2000/svg"
-               width="20"
-               height="20"
-               viewBox="0 0 24 24"
-               fill="none"
-               stroke="currentColor"
-               stroke-width="2"
-               stroke-linecap="round"
-               stroke-linejoin="round">
-            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
-            <path d="M9 19a3 3 0 0 0 6 0"/>
-          </svg>
-
-          <span class="badge bg-red notification-dot"></span>
-        </a>
-
-        <span class="avatar avatar-sm user-avatar">AR</span>
-
-        <div class="user-meta">
-          <div class="fw-semibold">Abraham Ramirez</div>
-          <div class="small">Resource Manager</div>
-        </div>
-
-      </div>
-
-    </div>
-
-  </header>
-
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('talent-matching')}"></header>
 
   <main class="page-wrap">
 
     <!-- BREADCRUMB: el proyecto sale del modelo (proyectoId válido); sin contexto es vista raíz y no hay ruta (TASK-032) -->
-    <nav class="breadcrumb-wrap"
-         aria-label="Migas de pan"
-         th:if="${proyectoContexto != null}">
-
-      <a class="breadcrumb-link" th:href="@{/rm/talent-matching}">
-        Talent Matching
-      </a>
-
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan" th:if="${proyectoContexto != null}">
+      <a class="breadcrumb-link" th:href="@{/rm/talent-matching}">Talent Matching</a>
       <span class="breadcrumb-separator">›</span>
-
-      <span class="text-secondary"
-            th:text="${proyectoContexto.proyecto.nombre}">
-        Proyecto
-      </span>
-
+      <span class="text-secondary" th:text="${proyectoContexto.proyecto.nombre}">Proyecto</span>
     </nav>
 
+    <div th:if="${mensajeExito}" class="alert alert-success alert-dismissible mb-3" role="alert">
+      <div th:text="${mensajeExito}">Éxito</div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+    <div th:if="${mensajeError}" class="alert alert-danger alert-dismissible mb-3" role="alert">
+      <div th:text="${mensajeError}">Error</div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
 
     <!-- PAGE HEADER -->
     <div class="page-head">
-
       <div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
-          <h1 class="page-title mb-0">
-            Talent Matching
-          </h1>
-
-          <span class="badge bg-blue-lt">
-            Recomendación asistida por IA
-          </span>
+          <h1 class="page-title mb-0">Talent Matching</h1>
+          <span class="badge bg-blue-lt">Recomendación y Asistente IA en Java</span>
         </div>
-
         <div class="text-secondary mt-2">
-          Analiza proyectos con vacantes y recomienda colaboradores según habilidades,
-          disponibilidad, carga, experiencia y certificados validados.
+          Analiza en tiempo real proyectos con vacantes y recomienda colaboradores según habilidades validadas,
+          disponibilidad horaria, carga de asignaciones, experiencia, certificados aprobados y viabilidad presupuestal.
         </div>
       </div>
-
+      <div>
+        <a href="#rmAsistenteSeccion" class="btn btn-outline-primary">Ir al Asistente IA del RM</a>
+      </div>
     </div>
-
 
     <div class="row g-4">
 
-      <!-- PANEL IZQUIERDO -->
+      <!-- PANEL IZQUIERDO: PROYECTOS CON VACANTES Y HABILIDADES FALTANTES -->
       <div class="col-lg-3">
-
         <div class="sticky-col">
 
-          <!-- PROYECTOS -->
           <div class="card section-card mb-4">
-
             <div class="card-header section-header">
               <div>
-                <h3 class="card-title mb-1">
-                  Proyectos con vacantes
-                </h3>
-
-                <div class="section-description">
-                  Selecciona un proyecto activo.
-                </div>
+                <h3 class="card-title mb-1">Proyectos con vacantes</h3>
+                <div class="section-description">Selecciona un proyecto activo o en espera.</div>
               </div>
             </div>
-
-            <div class="card-body scroll-panel"
-                 id="projectList">
+            <div class="card-body scroll-panel" id="projectList">
+              <div th:if="${#lists.isEmpty(proyectosConVacantes)}" class="text-secondary small">
+                No hay proyectos activos o en espera con vacantes en tu alcance actual.
+              </div>
+              <a th:each="p : ${proyectosConVacantes}"
+                 th:href="@{/rm/talent-matching(proyectoId=${p.proyecto.id})}"
+                 class="project-item text-start w-100"
+                 th:classappend="${proyectoSeleccionado != null and proyectoSeleccionado.proyecto.id == p.proyecto.id} ? 'selected'">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                  <div>
+                    <div class="project-name" th:text="${p.proyecto.nombre}">Proyecto</div>
+                    <div class="small text-secondary" th:text="|PM: ${p.pmNombre}|">PM</div>
+                  </div>
+                  <span class="badge bg-green-lt"
+                        th:text="|${p.vacantes} ${p.vacantes == 1 ? 'vacante' : 'vacantes'}|">Vacantes</span>
+                </div>
+                <div class="project-meta">
+                  <div>
+                    <div class="subtle-label">Equipo</div>
+                    <div class="subtle-value" th:text="|${p.integrantesActivos} / ${p.proyecto.colaboradoresRequeridos}|">0 / 0</div>
+                  </div>
+                  <div>
+                    <div class="subtle-label">Prioridad</div>
+                    <div class="mt-1">
+                      <span class="badge" th:classappend="${p.prioridadClase}" th:text="${p.prioridadTexto}">Media</span>
+                    </div>
+                  </div>
+                </div>
+              </a>
             </div>
-
           </div>
 
-
-          <!-- HABILIDADES FALTANTES -->
           <div class="card section-card">
-
             <div class="card-header section-header">
               <div>
-                <h3 class="card-title mb-1">
-                  Habilidades faltantes
-                </h3>
-
-                <div class="section-description">
-                  Del proyecto seleccionado.
-                </div>
+                <h3 class="card-title mb-1">Habilidades faltantes</h3>
+                <div class="section-description">Del proyecto seleccionado.</div>
               </div>
             </div>
-
-            <div class="card-body skill-scroll"
-                 id="missingSkillsBox">
+            <div class="card-body skill-scroll" id="missingSkillsBox">
+              <div th:if="${#lists.isEmpty(habilidadesFaltantes)}" class="text-secondary small">
+                Todos los cupos de habilidades requeridas están cubiertos o el proyecto no especifica habilidades adicionales.
+              </div>
+              <div class="missing-skill" th:each="skill : ${habilidadesFaltantes}">
+                <div>
+                  <div class="fw-semibold" th:text="${skill.nombre}">Habilidad</div>
+                  <div class="small text-secondary"
+                       th:text="|${skill.nivelRequerido} · Cubiertos ${skill.cubiertos}/${skill.requeridos}|">Nivel</div>
+                </div>
+                <span class="badge bg-yellow-lt text-yellow"
+                      th:text="|Faltan ${skill.faltantes}|">Faltante</span>
+              </div>
             </div>
-
           </div>
 
         </div>
-
       </div>
 
-
-      <!-- PANEL DERECHO -->
+      <!-- PANEL DERECHO: PROYECTO SELECCIONADO, RECOMENDACIONES Y ASISTENTE IA -->
       <div class="col-lg-9">
 
-        <!-- PROYECTO SELECCIONADO -->
-        <div class="card section-card selected-project-card mb-4">
-
+        <!-- TARJETA DEL PROYECTO SELECCIONADO -->
+        <div class="card section-card selected-project-card mb-4" th:if="${proyectoSeleccionado != null}">
           <div class="card-header section-header">
-
             <div>
-              <h3 class="card-title mb-1">
-                Proyecto seleccionado
-              </h3>
-
-              <div class="section-description">
-                Contexto utilizado para generar las recomendaciones.
+              <h3 class="card-title mb-1">Proyecto seleccionado</h3>
+              <div class="section-description">Contexto en tiempo real utilizado para generar las recomendaciones.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-4 align-items-start">
+              <div class="col-lg">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <h2 class="mb-0" id="selectedProjectName" th:text="${proyectoSeleccionado.proyecto.nombre}">Proyecto</h2>
+                  <span class="badge" th:classappend="${proyectoSeleccionado.estadoClase}"
+                        id="selectedProjectStatus" th:text="${proyectoSeleccionado.estadoTexto}">Activo</span>
+                  <span class="badge" th:classappend="${proyectoSeleccionado.prioridadClase}"
+                        id="selectedProjectPriority" th:text="|Prioridad ${#strings.toLowerCase(proyectoSeleccionado.prioridadTexto)}|">Prioridad</span>
+                </div>
+                <div class="text-secondary mt-2" id="selectedProjectSummary"
+                     th:text="${proyectoSeleccionado.proyecto.descripcion ?: 'Sin descripción registrada.'}">Descripción</div>
+                <div class="small text-secondary mt-3">
+                  Project Manager:
+                  <span class="fw-semibold text-body" id="selectedProjectPM" th:text="${proyectoSeleccionado.pmNombre}">PM</span>
+                </div>
+              </div>
+              <div class="col-lg-auto">
+                <div class="d-flex flex-wrap gap-2">
+                  <a class="btn btn-outline-primary"
+                     th:href="@{/rm/proyectos/detalle(id=${proyectoSeleccionado.proyecto.id})}">Ver proyecto</a>
+                  <a class="btn btn-primary"
+                     th:href="@{/rm/proyectos/buscar-colaboradores(proyectoId=${proyectoSeleccionado.proyecto.id})}">Buscar manualmente</a>
+                </div>
               </div>
             </div>
 
+            <!-- MÉTRICAS DEL PROYECTO -->
+            <div class="row row-cards mt-1">
+              <div class="col-sm-6 col-xl-3">
+                <div class="card metric-card">
+                  <div class="card-body d-flex align-items-center gap-3">
+                    <div class="metric-icon bg-blue-lt text-blue">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/></svg>
+                    </div>
+                    <div>
+                      <div class="metric-label">Equipo actual</div>
+                      <div class="metric-number" id="selectedProjectTeam"
+                           th:text="|${proyectoSeleccionado.integrantesActivos} / ${proyectoSeleccionado.proyecto.colaboradoresRequeridos}|">0 / 0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-sm-6 col-xl-3">
+                <div class="card metric-card">
+                  <div class="card-body d-flex align-items-center gap-3">
+                    <div class="metric-icon bg-green-lt text-green">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </div>
+                    <div>
+                      <div class="metric-label">Vacantes</div>
+                      <div class="metric-number" id="selectedProjectVacancies"
+                           th:text="${proyectoSeleccionado.vacantes}">0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-sm-6 col-xl-3">
+                <div class="card metric-card">
+                  <div class="card-body d-flex align-items-center gap-3">
+                    <div class="metric-icon bg-azure-lt text-azure">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                    <div>
+                      <div class="metric-label" th:text="${proyectoSeleccionado.presupuestoEtiqueta}">Presupuesto asignado</div>
+                      <div class="metric-number metric-number-budget" id="selectedProjectBudget"
+                           th:text="${proyectoSeleccionado.presupuestoVisible != null ? 'S/ ' + #numbers.formatDecimal(proyectoSeleccionado.presupuestoVisible, 1, 'COMMA', 2, 'POINT') : 'S/ 0.00'}">S/ 0.00</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-sm-6 col-xl-3">
+                <div class="card metric-card">
+                  <div class="card-body d-flex align-items-center gap-3">
+                    <div class="metric-icon bg-yellow-lt text-yellow">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/></svg>
+                    </div>
+                    <div>
+                      <div class="metric-label">Skills faltantes</div>
+                      <div class="metric-number" id="selectedProjectMissingCount"
+                           th:text="${#lists.size(habilidadesFaltantes)}">0</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ai-note mt-4">
+              <span class="ai-note-icon">IA</span>
+              <div>
+                <div class="fw-semibold mb-1">Criterios de recomendación en tiempo real</div>
+                <div class="small text-secondary">
+                  El motor de Talent Matching prioriza la coincidencia con las habilidades requeridas y faltantes (validadas por el RM),
+                  disponibilidad horaria semanal, carga actual de asignaciones, nivel de experiencia, certificados aprobados
+                  y viabilidad respecto al saldo presupuestal disponible del proyecto.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card mb-4" th:if="${proyectoSeleccionado == null}">
+          <div class="card-body text-secondary">
+            No hay proyectos activos o en espera disponibles para ejecutar Talent Matching en este momento.
+          </div>
+        </div>
+
+        <!-- ENCABEZADO Y TARJETAS DE RECOMENDACIONES -->
+        <div th:if="${proyectoSeleccionado != null}">
+          <div class="results-head">
+            <div>
+              <h3 class="mb-1">
+                Recomendaciones para
+                <span id="recommendationProjectLabel" th:text="${proyectoSeleccionado.proyecto.nombre}">el proyecto seleccionado</span>
+              </h3>
+              <div class="text-secondary small">
+                Candidatos calculados en el servidor a partir de habilidades validadas, disponibilidad y presupuesto.
+              </div>
+            </div>
+            <span class="badge bg-azure-lt" th:text="|Top ${#lists.size(recomendaciones)} sugerencias de IA|">Top sugerencias</span>
+          </div>
+
+          <div id="candidateGrid" class="row row-cards">
+            <div class="col-12" th:if="${#lists.isEmpty(recomendaciones)}">
+              <div class="card section-card">
+                <div class="card-body text-secondary">
+                  No se encontraron colaboradores disponibles con habilidades validadas que aún no estén en este proyecto.
+                  Puedes revisar todos los perfiles desde
+                  <a th:href="@{/rm/proyectos/buscar-colaboradores(proyectoId=${proyectoSeleccionado.proyecto.id})}">Buscar manualmente</a>.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6" th:each="cand : ${recomendaciones}">
+              <div class="card candidate-card">
+                <div class="card-body">
+                  <div class="d-flex align-items-start gap-3">
+                    <span class="avatar avatar-lg bg-blue-lt text-blue" th:text="${cand.iniciales}">CL</span>
+                    <div class="flex-fill">
+                      <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                          <h3 class="candidate-name" th:text="${cand.nombre}">Colaborador</h3>
+                          <div class="text-secondary small" th:text="${cand.cargo}">Cargo</div>
+                        </div>
+                        <span class="badge match-pill" th:classappend="${cand.matchClase}"
+                              th:text="|${cand.matchPorcentaje}% match|">90% match</span>
+                      </div>
+                      <div class="mt-2 d-flex gap-1 flex-wrap">
+                        <span class="badge bg-secondary-lt" th:text="${cand.nivel}">Senior</span>
+                        <span class="badge"
+                              th:classappend="${cand.cabeEnPresupuesto} ? 'bg-green-lt text-green' : 'bg-red-lt text-red'"
+                              th:text="${cand.cabeEnPresupuesto ? 'En presupuesto' : 'Excede saldo'}">Presupuesto</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-3">
+                    <span class="badge bg-blue-lt skill-badge"
+                          th:each="sk : ${cand.habilidadesValidadas}"
+                          th:text="${sk}">Skill</span>
+                  </div>
+
+                  <div class="reason-box mt-3" th:text="${cand.explicacionIa}">Explicación IA</div>
+
+                  <div class="meta-grid">
+                    <div>
+                      <div class="meta-label">Disponibilidad</div>
+                      <div class="meta-value text-success" th:text="|${cand.horasDisponibles} h / semana|">16 h / semana</div>
+                    </div>
+                    <div>
+                      <div class="meta-label">Carga actual</div>
+                      <div class="meta-value" th:text="|${cand.asignacionesActivas} / ${cand.maxAsignaciones} asignaciones|">1 / 3</div>
+                    </div>
+                    <div>
+                      <div class="meta-label">Costo estimado</div>
+                      <div class="meta-value"
+                           th:text="${cand.costoCalculable ? 'S/ ' + #numbers.formatDecimal(cand.costoTotalEstimado, 1, 'COMMA', 2, 'POINT') : 'Por definir'}">S/ 0.00</div>
+                    </div>
+                    <div>
+                      <div class="meta-label">Certificados aprobados</div>
+                      <div class="meta-value" th:text="${cand.certificadosAprobados}">0</div>
+                    </div>
+                  </div>
+
+                  <div class="candidate-actions">
+                    <a th:href="@{/rm/colaboradores/perfil(id=${cand.colaboradorId})}"
+                       class="btn btn-outline-secondary btn-sm">Ver perfil</a>
+                    <a th:href="@{/rm/proyectos/proponer-asignacion(proyectoId=${proyectoSeleccionado.proyecto.id},colaboradorId=${cand.colaboradorId})}"
+                       class="btn btn-primary btn-sm">Proponer para el proyecto</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="proposal-note mt-4">
+            <span class="proposal-note-icon">i</span>
+            <div class="small text-secondary">
+              Talent Matching nunca asigna directamente a un colaborador.
+              El botón <strong>Proponer para el proyecto</strong> inicia una propuesta del RM,
+              que reserva el presupuesto correspondiente y queda pendiente de aprobación del Project Manager.
+            </div>
+          </div>
+        </div>
+
+        <!-- SECCIÓN INTEGRADA: ASISTENTE IA DEL RESOURCE MANAGER (100% JAVA + THYMELEAF) -->
+        <div class="card section-card mt-4" id="rmAsistenteSeccion">
+          <div class="card-header section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <h3 class="card-title mb-0">Asistente IA de Gestión de Recursos (RM)</h3>
+                <span class="badge bg-green-lt text-green">● En línea</span>
+              </div>
+              <div class="section-description mt-1">
+                Consulta en lenguaje natural sobre presupuestos, costos de candidatos, brechas de habilidades, asignaciones por aprobar y validaciones pendientes.
+              </div>
+            </div>
+            <form method="post" th:action="@{/rm/talent-matching/asistente/limpiar}" class="m-0" novalidate>
+              <input type="hidden" name="proyectoId" th:value="${proyectoSeleccionado?.proyecto?.id}">
+              <button type="submit" class="btn btn-sm btn-outline-secondary">Reiniciar conversación</button>
+            </form>
           </div>
 
           <div class="card-body">
-
-            <div class="row g-4 align-items-start">
-
-              <div class="col-lg">
-
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-
-                  <h2 class="mb-0"
-                      id="selectedProjectName">
-                    Proyecto seleccionado
-                  </h2>
-
-                  <span class="badge bg-green-lt"
-                        id="selectedProjectStatus">
-                    Activo
-                  </span>
-
-                  <span class="badge bg-red-lt text-red"
-                        id="selectedProjectPriority">
-                    Prioridad alta
-                  </span>
-
-                </div>
-
-                <div class="text-secondary mt-2"
-                     id="selectedProjectSummary">
-                  Plataforma para gestión clínica y analítica hospitalaria.
-                </div>
-
-                <div class="small text-secondary mt-3">
-                  Project Manager:
-                  <span class="fw-semibold text-body"
-                        id="selectedProjectPM">
-                    Juan Pérez
-                  </span>
-                </div>
-
-              </div>
-
-
-              <div class="col-lg-auto">
-
-                <div class="d-flex flex-wrap gap-2">
-
-                  <a href="rm-detalle-proyecto.html"
-                     class="btn btn-outline-primary" th:href="@{/rm/proyectos/detalle}">
-                    Ver proyecto
-                  </a>
-
-                  <a href="rm-buscar-colaboradores-proyecto.html"
-                     class="btn btn-primary" th:href="@{/rm/proyectos/buscar-colaboradores}">
-                    Buscar manualmente
-                  </a>
-
-                </div>
-
-              </div>
-
+            <!-- Consultas rápidas en Java -->
+            <div class="mb-3">
+              <div class="small fw-semibold text-secondary mb-2">Consultas rápidas para el RM:</div>
+              <form method="post" th:action="@{/rm/talent-matching/asistente/mensaje}" class="rm-ai-quick-grid" novalidate>
+                <input type="hidden" name="proyectoId" th:value="${proyectoSeleccionado?.proyecto?.id}">
+                <button th:each="c : ${consultasRapidas}"
+                        type="submit"
+                        name="mensaje"
+                        th:value="${c.prompt}"
+                        class="rm-ai-quick-btn"
+                        th:text="${c.etiqueta}">Consulta rápida</button>
+              </form>
             </div>
 
-
-            <!-- MÉTRICAS -->
-            <div class="row row-cards mt-1">
-
-              <div class="col-sm-6 col-xl-3">
-                <div class="card metric-card">
-
-                  <div class="card-body d-flex align-items-center gap-3">
-
-                    <div class="metric-icon bg-blue-lt text-blue">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="23"
-                           height="23"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round">
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M3 21v-2a6 6 0 0 1 12 0v2"/>
-                      </svg>
-                    </div>
-
-                    <div>
-                      <div class="metric-label">
-                        Equipo actual
-                      </div>
-
-                      <div class="metric-number"
-                           id="selectedProjectTeam">
-                        4 / 6
-                      </div>
-                    </div>
-
-                  </div>
-
+            <!-- Historial de mensajes del Asistente IA del RM -->
+            <div class="rm-ai-messages mb-3">
+              <div class="rm-ai-msg">
+                <span class="ai-note-icon">IA</span>
+                <div class="rm-ai-bubble">
+                  <p class="rm-ai-par" th:text="|Hola ${rm?.nombre ?: 'Resource Manager'}. Soy tu Asistente IA para gestión de talento y presupuesto.|">Hola RM.</p>
+                  <ul class="rm-ai-list">
+                    <li th:if="${kpisAsistente != null}"
+                        th:text="|Estado actual: ${kpisAsistente.totalProyectos} proyecto(s) bajo tu alcance, ${kpisAsistente.totalVacantes} vacante(s) abiertas, ${kpisAsistente.asignacionesPendientesRm} asignación(es) esperando tu decisión y ${kpisAsistente.validacionesPendientesRm} validación(es) pendientes.|">Resumen</li>
+                    <li>Puedo evaluar candidatos considerando sus habilidades validadas, disponibilidad horaria, sueldo base y si caben en el presupuesto disponible de cada proyecto.</li>
+                  </ul>
                 </div>
               </div>
 
-
-              <div class="col-sm-6 col-xl-3">
-                <div class="card metric-card">
-
-                  <div class="card-body d-flex align-items-center gap-3">
-
-                    <div class="metric-icon bg-green-lt text-green">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="23"
-                           height="23"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round">
-                        <path d="M20 6 9 17l-5-5"/>
-                      </svg>
-                    </div>
-
-                    <div>
-                      <div class="metric-label">
-                        Vacantes
-                      </div>
-
-                      <div class="metric-number"
-                           id="selectedProjectVacancies">
-                        2
-                      </div>
-                    </div>
-
-                  </div>
-
+              <th:block th:each="turno : ${turnosAsistente}">
+                <div class="rm-ai-msg own">
+                  <div class="rm-ai-bubble" th:text="${turno.pregunta}">Consulta del RM</div>
                 </div>
-              </div>
 
+                <div class="rm-ai-msg">
+                  <span class="ai-note-icon">IA</span>
+                  <div class="rm-ai-bubble">
+                    <th:block th:each="bloque : ${turno.respuesta.bloques}">
+                      <p th:if="${!bloque.esLista}" class="rm-ai-par" th:text="${bloque.parrafo}">Párrafo</p>
+                      <ul th:if="${bloque.esLista}" class="rm-ai-list">
+                        <li th:each="item : ${bloque.items}" th:text="${item}">Viñeta</li>
+                      </ul>
+                    </th:block>
 
-              <div class="col-sm-6 col-xl-3">
-                <div class="card metric-card">
-
-                  <div class="card-body d-flex align-items-center gap-3">
-
-                    <div class="metric-icon bg-azure-lt text-azure">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="23"
-                           height="23"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round">
-                        <path d="M12 1v22"/>
-                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                      </svg>
+                    <div class="mt-2">
+                      <span class="badge bg-blue-lt text-blue"
+                            th:text="${turno.respuesta.iaDisponible ? 'IA conectada · Datos reales de SkillBridge' : 'Análisis en tiempo real · Datos de SkillBridge'}">Origen</span>
                     </div>
 
-                    <div>
-                      <div class="metric-label">
-                        Presupuesto asignado
+                    <!-- Tarjetas de proyectos mencionados en la respuesta -->
+                    <div class="rm-ai-card" th:each="proy : ${turno.respuesta.proyectos}">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <strong th:text="${proy.nombre}">Proyecto</strong>
+                        <span class="badge bg-blue-lt text-blue" th:text="${proy.estado}">Estado</span>
                       </div>
-
-                      <div class="metric-number metric-number-budget"
-                           id="selectedProjectBudget">
-                        S/ 40,000
+                      <div class="small text-secondary mt-1"
+                           th:text="|PM: ${proy.pmNombre} · Equipo: ${proy.equipoTexto} (${proy.vacantes} vacantes) · Presupuesto disp.: S/ ${#numbers.formatDecimal(proy.presupuestoDisponible, 1, 'COMMA', 2, 'POINT')}|">Meta</div>
+                      <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <a class="btn btn-sm btn-outline-primary" th:href="@{${proy.urlDetalle}}">Ver proyecto</a>
+                        <a class="btn btn-sm btn-outline-secondary" th:href="@{${proy.urlBuscarColaboradores}}">Buscar candidatos</a>
                       </div>
                     </div>
 
+                    <!-- Tarjetas de candidatos recomendados en el chat del RM -->
+                    <div class="rm-ai-card" th:each="cand : ${turno.respuesta.candidatos}">
+                      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <strong th:text="|${cand.nombre} → ${cand.proyectoNombre}|">Candidato</strong>
+                        <span class="badge bg-green-lt text-green" th:text="|${cand.matchPorcentaje}% match|">Match</span>
+                      </div>
+                      <div class="small text-secondary mt-1"
+                           th:text="|${cand.cargo} (${cand.nivelExperiencia}) · Disponibilidad: ${cand.horasDisponibles} h/sem · Costo est.: S/ ${#numbers.formatDecimal(cand.costoTotalEstimado, 1, 'COMMA', 2, 'POINT')}|">Meta</div>
+                      <div class="small text-secondary" th:text="|Habilidades que cubre: ${cand.habilidadesMatch}|">Habilidades</div>
+                      <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <a class="btn btn-sm btn-outline-secondary"
+                           th:href="@{/rm/colaboradores/perfil(id=${cand.colaboradorId})}">Ver perfil</a>
+                        <a class="btn btn-sm btn-primary"
+                           th:href="@{/rm/proyectos/proponer-asignacion(proyectoId=${cand.proyectoId},colaboradorId=${cand.colaboradorId})}">Proponer para el proyecto</a>
+                      </div>
+                    </div>
                   </div>
-
                 </div>
-              </div>
-
-
-              <div class="col-sm-6 col-xl-3">
-                <div class="card metric-card">
-
-                  <div class="card-body d-flex align-items-center gap-3">
-
-                    <div class="metric-icon bg-yellow-lt text-yellow">
-                      <svg xmlns="http://www.w3.org/2000/svg"
-                           width="23"
-                           height="23"
-                           viewBox="0 0 24 24"
-                           fill="none"
-                           stroke="currentColor"
-                           stroke-width="2"
-                           stroke-linecap="round"
-                           stroke-linejoin="round">
-                        <path d="M12 9v4"/>
-                        <path d="M12 17h.01"/>
-                        <path d="M10.3 3.7 2.7 17a2 2 0 0 0 1.7 3h15.2a2 2 0 0 0 1.7-3L13.7 3.7a2 2 0 0 0-3.4 0z"/>
-                      </svg>
-                    </div>
-
-                    <div>
-                      <div class="metric-label">
-                        Skills faltantes
-                      </div>
-
-                      <div class="metric-number"
-                           id="selectedProjectMissingCount">
-                        2
-                      </div>
-                    </div>
-
-                  </div>
-
-                </div>
-              </div>
-
+              </th:block>
             </div>
 
-
-            <!-- EXPLICACIÓN IA -->
-            <div class="ai-note mt-4">
-
-              <span class="ai-note-icon">
-                IA
-              </span>
-
-              <div>
-
-                <div class="fw-semibold mb-1">
-                  Criterios de recomendación
-                </div>
-
-                <div class="small text-secondary">
-                  La IA prioriza coincidencia con habilidades faltantes,
-                  disponibilidad declarada en horas por semana, carga de asignaciones,
-                  nivel Junior/Senior y certificados aprobados. El presupuesto no se usa
-                  para calcular ni bloquear recomendaciones.
-                </div>
-
+            <!-- Formulario de consulta validado en Java (@Valid RmAsistenteMensajeForm) -->
+            <form method="post" th:action="@{/rm/talent-matching/asistente/mensaje}"
+                  th:object="${rmAsistenteMensajeForm}" class="row g-2 align-items-start" novalidate>
+              <input type="hidden" th:field="*{proyectoId}">
+              <div class="col">
+                <input type="text" th:field="*{mensaje}"
+                       class="form-control"
+                       th:classappend="${#fields.hasErrors('mensaje')} ? 'is-invalid'"
+                       placeholder="Pregúntale al Asistente del RM sobre candidatos, presupuestos, habilidades faltantes o validaciones pendientes...">
+                <div class="invalid-feedback" th:if="${#fields.hasErrors('mensaje')}" th:errors="*{mensaje}">Error</div>
               </div>
-
-            </div>
-
+              <div class="col-auto">
+                <button type="submit" class="btn btn-primary">Consultar IA</button>
+              </div>
+            </form>
           </div>
-
-        </div>
-
-
-        <!-- ENCABEZADO RECOMENDACIONES -->
-        <div class="results-head">
-
-          <div>
-            <h3 class="mb-1">
-              Recomendaciones para
-              <span id="recommendationProjectLabel">
-                el proyecto seleccionado
-              </span>
-            </h3>
-
-            <div class="text-secondary small">
-              Las recomendaciones cambian según el proyecto seleccionado.
-            </div>
-          </div>
-
-          <span class="badge bg-azure-lt">
-            Top 3 sugerencias de IA
-          </span>
-
-        </div>
-
-
-        <!-- CANDIDATOS -->
-        <div id="candidateGrid"
-             class="row row-cards">
-        </div>
-
-
-        <div class="proposal-note mt-4">
-
-          <span class="proposal-note-icon">
-            i
-          </span>
-
-          <div class="small text-secondary">
-            Talent Matching nunca asigna directamente a un colaborador.
-            El botón <strong>Proponer para el proyecto</strong> inicia una propuesta del RM,
-            que quedará pendiente de aprobación del Project Manager.
-          </div>
-
         </div>
 
       </div>
@@ -526,17 +481,6 @@
 
 </div>
 
-
-<script src="../../static/tabler/js/tabler.min.js"
-        th:src="@{/tabler/js/tabler.min.js}">
-</script>
-
-<script src="../../static/js/rm-js/rm-navigation.js"
-        th:src="@{/js/rm-js/rm-navigation.js}">
-</script>
-<script src="../../static/js/rm-js/rm-talent-matching.js"
-        th:src="@{/js/rm-js/rm-talent-matching.js}">
-</script>
-
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 </body>
 </html>

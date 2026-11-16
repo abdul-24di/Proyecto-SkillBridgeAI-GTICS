@@ -170,6 +170,11 @@ public class PmProyectoService {
     //Si algo falla, se revierte todo y el proyecto no queda cancelado.
     @Transactional
     public CierreAsignacionesService.Resultado cancelar(Long proyectoId, Usuario pm) {
+        return cancelar(proyectoId, null, pm);
+    }
+
+    @Transactional
+    public CierreAsignacionesService.Resultado cancelar(Long proyectoId, String motivo, Usuario pm) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
         verificarPropietario(proyecto, pm);
@@ -180,6 +185,9 @@ public class PmProyectoService {
                     "Solo se pueden cancelar proyectos en estado EN_REVISION o EN_ESPERA.");
         }
         proyecto.setEstado(EstadoProyecto.CANCELADO);
+        if (motivo != null && !motivo.isBlank()) {
+            proyecto.setMotivoCierre(motivo.trim());
+        }
         proyectoRepository.save(proyecto);
 
         //El PM que cancela no recibe notificación; solo ve el mensaje en pantalla.

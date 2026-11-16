@@ -56,7 +56,7 @@
   <div class="report-actions">
     <a class="btn btn-outline-secondary" th:href="@{/pm/reportes(proyecto=${reporte.proyecto.id},todoPeriodo=true)}">Reporte consolidado</a>
     <a class="btn btn-outline-success" th:href="@{/pm/reportes/excel(proyectoId=${reporte.proyecto.id},mes=${mes})}">Descargar Excel</a>
-    <button class="btn btn-outline-primary" onclick="window.print()">Exportar PDF</button>
+    <a class="btn btn-outline-primary" th:href="@{/pm/reportes/pdf(proyectoId=${reporte.proyecto.id},mes=${mes})}">Descargar PDF</a>
   </div>
 </div>
 

@@ -163,6 +163,9 @@ class ReportesTests {
                 .contains(proyecto.getNombre());
         excel("/pm/reportes/consolidado/excel?todoPeriodo=true&proyecto=" + proyecto.getId());
         excel("/pm/reportes/consolidado/excel?personalizado=true&resumen=true&hojas=proyectos&colProyecto=0&colProyecto=3&colProyecto=8");
+        pdf("/pm/reportes/consolidado/pdf?todoPeriodo=true&proyecto=" + proyecto.getId());
+        pdf("/pm/reportes/consolidado/excel?formato=pdf&personalizado=true&resumen=true&hojas=proyectos&colProyecto=0&colProyecto=3&colProyecto=8");
+        pdf("/pm/reportes/pdf?proyectoId=" + proyecto.getId());
     }
 
     // ---------- Colaborador ----------
@@ -201,6 +204,15 @@ class ReportesTests {
         // Un .xlsx es un ZIP: empieza con "PK".
         assertThat(archivo.length).isGreaterThan(100);
         assertThat(new String(archivo, 0, 2)).isEqualTo("PK");
+    }
+
+    private void pdf(String url) throws Exception {
+        MvcResult r = mvc.perform(get(url)).andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf")).andReturn();
+        byte[] archivo = r.getResponse().getContentAsByteArray();
+        // Un PDF válido comienza con "%PDF".
+        assertThat(archivo.length).isGreaterThan(200);
+        assertThat(new String(archivo, 0, 4)).isEqualTo("%PDF");
     }
 
     private Usuario usuario(String prefijo, String nombreRol) {

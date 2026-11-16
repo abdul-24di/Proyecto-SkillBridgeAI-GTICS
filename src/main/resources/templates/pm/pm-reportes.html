@@ -58,8 +58,10 @@
         <div class="text-secondary" th:text="|Consolidado de tus proyectos para ${reporte.periodoTexto}.|">Resumen de tus proyectos.</div>
       </div>
       <div class="d-flex gap-2 flex-wrap export-actions">
+        <a class="btn btn-outline-danger" id="exportPdfDirectButton"
+           th:href="@{/pm/reportes/consolidado/pdf(periodo=${reporte.periodoValor}, hasta=${reporte.periodoHastaValor}, todoPeriodo=${reporte.todoPeriodo}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, prioridad=${reporte.prioridadSeleccionada})}">Descargar PDF</a>
         <button type="button" class="btn btn-primary" id="exportReportButton"
-                data-bs-toggle="modal" data-bs-target="#exportReportModal">Exportar Excel</button>
+                data-bs-toggle="modal" data-bs-target="#exportReportModal">Exportar personalizado</button>
       </div>
     </div>
 
@@ -392,11 +394,21 @@
           No hay registros para estos filtros: el archivo tendrá el encabezado y las secciones vacías.
         </div>
 
-        <h4 class="export-step">2. Contenido del Excel</h4>
-        <p class="small text-secondary mb-2">Cada hoja lleva el encabezado: título, periodo, filtros aplicados, fecha de generación y regla de cálculo.</p>
+        <h4 class="export-step">2. Formato y contenido del reporte</h4>
+        <div class="d-flex gap-4 flex-wrap mb-3">
+          <label class="form-check form-check-inline mb-0 fw-semibold">
+            <input class="form-check-input export-formato" type="radio" name="formato" value="excel" id="exportFormatoExcel" checked>
+            <span class="form-check-label">Excel (.xlsx)</span>
+          </label>
+          <label class="form-check form-check-inline mb-0 fw-semibold">
+            <input class="form-check-input export-formato" type="radio" name="formato" value="pdf" id="exportFormatoPdf">
+            <span class="form-check-label">Documento PDF (.pdf)</span>
+          </label>
+        </div>
+        <p class="small text-secondary mb-2">El reporte incluye el encabezado (título, periodo, filtros aplicados, fecha de generación y regla de cálculo) y las secciones/columnas que elijas abajo.</p>
         <label class="form-check mb-3">
           <input class="form-check-input" type="checkbox" name="resumen" value="true" id="exportResumen" checked>
-          <span class="form-check-label">Incluir resumen (<span th:text="${#strings.listJoin(metricasResumen, ', ')}">métricas</span>) en la hoja Proyectos</span>
+          <span class="form-check-label">Incluir resumen ejecutivo (<span th:text="${#strings.listJoin(metricasResumen, ', ')}">métricas</span>)</span>
         </label>
         <div class="row g-3">
           <div class="col-md-6">

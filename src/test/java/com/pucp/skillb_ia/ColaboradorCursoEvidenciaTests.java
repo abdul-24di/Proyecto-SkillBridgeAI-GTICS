@@ -447,8 +447,12 @@ class ColaboradorCursoEvidenciaTests {
                 "Kubernetes evid test", "04/01/2027", "29/01/2027", "16 h");
 
         colaboradorCursoService.subirEvidencia(colaborador, solicitud.getId(), pdf());
+        // La evidencia la revisa el RM responsable de la inscripción: solo él recibe el aviso.
+        Usuario responsable = colaboradorCursoRepository.findById(solicitud.getId()).orElseThrow().getRmResponsable();
+        assertNotNull(responsable);
         for (Usuario rmActivo : usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER")) {
-            assertEquals(1, notificaciones(rmActivo, "EVIDENCIA_CURSO_PENDIENTE", solicitud.getId()));
+            long esperado = rmActivo.getId().equals(responsable.getId()) ? 1 : 0;
+            assertEquals(esperado, notificaciones(rmActivo, "EVIDENCIA_CURSO_PENDIENTE", solicitud.getId()));
         }
         rmCursoService.aprobarEvidencia(solicitud.getId(), rm.getId());
 

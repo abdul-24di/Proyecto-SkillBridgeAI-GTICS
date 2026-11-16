@@ -50,6 +50,56 @@ símbolo. Para activar la cuenta también hay que aceptar la política de
 tratamiento de datos. Las contraseñas existentes, incluidas las de los usuarios
 demo, siguen siendo válidas para iniciar sesión.
 
+### Asistente IA del colaborador
+
+El asistente (`/colaborador/asistente`) responde con datos internos de SkillBridge
+(foros, cursos y proyectos) y, si hay una llave configurada, redacta la respuesta con
+un modelo de IA externo. Se configura con variables de entorno:
+
+| Variable | Por defecto | Uso |
+|---|---|---|
+| `IA_PROVEEDOR` | `GEMINI` | `GEMINI` (Google AI Studio, tiene capa gratuita) o `ANTHROPIC` (Claude, de pago) |
+| `IA_API_KEY` | vacía | Llave del proveedor elegido |
+| `IA_MODELO` | según el proveedor | Modelo a usar; si se deja vacía se usa el modelo por defecto del proveedor |
+| `IA_MAX_TOKENS` | `900` | Largo máximo de cada respuesta |
+| `IA_MENSAJES_POR_MINUTO` | `10` | Consultas por colaborador y por minuto |
+
+```powershell
+$env:IA_PROVEEDOR = "GEMINI"
+$env:IA_API_KEY = "tu_llave_de_api"
+```
+
+Si `IA_API_KEY` está vacía, la aplicación arranca igual: el log avisa
+"IA_API_KEY está vacía, se usará el modo sin IA" y el asistente responde solo con los
+datos internos. En Docker la llave se pasa al contenedor (`-e IA_API_KEY=...`). Igual
+que las credenciales del correo, **nunca** se guarda en `application.properties` ni se
+versiona.
+
+### DNI de los usuarios
+
+Al activar la cuenta, todos los roles ingresan su DNI (8 dígitos, no se puede repetir
+entre usuarios ni editar después). Se consulta en la API de verifica.id (la de la clase
+10.1) con `RestTemplate` y la cabecera `Authorization: Bearer`, y se comprueba que el
+nombre escrito coincida con el del documento.
+
+| Variable | Por defecto | Uso |
+|---|---|---|
+| `DNI_API_KEY` | vacía | API key de verifica.id |
+| `DNI_API_URL` | `https://api.verifica.id/v2/consulta/personas` | Endpoint de consulta |
+
+Si la key falta o la API no responde (caída, sin saldo), el registro no se bloquea: el
+DNI se guarda como **"sin verificar"** y el log lo avisa con el prefijo `[DNI]`. Las
+cuentas creadas antes de pedir el DNI pueden registrarlo una sola vez desde su perfil.
+La key, como las demás credenciales, **nunca** se guarda en `application.properties`
+ni se versiona.
+
+### Chat en tiempo real
+
+El chat (PM, colaborador y RM) avisa los mensajes nuevos por WebSocket en
+`/ws-chat`. No necesita configuración. Si el despliegue pasa por un proxy, este debe
+permitir conexiones WebSocket; si no, el chat sigue funcionando y consulta la API cada
+cierto tiempo.
+
 ## Base de datos y despliegue
 
 Una instalación nueva debe ejecutar [`BDs_SQL/skillbridge_db_v4.sql`](BDs_SQL/skillbridge_db_v4.sql).
@@ -144,7 +194,7 @@ paquete están en [`docs/informe/07-resultados-testeo.md`](docs/informe/07-resul
 
 ## API REST
 
-Los 8 endpoints REST (chat del PM, chat del colaborador y notificaciones), sus fichas y
-su seguridad están en [`docs/informe/04-apis-rest.md`](docs/informe/04-apis-rest.md). La colección de
+Los 19 endpoints REST (chat del PM, del colaborador y del RM, asistente del colaborador y
+notificaciones), el WebSocket del chat, sus fichas y su seguridad están en [`docs/informe/04-apis-rest.md`](docs/informe/04-apis-rest.md). La colección de
 Postman está en `docs/informe/postman/`. Antes de ejecutarla hay que cambiar `baseUrl` y escribir la
 contraseña demo en la variable `password`.

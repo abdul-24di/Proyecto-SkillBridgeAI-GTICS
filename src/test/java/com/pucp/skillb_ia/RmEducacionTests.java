@@ -342,8 +342,11 @@ class RmEducacionTests {
         Educacion creada = educacionRepository.findByColaboradorAndActivoTrue(colaborador).get(0);
         assertEquals(EstadoCertificado.PENDIENTE, creada.getEstado());
 
+        // La formación se asigna a un RM responsable y solo a él le llega el aviso.
+        Usuario responsable = creada.getRmResponsable();
+        assertNotNull(responsable, "La formación debe quedar asignada a un RM");
         String url = "/rm/colaboradores/educacion/revision?id=" + creada.getId();
-        assertTrue(notificacionService.listar(rm.getId()).stream().anyMatch(item -> url.equals(item.url())),
+        assertTrue(notificacionService.listar(responsable.getId()).stream().anyMatch(item -> url.equals(item.url())),
                 "La notificación EDUCACION_PENDIENTE debe enlazar a " + url);
 
         educacionService.aprobar(creada.getId(), rm.getId());

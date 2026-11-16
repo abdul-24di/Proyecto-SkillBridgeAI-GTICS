@@ -45,6 +45,14 @@ public class Usuario implements Serializable {
     @Column(length = 20)
     private String telefono;
 
+    // DNI peruano (8 dígitos). Se registra una sola vez y no se edita.
+    @Column(length = 8, unique = true)
+    private String dni;
+
+    // true si el DNI se confirmó con la API de consulta; false si se guardó "sin verificar".
+    @Column(name = "dni_verificado", nullable = false)
+    private boolean dniVerificado = false;
+
     @Column(name = "foto_url", length = 500)
     private String fotoUrl;
 
@@ -134,6 +142,10 @@ public class Usuario implements Serializable {
 
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
+    public String getDni() { return dni; }
+    public void setDni(String dni) { this.dni = dni; }
+    public boolean isDniVerificado() { return dniVerificado; }
+    public void setDniVerificado(boolean dniVerificado) { this.dniVerificado = dniVerificado; }
 
     public String getFotoUrl() { return fotoUrl; }
     public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }

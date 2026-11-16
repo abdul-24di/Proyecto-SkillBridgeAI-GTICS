@@ -234,7 +234,8 @@ public class PreRegistroColaboradorService {
     private int pasoDe(String campo) {
         if (campo.equals("cv") || campo.startsWith("experiencias")) return 2;
         if (campo.startsWith("certificados") || campo.startsWith("estudios")) return 3;
-        if (campo.equals("nombreCompleto") || campo.equals("telefono") || campo.equals("descripcion")) return 1;
+        if (campo.equals("nombreCompleto") || campo.equals("dni") || campo.equals("telefono")
+                || campo.equals("descripcion")) return 1;
         return 4;
     }
 
@@ -250,6 +251,7 @@ public class PreRegistroColaboradorService {
         }
         return switch (campo) {
             case "nombreCompleto" -> "Nombre completo";
+            case "dni" -> "DNI";
             case "telefono" -> "Teléfono";
             case "descripcion" -> "Sobre ti";
             case "cv" -> "CV";

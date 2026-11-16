@@ -31,4 +31,9 @@
 .activity-bar{width:100%;border-radius:8px;background:#9ec5ea;transition:height .3s}
 .activity-bar.is-today{background:#206bc4}
 .activity-label{font-size:.72rem;color:#6c7a89;text-transform:capitalize;white-space:nowrap}
+/* Cada columna lleva a la auditoría de ese día */
+.activity-col-link{color:inherit;text-decoration:none;border-radius:8px;padding:0 .15rem}
+.activity-col-link:hover,.activity-col-link:focus-visible{color:inherit;text-decoration:none}
+.activity-col-link:hover .activity-bar{background:#206bc4}
+.activity-col-link:hover .activity-track{background:#e3ecf7}
 @media(max-width:575px){.activity-chart{gap:.35rem}.activity-label{font-size:.62rem}}

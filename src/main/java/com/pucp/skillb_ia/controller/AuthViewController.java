@@ -9,6 +9,7 @@ import com.pucp.skillb_ia.dto.auth.NuevaContrasenaForm;
 import com.pucp.skillb_ia.model.TokenUsuario;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.service.AuthService;
+import com.pucp.skillb_ia.service.DniService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.col.PreRegistroArchivosService;
 import com.pucp.skillb_ia.service.col.PreRegistroColaboradorService;
@@ -38,11 +39,14 @@ public class AuthViewController {
     private final PreRegistroColaboradorService preRegistroColaboradorService;
     private final ColaboradorPerfilService colaboradorPerfilService;
     private final PreRegistroArchivosService preRegistroArchivosService;
+    private final DniService dniService;
 
     public AuthViewController(AuthService authService,
                               PreRegistroColaboradorService preRegistroColaboradorService,
                               ColaboradorPerfilService colaboradorPerfilService,
-                              PreRegistroArchivosService preRegistroArchivosService) {
+                              PreRegistroArchivosService preRegistroArchivosService,
+                              DniService dniService) {
+        this.dniService = dniService;
         this.authService = authService;
         this.preRegistroColaboradorService = preRegistroColaboradorService;
         this.colaboradorPerfilService = colaboradorPerfilService;
@@ -89,6 +93,19 @@ public class AuthViewController {
         if (esColaborador) {
             preRegistroColaboradorService.validar(form, result, session);
         }
+        // DNI: primero que no se repita (no gasta consultas); la API solo se consulta cuando el resto del formulario
+        // ya está correcto, para no gastar una consulta en cada intento.
+        boolean dniVerificado = false;
+        if (!result.hasFieldErrors("dni")) {
+            try {
+                dniService.validarFormatoYUnico(form.getDni());
+                if (!result.hasErrors()) {
+                    dniVerificado = dniService.validar(form.getDni(), form.getNombreCompleto());
+                }
+            } catch (IllegalArgumentException e) {
+                result.rejectValue("dni", "dni.invalido", e.getMessage());
+            }
+        }
         if (result.hasErrors()) {
             List<ErrorPreRegistro> errores = preRegistroColaboradorService.resumirErrores(result);
             model.addAttribute("erroresResumen", errores);
@@ -100,6 +117,7 @@ public class AuthViewController {
         try {
             Usuario usuario = authService.activarCuenta(form.getToken(), form.getNombreCompleto(),
                     form.getTelefono(), form.getDescripcion(), form.getPassword());
+            dniService.registrar(usuario, form.getDni(), dniVerificado);
             if (esColaborador) {
                 preRegistroColaboradorService.guardar(usuario, form, session);
             }

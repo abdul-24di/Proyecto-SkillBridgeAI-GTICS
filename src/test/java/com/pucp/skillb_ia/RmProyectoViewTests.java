@@ -213,6 +213,7 @@ class RmProyectoViewTests {
 
     @Test
     void asignaPresupuestoYAprobarActivaElProyecto() {
+        definirFechas();
         revisionService.asignarPresupuesto(proyectoId, new BigDecimal("45000"), rmId);
         revisionService.aprobar(proyectoId, rmId);
 
@@ -230,6 +231,31 @@ class RmProyectoViewTests {
         org.junit.jupiter.api.Assertions.assertEquals(EstadoProyecto.RECHAZADO, proyecto.getEstado());
         org.junit.jupiter.api.Assertions.assertEquals("El alcance necesita mayor precisión.", proyecto.getMotivoRechazo());
         org.junit.jupiter.api.Assertions.assertEquals(rmId, proyecto.getRmRevisor().getId());
+    }
+
+    @Test
+    void noPermiteAprobarSinFechasNiConElFinAntesDelInicio() {
+        revisionService.asignarPresupuesto(proyectoId, new BigDecimal("45000"), rmId);
+
+        Proyecto sinFechas = proyectoRepository.findById(proyectoId).orElseThrow();
+        sinFechas.setFechaInicio(null);
+        sinFechas.setFechaFinEstimada(null);
+        proyectoRepository.save(sinFechas);
+        IllegalArgumentException faltan = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> revisionService.aprobar(proyectoId, rmId));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "Define la fecha de inicio y la fecha de fin estimada antes de aprobar el proyecto.", faltan.getMessage());
+
+        Proyecto alReves = proyectoRepository.findById(proyectoId).orElseThrow();
+        alReves.setFechaInicio(java.time.LocalDate.now().plusDays(10));
+        alReves.setFechaFinEstimada(java.time.LocalDate.now().plusDays(5));
+        proyectoRepository.save(alReves);
+        IllegalArgumentException orden = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> revisionService.aprobar(proyectoId, rmId));
+        org.junit.jupiter.api.Assertions.assertEquals("La fecha de fin debe ser posterior a la fecha de inicio.", orden.getMessage());
+
+        org.junit.jupiter.api.Assertions.assertEquals(EstadoProyecto.EN_REVISION,
+                proyectoRepository.findById(proyectoId).orElseThrow().getEstado(), "El proyecto sigue en revisión");
     }
 
     @Test
@@ -530,6 +556,7 @@ class RmProyectoViewTests {
     void aprobarPorPostConPresupuestoActivaYAuditaSinObservacion() throws Exception {
         autenticarRm();
         fijarPresupuesto(EstadoProyecto.EN_REVISION, "5000.00");
+        definirFechas();
         mockMvc.perform(post("/rm/proyectos/" + proyectoId + "/aprobar"))
                 .andExpect(redirectedUrl("/rm/proyectos/detalle?id=" + proyectoId))
                 .andExpect(flash().attribute("mensajeExito", "Proyecto aprobado y activado correctamente."));
@@ -1400,6 +1427,14 @@ class RmProyectoViewTests {
 
     private static int contar(String html, String texto) {
         return html.split(java.util.regex.Pattern.quote(texto), -1).length - 1;
+    }
+
+    // Para aprobar, el proyecto necesita fechas (el PM siempre las ingresa al crearlo).
+    private void definirFechas() {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setFechaInicio(java.time.LocalDate.now().plusDays(1));
+        proyecto.setFechaFinEstimada(java.time.LocalDate.now().plusMonths(3));
+        proyectoRepository.save(proyecto);
     }
 
     private void activarProyecto() {

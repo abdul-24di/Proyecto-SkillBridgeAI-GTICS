@@ -54,6 +54,7 @@
     <div class="report-print-date text-secondary small" style="display:none" th:text="${'Generado el ' + #temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}">Generado el</div>
   </div>
   <div class="report-actions">
+    <a class="btn btn-outline-success" th:href="@{/pm/reportes/excel(proyectoId=${reporte.proyecto.id},mes=${mes})}">Descargar Excel</a>
     <button class="btn btn-outline-primary" onclick="window.print()">Exportar PDF</button>
   </div>
 </div>
@@ -126,6 +127,61 @@
   </div></div>
 </div>
 
+<!-- AVANCE Y PUNTUALIDAD: filtro por mes (fecha límite de las actividades) -->
+<div class="card section-card mb-4" id="avance">
+  <div class="card-header section-header">
+    <div>
+      <h3 class="card-title mb-1">Avance y puntualidad</h3>
+      <div class="section-description">Entregas a tiempo y tarde, actividades vencidas, devoluciones, horas y strikes por colaborador.</div>
+    </div>
+  </div>
+  <div class="card-body border-bottom">
+    <form method="get" th:action="@{/pm/reportes/detalle}" class="row g-2 align-items-end">
+      <input type="hidden" name="proyectoId" th:value="${reporte.proyecto.id}">
+      <div class="col-sm-5 col-md-4">
+        <label class="form-label" for="mesAvance">Mes (fecha límite de las actividades)</label>
+        <input id="mesAvance" type="month" name="mes" class="form-control" th:value="${mes}" th:max="${mesMaximo}">
+      </div>
+      <div class="col-auto"><button type="submit" class="btn btn-primary">Ver</button></div>
+      <div class="col-auto"><a class="btn btn-outline-secondary" th:href="@{/pm/reportes/detalle(proyectoId=${reporte.proyecto.id})}">Todo el proyecto</a></div>
+      <div class="col-12 small text-secondary" th:text="'Mostrando: ' + ${avance.periodo()}">Mostrando: Todo el proyecto</div>
+    </form>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-6 col-lg-2"><div class="text-secondary small">Actividades</div><div class="fs-2 fw-bold" th:text="${avance.total()}">0</div><div class="small text-secondary" th:text="${avance.completadas()} + ' completadas'">0</div></div>
+      <div class="col-6 col-lg-2"><div class="text-secondary small">A tiempo</div><div class="fs-2 fw-bold text-green" th:text="${avance.aTiempo()}">0</div></div>
+      <div class="col-6 col-lg-2"><div class="text-secondary small">Tarde</div><div class="fs-2 fw-bold" th:classappend="${avance.tardias() > 0} ? 'text-orange'" th:text="${avance.tardias()}">0</div></div>
+      <div class="col-6 col-lg-2"><div class="text-secondary small">Puntualidad</div><div class="fs-2 fw-bold" th:text="${avance.puntualidad()} + '%'">0%</div></div>
+      <div class="col-6 col-lg-2"><div class="text-secondary small">Vencidas sin completar</div><div class="fs-2 fw-bold" th:classappend="${avance.vencidas() > 0} ? 'text-red'" th:text="${avance.vencidas()}">0</div></div>
+      <div class="col-6 col-lg-2"><div class="text-secondary small">Horas completadas</div><div class="fs-2 fw-bold" th:text="${avance.horasCompletadas()} + ' h'">0 h</div><div class="small text-secondary" th:text="'de ' + ${avance.horasEstimadas()} + ' h estimadas'">de 0 h</div></div>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table mb-0">
+      <thead>
+        <tr><th>Colaborador</th><th class="text-end">Asignadas</th><th class="text-end">Completadas</th><th class="text-end">A tiempo</th><th class="text-end">Tarde</th><th class="text-end">Vencidas</th><th class="text-end">Devoluciones</th><th class="text-end">Horas completadas</th><th class="text-end">Strikes</th></tr>
+      </thead>
+      <tbody>
+        <tr th:each="c : ${avance.colaboradores()}">
+          <td class="fw-semibold" th:text="${c.nombre()}">Ana Torres</td>
+          <td class="text-end" th:text="${c.asignadas()}">0</td>
+          <td class="text-end" th:text="${c.completadas()}">0</td>
+          <td class="text-end" th:text="${c.aTiempo()}">0</td>
+          <td class="text-end" th:classappend="${c.tardias() > 0} ? 'text-orange'" th:text="${c.tardias()}">0</td>
+          <td class="text-end" th:classappend="${c.vencidas() > 0} ? 'text-red'" th:text="${c.vencidas()}">0</td>
+          <td class="text-end" th:text="${c.devoluciones()}">0</td>
+          <td class="text-end" th:text="${c.horasCompletadas()} + ' h'">0 h</td>
+          <td class="text-end"><span class="badge" th:classappend="${c.strikes() >= 3} ? 'bg-red-lt text-red' : (${c.strikes() > 0} ? 'bg-yellow-lt text-yellow' : 'bg-secondary-lt')" th:text="${c.strikes()} + ' / 3'">0 / 3</span></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(avance.colaboradores())}">
+          <td colspan="9" class="text-center text-secondary py-3">El proyecto no tiene colaboradores activos.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <div class="card section-card">
   <div class="card-header section-header">
     <div><h3 class="card-title mb-1">Métricas de Colaboradores</h3><div class="section-description">Detalle de asignación de actividades y horas propuestas.</div></div>
@@ -164,6 +220,7 @@
   <!-- Paginación en el servidor (10 por página). -->
   <form id="paginacionColaboradores" method="get" th:action="@{/pm/reportes/detalle}">
     <input type="hidden" name="proyectoId" th:value="${reporte.proyecto.id}">
+    <input type="hidden" name="mes" th:value="${mes}">
   </form>
   <th:block th:if="${!#lists.isEmpty(reporte.colaboradores)}">
     <div class="px-3" th:replace="~{fragments/paginacion :: paginacion(${paginaColaboradores}, 'paginacionColaboradores', 'colaborador(es)', 'pagina')}"></div>

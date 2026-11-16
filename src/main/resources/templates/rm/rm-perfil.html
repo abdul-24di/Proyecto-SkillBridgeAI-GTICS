@@ -119,6 +119,7 @@
                                 </div>
                             </div>
 
+                            <div th:replace="~{fragments/dni-perfil :: dni(${rm})}"></div>
                             <form th:action="@{/rm/perfil/telefono}" method="post" class="row g-3 mt-1">
                                 <div class="col-md-12">
                                     <label class="form-label">Teléfono</label>

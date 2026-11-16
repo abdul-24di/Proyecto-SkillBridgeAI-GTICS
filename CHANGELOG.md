@@ -1,5 +1,37 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 16 de Noviembre 2026 (2) — Observaciones del jefe de práctica
+
+- **RM:** ya no puede aprobar un proyecto sin fecha de inicio y de fin, ni con el fin antes del inicio.
+- **Dashboard del Admin:** las tarjetas, las barras por rol, cada día del gráfico y los correos pendientes llevan a su sección ya filtrada.
+- **Dashboard del PM:** panel "Strikes del equipo" con los colaboradores que tienen strikes en sus proyectos (x / 3).
+- **DNI (todos los roles):** se pide al activar la cuenta (en el colaborador, dentro del pre-registro), es único, no se edita y se consulta en verifica.id (clase 10.1, `RestTemplate` + `Bearer`). Sin `DNI_API_KEY` o con la API caída se guarda "sin verificar". Las cuentas anteriores lo registran una vez desde su perfil. **Recrear la base:** `usuario` tiene las columnas nuevas `dni` y `dni_verificado`.
+- **Reportes con filtro por mes y Excel:** Admin "Usuarios y accesos" y "Actividad de auditoría" (`/admin/reportes`); PM "Avance y puntualidad" en el reporte del proyecto (a tiempo, tarde, vencidas, devoluciones, horas y strikes); colaborador "Mi desempeño" (`/colaborador/desempeno`).
+- **Validaciones:** se enviaron datos inválidos (vacíos, textos de 3000 caracteres, números negativos o con letras, fechas al revés) a 71 casos de los formularios del Admin, RM y Colaborador. Se corrigieron los que fallaban: anuncio vacío del Admin en el foro, respuestas del colaborador sin límite de largo (ahora 5000, igual que el PM) y textos largos que daban error 500 (formación académica y habilidad nueva).
+- **Tests:** 807 en verde (`DashboardsJpTests`, `DniTests`, `ReportesTests`, `ValidacionesJpTests`).
+
+---
+
+## Sesión 16 de Noviembre 2026 — Documentación de la API con el chat nuevo y el asistente
+
+- **Asistente:** las acciones "solicitar curso" y "solicitar proyecto" sin `cursoId` o sin `proyectoId` respondían 500; ahora responden 400 con un mensaje claro (`ColAsistenteService`, prueba en `ApiRestTests`).
+- **Documentación (`docs/informe/`):** sección 4 con los 19 endpoints REST y el WebSocket del chat; colección de Postman ampliada a 63 peticiones; sección 7 con las pruebas y la cobertura medidas de nuevo (787 pruebas, 61.1 % de líneas).
+- **README:** variables del asistente IA (`IA_PROVEEDOR`, `IA_API_KEY`, `IA_MODELO`, `IA_MAX_TOKENS`, `IA_MENSAJES_POR_MINUTO`) y nota del WebSocket.
+
+---
+
+## Sesión 15 de Noviembre 2026 — Pruebas en verde tras el chat, la IA y el reparto entre RM
+
+Después de los cambios del 11 y 12 de noviembre (chat privado, chat RM–PM, asistente IA, RM responsable) fallaban 29 de 783 pruebas.
+
+- **RM responsable:** cada RM ve y revisa lo que tiene asignado. Lo que todavía **no tiene responsable** (datos anteriores al reparto o creados cuando no había un RM activo) lo puede ver y revisar cualquier RM, para que no quede sin revisión. Antes ningún RM lo veía (los datos demo tienen 3 certificados pendientes en ese caso). Cambio en `RmAlcanceService`; nuevas pruebas en `RmAlcanceTests`.
+- **Notificaciones:** cada RM recibe solo las notificaciones de lo que le fue asignado. Se actualizaron las pruebas que esperaban un aviso para todos los RM (`ColaboradorCursoSolicitudTests`, `ColaboradorCursoEvidenciaTests`, `PmSolicitudPersonalTests`, `RmEducacionTests`).
+- **Errores de la API:** un solo `@RestControllerAdvice` (`ApiErrorAdvice`) para el chat del PM, del colaborador y del RM, el asistente y las notificaciones. Une el antiguo `ChatRestExceptionHandler` (error inesperado → 500 con log) con los mensajes que indican qué parámetro falla; agrega 400 si el JSON del asistente viene vacío o mal formado.
+- **Topbar del RM:** vuelve el texto "Resource Manager" bajo el nombre y una foto vacía con espacios muestra las iniciales.
+- **Tests:** 786 en verde.
+
+---
+
 ## Sesión 10 de Noviembre 2026 — Documentación: API REST, Postman y cobertura
 
 - **API REST:** los errores del chat (PM y colaborador) y de las notificaciones ahora responden JSON `{"error": ...}` con 400 o 409 (antes redirigían con 302), con la clase nueva `ApiErrorAdvice` (`@RestControllerAdvice` solo para los 3 controladores REST). Sin sesión, `/api/**`, `/pm/api/**` y `/colaborador/api/**` responden 401; las vistas siguen yendo al login. El chat del colaborador tiene las mismas reglas que el del PM (máximo 1000 caracteres, sin espacios al inicio y al final) y su vista muestra el error real.

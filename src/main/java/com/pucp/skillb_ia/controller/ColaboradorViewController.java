@@ -45,6 +45,7 @@ public class ColaboradorViewController {
     private final ColaboradorActividadService colaboradorActividadService;
     private final ColaboradorDocumentoService colaboradorDocumentoService;
     private final UsuarioRepository usuarioRepository;
+    private final com.pucp.skillb_ia.service.col.ColDesempenoService colDesempenoService;
 
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
                                      ColaboradorProyectoService colaboradorProyectoService,
@@ -55,7 +56,9 @@ public class ColaboradorViewController {
                                      ColaboradorActividadService colaboradorActividadService,
                                      ColaboradorDocumentoService colaboradorDocumentoService,
                                      UsuarioRepository usuarioRepository,
-                                     EvaluacionService evaluacionService) {
+                                     EvaluacionService evaluacionService,
+                                     com.pucp.skillb_ia.service.col.ColDesempenoService colDesempenoService) {
+        this.colDesempenoService = colDesempenoService;
         this.colaboradorPerfilService = colaboradorPerfilService;
         this.colaboradorProyectoService = colaboradorProyectoService;
         this.colaboradorExplorarService = colaboradorExplorarService;
@@ -553,6 +556,35 @@ public class ColaboradorViewController {
     // ============================================================
     // PERFIL
     // ============================================================
+
+    // ============================================================
+    // MI DESEMPEÑO (reporte del colaborador, por mes)
+    // ============================================================
+
+    @GetMapping({"/desempeno", "/col-desempeno.html"})
+    public String desempeno(@AuthenticationPrincipal UsuarioDetails principal,
+                            @RequestParam(required = false) String mes, Model model) {
+        if (principal == null) return "redirect:/login";
+        Usuario colaborador = usuarioRepository.findById(principal.getUsuario().getId()).orElseThrow();
+        java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+        model.addAttribute("colaborador", colaborador);
+        model.addAttribute("mes", periodo.toString());
+        model.addAttribute("mesMaximo", java.time.YearMonth.now().toString());
+        model.addAttribute("desempeno", colDesempenoService.obtener(colaborador, periodo));
+        return "col/col-desempeno";
+    }
+
+    @GetMapping("/desempeno/excel")
+    public org.springframework.http.ResponseEntity<byte[]> desempenoExcel(@AuthenticationPrincipal UsuarioDetails principal,
+                                                                          @RequestParam(required = false) String mes) {
+        Usuario colaborador = usuarioRepository.findById(principal.getUsuario().getId()).orElseThrow();
+        java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+        byte[] contenido = colDesempenoService.excel(colaborador, colDesempenoService.obtener(colaborador, periodo));
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"mi-desempeno-" + periodo + ".xlsx\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(com.pucp.skillb_ia.util.ReporteExcel.TIPO_CONTENIDO))
+                .body(contenido);
+    }
 
     @GetMapping({"/perfil", "/col-perfil.html"})
     public String profile(@AuthenticationPrincipal UsuarioDetails principal, Model model) {

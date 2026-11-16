@@ -64,7 +64,7 @@ class ColaboradorCursoSolicitudTests {
     }
 
     @Test
-    void solicitudCreadaNotificaUnaVezACadaRmActivoConEnlaceALaBandeja() {
+    void solicitudCreadaNotificaSoloAlRmResponsableConEnlaceALaBandeja() {
         colaboradorCursoService.solicitarInscripcion(colaborador, curso.getId(), "Lo necesito en el proyecto.");
 
         List<ColaboradorCurso> registros = colaboradorCursoRepository.findByColaborador(colaborador);
@@ -73,23 +73,28 @@ class ColaboradorCursoSolicitudTests {
         assertEquals(EstadoColaboradorCurso.SOLICITADO, solicitud.getEstado());
         assertEquals(OrigenCurso.SOLICITUD_COLABORADOR, solicitud.getOrigen());
 
-        List<Usuario> rmsActivos = usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER");
-        assertTrue(rmsActivos.stream().anyMatch(item -> item.getId().equals(rmUno.getId())));
-        assertTrue(rmsActivos.stream().anyMatch(item -> item.getId().equals(rmDos.getId())));
-        assertEquals(rmsActivos.size(), notificacionRepository.count());
-        for (Usuario rm : rmsActivos) {
-            List<Notificacion> propias = notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(rm);
-            assertEquals(1, propias.size(), "Cada RM debe recibir exactamente una notificación");
-            Notificacion notificacion = propias.get(0);
-            assertEquals("CURSO_SOLICITADO", notificacion.getTipo());
-            assertEquals(CategoriaNotificacion.CURSO, notificacion.getCategoria());
-            assertEquals("COLABORADOR_CURSO", notificacion.getEntidad());
-            assertEquals(solicitud.getId(), notificacion.getEntidadId());
-        }
+        // La solicitud se asigna a un RM activo (el de menos pendientes) y solo él recibe la notificación.
+        Usuario responsable = solicitud.getRmResponsable();
+        assertNotNull(responsable, "La solicitud debe quedar asignada a un RM");
+        assertTrue(responsable.getId().equals(rmUno.getId()) || responsable.getId().equals(rmDos.getId()),
+                "El responsable debe ser uno de los RM activos");
+        assertEquals(1, notificacionRepository.count());
+
+        List<Notificacion> propias = notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(responsable);
+        assertEquals(1, propias.size(), "El RM responsable recibe exactamente una notificación");
+        Notificacion notificacion = propias.get(0);
+        assertEquals("CURSO_SOLICITADO", notificacion.getTipo());
+        assertEquals(CategoriaNotificacion.CURSO, notificacion.getCategoria());
+        assertEquals("COLABORADOR_CURSO", notificacion.getEntidad());
+        assertEquals(solicitud.getId(), notificacion.getEntidadId());
+
+        Usuario otroRm = responsable.getId().equals(rmUno.getId()) ? rmDos : rmUno;
+        assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(otroRm).isEmpty(),
+                "El RM que no es responsable no recibe la notificación");
         assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(rmInactivo).isEmpty());
         assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaborador).isEmpty());
 
-        NotificacionView vista = notificacionService.listar(rmUno.getId()).get(0);
+        NotificacionView vista = notificacionService.listar(responsable.getId()).get(0);
         assertEquals("Nueva solicitud de curso", vista.titulo());
         assertEquals("Carla Quispe solicitó inscribirse al curso \"Docker esencial test\".", vista.descripcion());
         assertEquals("/rm/cursos/solicitudes", vista.url());

@@ -101,8 +101,9 @@ class PreRegistroColaboradorTests {
     void activarComoColaboradorGuardaDatosYCvYDejaElRegistroPendiente() throws Exception {
         String correo = correoNuevo();
         String token = invitar(correo, "COLABORADOR");
+        String dni = DniPrueba.unico();
 
-        mockMvc.perform(multipart("/activar-cuenta")
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", dni)
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .param("token", token).param("nombreCompleto", "Ana Perez")
                         .param("telefono", "987654321").param("descripcion", "Desarrolladora backend")
@@ -111,6 +112,9 @@ class PreRegistroColaboradorTests {
                 .andExpect(status().is3xxRedirection());
 
         Usuario u = usuarioRepository.findByCorreo(correo).orElseThrow();
+        // Sin DNI_API_KEY en las pruebas, el DNI queda guardado como "sin verificar".
+        assertThat(u.getDni()).isEqualTo(dni);
+        assertThat(u.isDniVerificado()).isFalse();
         assertThat(u.getTelefono()).isEqualTo("987654321");
         assertThat(u.getDescripcion()).isEqualTo("Desarrolladora backend");
         assertThat(u.getRegistroEstado()).isEqualTo(EstadoRegistro.PENDIENTE);
@@ -123,7 +127,7 @@ class PreRegistroColaboradorTests {
         String correo = correoNuevo();
         String token = invitar(correo, "COLABORADOR");
 
-        mockMvc.perform(multipart("/activar-cuenta")
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .param("token", token).param("nombreCompleto", "Ana Perez")
                         .param("telefono", "987654321")
@@ -149,7 +153,7 @@ class PreRegistroColaboradorTests {
     void unaFilaDeExperienciaIncompletaOConFechasInvertidasVuelveAlFormulario() throws Exception {
         String token = invitar(correoNuevo(), "COLABORADOR");
 
-        mockMvc.perform(multipart("/activar-cuenta")
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .param("token", token).param("nombreCompleto", "Ana Perez")
                         .param("telefono", "987654321")
@@ -170,7 +174,7 @@ class PreRegistroColaboradorTests {
         String correo = correoNuevo();
         String token = invitar(correo, "COLABORADOR");
 
-        mockMvc.perform(multipart("/activar-cuenta")
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .file(new MockMultipartFile("certificados[0].archivo", "c.pdf", "application/pdf", PDF))
                         .file(new MockMultipartFile("estudios[0].archivo", "e.pdf", "application/pdf", PDF))
@@ -208,7 +212,7 @@ class PreRegistroColaboradorTests {
         Habilidad java = habilidadDelCatalogo();
         String token = invitar(correoNuevo(), "COLABORADOR");
 
-        mockMvc.perform(multipart("/activar-cuenta")
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .file(new MockMultipartFile("certificados[0].archivo", "c.txt", "text/plain", PDF))
                         .param("token", token).param("nombreCompleto", "Ana Perez")
@@ -229,7 +233,7 @@ class PreRegistroColaboradorTests {
     void elTelefonoDeUnColaboradorSigueLaReglaDeSuPerfil() throws Exception {
         String token = invitar(correoNuevo(), "COLABORADOR");
 
-        mockMvc.perform(multipart("/activar-cuenta")
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .param("token", token).param("nombreCompleto", "Ana Perez")
                         .param("telefono", "+51987654321")
@@ -243,7 +247,7 @@ class PreRegistroColaboradorTests {
     void colaboradorSinCvOConTelefonoInvalidoVuelveAlFormulario() throws Exception {
         String token = invitar(correoNuevo(), "COLABORADOR");
 
-        mockMvc.perform(multipart("/activar-cuenta")
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .param("token", token).param("nombreCompleto", "Ana Perez")
                         .param("telefono", "12-34")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
@@ -258,7 +262,7 @@ class PreRegistroColaboradorTests {
         String correo = correoNuevo();
         String token = invitar(correo, "PROJECT_MANAGER");
 
-        mockMvc.perform(multipart("/activar-cuenta")
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .param("token", token).param("nombreCompleto", "Pablo Gomez")
                         .param("telefono", "987654321")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
@@ -546,7 +550,7 @@ class PreRegistroColaboradorTests {
 
     private ActivarEnvio enviarActivacion(String token, MockHttpSession sesion, String telefono, MockMultipartFile... archivos)
             throws Exception {
-        var peticion = multipart("/activar-cuenta").session(sesion)
+        var peticion = multipart("/activar-cuenta").param("dni", DniPrueba.unico()).session(sesion)
                 .param("token", token).param("nombreCompleto", "Ana Perez").param("telefono", telefono)
                 .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                 .param("aceptaPolitica", "true");
@@ -637,7 +641,7 @@ class PreRegistroColaboradorTests {
     void elNombreNoAdmiteEtiquetasHtml() throws Exception {
         String token = invitar(correoNuevo(), "PROJECT_MANAGER");
 
-        mockMvc.perform(multipart("/activar-cuenta").param("token", token)
+        mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico()).param("token", token)
                         .param("nombreCompleto", "<script>alert(1)</script>").param("telefono", "987654321")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                         .param("aceptaPolitica", "true"))

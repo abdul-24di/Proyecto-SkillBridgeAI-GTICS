@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "SkillBridge AI - API REST",
-    "description": "Colección de los 8 endpoints REST de SkillBridge AI (chat del PM, chat del colaborador y notificaciones).\n\nLa API usa la misma sesión que las vistas (Spring Security con formulario de login, cookie de sesión y token CSRF). Por eso cada carpeta empieza con: 1) abrir /login para leer el token, 2) iniciar sesión y 3) termina cerrando sesión.\n\nAntes de ejecutar:\n- Cambiar baseUrl si no es http://localhost:8080 (por ejemplo la IP de la nube).\n- Escribir en la variable 'password' la contraseña de los usuarios demo indicada en BDs_SQL/datos_demo_rm_proyectos.sql. No se guarda en la colección.\n- Cargar los datos demo (skillbridge_db_v4.sql + datos_demo_rm_proyectos.sql). proyectoId es el proyecto '[DEMO] Migracion Cloud' (id 8 con la carga del README); si cambia, actualizar la variable.\n\nEjecutar con Run collection en orden: las carpetas dependen de la sesión de su propio paso de login, y la carpeta del PM crea el chat del proyecto que luego usa el colaborador.",
+    "description": "Colección de los 19 endpoints REST de SkillBridge AI (chat del PM, del colaborador y del RM, asistente del colaborador y notificaciones).\n\nLa API usa la misma sesión que las vistas (Spring Security con formulario de login, cookie de sesión y token CSRF). Por eso cada carpeta empieza con: 1) abrir /login para leer el token, 2) iniciar sesión y 3) termina cerrando sesión.\n\nAntes de ejecutar:\n- Cambiar baseUrl si no es http://localhost:8080 (por ejemplo la IP de la nube).\n- Escribir en la variable 'password' la contraseña de los usuarios demo indicada en BDs_SQL/datos_demo_rm_proyectos.sql. No se guarda en la colección.\n- Cargar los datos demo (skillbridge_db_v4.sql + datos_demo_rm_proyectos.sql). proyectoId es el proyecto '[DEMO] Migracion Cloud' (id 8 con la carga del README); si cambia, actualizar la variable.\n\nLos ids de usuarios y del curso (colaboradorId, companeroId, colaboradorNoActivoId, rmId, cursoId) corresponden a esa misma carga de datos demo.\n\nEjecutar con Run collection en orden: las carpetas dependen de la sesión de su propio paso de login, y la carpeta del PM escribe los mensajes que luego leen el colaborador y el RM. La solicitud de curso del asistente da 200 solo la primera vez; después responde 400 porque la solicitud ya existe.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,6 +12,11 @@
     { "key": "correoRm", "value": "demo.rm@skillbridge.local" },
     { "key": "proyectoId", "value": "8" },
     { "key": "proyectoAjenoId", "value": "1" },
+    { "key": "colaboradorId", "value": "13" },
+    { "key": "companeroId", "value": "14" },
+    { "key": "colaboradorNoActivoId", "value": "16" },
+    { "key": "rmId", "value": "11" },
+    { "key": "cursoId", "value": "7" },
     { "key": "csrf", "value": "" },
     { "key": "notificacionId", "value": "" }
   ],
@@ -136,6 +141,89 @@
           ] } }]
         },
         {
+          "name": "GET contactos del proyecto (200)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/pm/api/chat/companeros?proyectoId={{proyectoId}}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const lista = pm.response.json();",
+            "pm.test('Incluye al RM y a colaboradores', () => { pm.expect(lista.map(c => c.rol)).to.include('Resource Manager'); pm.expect(lista.map(c => c.rol)).to.include('Colaborador'); });"
+          ] } }]
+        },
+        {
+          "name": "GET contactos de un proyecto ajeno (400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/pm/api/chat/companeros?proyectoId={{proyectoAjenoId}}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('No eres el PM de este proyecto.'));"
+          ] } }]
+        },
+        {
+          "name": "GET no leídos (200)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/pm/api/chat/noleidos?proyectoId={{proyectoId}}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Trae el contador del grupo', () => pm.expect(pm.response.json()).to.have.property('grupo'));"
+          ] } }]
+        },
+        {
+          "name": "GET no leídos con proyectoId inválido (400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/pm/api/chat/noleidos?proyectoId=abc" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('El valor del parámetro \"proyectoId\" no es válido.'));"
+          ] } }]
+        },
+        {
+          "name": "POST mensaje privado a un colaborador (200)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf}}" }],
+            "url": "{{baseUrl}}/pm/api/chat/enviar",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "proyectoId", "value": "{{proyectoId}}" },
+              { "key": "usuarioId", "value": "{{colaboradorId}}" },
+              { "key": "contenido", "value": "Hola, revisa tu tarea pendiente por favor." }
+            ] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Mensaje propio', () => pm.expect(pm.response.json().esPropio).to.eql(true));"
+          ] } }]
+        },
+        {
+          "name": "POST mensaje privado a un colaborador no activo (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf}}" }],
+            "url": "{{baseUrl}}/pm/api/chat/enviar",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "proyectoId", "value": "{{proyectoId}}" },
+              { "key": "usuarioId", "value": "{{colaboradorNoActivoId}}" },
+              { "key": "contenido", "value": "Hola" }
+            ] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Ese colaborador no está activo en este proyecto.'));"
+          ] } }]
+        },
+        {
+          "name": "POST mensaje privado al RM (200)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf}}" }],
+            "url": "{{baseUrl}}/pm/api/chat/enviar",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "proyectoId", "value": "{{proyectoId}}" },
+              { "key": "usuarioId", "value": "{{rmId}}" },
+              { "key": "contenido", "value": "Necesito un perfil QA para el proyecto." }
+            ] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+          ] } }]
+        },
+        {
           "name": "Cerrar sesión",
           "request": {
             "method": "POST",
@@ -225,6 +313,80 @@
           ] } }]
         },
         {
+          "name": "GET no leídos del RM con rol colaborador (403)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/rm/api/chat/noleidos" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 403 (rol no autorizado)', () => pm.response.to.have.status(403));"
+          ] } }]
+        },
+        {
+          "name": "GET contactos del proyecto (200)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/colaborador/api/chat/companeros?proyectoId={{proyectoId}}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const roles = pm.response.json().map(c => c.rol);",
+            "pm.test('Incluye al PM y no al RM', () => { pm.expect(roles).to.include('Project Manager'); pm.expect(roles).to.not.include('Resource Manager'); });"
+          ] } }]
+        },
+        {
+          "name": "GET contactos sin proyecto (400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/colaborador/api/chat/companeros" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Debes seleccionar un proyecto.'));"
+          ] } }]
+        },
+        {
+          "name": "GET no leídos (200)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/colaborador/api/chat/noleidos?proyectoId={{proyectoId}}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Trae el contador del grupo', () => pm.expect(pm.response.json()).to.have.property('grupo'));"
+          ] } }]
+        },
+        {
+          "name": "GET no leídos sin proyecto (400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/colaborador/api/chat/noleidos" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Debes seleccionar un proyecto.'));"
+          ] } }]
+        },
+        {
+          "name": "POST mensaje privado a un compañero (200)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf}}" }],
+            "url": "{{baseUrl}}/colaborador/api/chat/enviar",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "proyectoId", "value": "{{proyectoId}}" },
+              { "key": "usuarioId", "value": "{{companeroId}}" },
+              { "key": "contenido", "value": "¿Me pasas el diagrama de la arquitectura?" }
+            ] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Mensaje propio', () => pm.expect(pm.response.json().esPropio).to.eql(true));"
+          ] } }]
+        },
+        {
+          "name": "POST mensaje privado al RM (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf}}" }],
+            "url": "{{baseUrl}}/colaborador/api/chat/enviar",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "proyectoId", "value": "{{proyectoId}}" },
+              { "key": "usuarioId", "value": "{{rmId}}" },
+              { "key": "contenido", "value": "Hola" }
+            ] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Esa persona no es parte de este proyecto.'));"
+          ] } }]
+        },
+        {
           "name": "Cerrar sesión",
           "request": {
             "method": "POST",
@@ -309,6 +471,284 @@
           "request": { "method": "POST", "url": "{{baseUrl}}/api/notificaciones/leer-todas" },
           "event": [{ "listen": "test", "script": { "exec": [
             "pm.test('HTTP 403 (CSRF)', () => pm.response.to.have.status(403));"
+          ] } }]
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/logout",
+            "body": { "mode": "urlencoded", "urlencoded": [{ "key": "_csrf", "value": "{{csrf}}" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Chat del RM",
+      "item": [
+        {
+          "name": "Abrir login (obtiene token CSRF)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/login" }
+        },
+        {
+          "name": "Iniciar sesión como RM",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/login",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "username", "value": "{{correoRm}}" },
+              { "key": "password", "value": "{{password}}" },
+              { "key": "_csrf", "value": "{{csrf}}" }
+            ] }
+          }
+        },
+        {
+          "name": "GET no leídos por proyecto (200)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/rm/api/chat/noleidos" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Trae el proyecto del chat', () => pm.expect(pm.response.json()).to.have.property(pm.collectionVariables.get('proyectoId')));"
+          ] } }]
+        },
+        {
+          "name": "GET mensajes con el PM (200)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/rm/api/chat/mensajes?proyectoId={{proyectoId}}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Devuelve una lista JSON', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ] } }]
+        },
+        {
+          "name": "GET mensajes de un proyecto ajeno (400)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/rm/api/chat/mensajes?proyectoId={{proyectoAjenoId}}" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('No tienes acceso al chat de este proyecto.'));"
+          ] } }]
+        },
+        {
+          "name": "POST enviar mensaje al PM (200)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf}}" }],
+            "url": "{{baseUrl}}/rm/api/chat/enviar",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "proyectoId", "value": "{{proyectoId}}" },
+              { "key": "contenido", "value": "Te propongo a Elena para el perfil QA." }
+            ] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Mensaje propio', () => pm.expect(pm.response.json().esPropio).to.eql(true));"
+          ] } }]
+        },
+        {
+          "name": "POST enviar mensaje vacío (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf}}" }],
+            "url": "{{baseUrl}}/rm/api/chat/enviar",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "proyectoId", "value": "{{proyectoId}}" },
+              { "key": "contenido", "value": " " }
+            ] }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('El mensaje no puede estar vacío.'));"
+          ] } }]
+        },
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/logout",
+            "body": { "mode": "urlencoded", "urlencoded": [{ "key": "_csrf", "value": "{{csrf}}" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Asistente del colaborador",
+      "item": [
+        {
+          "name": "GET historial sin sesión (401)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/colaborador/api/asistente/historial" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 401 (sin sesión)', () => pm.response.to.have.status(401));"
+          ] } }]
+        },
+        {
+          "name": "Abrir login (obtiene token CSRF)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/login" }
+        },
+        {
+          "name": "Iniciar sesión como colaborador",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/login",
+            "body": { "mode": "urlencoded", "urlencoded": [
+              { "key": "username", "value": "{{correoColaborador}}" },
+              { "key": "password", "value": "{{password}}" },
+              { "key": "_csrf", "value": "{{csrf}}" }
+            ] }
+          }
+        },
+        {
+          "name": "POST consultar al asistente (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/colaborador/api/asistente/mensaje",
+            "body": { "mode": "raw", "raw": "{ \"mensaje\": \"¿Qué cursos de AWS me recomiendas?\" }" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "const r = pm.response.json();",
+            "pm.test('Trae respuesta y sugerencias', () => { pm.expect(r.respuesta).to.be.a('string'); pm.expect(r).to.have.property('iaDisponible'); pm.expect(r.cursos).to.be.an('array'); });"
+          ] } }]
+        },
+        {
+          "name": "POST consulta vacía (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/colaborador/api/asistente/mensaje",
+            "body": { "mode": "raw", "raw": "{ \"mensaje\": \"   \" }" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Escribe tu consulta.'));"
+          ] } }]
+        },
+        {
+          "name": "POST consulta con JSON mal formado (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/colaborador/api/asistente/mensaje",
+            "body": { "mode": "raw", "raw": "{ \"mensaje\": " }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Debes enviar los datos en formato JSON.'));"
+          ] } }]
+        },
+        {
+          "name": "GET historial (200)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/colaborador/api/asistente/historial" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Devuelve una lista', () => pm.expect(pm.response.json()).to.be.an('array'));"
+          ] } }]
+        },
+        {
+          "name": "POST limpiar historial (200)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "X-CSRF-TOKEN", "value": "{{csrf}}" }],
+            "url": "{{baseUrl}}/colaborador/api/asistente/historial/limpiar"
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+            "pm.test('Confirma el reinicio', () => pm.expect(pm.response.json().mensaje).to.eql('Conversación reiniciada.'));"
+          ] } }]
+        },
+        {
+          "name": "POST limpiar historial sin token CSRF (403)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/colaborador/api/asistente/historial/limpiar" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 403 (CSRF)', () => pm.response.to.have.status(403));"
+          ] } }]
+        },
+        {
+          "name": "POST solicitar curso (200 la primera vez)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/colaborador/api/asistente/acciones/solicitar-curso",
+            "body": { "mode": "raw", "raw": "{ \"cursoId\": {{cursoId}}, \"justificacion\": \"Lo necesito para la migración a la nube.\" }" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "// Con datos demo recién cargados responde 200; si la colección ya se ejecutó antes, la solicitud existe y responde 400.",
+            "pm.test('HTTP 200, o 400 si la solicitud ya existía', () => pm.expect(pm.response.code).to.be.oneOf([200, 400]));",
+            "if (pm.response.code === 200) { pm.test('Confirma el envío', () => pm.expect(pm.response.json().mensaje).to.include('pendiente de aprobación')); }"
+          ] } }]
+        },
+        {
+          "name": "POST solicitar el mismo curso otra vez (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/colaborador/api/asistente/acciones/solicitar-curso",
+            "body": { "mode": "raw", "raw": "{ \"cursoId\": {{cursoId}}, \"justificacion\": \"Otra vez.\" }" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Ya tienes una solicitud pendiente o una inscripción activa en este curso.'));"
+          ] } }]
+        },
+        {
+          "name": "POST solicitar curso sin cursoId (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/colaborador/api/asistente/acciones/solicitar-curso",
+            "body": { "mode": "raw", "raw": "{ \"justificacion\": \"Sin curso.\" }" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Debes seleccionar un curso.'));"
+          ] } }]
+        },
+        {
+          "name": "POST postularse a un proyecto donde ya está (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/colaborador/api/asistente/acciones/solicitar-proyecto",
+            "body": { "mode": "raw", "raw": "{ \"proyectoId\": {{proyectoId}}, \"habilidadId\": 26, \"mensaje\": \"Quiero participar.\" }" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Trae el motivo', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+          ] } }]
+        },
+        {
+          "name": "POST postularse sin proyectoId (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-CSRF-TOKEN", "value": "{{csrf}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseUrl}}/colaborador/api/asistente/acciones/solicitar-proyecto",
+            "body": { "mode": "raw", "raw": "{ \"habilidadId\": 26 }" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('HTTP 400', () => pm.response.to.have.status(400));",
+            "pm.test('Mensaje de error', () => pm.expect(pm.response.json().error).to.eql('Debes seleccionar un proyecto.'));"
           ] } }]
         },
         {

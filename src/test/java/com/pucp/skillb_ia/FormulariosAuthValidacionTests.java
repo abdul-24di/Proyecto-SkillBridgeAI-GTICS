@@ -47,7 +47,7 @@ class FormulariosAuthValidacionTests {
 
     @Test
     void activarCuentaConPasswordDebilYSinPoliticaMuestraErroresPorCampo() throws Exception {
-        mockMvc.perform(post("/activar-cuenta")
+        mockMvc.perform(post("/activar-cuenta").param("dni", DniPrueba.unico())
                         .param("token", tokenVigente())
                         .param("nombreCompleto", "Ab")
                         .param("password", "abcdefgh")
@@ -59,8 +59,22 @@ class FormulariosAuthValidacionTests {
     }
 
     @Test
-    void activarCuentaConPasswordsDistintasMarcaElError() throws Exception {
+    void activarCuentaSinDniOConDniInvalidoMarcaElErrorEnElCampo() throws Exception {
         mockMvc.perform(post("/activar-cuenta")
+                        .param("token", tokenVigente())
+                        .param("nombreCompleto", "Ana Perez"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "dni"));
+        mockMvc.perform(post("/activar-cuenta").param("dni", "1234")
+                        .param("token", tokenVigente())
+                        .param("nombreCompleto", "Ana Perez"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeHasFieldErrorCode("activarCuentaForm", "dni", "Pattern"));
+    }
+
+    @Test
+    void activarCuentaConPasswordsDistintasMarcaElError() throws Exception {
+        mockMvc.perform(post("/activar-cuenta").param("dni", DniPrueba.unico())
                         .param("token", tokenVigente())
                         .param("nombreCompleto", "Ana Perez")
                         .param("password", "Segura#123")

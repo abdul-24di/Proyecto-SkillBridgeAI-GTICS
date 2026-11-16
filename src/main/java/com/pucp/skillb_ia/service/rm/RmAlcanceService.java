@@ -25,22 +25,25 @@ public class RmAlcanceService {
         return usuario.getId();
     }
 
-    // El RM solo puede ver los proyectos donde él es el responsable.
+    // El RM ve los proyectos donde él es el responsable y los que aún no tienen responsable
+    // (así puede tomarlos; ver RmResponsableService.validarResponsable).
     public boolean puedeVer(Proyecto proyecto, Long rmId) {
         if (rmId == null) {
             return true;
         }
         Usuario responsable = proyecto.getRmRevisor();
-        return responsable != null && responsable.getId().equals(rmId);
+        return responsable == null || responsable.getId().equals(rmId);
     }
 
 
-    // Para certificados, formaciones y cursos el RM solo ve lo que se le asignó a él
+    // Para certificados, formaciones y cursos el RM ve lo que se le asignó a él. Lo que no tiene responsable
+    // (datos anteriores al reparto o creados cuando no había un RM activo) lo puede revisar cualquier RM,
+    // para que no quede sin revisión.
     public boolean puedeVerRevision(Usuario rmResponsable, Long rmId) {
         if (rmId == null) {
             return true;
         }
-        return rmResponsable != null && rmResponsable.getId().equals(rmId);
+        return rmResponsable == null || rmResponsable.getId().equals(rmId);
     }
 
 

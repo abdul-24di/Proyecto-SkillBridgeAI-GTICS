@@ -477,6 +477,10 @@ public class ColaboradorPerfilService {
         }
 
         String nombreLimpio = nombre.trim();
+        // La columna es VARCHAR(100): sin este control, un nombre largo terminaba en un error 500.
+        if (nombreLimpio.length() > 100) {
+            throw new IllegalArgumentException("El nombre de la habilidad no puede superar los 100 caracteres.");
+        }
 
         //El nombre es único en todo el catalogo. Si ya existe, se lo decimos al colaborador para que la busque en el
         //selector del catálogo.
@@ -754,6 +758,13 @@ public class ColaboradorPerfilService {
         }
         if (titulo == null || titulo.isBlank()) {
             throw new IllegalArgumentException("Indica el título o carrera.");
+        }
+        // Las columnas son VARCHAR(150): sin este control, un texto largo terminaba en un error 500.
+        if (institucion.trim().length() > 150) {
+            throw new IllegalArgumentException("La institución no puede superar los 150 caracteres.");
+        }
+        if (titulo.trim().length() > 150) {
+            throw new IllegalArgumentException("El título o carrera no puede superar los 150 caracteres.");
         }
 
         LocalDate fechaInicio = parseFechaObligatoria(fechaInicioTexto, "la fecha de inicio");

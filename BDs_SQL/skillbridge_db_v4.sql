@@ -53,6 +53,10 @@ CREATE TABLE usuario (
     nombre                      VARCHAR(150)  NULL,
     apellido                    VARCHAR(150)  NULL,
     telefono                    VARCHAR(20)   NULL,
+    -- DNI (8 dígitos). Se registra al activar la cuenta y no se puede editar. NULL en usuarios anteriores.
+    dni                         CHAR(8)       NULL UNIQUE,
+    -- TRUE si el DNI se confirmó con la API de consulta (verifica.id); FALSE si se guardó "sin verificar".
+    dni_verificado              BOOLEAN       NOT NULL DEFAULT FALSE,
     foto_url                    VARCHAR(500)  NULL,
 	descripcion                 VARCHAR(500)  NULL,
     cv_url                      VARCHAR(500)  NULL,

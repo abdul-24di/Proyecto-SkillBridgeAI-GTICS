@@ -292,6 +292,18 @@ public class ColaboradorForoService {
         auditoriaService.registrar(colaborador, "CREAR_PUBLICACION_FORO", "PUBLICACION_FORO",
                 publicacion.getId(),
                 "Publicó \"" + tituloValidado + "\" en el foro \"" + foro.getNombre() + "\".");
+
+        if (foro.getTipo() == TipoForo.PROYECTO && foro.getProyecto() != null
+                && foro.getProyecto().getPm() != null
+                && !foro.getProyecto().getPm().getId().equals(colaborador.getId())) {
+            notificacionService.crear(foro.getProyecto().getPm(), "PUBLICACION_FORO_PROYECTO",
+                    CategoriaNotificacion.MENSAJE,
+                    "Nueva publicación en el foro de tu proyecto",
+                    colaborador.getNombre() + " " + colaborador.getApellido()
+                            + " publicó \"" + tituloValidado + "\" en el foro de \""
+                            + foro.getProyecto().getNombre() + "\".",
+                    "FORO", foro.getId());
+        }
     }
 
     @Transactional

@@ -152,8 +152,18 @@ public class NotificacionService {
         if ("ASIGNACION".equals(item.getEntidad()) && item.getEntidadId() != null) {
             if (esColaborador) return "/colaborador/proyectos/detalle?asignacionId=" + item.getEntidadId();
             if (esPm) {
-
+                Optional<Asignacion> asigOpt = asignacionRepository.findById(item.getEntidadId());
+                if (asigOpt.isPresent() && asigOpt.get().getProyecto() != null) {
+                    return "/pm/proyectos/asignaciones?proyectoId=" + asigOpt.get().getProyecto().getId();
+                }
                 return "/pm/proyectos";
+            }
+            if (esRm) {
+                Optional<Asignacion> asigOpt = asignacionRepository.findById(item.getEntidadId());
+                if (asigOpt.isPresent() && asigOpt.get().getProyecto() != null) {
+                    return "/rm/asignaciones?proyectoId=" + asigOpt.get().getProyecto().getId();
+                }
+                return "/rm/asignaciones";
             }
         }
         if ("PROYECTO".equals(item.getEntidad()) && item.getEntidadId() != null) {
@@ -195,8 +205,10 @@ public class NotificacionService {
             Optional<Foro> foroOpt = foroRepository.findById(item.getEntidadId());
             if (foroOpt.isPresent()) {
                 Foro foro = foroOpt.get();
-                if (esPm && foro.getProyecto() != null) {
-                    return "/pm/foro/detalle?proyectoId=" + foro.getProyecto().getId();
+                if (esPm) {
+                    return foro.getProyecto() != null
+                            ? "/pm/foro/detalle?proyectoId=" + foro.getProyecto().getId()
+                            : "/pm/foro/detalle?foroId=" + foro.getId();
                 }
                 if (esRm) return "/rm/foros/detalle?id=" + foro.getId();
                 return "/colaborador/foros/detalle?foroId=" + foro.getId();
@@ -208,7 +220,9 @@ public class NotificacionService {
             if (documentoOpt.isPresent()) {
                 Documento documento = documentoOpt.get();
                 if (esPm) return "/pm/proyectos/detalle?id=" + documento.getProyecto().getId();
-                if (esColaborador) return "/colaborador/proyectos/detalle?asignacionId=" + documento.getProyecto().getId();
+                if (esColaborador) {
+                    return urlDetalleProyectoColaborador(documento.getProyecto(), item.getUsuario());
+                }
             }
         }
 
@@ -217,7 +231,9 @@ public class NotificacionService {
             if (actividadOpt.isPresent()) {
                 Actividad actividad = actividadOpt.get();
                 if (esPm) return "/pm/actividades?proyectoId=" + actividad.getProyecto().getId();
-                if (esColaborador) return "/colaborador/proyectos/detalle?asignacionId=" + actividad.getProyecto().getId();
+                if (esColaborador) {
+                    return urlDetalleProyectoColaborador(actividad.getProyecto(), item.getUsuario());
+                }
             }
         }
 
@@ -247,10 +263,27 @@ public class NotificacionService {
             }
 
 
+        if ("SOLICITUD_PERSONAL".equals(item.getEntidad()) && item.getEntidadId() != null) {
+            if (esRm) return "/rm/asignaciones/solicitudes-colaboradores/detalle?id=" + item.getEntidadId();
+            if (esPm) return "/pm/proyectos";
+        }
+
         if (esPm) return "/pm/dashboard";
         if (esRm) return "/rm/dashboard";
         if (esColaborador) return "/colaborador/dashboard";
         
         return "#";
+    }
+
+    private String urlDetalleProyectoColaborador(Proyecto proyecto, Usuario colaborador) {
+        if (proyecto == null || colaborador == null) {
+            return "/colaborador/proyectos";
+        }
+        return asignacionRepository.findByProyecto(proyecto).stream()
+                .filter(a -> a.getColaborador() != null && a.getColaborador().getId().equals(colaborador.getId()))
+                .filter(a -> a.getEstado() == EstadoAsignacion.ACTIVA || a.getEstado() == EstadoAsignacion.FINALIZADA)
+                .findFirst()
+                .map(a -> "/colaborador/proyectos/detalle?asignacionId=" + a.getId())
+                .orElse("/colaborador/proyectos");
     }
 }

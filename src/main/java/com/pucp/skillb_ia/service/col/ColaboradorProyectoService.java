@@ -453,9 +453,12 @@ public class ColaboradorProyectoService {
 
         String evidenciaUrl = guardarEvidencia(evidencia, actividad.getId());
 
+        boolean entregadaTarde = actividad.getFechaLimite() != null
+                && java.time.LocalDate.now().isAfter(actividad.getFechaLimite());
         actividad.setEvidenciaUrl(evidenciaUrl);
         actividad.setComentarioColaborador(comentario.trim());
         actividad.setEstado(EstadoActividad.EN_REVISION);
+        actividad.setEstadoEntrega(entregadaTarde ? EstadoEntrega.TARDIA : EstadoEntrega.A_TIEMPO);
         actividad.setFechaMarcadoRevision(LocalDateTime.now());
         actividadRepository.save(actividad);
 
@@ -468,7 +471,7 @@ public class ColaboradorProyectoService {
                 "ACTIVIDAD", actividad.getId());
 
         // Si la entregó después de la fecha límite, es un strike. No importa sí la entregó, esta fue entregada tarde.
-        if (java.time.LocalDate.now().isAfter(actividad.getFechaLimite())) {
+        if (entregadaTarde) {
             penalizacionService.aplicarStrikePorTardanza(actividad);
             penalizacionService.verificarYNotificarPorStrikes(colaborador, actividad.getProyecto());
         }

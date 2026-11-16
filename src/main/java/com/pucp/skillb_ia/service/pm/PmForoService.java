@@ -312,6 +312,15 @@ public class PmForoService {
         respuestaRepository.save(respuesta);
         auditoriaService.registrar(pm, "MARCAR_SOLUCION_FORO", "RESPUESTA_FORO",
                 respuesta.getId(), "PM marcó una respuesta como solución en \"" + publicacion.getTitulo() + "\".");
+
+        if (respuesta.getAutor() != null && !respuesta.getAutor().getId().equals(pm.getId())) {
+            notificacionService.crear(respuesta.getAutor(), "RESPUESTA_MARCADA_SOLUCION",
+                    CategoriaNotificacion.MENSAJE,
+                    "Tu respuesta fue marcada como solución",
+                    pm.getNombre() + " " + pm.getApellido()
+                            + " marcó tu respuesta como la solución de \"" + publicacion.getTitulo() + "\".",
+                    "FORO", publicacion.getForo().getId());
+        }
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

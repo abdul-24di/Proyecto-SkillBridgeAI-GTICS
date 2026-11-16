@@ -259,8 +259,15 @@ public class PmViewController {
             return "pm/pm-crear-proyecto";
         }
         try {
+            String descripcionFinal = form.getDescripcion() != null ? form.getDescripcion().trim() : "";
+            if (form.getHabilidadesExtra() != null && !form.getHabilidadesExtra().isBlank()) {
+                descripcionFinal += "\n\nHabilidades adicionales sugeridas: " + form.getHabilidadesExtra().trim();
+            }
+            if (form.getNotasRM() != null && !form.getNotasRM().isBlank()) {
+                descripcionFinal += "\n\nNotas para el RM: " + form.getNotasRM().trim();
+            }
             com.pucp.skillb_ia.model.Proyecto nuevo = pmProyectoService.crear(
-                    form.getNombre(), form.getDescripcion(), form.getFechaInicio(), form.getFechaFinEstimada(),
+                    form.getNombre(), descripcionFinal, form.getFechaInicio(), form.getFechaFinEstimada(),
                     form.getPrioridad(), form.getJustificacionPrioridad(), form.getPresupuestoSolicitado(), form.getJustificacionPresupuesto(),
                     form.getColaboradoresRequeridos() != null ? form.getColaboradoresRequeridos() : 1, null,
                     form.getHabilidadIds(), form.getNivelesRequeridos(), form.getCantidadesPersonas(), form.getHorasSemanalesHab(),
@@ -284,7 +291,7 @@ public class PmViewController {
             if (motivo != null && motivo.trim().length() > 500) {
                 throw new IllegalArgumentException("El motivo de cancelación no puede superar los 500 caracteres.");
             }
-            var resultado = pmProyectoService.cancelar(proyectoId, principal.getUsuario());
+            var resultado = pmProyectoService.cancelar(proyectoId, motivo, principal.getUsuario());
             ra.addFlashAttribute("success", CierreAsignacionesService.mensaje("cancelado", resultado));
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));

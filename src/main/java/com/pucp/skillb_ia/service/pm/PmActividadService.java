@@ -49,11 +49,12 @@ public class PmActividadService {
         this.notificacionService = notificacionService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PmActividadView> listarPorProyecto(Long proyectoId, Usuario pm) {
         Proyecto proyecto = obtenerProyectoDelPm(proyectoId, pm);
-        return actividadRepository.findByProyectoAndActivoTrueOrderByFechaLimiteAsc(proyecto)
-                .stream()
+        List<Actividad> actividades = actividadRepository.findByProyectoAndActivoTrueOrderByFechaLimiteAsc(proyecto);
+        penalizacionService.revisarVencidasSinEntregar(actividades);
+        return actividades.stream()
                 .map(PmActividadView::new)
                 .toList();
     }
@@ -137,6 +138,15 @@ public class PmActividadService {
 
         actividad.setEstado(EstadoActividad.COMPLETADA);
         actividad.setFechaEntrega(LocalDateTime.now());
+        if (actividad.getEstadoEntrega() == null) {
+            LocalDate fechaRef = actividad.getFechaMarcadoRevision() != null
+                    ? actividad.getFechaMarcadoRevision().toLocalDate()
+                    : LocalDate.now();
+            boolean tardia = actividad.getFechaLimite() != null && fechaRef.isAfter(actividad.getFechaLimite());
+            actividad.setEstadoEntrega(tardia
+                    ? com.pucp.skillb_ia.model.enums.EstadoEntrega.TARDIA
+                    : com.pucp.skillb_ia.model.enums.EstadoEntrega.A_TIEMPO);
+        }
         actividadRepository.save(actividad);
 
         auditoriaService.registrar(pm, "CONFIRMAR", "ACTIVIDAD", actividadId,

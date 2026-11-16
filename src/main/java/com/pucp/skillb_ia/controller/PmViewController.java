@@ -15,6 +15,7 @@ import com.pucp.skillb_ia.service.pm.PmDashboardService;
 import com.pucp.skillb_ia.service.pm.PmForoService;
 import com.pucp.skillb_ia.service.pm.PmPerfilService;
 import com.pucp.skillb_ia.service.pm.PmProyectoService;
+import com.pucp.skillb_ia.service.pm.PmReporteExportService;
 import com.pucp.skillb_ia.service.pm.PmReporteService;
 import com.pucp.skillb_ia.service.pm.PmSolicitudPersonalService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -49,6 +50,7 @@ public class PmViewController {
     private final PmAsignacionService pmAsignacionService;
     private final PmForoService pmForoService;
     private final PmReporteService pmReporteService;
+    private final PmReporteExportService pmReporteExportService;
     private final PmPerfilService pmPerfilService;
     private final PmChatService pmChatService;
     private final HabilidadRepository habilidadRepository;
@@ -61,6 +63,7 @@ public class PmViewController {
                             PmAsignacionService pmAsignacionService,
                             PmForoService pmForoService,
                             PmReporteService pmReporteService,
+                            PmReporteExportService pmReporteExportService,
                             PmPerfilService pmPerfilService,
                             PmChatService pmChatService,
                             HabilidadRepository habilidadRepository,
@@ -72,6 +75,7 @@ public class PmViewController {
         this.pmAsignacionService = pmAsignacionService;
         this.pmForoService = pmForoService;
         this.pmReporteService = pmReporteService;
+        this.pmReporteExportService = pmReporteExportService;
         this.pmPerfilService = pmPerfilService;
         this.pmChatService = pmChatService;
         this.habilidadRepository = habilidadRepository;
@@ -811,15 +815,94 @@ public class PmViewController {
 
     @GetMapping({"/reportes", "/pm-reportes.html"})
     public String reportes(@AuthenticationPrincipal UsuarioDetails principal,
+                           @RequestParam(required = false) String periodo,
+                           @RequestParam(required = false) String hasta,
+                           @RequestParam(required = false) String mesDesde,
+                           @RequestParam(required = false) String anioDesde,
+                           @RequestParam(required = false) String mesHasta,
+                           @RequestParam(required = false) String anioHasta,
+                           @RequestParam(defaultValue = "false") boolean todoPeriodo,
+                           @RequestParam(required = false) Long proyecto,
+                           @RequestParam(required = false) String estado,
+                           @RequestParam(required = false) String prioridad,
+                           @RequestParam(required = false) String paginaProyectos,
+                           @RequestParam(required = false) String paginaColaboradores,
                            @RequestParam(required = false) Integer pagina,
                            Model model) {
         Usuario pm = principal.getUsuario();
-        // Paginación en el servidor (antes pm-reportes.js), 6 tarjetas por página.
+        String desdeCompuesto = pmReporteService.componerPeriodo(anioDesde, mesDesde, periodo);
+        String hastaCompuesto = pmReporteService.componerPeriodo(anioHasta, mesHasta, hasta);
+        PmReporteService.FiltrosConsolidado filtros = pmReporteService.normalizarFiltrosConsolidado(
+                desdeCompuesto, hastaCompuesto, todoPeriodo, proyecto, estado, prioridad);
+        String pagProy = paginaProyectos != null ? paginaProyectos : (pagina != null ? pagina.toString() : null);
+        PmReporteService.PaginaConsolidado paginaConsolidado = pmReporteService.listarPaginaConsolidado(
+                pm, filtros, pagProy, paginaColaboradores);
+        var reporte = paginaConsolidado.reporte();
+
+        model.addAttribute("reporte", reporte);
+        model.addAttribute("paginaProyectos", paginaConsolidado.proyectos());
+        model.addAttribute("paginaColaboradores", paginaConsolidado.colaboradores());
+        model.addAttribute("proyectosFiltro", pmReporteService.listarProyectos(pm));
+        model.addAttribute("estadosFiltro", pmReporteService.listarEstados());
+        model.addAttribute("prioridadesFiltro", pmReporteService.listarPrioridades());
+        model.addAttribute("aniosFiltro", pmReporteService.listarAnios(reporte));
+        model.addAttribute("mesesFiltro", pmReporteService.listarMeses());
+        model.addAttribute("mesActual", java.time.YearMonth.now().toString());
+        model.addAttribute("maximoMesesRango", PmReporteService.MAXIMO_MESES_RANGO);
+        model.addAttribute("tamanioPagina", PmReporteService.TAMANIO_PAGINA);
+        model.addAttribute("columnasProyecto", PmReporteExportService.COLUMNAS_PROYECTO);
+        model.addAttribute("columnasDetalle", PmReporteExportService.COLUMNAS_DETALLE);
+        model.addAttribute("metricasResumen", PmReporteExportService.METRICAS);
+
+        // Atributos de compatibilidad por si se consultan las tarjetas de portafolio
         var paginaReportes = Paginador.paginar(pmProyectoService.listar(pm), pagina, 6);
         model.addAttribute("paginaReportes", paginaReportes);
         model.addAttribute("proyectos", paginaReportes.getContent());
         model.addAttribute("pm", pm);
         return "pm/pm-reportes";
+    }
+
+    @GetMapping("/reportes/consolidado/excel")
+    public Object exportarConsolidadoExcel(
+            @AuthenticationPrincipal UsuarioDetails principal,
+            @RequestParam(required = false) String periodo,
+            @RequestParam(required = false) String hasta,
+            @RequestParam(defaultValue = "false") boolean todoPeriodo,
+            @RequestParam(required = false) Long proyecto,
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) String prioridad,
+            @RequestParam(defaultValue = "false") boolean personalizado,
+            @RequestParam(defaultValue = "false") boolean resumen,
+            @RequestParam(name = "hojas", required = false) List<String> hojas,
+            @RequestParam(name = "colProyecto", required = false) List<Integer> columnasProyecto,
+            @RequestParam(name = "colDetalle", required = false) List<Integer> columnasDetalle,
+            RedirectAttributes ra) {
+        Usuario pm = principal.getUsuario();
+        PmReporteService.FiltrosConsolidado filtros = pmReporteService.normalizarFiltrosConsolidado(
+                periodo, hasta, todoPeriodo, proyecto, estado, prioridad);
+        try {
+            PmReporteExportService.OpcionesExcel opciones = PmReporteExportService.OpcionesExcel.normalizar(
+                    personalizado, resumen, hojas, columnasProyecto, columnasDetalle);
+            var reporte = pmReporteService.generarConsolidado(
+                    pm, filtros.periodo(), filtros.hasta(), filtros.todoPeriodo(),
+                    filtros.proyecto(), filtros.estado(), filtros.prioridad());
+            byte[] contenido = pmReporteExportService.crearExcel(reporte, opciones);
+            String archivo = pmReporteExportService.nombreArchivo(reporte) + ".xlsx";
+            return org.springframework.http.ResponseEntity.ok()
+                    .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
+                    .contentType(org.springframework.http.MediaType.parseMediaType(com.pucp.skillb_ia.util.ReporteExcel.TIPO_CONTENIDO))
+                    .body(contenido);
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", mensajeSeguro(e));
+            return org.springframework.web.util.UriComponentsBuilder.fromPath("redirect:/pm/reportes")
+                    .queryParam("periodo", filtros.periodo())
+                    .queryParamIfPresent("hasta", java.util.Optional.ofNullable(filtros.hasta()))
+                    .queryParam("todoPeriodo", filtros.todoPeriodo())
+                    .queryParamIfPresent("proyecto", java.util.Optional.ofNullable(filtros.proyecto()))
+                    .queryParamIfPresent("estado", java.util.Optional.ofNullable(filtros.estado()))
+                    .queryParamIfPresent("prioridad", java.util.Optional.ofNullable(filtros.prioridad()))
+                    .build().toUriString();
+        }
     }
 
     @GetMapping("/reportes/excel")

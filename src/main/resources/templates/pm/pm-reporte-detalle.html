@@ -54,6 +54,7 @@
     <div class="report-print-date text-secondary small" style="display:none" th:text="${'Generado el ' + #temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}">Generado el</div>
   </div>
   <div class="report-actions">
+    <a class="btn btn-outline-secondary" th:href="@{/pm/reportes(proyecto=${reporte.proyecto.id},todoPeriodo=true)}">Reporte consolidado</a>
     <a class="btn btn-outline-success" th:href="@{/pm/reportes/excel(proyectoId=${reporte.proyecto.id},mes=${mes})}">Descargar Excel</a>
     <button class="btn btn-outline-primary" onclick="window.print()">Exportar PDF</button>
   </div>

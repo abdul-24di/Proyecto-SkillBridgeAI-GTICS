@@ -57,6 +57,8 @@ public class PmViewController {
     private final UsuarioRepository usuarioRepository;
     private final com.pucp.skillb_ia.service.pm.PmDashboardService pmDashboardService;
     private final PmSolicitudPersonalService pmSolicitudPersonalService;
+    private final com.pucp.skillb_ia.service.pm.PmAsistenteService pmAsistenteService;
+    private final com.pucp.skillb_ia.service.pm.PmAsistenteContextoService pmAsistenteContextoService;
 
     public PmViewController(PmProyectoService pmProyectoService,
                             PmActividadService pmActividadService,
@@ -69,7 +71,9 @@ public class PmViewController {
                             HabilidadRepository habilidadRepository,
                             UsuarioRepository usuarioRepository,
                             com.pucp.skillb_ia.service.pm.PmDashboardService pmDashboardService,
-                            PmSolicitudPersonalService pmSolicitudPersonalService) {
+                            PmSolicitudPersonalService pmSolicitudPersonalService,
+                            com.pucp.skillb_ia.service.pm.PmAsistenteService pmAsistenteService,
+                            com.pucp.skillb_ia.service.pm.PmAsistenteContextoService pmAsistenteContextoService) {
         this.pmProyectoService = pmProyectoService;
         this.pmActividadService = pmActividadService;
         this.pmAsignacionService = pmAsignacionService;
@@ -82,6 +86,8 @@ public class PmViewController {
         this.usuarioRepository = usuarioRepository;
         this.pmDashboardService = pmDashboardService;
         this.pmSolicitudPersonalService = pmSolicitudPersonalService;
+        this.pmAsistenteService = pmAsistenteService;
+        this.pmAsistenteContextoService = pmAsistenteContextoService;
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
@@ -1070,9 +1076,88 @@ public class PmViewController {
     }
 
     @GetMapping({"/asistente", "/pm-asistente-ia.html"})
-    public String asistente(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
-        model.addAttribute("pm", principal.getUsuario());
+    public String asistente(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                            @AuthenticationPrincipal UsuarioDetails principal,
+                            jakarta.servlet.http.HttpSession session,
+                            Model model) {
+        cargarVistaAsistente(principal.getUsuario(), proyectoId, session, model);
         return "pm/pm-asistente-ia";
+    }
+
+    @PostMapping("/asistente/mensaje")
+    public String enviarMensajeAsistente(
+            @Valid @ModelAttribute("pmAsistenteMensajeForm") PmAsistenteMensajeForm form,
+            BindingResult result,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            jakarta.servlet.http.HttpSession session,
+            Model model,
+            RedirectAttributes ra) {
+        Usuario pm = principal.getUsuario();
+        if (result.hasErrors()) {
+            cargarVistaAsistente(pm, form.getProyectoId(), session, model);
+            return "pm/pm-asistente-ia";
+        }
+        try {
+            pmAsistenteService.responder(pm.getId(), form.getProyectoId(), form.getMensaje(), session);
+        } catch (IllegalArgumentException e) {
+            ra.addFlashAttribute("error", mensajeSeguro(e));
+        }
+        return form.getProyectoId() != null
+                ? "redirect:/pm/asistente?proyectoId=" + form.getProyectoId()
+                : "redirect:/pm/asistente";
+    }
+
+    @PostMapping("/asistente/limpiar")
+    public String limpiarAsistente(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
+                                   jakarta.servlet.http.HttpSession session,
+                                   RedirectAttributes ra) {
+        pmAsistenteService.limpiarHistorial(session);
+        ra.addFlashAttribute("success", "Conversación con el Asistente IA reiniciada.");
+        return proyectoId != null ? "redirect:/pm/asistente?proyectoId=" + proyectoId : "redirect:/pm/asistente";
+    }
+
+    @PostMapping("/asistente/proponer")
+    public String proponerDesdeAsistente(
+            @Valid @ModelAttribute("pmProponerAsignacionForm") PmProponerAsignacionForm form,
+            BindingResult result,
+            @RequestParam(value = "contextoProyectoId", required = false) Long contextoProyectoId,
+            @AuthenticationPrincipal UsuarioDetails principal,
+            RedirectAttributes ra) {
+        if (result.hasErrors()) {
+            ra.addFlashAttribute("error", unirErrores(result, "Revisa los datos de la propuesta al proyecto."));
+            return contextoProyectoId != null
+                    ? "redirect:/pm/asistente?proyectoId=" + contextoProyectoId
+                    : "redirect:/pm/asistente";
+        }
+        try {
+            pmAsistenteService.confirmarPropuestaCandidato(
+                    principal.getUsuario().getId(),
+                    form.getProyectoId(),
+                    form.getColaboradorId(),
+                    form.getHorasSemanales(),
+                    form.getMensajeSolicitud());
+            ra.addFlashAttribute("success",
+                    "Propuesta de asignación enviada correctamente. Quedará pendiente de aprobación del Resource Manager.");
+        } catch (IllegalArgumentException | IllegalStateException | SecurityException e) {
+            ra.addFlashAttribute("error", mensajeSeguro(e));
+        }
+        return contextoProyectoId != null
+                ? "redirect:/pm/asistente?proyectoId=" + contextoProyectoId
+                : "redirect:/pm/asistente";
+    }
+
+    private void cargarVistaAsistente(Usuario pm, Long proyectoId, jakarta.servlet.http.HttpSession session, Model model) {
+        model.addAttribute("pm", pm);
+        model.addAttribute("proyectos", pmProyectoService.listar(pm));
+        model.addAttribute("proyectoIdSeleccionado", proyectoId);
+        model.addAttribute("kpis", pmAsistenteContextoService.obtenerKpis(pm));
+        model.addAttribute("consultasRapidas", pmAsistenteContextoService.listarConsultasRapidas(pm, proyectoId));
+        model.addAttribute("turnos", pmAsistenteService.obtenerTurnos(session));
+        if (!model.containsAttribute("pmAsistenteMensajeForm")) {
+            PmAsistenteMensajeForm form = new PmAsistenteMensajeForm();
+            form.setProyectoId(proyectoId);
+            model.addAttribute("pmAsistenteMensajeForm", form);
+        }
     }
 
     private static String unirErrores(BindingResult result, String porDefecto) {

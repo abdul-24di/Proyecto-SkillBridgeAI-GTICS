@@ -154,6 +154,15 @@ class ReportesTests {
         autenticar(pm);
         assertThat(html("/pm/reportes/detalle?proyectoId=" + proyecto.getId())).contains("Avance y puntualidad");
         excel("/pm/reportes/excel?proyectoId=" + proyecto.getId());
+
+        // Reporte consolidado del PM (estilo RM) con filtros y exportación Excel personalizable
+        assertThat(html("/pm/reportes?todoPeriodo=true&proyecto=" + proyecto.getId()))
+                .contains("Reporte de Proyectos y Desempeño")
+                .contains("Comparativa por proyecto")
+                .contains("Desempeño y puntualidad por colaborador")
+                .contains(proyecto.getNombre());
+        excel("/pm/reportes/consolidado/excel?todoPeriodo=true&proyecto=" + proyecto.getId());
+        excel("/pm/reportes/consolidado/excel?personalizado=true&resumen=true&hojas=proyectos&colProyecto=0&colProyecto=3&colProyecto=8");
     }
 
     // ---------- Colaborador ----------

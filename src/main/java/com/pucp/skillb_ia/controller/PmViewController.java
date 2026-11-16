@@ -862,8 +862,8 @@ public class PmViewController {
         return "pm/pm-reportes";
     }
 
-    @GetMapping("/reportes/consolidado/excel")
-    public Object exportarConsolidadoExcel(
+    @GetMapping({"/reportes/consolidado/excel", "/reportes/consolidado/pdf", "/reportes/consolidado/exportar"})
+    public Object exportarConsolidado(
             @AuthenticationPrincipal UsuarioDetails principal,
             @RequestParam(required = false) String periodo,
             @RequestParam(required = false) String hasta,
@@ -873,9 +873,11 @@ public class PmViewController {
             @RequestParam(required = false) String prioridad,
             @RequestParam(defaultValue = "false") boolean personalizado,
             @RequestParam(defaultValue = "false") boolean resumen,
+            @RequestParam(defaultValue = "excel") String formato,
             @RequestParam(name = "hojas", required = false) List<String> hojas,
             @RequestParam(name = "colProyecto", required = false) List<Integer> columnasProyecto,
             @RequestParam(name = "colDetalle", required = false) List<Integer> columnasDetalle,
+            HttpServletRequest request,
             RedirectAttributes ra) {
         Usuario pm = principal.getUsuario();
         PmReporteService.FiltrosConsolidado filtros = pmReporteService.normalizarFiltrosConsolidado(
@@ -886,6 +888,16 @@ public class PmViewController {
             var reporte = pmReporteService.generarConsolidado(
                     pm, filtros.periodo(), filtros.hasta(), filtros.todoPeriodo(),
                     filtros.proyecto(), filtros.estado(), filtros.prioridad());
+            boolean esPdf = "pdf".equalsIgnoreCase(formato)
+                    || (request.getRequestURI() != null && request.getRequestURI().endsWith("/pdf"));
+            if (esPdf) {
+                byte[] contenido = pmReporteExportService.crearPdf(reporte, opciones);
+                String archivo = pmReporteExportService.nombreArchivo(reporte) + ".pdf";
+                return org.springframework.http.ResponseEntity.ok()
+                        .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
+                        .contentType(org.springframework.http.MediaType.parseMediaType(PmReporteExportService.TIPO_CONTENIDO_PDF))
+                        .body(contenido);
+            }
             byte[] contenido = pmReporteExportService.crearExcel(reporte, opciones);
             String archivo = pmReporteExportService.nombreArchivo(reporte) + ".xlsx";
             return org.springframework.http.ResponseEntity.ok()
@@ -918,6 +930,22 @@ public class PmViewController {
         return org.springframework.http.ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
                 .contentType(org.springframework.http.MediaType.parseMediaType(com.pucp.skillb_ia.util.ReporteExcel.TIPO_CONTENIDO))
+                .body(contenido);
+    }
+
+    @GetMapping("/reportes/pdf")
+    public org.springframework.http.ResponseEntity<byte[]> reportePdf(@RequestParam("proyectoId") Long proyectoId,
+                                                                      @RequestParam(required = false) String mes,
+                                                                      @AuthenticationPrincipal UsuarioDetails principal) {
+        Usuario pm = principal.getUsuario();
+        java.time.YearMonth periodo = (mes == null || mes.isBlank()) ? null : com.pucp.skillb_ia.util.Periodo.leer(mes);
+        var reporte = pmReporteService.obtener(proyectoId, pm);
+        var avance = pmReporteService.avance(proyectoId, pm, periodo);
+        byte[] contenido = pmReporteExportService.crearPdfDetalle(reporte, avance);
+        String archivo = pmReporteExportService.nombreArchivoDetalle(reporte, periodo == null ? null : periodo.toString()) + ".pdf";
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType(PmReporteExportService.TIPO_CONTENIDO_PDF))
                 .body(contenido);
     }
 

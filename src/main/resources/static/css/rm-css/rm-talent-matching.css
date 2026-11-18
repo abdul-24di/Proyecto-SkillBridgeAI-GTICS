@@ -261,6 +261,8 @@
 .rm-ai-messages {
   max-height: 460px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   display: flex;
   flex-direction: column;
   gap: .85rem;

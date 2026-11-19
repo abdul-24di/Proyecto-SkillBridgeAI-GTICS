@@ -22,6 +22,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.http.HttpMethod;
+import static org.mockito.ArgumentMatchers.startsWith;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -45,7 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class DniTests {
 
-    private static final String URL = "https://api.verifica.id/v2/consulta/personas";
+    private static final String URL = "https://dniruc.apisperu.com/api/v1/dni";
 
     @Autowired private WebApplicationContext context;
     @Autowired private UsuarioRepository usuarioRepository;
@@ -90,8 +92,9 @@ class DniTests {
     @Test
     void conLaApiConfirmaElDniSiElNombreCoincide() {
         RestTemplate api = mock(RestTemplate.class);
-        when(api.postForEntity(eq(URL), any(), eq(Map.class))).thenReturn(ResponseEntity.ok(
-                Map.of("data", Map.of("nombres", "LUIS ABDUL", "apellido_paterno", "PAREDES", "apellido_materno", "DÍAZ"))));
+        when(api.exchange(startsWith(URL + "/"), eq(HttpMethod.GET), any(), eq(Map.class))).thenReturn(ResponseEntity.ok(
+                Map.of("success", true, "nombres", "LUIS ABDUL", "apellidoPaterno", "PAREDES", "apellidoMaterno", "DÍAZ")));
+
         DniService conApi = new DniService(usuarioRepository, api, "clave-de-prueba", URL);
 
         assertThat(conApi.validar(DniPrueba.unico(), "Luis Paredes")).isTrue();
@@ -107,7 +110,7 @@ class DniTests {
     @Test
     void siLaApiNoEncuentraElDniSeRechaza() {
         RestTemplate api = mock(RestTemplate.class);
-        when(api.postForEntity(anyString(), any(), eq(Map.class)))
+        when(api.exchange(anyString(), eq(HttpMethod.GET), any(), eq(Map.class)))
                 .thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
         DniService conApi = new DniService(usuarioRepository, api, "clave-de-prueba", URL);
 
@@ -119,10 +122,10 @@ class DniTests {
     @Test
     void siLaApiFallaNoSeBloqueaElRegistro() {
         RestTemplate sinSaldo = mock(RestTemplate.class);
-        when(sinSaldo.postForEntity(anyString(), any(), eq(Map.class)))
+        when(sinSaldo.exchange(anyString(), eq(HttpMethod.GET), any(), eq(Map.class)))
                 .thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
         RestTemplate caida = mock(RestTemplate.class);
-        when(caida.postForEntity(anyString(), any(), eq(Map.class)))
+        when(caida.exchange(anyString(), eq(HttpMethod.GET), any(), eq(Map.class)))
                 .thenThrow(new ResourceAccessException("timeout"));
 
         assertThat(new DniService(usuarioRepository, sinSaldo, "clave", URL).validar(DniPrueba.unico(), "Ana Perez")).isFalse();

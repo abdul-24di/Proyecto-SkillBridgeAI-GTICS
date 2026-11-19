@@ -7,13 +7,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -49,11 +48,11 @@ public class DniService {
 
     public DniService(UsuarioRepository usuarioRepository, RestTemplate restTemplate,
                       @Value("${app.dni.api-key:}") String apiKey,
-                      @Value("${app.dni.url:https://api.verifica.id/v2/consulta/personas}") String url) {
+                      @Value("${app.dni.url:https://dniruc.apisperu.com/api/v1/dni}") String url) {
         this.usuarioRepository = usuarioRepository;
         this.restTemplate = restTemplate;
         this.apiKey = apiKey == null ? "" : apiKey.trim();
-        this.url = url;
+        this.url = url == null ? "" : url.trim().replaceAll("/+$", "");
         if (this.apiKey.isEmpty()) {
             log.warn("[DNI] Falta la variable de entorno DNI_API_KEY: los DNI se guardarán sin verificar.");
         }
@@ -111,7 +110,7 @@ public class DniService {
     }
 
     /**
-     * Consulta el DNI en verifica.id: POST con el parámetro "dni" y la cabecera Authorization: Bearer {API-KEY}.
+     * Consulta el DNI en apisperu.com: GET {url}/{dni} con Authorization: Bearer {token}.
      * Nunca lanza excepciones: cualquier problema de la API se devuelve como NO_DISPONIBLE.
      */
     public Consulta consultar(String dni) {
@@ -120,15 +119,23 @@ public class DniService {
         }
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(apiKey);
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("dni", dni);
+        headers.setAccept(List.of(MediaType.APPLICATION_JSON));
 
         try {
-            ResponseEntity<Map> respuesta = restTemplate.postForEntity(url, new HttpEntity<>(body, headers), Map.class);
-            String nombre = extraerNombreCompleto(respuesta.getBody());
+            ResponseEntity<Map> respuesta = restTemplate.exchange(url + "/" + dni, HttpMethod.GET,
+                    new HttpEntity<>(headers), Map.class);
+            Map<String, Object> cuerpo = respuesta.getBody();
+            if (cuerpo != null && Boolean.FALSE.equals(cuerpo.get("success"))) {
+                String mensaje = cuerpo.get("message") instanceof String m ? m.toLowerCase(Locale.ROOT) : "";
+                if (mensaje.contains("token") || mensaje.contains("autentic") || mensaje.contains("unauth")
+                        || mensaje.contains("limite") || mensaje.contains("límite") || mensaje.contains("plan")) {
+                    log.warn("[DNI] La API rechazó la consulta ({}): el DNI se guardará sin verificar.", mensaje);
+                    return new Consulta(EstadoConsulta.NO_DISPONIBLE, null);
+                }
+                return new Consulta(EstadoConsulta.NO_ENCONTRADO, null);
+            }
+            String nombre = extraerNombreCompleto(cuerpo);
             if (nombre == null || nombre.isBlank()) {
-                // Respondió sin datos de la persona: el DNI no existe (o la respuesta no trae el nombre).
                 return new Consulta(EstadoConsulta.NO_ENCONTRADO, null);
             }
             return new Consulta(EstadoConsulta.ENCONTRADO, nombre);
@@ -136,7 +143,6 @@ public class DniService {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
                 return new Consulta(EstadoConsulta.NO_ENCONTRADO, null);
             }
-            // 401/403 (key inválida o sin saldo), 429 (límite), etc.: no es culpa del usuario.
             log.warn("[DNI] La API respondió {}: el DNI se guardará sin verificar.", e.getStatusCode());
             return new Consulta(EstadoConsulta.NO_DISPONIBLE, null);
         } catch (RestClientException e) {

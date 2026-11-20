@@ -555,6 +555,113 @@ class AdminPerfilYCatalogosTests {
         return sesion;
     }
 
+    // ---- CRUD de cursos (TASK-005) ----
+
+    @Test
+    void crearUnCursoRechazaNombreVacioOInicioPasadoYAuditaElValido() {
+        Curso sinNombre = cursoAutodidacta("  ");
+        sinNombre.setHoras(new BigDecimal("4"));
+        assertThatThrownBy(() -> adminCursoService.crear(sinNombre, admin))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        Curso pasado = cursoConFechas("Curso pasado " + UUID.randomUUID(),
+                java.time.LocalDate.now().minusDays(1), java.time.LocalDate.now().plusDays(5));
+        assertThatThrownBy(() -> adminCursoService.crear(pasado, admin))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        Curso valido = cursoConFechas("Curso nuevo " + UUID.randomUUID(),
+                java.time.LocalDate.now(), java.time.LocalDate.now().plusDays(10));
+        adminCursoService.crear(valido, admin);
+
+        Curso guardado = cursoRepository.findById(valido.getId()).orElseThrow();
+        assertThat(guardado.isActivo()).isTrue();
+        assertThat(guardado.getCreadoPor().getId()).isEqualTo(admin.getId());
+        assertThat(logAuditoriaRepository.findAll()).anySatisfy(log -> {
+            assertThat(log.getAccion()).isEqualTo("CREAR");
+            assertThat(log.getEntidad()).isEqualTo("CURSO");
+            assertThat(log.getEntidadId()).isEqualTo(valido.getId());
+        });
+    }
+
+    @Test
+    void editarUnCursoActualizaSusCamposYRegistraLaAuditoria() {
+        Curso curso = cursoAutodidacta("Curso a editar " + UUID.randomUUID());
+        curso.setHoras(new BigDecimal("4"));
+        adminCursoService.crear(curso, admin);
+
+        java.time.LocalDate inicio = java.time.LocalDate.now().plusDays(2);
+        Curso datos = cursoConFechas("Curso editado " + UUID.randomUUID(), inicio, inicio.plusDays(7));
+        datos.setDescripcion("Nueva descripción");
+        datos.setCategoria("Gestión");
+        datos.setModalidad(ModalidadCurso.PRESENCIAL);
+        datos.setDias("Lunes y miércoles");
+        datos.setHoras(new BigDecimal("12.5"));
+        adminCursoService.editar(curso.getId(), datos, admin);
+
+        Curso editado = cursoRepository.findById(curso.getId()).orElseThrow();
+        assertThat(editado.getNombre()).isEqualTo(datos.getNombre());
+        assertThat(editado.getDescripcion()).isEqualTo("Nueva descripción");
+        assertThat(editado.getCategoria()).isEqualTo("Gestión");
+        assertThat(editado.getModalidad()).isEqualTo(ModalidadCurso.PRESENCIAL);
+        assertThat(editado.isAutodidacta()).isFalse();
+        assertThat(editado.getDias()).isEqualTo("Lunes y miércoles");
+        assertThat(editado.getFechaInicio()).isEqualTo(inicio);
+        assertThat(editado.getFechaFin()).isEqualTo(inicio.plusDays(7));
+        assertThat(editado.getHoras()).isEqualByComparingTo("12.5");
+        assertThat(logAuditoriaRepository.findAll()).anySatisfy(log -> {
+            assertThat(log.getAccion()).isEqualTo("EDITAR");
+            assertThat(log.getEntidadId()).isEqualTo(curso.getId());
+        });
+    }
+
+    @Test
+    void editarRechazaUnCursoInexistenteOFechasInvertidas() {
+        Curso curso = cursoAutodidacta("Curso fechas " + UUID.randomUUID());
+        curso.setHoras(new BigDecimal("4"));
+        adminCursoService.crear(curso, admin);
+
+        Curso invertido = cursoConFechas(curso.getNombre(),
+                java.time.LocalDate.now().plusDays(10), java.time.LocalDate.now().plusDays(3));
+        assertThatThrownBy(() -> adminCursoService.editar(curso.getId(), invertido, admin))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        Curso datos = cursoAutodidacta("Otro");
+        datos.setHoras(new BigDecimal("4"));
+        assertThatThrownBy(() -> adminCursoService.editar(-1L, datos, admin))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void desactivarUnCursoLoOcultaDeLosActivosYReactivarloLoDevuelve() {
+        Curso curso = cursoAutodidacta("Curso alternar " + UUID.randomUUID());
+        curso.setHoras(new BigDecimal("4"));
+        adminCursoService.crear(curso, admin);
+
+        adminCursoService.alternarEstado(curso.getId(), admin);
+        assertThat(cursoRepository.findById(curso.getId()).orElseThrow().isActivo()).isFalse();
+        assertThat(cursoRepository.findByActivoTrueOrderByNombreAsc())
+                .noneMatch(c -> c.getId().equals(curso.getId()));
+
+        adminCursoService.alternarEstado(curso.getId(), admin);
+        assertThat(cursoRepository.findById(curso.getId()).orElseThrow().isActivo()).isTrue();
+        assertThat(cursoRepository.findByActivoTrueOrderByNombreAsc())
+                .anyMatch(c -> c.getId().equals(curso.getId()));
+
+        List<String> acciones = logAuditoriaRepository.findAll().stream()
+                .filter(log -> curso.getId().equals(log.getEntidadId()) && "CURSO".equals(log.getEntidad()))
+                .map(log -> log.getAccion()).toList();
+        assertThat(acciones).contains("DESACTIVAR", "REACTIVAR");
+    }
+
+    private Curso cursoConFechas(String nombre, java.time.LocalDate inicio, java.time.LocalDate fin) {
+        Curso curso = cursoAutodidacta(nombre);
+        curso.setAutodidacta(false);
+        curso.setFechaInicio(inicio);
+        curso.setFechaFin(fin);
+        curso.setHoras(new BigDecimal("8"));
+        return curso;
+    }
+
     private Curso cursoAutodidacta(String nombre) {
         Curso curso = new Curso();
         curso.setNombre(nombre);

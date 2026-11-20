@@ -27,7 +27,8 @@ public class ColAsistenteIaClient {
 
     private static final Logger log = LoggerFactory.getLogger(ColAsistenteIaClient.class);
 
-    private final RestClient restClient;
+    // Se crea en la primera llamada: si el JDK no puede abrir su conexión loopback, la app y las pruebas igual arrancan (TASK-073).
+    private volatile RestClient restClient;
     private final boolean esGemini;
     private final String url;
     private final String apiKey;
@@ -58,17 +59,29 @@ public class ColAsistenteIaClient {
         }
         this.url = urlElegida;
 
-        HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-        JdkClientHttpRequestFactory fabrica = new JdkClientHttpRequestFactory(http);
-        fabrica.setReadTimeout(Duration.ofSeconds(45));
-        this.restClient = RestClient.builder().requestFactory(fabrica).build();
-
         if (this.apiKey.isEmpty()) {
             log.warn("Asistente IA: IA_API_KEY está vacía, se usará el modo sin IA.");
         } else {
             log.info("Asistente IA: proveedor={}, modelo={}", esGemini ? "GEMINI" : "ANTHROPIC", this.modelo);
         }
 
+    }
+
+    private RestClient restClient() {
+        RestClient cliente = restClient;
+        if (cliente == null) {
+            synchronized (this) {
+                cliente = restClient;
+                if (cliente == null) {
+                    HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+                    JdkClientHttpRequestFactory fabrica = new JdkClientHttpRequestFactory(http);
+                    fabrica.setReadTimeout(Duration.ofSeconds(45));
+                    cliente = RestClient.builder().requestFactory(fabrica).build();
+                    restClient = cliente;
+                }
+            }
+        }
+        return cliente;
     }
 
     public boolean estaConfigurado() {
@@ -100,6 +113,10 @@ public class ColAsistenteIaClient {
         } catch (RestClientException e) {
             log.warn("Asistente IA: falló la llamada al proveedor: {}", e.getMessage());
             return null;
+
+        } catch (java.io.UncheckedIOException e) {
+            log.warn("Asistente IA: no se pudo crear el cliente HTTP: {}", e.getMessage());
+            return null;
         } finally {
             if (adquirido) {
                 cupo.release();
@@ -128,7 +145,7 @@ public class ColAsistenteIaClient {
         cuerpo.put("system", system);
         cuerpo.put("messages", mensajes);
 
-        Map<String, Object> respuesta = restClient.post()
+        Map<String, Object> respuesta = restClient().post()
                 .uri(url)
                 .header("x-api-key", apiKey)
                 .header("anthropic-version", "2023-06-01")
@@ -194,7 +211,7 @@ public class ColAsistenteIaClient {
         cuerpo.put("contents", contenidos);
         cuerpo.put("generationConfig", generacion);
 
-        Map<String, Object> respuesta = restClient.post()
+        Map<String, Object> respuesta = restClient().post()
                 .uri(url)
                 .header("x-goog-api-key", apiKey)
                 .contentType(MediaType.APPLICATION_JSON)

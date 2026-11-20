@@ -153,11 +153,6 @@ VALUES ('[DEMO] Tecnologia', 'Categoria utilizada por los datos de demostracion.
 ON DUPLICATE KEY UPDATE descripcion = nuevo.descripcion, activa = TRUE;
 
 INSERT INTO habilidad (nombre, categoria_id, activa) VALUES
-    ('Java',       (SELECT id FROM categoria_habilidad WHERE nombre = '[DEMO] Tecnologia'), TRUE),
-    ('Spring Boot',(SELECT id FROM categoria_habilidad WHERE nombre = '[DEMO] Tecnologia'), TRUE),
-    ('AWS',        (SELECT id FROM categoria_habilidad WHERE nombre = '[DEMO] Tecnologia'), TRUE),
-    ('Docker',     (SELECT id FROM categoria_habilidad WHERE nombre = '[DEMO] Tecnologia'), TRUE),
-    ('Python',     (SELECT id FROM categoria_habilidad WHERE nombre = '[DEMO] Tecnologia'), TRUE),
     ('Power BI',   (SELECT id FROM categoria_habilidad WHERE nombre = '[DEMO] Tecnologia'), TRUE)
 ON DUPLICATE KEY UPDATE activa = TRUE;
 
@@ -168,43 +163,43 @@ INSERT INTO colaborador_habilidad (
 (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Java' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Java' AND c.nombre = 'Técnico'),
     'AVANZADO', 'VALIDADA', TRUE
 ),
 (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Spring Boot' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Spring Boot' AND c.nombre = 'Técnico'),
     'AVANZADO', 'VALIDADA', TRUE
 ),
 (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'AWS' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'AWS' AND c.nombre = 'Técnico'),
     'INTERMEDIO', 'VALIDADA', TRUE
 ),
 (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Docker' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Docker' AND c.nombre = 'Herramientas'),
     'INTERMEDIO', 'VALIDADA', TRUE
 ),
 (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador4@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Docker' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Docker' AND c.nombre = 'Herramientas'),
     'AVANZADO', 'VALIDADA', TRUE
 ),
 (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador4@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'AWS' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'AWS' AND c.nombre = 'Técnico'),
     'AVANZADO', 'VALIDADA', TRUE
 ),
 (
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Python' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Python' AND c.nombre = 'Técnico'),
     -- RECHAZADA porque su unico certificado de Python (seccion siguiente) esta rechazado.
     'INTERMEDIO', 'RECHAZADA', TRUE
 ) AS nuevo
@@ -221,7 +216,7 @@ INSERT INTO certificado (
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Java' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Java' AND c.nombre = 'Técnico'),
     '/documentos/certificado-demo-java.txt', 'PENDIENTE', NULL, NULL, NULL,
     CURRENT_TIMESTAMP - INTERVAL 2 DAY, NULL
 FROM DUAL
@@ -234,7 +229,7 @@ INSERT INTO certificado (
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador2@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'AWS' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'AWS' AND c.nombre = 'Técnico'),
     '/documentos/certificado-demo-aws.txt', 'PENDIENTE', NULL, NULL, NULL,
     CURRENT_TIMESTAMP - INTERVAL 1 DAY, NULL
 FROM DUAL
@@ -247,7 +242,7 @@ INSERT INTO certificado (
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador1@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Spring Boot' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Spring Boot' AND c.nombre = 'Técnico'),
     '/documentos/certificado-demo-spring.txt', 'APROBADO', NULL, 'AVANZADO',
     (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
     CURRENT_TIMESTAMP - INTERVAL 12 DAY, CURRENT_TIMESTAMP - INTERVAL 10 DAY
@@ -261,7 +256,7 @@ INSERT INTO certificado (
 SELECT
     (SELECT id FROM usuario WHERE correo = 'demo.colaborador3@skillbridge.local'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Python' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Python' AND c.nombre = 'Técnico'),
     '/documentos/certificado-demo-python.txt', 'RECHAZADO',
     'El documento de demostracion no identifica claramente a la entidad emisora.', NULL,
     (SELECT id FROM usuario WHERE correo = 'demo.rm@skillbridge.local'),
@@ -434,31 +429,31 @@ INSERT INTO proyecto_habilidad_requerida (
 (
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Portal de Atencion'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Java' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Java' AND c.nombre = 'Técnico'),
     'AVANZADO', 2
 ),
 (
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Portal de Atencion'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Spring Boot' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Spring Boot' AND c.nombre = 'Técnico'),
     'AVANZADO', 2
 ),
 (
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'AWS' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'AWS' AND c.nombre = 'Técnico'),
     'AVANZADO', 2
 ),
 (
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Migracion Cloud'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Docker' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Docker' AND c.nombre = 'Herramientas'),
     'INTERMEDIO', 1
 ),
 (
     (SELECT id FROM proyecto WHERE nombre = '[DEMO] Analitica Comercial'),
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Python' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Python' AND c.nombre = 'Técnico'),
     'INTERMEDIO', 2
 ),
 (
@@ -688,7 +683,7 @@ INSERT INTO asignacion (
     'SOLICITADA_COLABORADOR',
     '[DEMO APROBAR] Solicitud preparada con carga y presupuesto suficientes para confirmar la aprobacion.',
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Java' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Java' AND c.nombre = 'Técnico'),
     'PENDIENTE', FALSE, FALSE, NULL, NULL,
     CURRENT_TIMESTAMP - INTERVAL 30 MINUTE
 ),
@@ -699,7 +694,7 @@ INSERT INTO asignacion (
     'SOLICITADA_COLABORADOR',
     '[DEMO RECHAZAR] Solicitud preparada para comprobar el modal y registrar el motivo del rechazo.',
     (SELECT h.id FROM habilidad h JOIN categoria_habilidad c ON c.id = h.categoria_id
-     WHERE h.nombre = 'Python' AND c.nombre = '[DEMO] Tecnologia'),
+     WHERE h.nombre = 'Python' AND c.nombre = 'Técnico'),
     'PENDIENTE', FALSE, FALSE, NULL, NULL,
     CURRENT_TIMESTAMP - INTERVAL 2 HOUR
 ) AS nuevo

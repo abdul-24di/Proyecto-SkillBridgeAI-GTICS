@@ -267,11 +267,22 @@
                 Candidatos calculados en el servidor a partir de habilidades validadas, disponibilidad y presupuesto.
               </div>
             </div>
-            <span class="badge bg-azure-lt" th:text="|Top ${#lists.size(recomendaciones)} sugerencias de IA|">Top sugerencias</span>
+            <span class="badge bg-azure-lt"
+                  th:text="${#lists.contains(recomendaciones.![explicacionPorIa], true)}
+                           ? |Top ${#lists.size(recomendaciones)} sugerencias de IA|
+                           : |Top ${#lists.size(recomendaciones)} sugerencias|">Top sugerencias</span>
           </div>
 
           <div id="candidateGrid" class="row row-cards">
-            <div class="col-12" th:if="${#lists.isEmpty(recomendaciones)}">
+            <div class="col-12" th:if="${proyectoSeleccionado.vacantes <= 0}">
+              <div class="card section-card">
+                <div class="card-body text-secondary">
+                  Este proyecto no tiene vacantes; no se recomiendan candidatos.
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12" th:if="${#lists.isEmpty(recomendaciones) and proyectoSeleccionado.vacantes > 0}">
               <div class="card section-card">
                 <div class="card-body text-secondary">
                   No se encontraron colaboradores disponibles con habilidades validadas que aún no estén en este proyecto.
@@ -310,7 +321,17 @@
                           th:text="${sk}">Skill</span>
                   </div>
 
-                  <div class="reason-box mt-3" th:text="${cand.explicacionIa}">Explicación IA</div>
+                  <div class="mt-2 d-flex gap-1 flex-wrap" th:if="${!#lists.isEmpty(cand.notasNivel)}">
+                    <span class="badge"
+                          th:each="nota : ${cand.notasNivel}"
+                          th:classappend="${#strings.contains(nota, 'inferior')} ? 'bg-yellow-lt text-yellow' : 'bg-azure-lt text-azure'"
+                          th:text="${nota}">Nivel distinto</span>
+                  </div>
+
+                  <div class="reason-box mt-3">
+                    <span class="badge bg-blue-lt me-1" th:if="${cand.explicacionPorIa}" title="Explicación generada por la IA">IA</span>
+                    <span th:text="${cand.explicacion}">Explicación</span>
+                  </div>
 
                   <div class="meta-grid">
                     <div>

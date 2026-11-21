@@ -36,6 +36,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const hojas = Array.from(form.querySelectorAll(".export-hoja"));
+  const formatos = Array.from(form.querySelectorAll(".export-formato"));
+  const archivo = document.getElementById("exportExcelFile");
   const resumen = document.getElementById("exportResumen");
   const hojaProyectos = document.getElementById("exportHojaProyectos");
   const sinHojas = document.getElementById("exportSinHojas");
@@ -46,14 +48,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const hoja = document.getElementById(grupo.dataset.hoja);
       grupo.disabled = !(hoja && hoja.checked);
     });
-    if (resumen && hojaProyectos) resumen.disabled = !hojaProyectos.checked;
+    const formatoElegido = form.querySelector(".export-formato:checked");
+    const esPdf = formatoElegido && formatoElegido.value === "pdf";
+    if (resumen && hojaProyectos) resumen.disabled = !esPdf && !hojaProyectos.checked;
+    if (archivo) archivo.textContent = archivo.textContent.replace(/\.(xlsx|pdf)$/, esPdf ? ".pdf" : ".xlsx");
     const ninguna = hojas.length > 0 && hojas.every((hoja) => !hoja.checked);
     if (sinHojas) sinHojas.classList.toggle("d-none", !ninguna);
-    if (boton) boton.disabled = ninguna;
+    if (boton) {
+      boton.disabled = ninguna;
+      boton.textContent = esPdf ? "Descargar PDF" : "Descargar Excel";
+    }
   };
   hojas.forEach((hoja) => hoja.addEventListener("change", actualizarContenido));
+  formatos.forEach((fmt) => fmt.addEventListener("change", actualizarContenido));
   actualizarContenido();
-
   form.addEventListener("submit", (evento) => {
     if (hojas.length > 0 && hojas.every((hoja) => !hoja.checked)) {
       evento.preventDefault();

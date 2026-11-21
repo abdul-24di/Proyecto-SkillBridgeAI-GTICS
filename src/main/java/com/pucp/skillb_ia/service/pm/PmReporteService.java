@@ -380,7 +380,9 @@ public class PmReporteService {
                 .map(c -> List.<Object>of(c.nombre(), c.asignadas(), c.completadas(), c.aTiempo(), c.tardias(),
                         c.vencidas(), c.devoluciones(), c.horasCompletadas(), c.strikes()))
                 .toList();
-        return com.pucp.skillb_ia.util.ReporteExcel.crear(List.of(
+        Map<String, String> datos = new LinkedHashMap<>();
+        datos.put("Fecha de generación", com.pucp.skillb_ia.util.ReportePdf.ahora());
+        return com.pucp.skillb_ia.util.ReporteExcel.crear("Reporte del proyecto: " + nombreProyecto, datos, List.of(
                 new com.pucp.skillb_ia.util.ReporteExcel.Hoja("Resumen", List.of("Indicador", "Valor"), resumen),
                 new com.pucp.skillb_ia.util.ReporteExcel.Hoja("Colaboradores", List.of("Colaborador", "Asignadas",
                         "Completadas", "A tiempo", "Tarde", "Vencidas", "Devoluciones", "Horas completadas",

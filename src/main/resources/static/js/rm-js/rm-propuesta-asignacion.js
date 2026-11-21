@@ -11,7 +11,7 @@
  *         colaboradorMax, colaboradorSueldo, proyectoRequeridos, proyectoOcupados
  *         (cupos: activas + pendientes) y filtroBusqueda, filtroDisponibilidad,
  *         filtroCarga, filtroPagina (para volver a la misma búsqueda).
- * Orígenes cerrados (data-origen): buscar, perfil y colaborador. En la bandeja no hay
+ * Orígenes cerrados (data-origen): buscar, perfil, colaborador y talent. En la bandeja no hay
  * modal de propuesta: elegir un proyecto abre su búsqueda de candidatos (data-buscar-url).
  */
 document.addEventListener("DOMContentLoaded", function () {
@@ -208,9 +208,11 @@ document.addEventListener("DOMContentLoaded", function () {
     enviarBtn.textContent = "Enviando…";
   });
 
-  // ---- Botones "Proponer" directos (Buscar colaboradores) ----
-  document.querySelectorAll("[data-abrir-propuesta]").forEach(function (btn) {
-    btn.addEventListener("click", function () { abrirPropuesta(combinar(btn)); });
+  // ---- Botones "Proponer" directos (Buscar colaboradores y Talent Matching) ----
+  // Delegado: el chat del asistente en Talent Matching reemplaza sus tarjetas por AJAX.
+  document.addEventListener("click", function (event) {
+    var btn = event.target.closest("[data-abrir-propuesta]");
+    if (btn && !btn.disabled) abrirPropuesta(combinar(btn));
   });
 
   // ---- Modal "Ver perfil" (Buscar colaboradores) ----

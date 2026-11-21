@@ -1,9 +1,13 @@
 package com.pucp.skillb_ia;
 
+import com.pucp.skillb_ia.dto.PmAsistenteRespuesta.CandidatoTarjeta;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.security.UsuarioDetails;
+import com.pucp.skillb_ia.service.pm.PmAsistenteContextoService;
+import com.pucp.skillb_ia.service.pm.PmAsistenteService;
+import com.pucp.skillb_ia.service.rm.RmTalentMatchingService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,8 +22,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,6 +47,8 @@ class PmAsistenteIaTests {
     @Autowired private HabilidadRepository habilidadRepository;
     @Autowired private ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository;
     @Autowired private ColaboradorHabilidadRepository colaboradorHabilidadRepository;
+    @Autowired private PmAsistenteContextoService pmAsistenteContextoService;
+    @Autowired private RmTalentMatchingService rmTalentMatchingService;
 
     private MockMvc mvc;
 
@@ -135,6 +143,93 @@ class PmAsistenteIaTests {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         assertThat(htmlLimpio).doesNotContain("Confirmar propuesta al RM");
+    }
+
+    @Test
+    void asistenteDelPmRecomiendaLosMismosCandidatosYPorcentajesQueTalentMatchingDelRm() {
+        Usuario pm = crearUsuario("pm.unificado", "PROJECT_MANAGER");
+        Proyecto proyecto = crearProyecto(pm, "Portal Unificado de Talento", 3);
+        Habilidad backend = crearHabilidad("Java Backend");
+        Habilidad datos = crearHabilidad("Modelado de Datos");
+        requerirHabilidad(proyecto, backend, NivelDominio.INTERMEDIO, 2, new BigDecimal("12.00"));
+        requerirHabilidad(proyecto, datos, NivelDominio.AVANZADO, 1, new BigDecimal("8.00"));
+
+        Usuario senior = crearUsuario("SeniorUnificado", "COLABORADOR");
+        senior.setNivelExperiencia(NivelExperiencia.SENIOR);
+        senior.setHorasDisponibles(new BigDecimal("24.00"));
+        usuarioRepository.save(senior);
+        validarHabilidadColaborador(senior, backend, NivelDominio.AVANZADO);
+        validarHabilidadColaborador(senior, datos, NivelDominio.AVANZADO);
+
+        Usuario junior = crearUsuario("JuniorUnificado", "COLABORADOR");
+        junior.setNivelExperiencia(NivelExperiencia.JUNIOR);
+        junior.setHorasDisponibles(new BigDecimal("6.00"));
+        usuarioRepository.save(junior);
+        validarHabilidadColaborador(junior, backend, NivelDominio.BASICO);
+
+        Usuario intermedio = crearUsuario("IntermedioUnificado", "COLABORADOR");
+        intermedio.setNivelExperiencia(NivelExperiencia.SEMI_SENIOR);
+        intermedio.setHorasDisponibles(new BigDecimal("12.00"));
+        usuarioRepository.save(intermedio);
+        validarHabilidadColaborador(intermedio, datos, NivelDominio.INTERMEDIO);
+
+        PmAsistenteContextoService.ContextoPm contexto = pmAsistenteContextoService.construir(
+                pm.getId(), proyecto.getId(), "Recomienda candidatos para " + proyecto.getNombre());
+        List<RmTalentMatchingService.RecomendacionCandidato> delRm = rmTalentMatchingService.recomendarParaProyecto(
+                proyecto, rmTalentMatchingService.calcularHabilidadesFaltantes(proyecto));
+
+        List<CandidatoTarjeta> delPm = List.copyOf(contexto.candidatos().values());
+        assertThat(delRm).isNotEmpty();
+        assertThat(delPm).extracting(CandidatoTarjeta::colaboradorId)
+                .containsExactlyElementsOf(delRm.stream()
+                        .map(RmTalentMatchingService.RecomendacionCandidato::colaboradorId).toList());
+        assertThat(delPm).extracting(CandidatoTarjeta::puntajeAfinidad)
+                .containsExactlyElementsOf(delRm.stream()
+                        .map(RmTalentMatchingService.RecomendacionCandidato::matchPorcentaje).toList());
+        assertThat(delPm).extracting(CandidatoTarjeta::colaboradorId)
+                .contains(senior.getId(), junior.getId(), intermedio.getId());
+
+        // Decisión S18: el PM ve el ranking, pero nunca el costo estimado del candidato.
+        String texto = contexto.textoPrompt();
+        String seccionCandidatos = texto.substring(texto.indexOf("## CANDIDATOS RECOMENDADOS"),
+                texto.indexOf("## BÚSQUEDA EN LOS FOROS"));
+        assertThat(seccionCandidatos).doesNotContainIgnoringCase("costo").doesNotContain("S/");
+        assertThat(contexto.resumenAnaliticoLocal()).doesNotContainIgnoringCase("costo");
+    }
+
+    @Test
+    void proyectoSinVacantesNoRecibeCandidatosComoEnTalentMatching() {
+        Usuario pm = crearUsuario("pm.completo", "PROJECT_MANAGER");
+        Proyecto proyecto = crearProyecto(pm, "Proyecto Completo", 1);
+        Habilidad hab = crearHabilidad("Kotlin");
+        requerirHabilidad(proyecto, hab, NivelDominio.BASICO, 1, new BigDecimal("10.00"));
+
+        Usuario integrante = crearUsuario("IntegranteActivo", "COLABORADOR");
+        Asignacion activa = new Asignacion();
+        activa.setProyecto(proyecto);
+        activa.setColaborador(integrante);
+        activa.setEstado(EstadoAsignacion.ACTIVA);
+        activa.setOrigen(OrigenAsignacion.PROPUESTA_PM);
+        activa.setHorasSemanales(new BigDecimal("10.00"));
+        asignacionRepository.save(activa);
+
+        Usuario libre = crearUsuario("CandidatoLibre", "COLABORADOR");
+        validarHabilidadColaborador(libre, hab, NivelDominio.AVANZADO);
+
+        PmAsistenteContextoService.ContextoPm contexto = pmAsistenteContextoService.construir(
+                pm.getId(), proyecto.getId(), "Recomienda candidatos");
+
+        assertThat(contexto.candidatos()).isEmpty();
+    }
+
+    @Test
+    void confirmarPropuestaCandidatoEsTransaccional() throws NoSuchMethodException {
+        Method metodo = PmAsistenteService.class.getMethod("confirmarPropuestaCandidato",
+                Long.class, Long.class, Long.class, BigDecimal.class, String.class);
+        org.springframework.transaction.annotation.Transactional tx =
+                metodo.getAnnotation(org.springframework.transaction.annotation.Transactional.class);
+        assertThat(tx).isNotNull();
+        assertThat(tx.readOnly()).isFalse();
     }
 
     private Usuario crearUsuario(String nombre, String nombreRol) {

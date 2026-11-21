@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-talent-matching.css" th:href="@{/css/rm-css/rm-talent-matching.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-asignacion-modales.css" th:href="@{/css/rm-css/rm-asignacion-modales.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
   <style>
     .avatar {
@@ -356,8 +357,10 @@
                   <div class="candidate-actions">
                     <a th:href="@{/rm/colaboradores/perfil(id=${cand.colaboradorId})}"
                        class="btn btn-outline-secondary btn-sm">Ver perfil</a>
-                    <a th:href="@{/rm/proyectos/proponer-asignacion(proyectoId=${proyectoSeleccionado.proyecto.id},colaboradorId=${cand.colaboradorId})}"
-                       class="btn btn-primary btn-sm">Proponer para el proyecto</a>
+                    <!-- Abre el modal "Proponer asignación" (fragments/rm-asignacion-modales) -->
+                    <button type="button" class="btn btn-primary btn-sm" data-abrir-propuesta
+                            th:with="p=${proyectoSeleccionado}"
+                            th:attr="data-proyecto-id=${p.proyecto.id},data-proyecto-nombre=${p.proyecto.nombre},data-proyecto-pm=${p.pmNombre},data-proyecto-inicio=${p.proyecto.fechaInicio},data-proyecto-fin=${p.proyecto.fechaFinEstimada},data-proyecto-presupuesto=${p.proyecto.presupuesto},data-proyecto-disponible=${p.resumenPresupuesto.disponible},data-proyecto-requeridos=${p.proyecto.colaboradoresRequeridos},data-proyecto-ocupados=${cuposPropuesta[p.proyecto.id]},data-proyecto-requisitos=${p.requisitosJson},data-colaborador-id=${cand.colaboradorId},data-colaborador-nombre=${cand.nombre},data-colaborador-cargo=${cand.cargo},data-colaborador-nivel=${cand.nivel},data-colaborador-horas=${cand.horasDisponibles},data-colaborador-carga=${cand.asignacionesActivas},data-colaborador-max=${cand.maxAsignaciones},data-colaborador-sueldo=${sueldosPorColaborador[cand.colaboradorId]}">Proponer para el proyecto</button>
                   </div>
                 </div>
               </div>
@@ -467,8 +470,10 @@
                       <div class="mt-2 d-flex gap-2 flex-wrap">
                         <a class="btn btn-sm btn-outline-secondary"
                            th:href="@{/rm/colaboradores/perfil(id=${cand.colaboradorId})}">Ver perfil</a>
-                        <a class="btn btn-sm btn-primary"
-                           th:href="@{/rm/proyectos/proponer-asignacion(proyectoId=${cand.proyectoId},colaboradorId=${cand.colaboradorId})}">Proponer para el proyecto</a>
+                        <button type="button" class="btn btn-sm btn-primary" data-abrir-propuesta
+                                th:if="${proyectosPropuesta[cand.proyectoId] != null}"
+                                th:with="p=${proyectosPropuesta[cand.proyectoId]}"
+                                th:attr="data-proyecto-id=${p.proyecto.id},data-proyecto-nombre=${p.proyecto.nombre},data-proyecto-pm=${p.pmNombre},data-proyecto-inicio=${p.proyecto.fechaInicio},data-proyecto-fin=${p.proyecto.fechaFinEstimada},data-proyecto-presupuesto=${p.proyecto.presupuesto},data-proyecto-disponible=${p.resumenPresupuesto.disponible},data-proyecto-requeridos=${p.proyecto.colaboradoresRequeridos},data-proyecto-ocupados=${cuposPropuesta[p.proyecto.id]},data-proyecto-requisitos=${p.requisitosJson},data-colaborador-id=${cand.colaboradorId},data-colaborador-nombre=${cand.nombre},data-colaborador-cargo=${cand.cargo},data-colaborador-nivel=${cand.nivelExperiencia},data-colaborador-horas=${cand.horasDisponibles},data-colaborador-carga=${cand.asignacionesActivas},data-colaborador-max=${cand.maxAsignaciones},data-colaborador-sueldo=${sueldosPorColaborador[cand.colaboradorId]}">Proponer para el proyecto</button>
                       </div>
                     </div>
                   </div>
@@ -504,7 +509,12 @@
 
 
 
+<!-- Modal "Proponer asignación": cada botón trae proyecto y colaborador; vuelve a Talent Matching -->
+<div id="propuestaContexto" class="d-none" data-origen="talent"></div>
+<div th:replace="~{fragments/rm-asignacion-modales :: modalPropuesta}"></div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/ai-chat-ajax.js" th:src="@{/js/ai-chat-ajax.js}"></script>
+<script src="../../static/js/rm-js/rm-propuesta-asignacion.js" th:src="@{/js/rm-js/rm-propuesta-asignacion.js}"></script>
 </body>
 </html>

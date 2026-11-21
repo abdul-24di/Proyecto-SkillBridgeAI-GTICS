@@ -125,7 +125,24 @@ class RmTalentMatchingAsistenteTests {
 
         assertThat(htmlConRespuesta)
                 .contains("Según SkillBridge (Resource Manager)")
-                .contains("CarlosTalento Prueba");
+                .contains("CarlosTalento Prueba")
+                // "Proponer para el proyecto" abre el modal de propuesta, no la vista antigua.
+                .contains("id=\"propuestaModal\"")
+                .contains("data-origen=\"talent\"")
+                .contains("data-abrir-propuesta")
+                .contains("/js/rm-js/rm-propuesta-asignacion.js")
+                .doesNotContain("/rm/proyectos/proponer-asignacion");
+
+        // El modal envía con origen "talent" y vuelve a Talent Matching del proyecto.
+        mvc.perform(post("/rm/asignaciones/proponer")
+                        .session(session)
+                        .param("proyectoId", proyecto.getId().toString())
+                        .param("colaboradorId", candidato.getId().toString())
+                        .param("horasSemanales", "abc")
+                        .param("origen", "talent"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/rm/talent-matching?proyectoId=" + proyecto.getId()))
+                .andExpect(flash().attributeExists("mensajeError"));
 
         // 4. El RM propone al candidato desde Talent Matching
         mvc.perform(post("/rm/talent-matching/proponer")

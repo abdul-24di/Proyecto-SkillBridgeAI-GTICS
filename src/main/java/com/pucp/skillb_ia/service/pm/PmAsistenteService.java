@@ -14,6 +14,7 @@ import com.pucp.skillb_ia.service.pm.PmAsistenteContextoService.ContextoPm;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -117,6 +118,7 @@ public class PmAsistenteService {
         session.removeAttribute(ATTR_TURNOS);
     }
 
+    @Transactional
     public Asignacion confirmarPropuestaCandidato(Long pmId, Long proyectoId, Long colaboradorId,
                                                   BigDecimal horasSemanales, String mensaje) {
         if (proyectoId == null) {

@@ -716,8 +716,8 @@ class RmAsignacionTests {
 
     @Test
     void horasSemanalesVaciasOInvalidasVuelvenConMensaje() throws Exception {
-        String destino = "/rm/proyectos/proponer-asignacion?proyectoId=" + proyecto.getId()
-                + "&colaboradorId=" + colaborador.getId();
+        // Sin origen reconocido el error vuelve a la bandeja (ya no hay página completa de propuesta).
+        String destino = "/rm/asignaciones";
         autenticarRm();
         try {
             mockMvc.perform(post("/rm/asignaciones/proponer")
@@ -785,11 +785,6 @@ class RmAsignacionTests {
 
     @Test
     void renderizaPropuestaPendientePmActivaEHistorialDelColaborador() throws Exception {
-        mockMvc.perform(get("/rm/proyectos/proponer-asignacion"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("rm/rm-proponer-asignacion"))
-                .andExpect(model().attributeExists("proyectos", "colaboradores"));
-
         mockMvc.perform(get("/rm/proyectos/buscar-colaboradores")
                         .param("proyectoId", proyecto.getId().toString()))
                 .andExpect(status().isOk())
@@ -846,14 +841,6 @@ class RmAsignacionTests {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertTrue(tarjetas.contains(HAB_VALIDADA));
         assertSinHabilidadesNoValidadas(tarjetas);
-
-        // Pantalla y modal de propuesta: la lista de colaboradores usa el mismo resumen validado.
-        String propuesta = mockMvc.perform(get("/rm/proyectos/proponer-asignacion")
-                        .param("proyectoId", proyecto.getId().toString())
-                        .param("colaboradorId", colaborador.getId().toString()))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
-        assertSinHabilidadesNoValidadas(propuesta);
     }
 
     @Test
@@ -1135,8 +1122,7 @@ class RmAsignacionTests {
                             "Solo se pueden proponer asignaciones para proyectos activos o en espera."));
             // Un origen desconocido no produce una redirección externa.
             mockMvc.perform(propuesta("https://malicioso.example", "8"))
-                    .andExpect(redirectedUrl("/rm/proyectos/proponer-asignacion?proyectoId=" + proyecto.getId()
-                            + "&colaboradorId=" + colaborador.getId()))
+                    .andExpect(redirectedUrl("/rm/asignaciones"))
                     .andExpect(flash().attribute("mensajeError", MENSAJE_CUPO_OBLIGATORIO));
         } finally {
             SecurityContextHolder.clearContext();
@@ -1421,13 +1407,10 @@ class RmAsignacionTests {
                     .andExpect(model().attribute("totalRegistros", 0L));
         }
 
-        // Pantalla "Proponer asignación": selector de colaboradores y sueldos.
-        Map<String, Object> modelo = mockMvc.perform(get("/rm/proyectos/proponer-asignacion"))
-                .andExpect(status().isOk())
-                .andReturn().getModelAndView().getModel();
-        List<Long> seleccionables = ((List<RmColaboradorResumen>) modelo.get("colaboradores")).stream()
+        // Colaboradores activos y sueldos base (los usa el modal "Proponer asignación").
+        List<Long> seleccionables = consultaService.listarColaboradoresActivos().stream()
                 .map(RmColaboradorResumen::getId).toList();
-        Map<Long, BigDecimal> sueldos = (Map<Long, BigDecimal>) modelo.get("sueldosPorColaborador");
+        Map<Long, BigDecimal> sueldos = consultaService.mapaSueldosBase();
         List<Long> idsLote = lote.stream().map(Usuario::getId).toList();
         assertTrue(seleccionables.containsAll(idsLote));
         assertTrue(sueldos.keySet().containsAll(idsLote));

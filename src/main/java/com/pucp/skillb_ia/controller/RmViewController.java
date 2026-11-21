@@ -592,25 +592,6 @@ public class RmViewController {
         return "fragments/rm-asignacion-modales :: perfilColaborador";
     }
 
-    @GetMapping({"/proyectos/proponer-asignacion", "/rm-proponer-asignacion.html"})
-    public String proposeAssignment(
-            @RequestParam(name = "proyectoId", required = false) Long proyectoId,
-            @RequestParam(name = "colaboradorId", required = false) Long colaboradorId,
-            Model model) {
-        List<com.pucp.skillb_ia.model.Proyecto> proyectos = rmAsignacionService.listarProyectosAsignables();
-        java.util.Map<Long, BigDecimal> disponiblePorProyecto = proyectos.stream()
-                .collect(java.util.stream.Collectors.toMap(com.pucp.skillb_ia.model.Proyecto::getId,
-                        p -> rmPresupuestoService.calcularResumen(p).disponible()));
-
-        model.addAttribute("proyectos", proyectos);
-        model.addAttribute("colaboradores", rmColaboradorConsultaService.listarColaboradoresActivos());
-        model.addAttribute("sueldosPorColaborador", rmColaboradorConsultaService.mapaSueldosBase());
-        model.addAttribute("disponiblePorProyecto", disponiblePorProyecto);
-        model.addAttribute("proyectoSeleccionadoId", proyectoId);
-        model.addAttribute("colaboradorSeleccionadoId", colaboradorId);
-        return "rm/rm-proponer-asignacion";
-    }
-
     @PostMapping("/asignaciones/proponer")
     public String createAssignmentProposal(
             @RequestParam("proyectoId") Long proyectoId,
@@ -627,7 +608,8 @@ public class RmViewController {
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
-        // Orígenes cerrados del modal (TASK-034): buscar, perfil y colaborador (sus asignaciones).
+        // Orígenes cerrados del modal (TASK-034): buscar, perfil, colaborador (sus asignaciones)
+        // y talent (Talent Matching y su asistente: vuelve al proyecto de la propuesta).
         // Con "buscar", éxito y error vuelven a la misma búsqueda (filtros y página).
         try {
             BigDecimal horasSemanales = convertirDecimal(
@@ -643,6 +625,9 @@ public class RmViewController {
             if ("colaborador".equals(origen)) {
                 return "redirect:/rm/colaboradores/asignaciones?id=" + colaboradorId;
             }
+            if ("talent".equals(origen)) {
+                return "redirect:/rm/talent-matching?proyectoId=" + proyectoId;
+            }
             return "redirect:/rm/asignaciones";
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
@@ -656,8 +641,11 @@ public class RmViewController {
             if ("colaborador".equals(origen)) {
                 return "redirect:/rm/colaboradores/asignaciones?id=" + colaboradorId;
             }
-            return "redirect:/rm/proyectos/proponer-asignacion?proyectoId=" + proyectoId
-                    + "&colaboradorId=" + colaboradorId;
+            if ("talent".equals(origen)) {
+                return "redirect:/rm/talent-matching?proyectoId=" + proyectoId;
+            }
+            // Sin origen reconocido: la bandeja muestra el error (ya no hay página completa de propuesta).
+            return "redirect:/rm/asignaciones";
         }
     }
 
@@ -1718,7 +1706,32 @@ public class RmViewController {
         model.addAttribute("recomendaciones", matching.recomendaciones());
         model.addAttribute("kpisAsistente", rmAsistenteContextoService.obtenerKpis());
         model.addAttribute("consultasRapidas", rmAsistenteContextoService.listarConsultasRapidas(idSeleccionado));
-        model.addAttribute("turnosAsistente", rmAsistenteService.obtenerTurnos(session));
+        var turnos = rmAsistenteService.obtenerTurnos(session);
+        model.addAttribute("turnosAsistente", turnos);
+
+        // Modal "Proponer asignación": datos del proyecto seleccionado y de los proyectos
+        // de los candidatos del chat, más los sueldos base para el cálculo del costo.
+        java.util.Map<Long, RmProyectoView> proyectosPropuesta = new java.util.HashMap<>();
+        if (matching.proyectoSeleccionado() != null) {
+            proyectosPropuesta.put(idSeleccionado, matching.proyectoSeleccionado());
+        }
+        turnos.stream()
+                .filter(t -> t.respuesta() != null && t.respuesta().candidatos() != null)
+                .flatMap(t -> t.respuesta().candidatos().stream())
+                .map(com.pucp.skillb_ia.dto.RmAsistenteRespuesta.CandidatoTarjetaRm::proyectoId)
+                .filter(id -> id != null && !proyectosPropuesta.containsKey(id))
+                .distinct()
+                .forEach(id -> {
+                    try {
+                        proyectosPropuesta.put(id, rmProyectoConsultaService.obtener(id));
+                    } catch (IllegalArgumentException ignorado) {
+                        // Proyecto fuera de alcance o eliminado: su tarjeta no abre el modal.
+                    }
+                });
+        model.addAttribute("proyectosPropuesta", proyectosPropuesta);
+        model.addAttribute("cuposPropuesta", rmAsignacionService.cuposOcupadosPorProyecto(
+                proyectosPropuesta.values().stream().map(RmProyectoView::getProyecto).toList()));
+        model.addAttribute("sueldosPorColaborador", rmColaboradorConsultaService.mapaSueldosBase());
         if (!model.containsAttribute("rmAsistenteMensajeForm")) {
             com.pucp.skillb_ia.dto.RmAsistenteMensajeForm form = new com.pucp.skillb_ia.dto.RmAsistenteMensajeForm();
             form.setProyectoId(idSeleccionado);

@@ -11,9 +11,11 @@ import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoEntrega;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
-import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.PenalizacionService;
+import com.pucp.skillb_ia.service.rm.RmTalentMatchingService;
+import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.HabilidadFaltante;
+import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.RecomendacionCandidato;
 import org.jsoup.Jsoup;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -27,7 +29,6 @@ import java.util.*;
 @Service
 public class PmAsistenteContextoService {
 
-    private static final int MAX_CANDIDATOS = 5;
     private static final int MAX_PUBLICACIONES = 4;
 
     private static final Set<String> IGNORAR = new HashSet<>(Arrays.asList(
@@ -49,33 +50,30 @@ public class PmAsistenteContextoService {
     private final ProyectoRepository proyectoRepository;
     private final AsignacionRepository asignacionRepository;
     private final ActividadRepository actividadRepository;
-    private final ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository;
-    private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     private final PublicacionForoRepository publicacionForoRepository;
     private final RespuestaForoRepository respuestaForoRepository;
     private final PmSolicitudPersonalService pmSolicitudPersonalService;
     private final PenalizacionService penalizacionService;
+    private final RmTalentMatchingService rmTalentMatchingService;
 
     public PmAsistenteContextoService(UsuarioRepository usuarioRepository,
                                       ProyectoRepository proyectoRepository,
                                       AsignacionRepository asignacionRepository,
                                       ActividadRepository actividadRepository,
-                                      ProyectoHabilidadRequeridaRepository proyectoHabilidadRequeridaRepository,
-                                      ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                       PublicacionForoRepository publicacionForoRepository,
                                       RespuestaForoRepository respuestaForoRepository,
                                       PmSolicitudPersonalService pmSolicitudPersonalService,
-                                      PenalizacionService penalizacionService) {
+                                      PenalizacionService penalizacionService,
+                                      RmTalentMatchingService rmTalentMatchingService) {
         this.usuarioRepository = usuarioRepository;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.actividadRepository = actividadRepository;
-        this.proyectoHabilidadRequeridaRepository = proyectoHabilidadRequeridaRepository;
-        this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.publicacionForoRepository = publicacionForoRepository;
         this.respuestaForoRepository = respuestaForoRepository;
         this.pmSolicitudPersonalService = pmSolicitudPersonalService;
         this.penalizacionService = penalizacionService;
+        this.rmTalentMatchingService = rmTalentMatchingService;
     }
 
     @Transactional(readOnly = true)
@@ -360,96 +358,32 @@ public class PmAsistenteContextoService {
             return;
         }
 
-        List<Usuario> colaboradores = usuarioRepository.findColaboradoresVisiblesRm();
         int totalRecomendados = 0;
 
         for (Proyecto p : asignables) {
-            List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(p, EstadoAsignacion.ACTIVA);
-            int vacantes = Math.max(0, p.getColaboradoresRequeridos() - activas.size());
-            if (vacantes == 0 && asignables.size() > 1) {
+            int activas = asignacionRepository.findByProyectoAndEstado(p, EstadoAsignacion.ACTIVA).size();
+            if (p.getColaboradoresRequeridos() - activas <= 0) {
+                // Igual que Talent Matching del RM: un proyecto sin vacantes no recibe recomendaciones.
                 continue;
             }
-            List<ProyectoHabilidadRequerida> requisitos = proyectoHabilidadRequeridaRepository.findByProyecto(p);
-            Map<Long, ProyectoHabilidadRequerida> reqPorHabilidad = new LinkedHashMap<>();
-            for (ProyectoHabilidadRequerida r : requisitos) {
-                reqPorHabilidad.put(r.getHabilidad().getId(), r);
-            }
-
-            List<CandidatoTarjeta> delProyecto = new ArrayList<>();
-            for (Usuario col : colaboradores) {
-                BigDecimal disp = col.getHorasDisponibles() != null ? col.getHorasDisponibles() : BigDecimal.ZERO;
-                if (disp.compareTo(BigDecimal.ONE) < 0) {
-                    continue;
-                }
-                boolean yaEnProyecto = asignacionRepository.existsByProyectoAndColaboradorAndEstadoIn(
-                        p, col, EnumSet.of(EstadoAsignacion.ACTIVA, EstadoAsignacion.PENDIENTE));
-                if (yaEnProyecto) {
-                    continue;
-                }
-
-                List<ColaboradorHabilidad> validadas = colaboradorHabilidadRepository
-                        .findByColaboradorAndActivoTrueAndEstadoValidacion(col, EstadoValidacion.VALIDADA);
-                if (validadas.isEmpty()) {
-                    continue;
-                }
-
-                List<String> matches = new ArrayList<>();
-                List<String> otrasValidadas = new ArrayList<>();
-                int puntaje = 0;
-
-                for (ColaboradorHabilidad ch : validadas) {
-                    Long habId = ch.getHabilidad().getId();
-                    String etiquetaHab = ch.getHabilidad().getNombre() + " (" + ch.getNivelDominio() + ")";
-                    if (reqPorHabilidad.containsKey(habId)) {
-                        ProyectoHabilidadRequerida req = reqPorHabilidad.get(habId);
-                        boolean cumpleNivel = req.getNivelRequerido() == null
-                                || ch.getNivelDominio().compareTo(req.getNivelRequerido()) >= 0;
-                        puntaje += cumpleNivel ? 45 : 25;
-                        matches.add(etiquetaHab);
-                    } else {
-                        otrasValidadas.add(etiquetaHab);
-                    }
-                }
-
-                if (matches.isEmpty() && !reqPorHabilidad.isEmpty()) {
-                    continue;
-                }
-                if (matches.isEmpty()) {
-                    matches.addAll(otrasValidadas.subList(0, Math.min(3, otrasValidadas.size())));
-                    puntaje += 30;
-                }
-
-                BigDecimal horasReq = p.getHorasSemanalesRequeridas() != null
-                        ? p.getHorasSemanalesRequeridas() : new BigDecimal("10");
-                if (disp.compareTo(horasReq) >= 0) {
-                    puntaje += 25;
-                } else {
-                    puntaje += 10;
-                }
-                int afinidad = Math.min(99, Math.max(40, puntaje));
-                BigDecimal horasSugeridas = disp.min(horasReq).max(BigDecimal.ONE);
-
-                delProyecto.add(new CandidatoTarjeta(
-                        col.getId(),
-                        col.getNombre() + " " + col.getApellido(),
-                        col.getCargo() != null ? col.getCargo().getNombre() : "Colaborador",
-                        col.getNivelExperiencia() != null ? col.getNivelExperiencia().name() : "SIN_NIVEL",
-                        disp,
-                        String.join(", ", matches),
-                        afinidad,
+            // Mismo ranking y porcentaje que ve el RM. Por la decisión S18, el PM no recibe costos ni presupuesto.
+            List<HabilidadFaltante> faltantes = rmTalentMatchingService.calcularHabilidadesFaltantes(p);
+            for (RecomendacionCandidato rec : rmTalentMatchingService.recomendarParaProyecto(p, faltantes)) {
+                List<String> habilidades = rec.habilidadesQueCubre().isEmpty()
+                        ? rec.habilidadesValidadas() : rec.habilidadesQueCubre();
+                CandidatoTarjeta cand = new CandidatoTarjeta(
+                        rec.colaboradorId(),
+                        rec.nombre(),
+                        rec.cargo(),
+                        rec.nivel(),
+                        rec.horasDisponibles(),
+                        String.join(", ", habilidades),
+                        rec.matchPorcentaje(),
                         p.getId(),
                         p.getNombre(),
-                        horasSugeridas,
+                        rec.horasSugeridas(),
                         true
-                ));
-            }
-
-            delProyecto.sort(Comparator.comparingInt(CandidatoTarjeta::puntajeAfinidad).reversed()
-                    .thenComparing(CandidatoTarjeta::horasDisponibles, Comparator.reverseOrder()));
-
-            int tope = Math.min(MAX_CANDIDATOS, delProyecto.size());
-            for (int i = 0; i < tope; i++) {
-                CandidatoTarjeta cand = delProyecto.get(i);
+                );
                 String clave = cand.colaboradorId() + ":" + cand.proyectoId();
                 tarjetasCandidatos.put(clave, cand);
                 t.append("- [[CAND:").append(clave).append("]] ").append(limpiar(cand.nombre()))
@@ -457,8 +391,12 @@ public class PmAsistenteContextoService {
                         .append(" | nivel: ").append(cand.nivelExperiencia())
                         .append(" | horas disponibles: ").append(cand.horasDisponibles()).append(" h/sem")
                         .append(" | habilidades validadas que aplican a \"").append(limpiar(cand.proyectoNombre()))
-                        .append("\": ").append(limpiar(cand.habilidadesMatch()))
-                        .append(" | afinidad estimada: ").append(cand.puntajeAfinidad()).append("%\n");
+                        .append("\": ").append(limpiar(cand.habilidadesMatch()));
+                if (!rec.notasNivel().isEmpty()) {
+                    t.append(" | notas de nivel: ").append(limpiar(String.join("; ", rec.notasNivel())));
+                }
+                t.append(" | match (mismo cálculo que Talent Matching del RM): ")
+                        .append(cand.puntajeAfinidad()).append("%\n");
                 totalRecomendados++;
             }
         }

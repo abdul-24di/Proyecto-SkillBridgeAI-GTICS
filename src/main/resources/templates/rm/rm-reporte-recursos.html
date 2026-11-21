@@ -280,8 +280,18 @@
           No hay registros para estos filtros: el archivo tendrá el encabezado y las secciones vacías.
         </div>
 
-        <h4 class="export-step">2. Contenido del Excel</h4>
-        <p class="small text-secondary mb-2">Cada hoja lleva el encabezado: título, periodo, filtros aplicados, fecha de generación y regla de horas trabajadas.</p>
+        <h4 class="export-step">2. Formato y contenido del reporte</h4>
+        <div class="d-flex gap-4 flex-wrap mb-3">
+          <label class="form-check form-check-inline mb-0 fw-semibold">
+            <input class="form-check-input export-formato" type="radio" name="formato" value="excel" id="exportFormatoExcel" checked>
+            <span class="form-check-label">Excel (.xlsx)</span>
+          </label>
+          <label class="form-check form-check-inline mb-0 fw-semibold">
+            <input class="form-check-input export-formato" type="radio" name="formato" value="pdf" id="exportFormatoPdf">
+            <span class="form-check-label">Documento PDF (.pdf)</span>
+          </label>
+        </div>
+        <p class="small text-secondary mb-2">El reporte lleva el encabezado: título, periodo, filtros aplicados, fecha de generación y regla de horas trabajadas. En PDF, cada hoja se convierte en una sección.</p>
         <label class="form-check mb-3">
           <input class="form-check-input" type="checkbox" name="resumen" value="true" id="exportResumen" checked>
           <span class="form-check-label">Incluir resumen (<span th:text="${#strings.listJoin(metricasResumen, ', ')}">métricas</span>) en la hoja Proyectos</span>

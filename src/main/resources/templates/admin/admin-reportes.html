@@ -52,6 +52,7 @@
           <div class="col-auto"><button type="submit" class="btn btn-primary">Ver</button></div>
           <div class="col-auto ms-auto">
             <a class="btn btn-outline-success" th:href="@{/admin/reportes/excel(tab='usuarios',mes=${mes})}">Descargar Excel</a>
+            <a class="btn btn-outline-primary ms-1" th:href="@{/admin/reportes/pdf(tab='usuarios',mes=${mes})}">Descargar PDF</a>
           </div>
         </div>
       </form>
@@ -132,6 +133,7 @@
           <div class="col-auto"><button type="submit" class="btn btn-primary">Ver</button></div>
           <div class="col-auto ms-auto">
             <a class="btn btn-outline-success" th:href="@{/admin/reportes/excel(tab='auditoria',desde=${desde},hasta=${hasta})}">Descargar Excel</a>
+            <a class="btn btn-outline-primary ms-1" th:href="@{/admin/reportes/pdf(tab='auditoria',desde=${desde},hasta=${hasta})}">Descargar PDF</a>
           </div>
         </div>
       </form>

@@ -58,10 +58,8 @@
         <div class="text-secondary" th:text="|Consolidado de tus proyectos para ${reporte.periodoTexto}.|">Resumen de tus proyectos.</div>
       </div>
       <div class="d-flex gap-2 flex-wrap export-actions">
-        <a class="btn btn-outline-danger" id="exportPdfDirectButton"
-           th:href="@{/pm/reportes/consolidado/pdf(periodo=${reporte.periodoValor}, hasta=${reporte.periodoHastaValor}, todoPeriodo=${reporte.todoPeriodo}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, prioridad=${reporte.prioridadSeleccionada})}">Descargar PDF</a>
         <button type="button" class="btn btn-primary" id="exportReportButton"
-                data-bs-toggle="modal" data-bs-target="#exportReportModal">Exportar personalizado</button>
+                data-bs-toggle="modal" data-bs-target="#exportReportModal">Exportar</button>
       </div>
     </div>
 

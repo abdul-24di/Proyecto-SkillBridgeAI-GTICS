@@ -1,6 +1,8 @@
 package com.pucp.skillb_ia.service.rm;
 
 import com.pucp.skillb_ia.dto.RmReporteView;
+import com.pucp.skillb_ia.util.ReporteExcel;
+import com.pucp.skillb_ia.util.ReportePdf;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -12,8 +14,7 @@ import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.stream.IntStream;
 
 @Service
@@ -163,6 +164,91 @@ public class RmReporteExportService {
         } catch (IOException ex) {
             throw new IllegalStateException("No se pudo generar el archivo Excel.", ex);
         }
+    }
+
+    public byte[] crearPdf(RmReporteView reporte) {
+        return crearPdf(reporte, OpcionesExcel.completo());
+    }
+
+    public byte[] crearPdf(RmReporteView reporte, OpcionesExcel opciones) {
+        Map<String, String> datos = new LinkedHashMap<>();
+        List<String> valores = valoresEncabezado(reporte, fechaGeneracion());
+        for (int i = 0; i < ETIQUETAS_ENCABEZADO.size(); i++) {
+            datos.put(ETIQUETAS_ENCABEZADO.get(i), valores.get(i));
+        }
+        if (opciones.hojaProyectos() && opciones.columnasProyecto().contains(3)) {
+            datos.put("Nota", NOTA_PRESUPUESTO);
+        }
+
+        List<ReporteExcel.Hoja> secciones = new ArrayList<>();
+
+        if (opciones.resumen()) {
+            List<List<Object>> resumen = new ArrayList<>();
+            resumen.add(Arrays.<Object>asList(METRICAS.get(0), reporte.getTotalProyectos()));
+            resumen.add(Arrays.<Object>asList(METRICAS.get(1), dineroPdf(reporte.getPresupuestoTotal())));
+            resumen.add(Arrays.<Object>asList(METRICAS.get(2), horasPdf(reporte.getHorasTotales())));
+            resumen.add(Arrays.<Object>asList(METRICAS.get(3), reporte.getColaboradoresInvolucrados()));
+            secciones.add(new ReporteExcel.Hoja("Resumen", List.of("Indicador", "Valor"), resumen));
+        }
+
+        if (opciones.hojaProyectos()) {
+            List<Integer> columnas = opciones.columnasProyecto();
+            List<List<Object>> filas = new ArrayList<>();
+            for (RmReporteView.ProyectoReporte item : reporte.getProyectos()) {
+                List<Object> fila = new ArrayList<>();
+                for (int columna : columnas) {
+                    fila.add(valorProyectoPdf(item, columna));
+                }
+                filas.add(fila);
+            }
+            secciones.add(new ReporteExcel.Hoja(SECCION_PROYECTOS, etiquetas(COLUMNAS_PROYECTO, columnas), filas));
+        }
+
+        if (opciones.hojaColaboradores()) {
+            List<Integer> columnas = opciones.columnasDetalle();
+            List<List<Object>> filas = new ArrayList<>();
+            for (RmReporteView.DetalleColaborador item : reporte.getDetalles()) {
+                List<Object> fila = new ArrayList<>();
+                for (int columna : columnas) {
+                    fila.add(valorDetallePdf(item, columna));
+                }
+                filas.add(fila);
+            }
+            secciones.add(new ReporteExcel.Hoja(SECCION_DETALLE, etiquetas(COLUMNAS_DETALLE, columnas), filas));
+        }
+
+        return ReportePdf.crear(TITULO, "SkillBridge AI — Panel del Resource Manager", datos, secciones);
+    }
+
+    private Object valorProyectoPdf(RmReporteView.ProyectoReporte item, int columna) {
+        switch (columna) {
+            case 0: return item.getNombre();
+            case 1: return item.getEstadoTexto();
+            case 2: return item.getPrioridadTexto();
+            case 3: return dineroPdf(item.getPresupuesto());
+            case 4: return horasPdf(item.getHoras());
+            default: return item.getColaboradores();
+        }
+    }
+
+    private Object valorDetallePdf(RmReporteView.DetalleColaborador item, int columna) {
+        switch (columna) {
+            case 0: return item.getColaborador();
+            case 1: return item.getCargo();
+            case 2: return item.getProyecto();
+            case 3: return horasPdf(item.getHoras());
+            default: return item.getTareas();
+        }
+    }
+
+    private String dineroPdf(BigDecimal valor) {
+        BigDecimal monto = (valor == null) ? BigDecimal.ZERO : valor;
+        return "S/ " + String.format(Locale.US, "%,.2f", monto);
+    }
+
+    private String horasPdf(BigDecimal valor) {
+        BigDecimal horas = (valor == null) ? BigDecimal.ZERO : valor;
+        return String.format(Locale.US, "%,.2f", horas) + " h";
     }
 
     /** Índice de {@link #COLUMNAS_PROYECTO}: montos y horas como números con formato. */

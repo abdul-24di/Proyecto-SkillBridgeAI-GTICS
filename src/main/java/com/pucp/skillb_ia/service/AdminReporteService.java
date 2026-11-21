@@ -5,6 +5,7 @@ import com.pucp.skillb_ia.model.enums.EstadoRegistro;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.util.Periodo;
 import com.pucp.skillb_ia.util.ReporteExcel;
+import com.pucp.skillb_ia.util.ReportePdf;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -144,9 +145,10 @@ public class AdminReporteService {
                 porDia);
     }
 
-    // ---------- Excel ----------
+    // ---------- Excel y PDF ----------
+    // Las mismas hojas sirven para el Excel y para el PDF.
 
-    public byte[] excelUsuarios(ReporteUsuarios r) {
+    private List<ReporteExcel.Hoja> hojasUsuarios(ReporteUsuarios r) {
         List<List<Object>> resumen = List.of(
                 List.of("Mes", r.etiquetaMes()),
                 List.of("Usuarios creados", r.altas()),
@@ -162,14 +164,14 @@ public class AdminReporteService {
                 .map(f -> List.<Object>of(f.rol(), f.activos(), f.pendientes(), f.inactivos(), f.total())).toList();
         List<List<Object>> meses = r.historial().stream()
                 .map(f -> List.<Object>of(f.mes(), f.altas(), f.activaciones(), f.logins(), f.loginsFallidos())).toList();
-        return ReporteExcel.crear(List.of(
+        return List.of(
                 new ReporteExcel.Hoja("Resumen", List.of("Indicador", "Valor"), resumen),
                 new ReporteExcel.Hoja("Por rol", List.of("Rol", "Activos", "Pendientes", "Inactivos", "Total"), roles),
                 new ReporteExcel.Hoja("Por mes", List.of("Mes", "Usuarios creados", "Cuentas activadas",
-                        "Inicios de sesión", "Inicios fallidos"), meses)));
+                        "Inicios de sesión", "Inicios fallidos"), meses));
     }
 
-    public byte[] excelAuditoria(ReporteAuditoria r) {
+    private List<ReporteExcel.Hoja> hojasAuditoria(ReporteAuditoria r) {
         List<List<Object>> resumen = List.of(
                 List.of("Desde", r.desde().format(DIA)),
                 List.of("Hasta", r.hasta().format(DIA)),
@@ -177,12 +179,38 @@ public class AdminReporteService {
                 List.of("Usuarios distintos", r.usuariosDistintos()),
                 List.of("Inicios de sesión fallidos", r.loginsFallidos()),
                 List.of("Accesos denegados (403)", r.accesosDenegados()));
-        return ReporteExcel.crear(List.of(
+        return List.of(
                 new ReporteExcel.Hoja("Resumen", List.of("Indicador", "Valor"), resumen),
                 new ReporteExcel.Hoja("Por acción", List.of("Acción", "Cantidad"), filas(r.porAccion())),
                 new ReporteExcel.Hoja("Por usuario", List.of("Usuario", "Cantidad"), filas(r.porUsuario())),
                 new ReporteExcel.Hoja("Por rol", List.of("Rol", "Cantidad"), filas(r.porRol())),
-                new ReporteExcel.Hoja("Por día", List.of("Día", "Cantidad"), filas(r.porDia()))));
+                new ReporteExcel.Hoja("Por día", List.of("Día", "Cantidad"), filas(r.porDia())));
+    }
+
+    public byte[] excelUsuarios(ReporteUsuarios r) {
+        Map<String, String> datos = new LinkedHashMap<>();
+        datos.put("Fecha de generación", ReportePdf.ahora());
+        return ReporteExcel.crear("Reporte de usuarios y accesos", datos, hojasUsuarios(r));
+    }
+
+    public byte[] excelAuditoria(ReporteAuditoria r) {
+        Map<String, String> datos = new LinkedHashMap<>();
+        datos.put("Fecha de generación", ReportePdf.ahora());
+        return ReporteExcel.crear("Reporte de actividad de auditoría", datos, hojasAuditoria(r));
+    }
+
+    public byte[] pdfUsuarios(ReporteUsuarios r) {
+        Map<String, String> datos = new LinkedHashMap<>();
+        datos.put("Fecha de generación", ReportePdf.ahora());
+        return ReportePdf.crear("Reporte de usuarios y accesos",
+                "SkillBridge AI — Panel del Administrador", datos, hojasUsuarios(r));
+    }
+
+    public byte[] pdfAuditoria(ReporteAuditoria r) {
+        Map<String, String> datos = new LinkedHashMap<>();
+        datos.put("Fecha de generación", ReportePdf.ahora());
+        return ReportePdf.crear("Reporte de actividad de auditoría",
+                "SkillBridge AI — Panel del Administrador", datos, hojasAuditoria(r));
     }
 
     // ---------- Utilidades ----------

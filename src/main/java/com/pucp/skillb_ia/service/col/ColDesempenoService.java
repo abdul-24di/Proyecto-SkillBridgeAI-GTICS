@@ -11,6 +11,7 @@ import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
 import com.pucp.skillb_ia.service.PenalizacionService;
 import com.pucp.skillb_ia.util.Periodo;
 import com.pucp.skillb_ia.util.ReporteExcel;
+import com.pucp.skillb_ia.util.ReportePdf;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -107,8 +108,7 @@ public class ColDesempenoService {
                 delMes.stream().mapToInt(Actividad::getVecesDevuelta).sum(), vencidas,
                 penalizacionService.contarStrikesDelMes(colaborador, mes), filas, cursos, historial);
     }
-
-    public byte[] excel(Usuario colaborador, Desempeno d) {
+    private List<ReporteExcel.Hoja> hojas(Usuario colaborador, Desempeno d) {
         List<List<Object>> resumen = List.of(
                 List.of("Colaborador", colaborador.getNombre() + " " + colaborador.getApellido()),
                 List.of("Mes", d.etiquetaMes()),
@@ -121,7 +121,7 @@ public class ColDesempenoService {
                 List.of("Vencidas sin completar", d.vencidas()),
                 List.of("Strikes del mes", d.strikes()),
                 List.of("Cursos completados", d.cursos().size()));
-        return ReporteExcel.crear(List.of(
+        return List.of(
                 new ReporteExcel.Hoja("Resumen", List.of("Indicador", "Valor"), resumen),
                 new ReporteExcel.Hoja("Por proyecto", List.of("Proyecto", "Completadas", "A tiempo", "Tarde", "Horas"),
                         d.porProyecto().stream().map(f -> List.<Object>of(f.proyecto(), f.completadas(), f.aTiempo(),
@@ -131,7 +131,20 @@ public class ColDesempenoService {
                                 c.fecha())).toList()),
                 new ReporteExcel.Hoja("Últimos meses", List.of("Mes", "Horas", "Completadas", "Strikes"),
                         d.historial().stream().map(f -> List.<Object>of(f.mes(), f.horas(), f.completadas(),
-                                f.strikes())).toList())));
+                                f.strikes())).toList()));
+    }
+
+    public byte[] excel(Usuario colaborador, Desempeno d) {
+        Map<String, String> datos = new LinkedHashMap<>();
+        datos.put("Fecha de generación", ReportePdf.ahora());
+        return ReporteExcel.crear("Mi desempeño — " + d.etiquetaMes(), datos, hojas(colaborador, d));
+    }
+
+    public byte[] pdf(Usuario colaborador, Desempeno d) {
+        Map<String, String> datos = new LinkedHashMap<>();
+        datos.put("Fecha de generación", ReportePdf.ahora());
+        return ReportePdf.crear("Mi desempeño — " + d.etiquetaMes(),
+                "SkillBridge AI — Reporte del colaborador", datos, hojas(colaborador, d));
     }
 
     private int contar(List<Actividad> lista, EstadoEntrega estado) {

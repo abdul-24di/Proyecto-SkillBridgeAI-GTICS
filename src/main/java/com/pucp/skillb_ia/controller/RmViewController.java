@@ -1837,7 +1837,6 @@ public class RmViewController {
                 .filter(RmReporteView.ColaboradorReporte::isAlcanzaReferencia).count());
         return "rm/rm-horas-colaboradores";
     }
-
     @GetMapping("/reportes/recursos/excel")
     public ResponseEntity<byte[]> exportarReporteExcel(
             @RequestParam(name = "periodo", required = false) String periodo,
@@ -1847,12 +1846,18 @@ public class RmViewController {
             @RequestParam(name = "prioridad", required = false) String prioridad,
             @RequestParam(name = "personalizado", defaultValue = "false") boolean personalizado,
             @RequestParam(name = "resumen", defaultValue = "false") boolean resumen,
+            @RequestParam(name = "formato", defaultValue = "excel") String formato,
             @RequestParam(name = "hojas", required = false) List<String> hojas,
             @RequestParam(name = "colProyecto", required = false) List<Integer> colProyecto,
             @RequestParam(name = "colDetalle", required = false) List<Integer> colDetalle) {
         var opciones = RmReporteExportService.OpcionesExcel.normalizar(
                 personalizado, resumen, hojas, colProyecto, colDetalle);
         RmReporteView reporte = rmReporteService.generar(periodo, hasta, idReporte(proyectoTexto), estado, prioridad);
+        if ("pdf".equalsIgnoreCase(formato)) {
+            return archivo(rmReporteExportService.crearPdf(reporte, opciones),
+                    rmReporteExportService.nombreArchivo(reporte) + ".pdf",
+                    "application/pdf");
+        }
         return archivo(rmReporteExportService.crearExcel(reporte, opciones),
                 rmReporteExportService.nombreArchivo(reporte) + ".xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");

@@ -615,6 +615,18 @@ public class ColaboradorViewController {
                 .body(contenido);
     }
 
+    @GetMapping("/desempeno/pdf")
+    public org.springframework.http.ResponseEntity<byte[]> desempenoPdf(@AuthenticationPrincipal UsuarioDetails principal,
+                                                                        @RequestParam(required = false) String mes) {
+        Usuario colaborador = usuarioRepository.findById(principal.getUsuario().getId()).orElseThrow();
+        java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+        byte[] contenido = colDesempenoService.pdf(colaborador, colDesempenoService.obtener(colaborador, periodo));
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"mi-desempeno-" + periodo + ".pdf\"")
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(contenido);
+    }
+
     @GetMapping({"/perfil", "/col-perfil.html"})
     public String profile(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         if (principal == null) {

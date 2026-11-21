@@ -544,41 +544,70 @@ public class AdminViewController {
 
     @GetMapping("/auditoria/exportar-excel")
     public void exportarAuditoriaExcel(@RequestParam(required = false) String texto,
-                                        @RequestParam(required = false) String rol,
-                                        @RequestParam(required = false) String accion,
-                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
-                                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
-                                        HttpServletResponse response) throws IOException {
+                                       @RequestParam(required = false) String rol,
+                                       @RequestParam(required = false) String accion,
+                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+                                       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                                       HttpServletResponse response) throws IOException {
         List<AdminAuditoriaService.LogFila> logs = adminAuditoriaService.listar(
                 new AdminAuditoriaService.FiltrosAuditoria(texto, rol, accion, desde, hasta));
 
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=\"auditoria.xlsx\"");
-
-        try (org.apache.poi.xssf.usermodel.XSSFWorkbook libro = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
-            org.apache.poi.ss.usermodel.Sheet hoja = libro.createSheet("Auditoria");
-            String[] encabezados = {"Fecha y hora", "Usuario", "Rol", "Tipo de accion", "Detalle", "IP"};
-            org.apache.poi.ss.usermodel.Row filaEncabezado = hoja.createRow(0);
-            for (int i = 0; i < encabezados.length; i++) {
-                filaEncabezado.createCell(i).setCellValue(encabezados[i]);
-            }
-
-            int numeroFila = 1;
-            for (AdminAuditoriaService.LogFila log : logs) {
-                org.apache.poi.ss.usermodel.Row fila = hoja.createRow(numeroFila++);
-                fila.createCell(0).setCellValue(log.fecha());
-                fila.createCell(1).setCellValue(log.usuarioNombre());
-                fila.createCell(2).setCellValue(log.rolEtiqueta());
-                fila.createCell(3).setCellValue(log.accionEtiqueta());
-                fila.createCell(4).setCellValue(log.detalle() != null ? log.detalle() : "");
-                fila.createCell(5).setCellValue(log.ip());
-            }
-            for (int i = 0; i < encabezados.length; i++) {
-                hoja.autoSizeColumn(i);
-            }
-
-            libro.write(response.getOutputStream());
+        List<List<Object>> filas = new java.util.ArrayList<>();
+        for (AdminAuditoriaService.LogFila log : logs) {
+            filas.add(java.util.Arrays.<Object>asList(log.fecha(), log.usuarioNombre(), log.rolEtiqueta(),
+                    log.accionEtiqueta(), log.detalle(), log.ip()));
         }
+        List<com.pucp.skillb_ia.util.ReporteExcel.Hoja> hojas = new java.util.ArrayList<>();
+        hojas.add(new com.pucp.skillb_ia.util.ReporteExcel.Hoja("Auditoria",
+                List.of("Fecha y hora", "Usuario", "Rol", "Tipo de acción", "Detalle", "IP"), filas));
+
+        java.util.Map<String, String> datos = new java.util.LinkedHashMap<>();
+        datos.put("Registros", String.valueOf(logs.size()));
+        datos.put("Desde", desde == null ? "Sin límite" : desde.toString());
+        datos.put("Hasta", hasta == null ? "Sin límite" : hasta.toString());
+        datos.put("Fecha de generación", com.pucp.skillb_ia.util.ReportePdf.ahora());
+
+        byte[] excel = com.pucp.skillb_ia.util.ReporteExcel.crear("Log de auditoría", datos, hojas);
+
+        response.setContentType(com.pucp.skillb_ia.util.ReporteExcel.TIPO_CONTENIDO);
+        response.setHeader("Content-Disposition", "attachment; filename=\"auditoria.xlsx\"");
+        response.getOutputStream().write(excel);
+        response.getOutputStream().flush();
+    }
+
+
+    @GetMapping("/auditoria/exportar-pdf")
+    public void exportarAuditoriaPdf(@RequestParam(required = false) String texto,
+                                     @RequestParam(required = false) String rol,
+                                     @RequestParam(required = false) String accion,
+                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+                                     HttpServletResponse response) throws IOException {
+        List<AdminAuditoriaService.LogFila> logs = adminAuditoriaService.listar(
+                new AdminAuditoriaService.FiltrosAuditoria(texto, rol, accion, desde, hasta));
+
+        List<List<Object>> filas = new java.util.ArrayList<>();
+        for (AdminAuditoriaService.LogFila log : logs) {
+            filas.add(java.util.Arrays.<Object>asList(log.fecha(), log.usuarioNombre(), log.rolEtiqueta(),
+                    log.accionEtiqueta(), log.detalle(), log.ip()));
+        }
+        List<com.pucp.skillb_ia.util.ReporteExcel.Hoja> secciones = new java.util.ArrayList<>();
+        secciones.add(new com.pucp.skillb_ia.util.ReporteExcel.Hoja("Registro de auditoría",
+                List.of("Fecha y hora", "Usuario", "Rol", "Tipo de acción", "Detalle", "IP"), filas));
+
+        java.util.Map<String, String> datos = new java.util.LinkedHashMap<>();
+        datos.put("Registros", String.valueOf(logs.size()));
+        datos.put("Desde", desde == null ? "Sin límite" : desde.toString());
+        datos.put("Hasta", hasta == null ? "Sin límite" : hasta.toString());
+        datos.put("Fecha de generación", com.pucp.skillb_ia.util.ReportePdf.ahora());
+
+        byte[] pdf = com.pucp.skillb_ia.util.ReportePdf.crear("Log de auditoría",
+                "SkillBridge AI — Panel del Administrador", datos, secciones);
+
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=\"auditoria.pdf\"");
+        response.getOutputStream().write(pdf);
+        response.getOutputStream().flush();
     }
 
     // ============================================================
@@ -634,6 +663,29 @@ public class AdminViewController {
         return org.springframework.http.ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
                 .contentType(org.springframework.http.MediaType.parseMediaType(com.pucp.skillb_ia.util.ReporteExcel.TIPO_CONTENIDO))
+                .body(contenido);
+    }
+
+
+    @GetMapping("/reportes/pdf")
+    public org.springframework.http.ResponseEntity<byte[]> reportesPdf(@RequestParam(required = false) String tab,
+                                                                       @RequestParam(required = false) String mes,
+                                                                       @RequestParam(required = false) String desde,
+                                                                       @RequestParam(required = false) String hasta) {
+        byte[] contenido;
+        String archivo;
+        if ("auditoria".equals(tab)) {
+            LocalDate[] rango = leerRango(desde, hasta);
+            contenido = adminReporteService.pdfAuditoria(adminReporteService.auditoria(rango[0], rango[1]));
+            archivo = "reporte-auditoria-" + rango[0] + "-a-" + rango[1] + ".pdf";
+        } else {
+            java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+            contenido = adminReporteService.pdfUsuarios(adminReporteService.usuarios(periodo));
+            archivo = "reporte-usuarios-" + periodo + ".pdf";
+        }
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                 .body(contenido);
     }
 

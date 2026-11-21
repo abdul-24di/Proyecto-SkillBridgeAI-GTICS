@@ -42,6 +42,7 @@ public class PmAsistenteService {
     private final AuditoriaService auditoriaService;
     private final int maxPorMinuto;
     private final Map<Long, ArrayDeque<Long>> envios = new ConcurrentHashMap<>();
+    private volatile long ultimoBarrido = System.currentTimeMillis();
 
     public PmAsistenteService(PmAsistenteContextoService contextoService,
                               ColAsistenteIaClient iaClient,
@@ -211,17 +212,37 @@ public class PmAsistenteService {
         );
     }
 
+    // P50: compute() hace atómico el conteo por usuario y el barrido retira a quien no envía hace más de un minuto,
+    // así el mapa no crece sin límite.
     private void validarRitmo(Long pmId) {
         long ahora = System.currentTimeMillis();
-        ArrayDeque<Long> cola = envios.computeIfAbsent(pmId, k -> new ArrayDeque<>());
-        synchronized (cola) {
-            while (!cola.isEmpty() && ahora - cola.peekFirst() > 60_000) {
-                cola.pollFirst();
+        barrerColasAntiguas(ahora);
+        boolean[] excedido = {false};
+        envios.compute(pmId, (k, cola) -> {
+            ArrayDeque<Long> actual = cola != null ? cola : new ArrayDeque<>();
+            while (!actual.isEmpty() && ahora - actual.peekFirst() > 60_000) {
+                actual.pollFirst();
             }
-            if (cola.size() >= maxPorMinuto) {
-                throw new IllegalArgumentException("Enviaste muchos mensajes seguidos. Espera un momento e inténtalo de nuevo.");
+            if (actual.size() >= maxPorMinuto) {
+                excedido[0] = true;
+            } else {
+                actual.addLast(ahora);
             }
-            cola.addLast(ahora);
+            return actual;
+        });
+        if (excedido[0]) {
+            throw new IllegalArgumentException("Enviaste muchos mensajes seguidos. Espera un momento e inténtalo de nuevo.");
+        }
+    }
+
+    private void barrerColasAntiguas(long ahora) {
+        if (ahora - ultimoBarrido < 60_000) {
+            return;
+        }
+        ultimoBarrido = ahora;
+        for (Long id : envios.keySet()) {
+            envios.computeIfPresent(id, (k, cola) ->
+                    cola.isEmpty() || ahora - cola.peekLast() > 60_000 ? null : cola);
         }
     }
 

@@ -117,8 +117,13 @@ public class RmPresupuestoService {
     // Sección 8: bloque "Impacto en el presupuesto" (disponible antes - costo = disponible después).
     @Transactional(readOnly = true)
     public ImpactoPresupuesto calcularImpacto(Proyecto proyecto, Usuario colaborador, BigDecimal horasSemanales) {
+        return calcularImpacto(proyecto, colaborador, horasSemanales, calcularResumen(proyecto));
+    }
+
+    // TASK-069: el mismo impacto con un resumen ya calculado, para no recalcularlo por cada candidato del proyecto.
+    public ImpactoPresupuesto calcularImpacto(Proyecto proyecto, Usuario colaborador, BigDecimal horasSemanales,
+                                              ResumenPresupuesto resumen) {
         CostoAsignacion costo = calcularCosto(proyecto, colaborador, horasSemanales);
-        ResumenPresupuesto resumen = calcularResumen(proyecto);
         BigDecimal disponibleDespues = resumen.disponible().subtract(costo.costoTotal());
         boolean suficiente = costo.calculable() && disponibleDespues.signum() >= 0;
         BigDecimal deficit = suficiente ? BigDecimal.ZERO : disponibleDespues.abs();

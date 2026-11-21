@@ -9,6 +9,7 @@ import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.DatosCandidatos;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.HabilidadFaltante;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.RecomendacionCandidato;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,11 @@ public class RmAsistenteContextoService {
             KpisAsistenteRm kpis,
             Map<Long, ProyectoTarjetaRm> proyectos,
             Map<String, CandidatoTarjetaRm> candidatos) {}
+
+    // Cuántos proyectos recibieron candidatos, cuántos tienen vacantes y si el enfocado tiene los cupos completos.
+    private record AlcanceCandidatos(int proyectosAnalizados, int proyectosConVacantes, boolean enfocadoCuposCompletos) {}
+
+    static final int MAX_PROYECTOS_CANDIDATOS = 5;
 
     private final RmProyectoConsultaService rmProyectoConsultaService;
     private final RmTalentMatchingService rmTalentMatchingService;
@@ -52,16 +58,19 @@ public class RmAsistenteContextoService {
 
     @Transactional(readOnly = true)
     public KpisAsistenteRm obtenerKpis() {
-        List<RmProyectoView> proyectos = rmProyectoConsultaService.listar();
+        return calcularKpis(rmProyectoConsultaService.listar(), rmAsignacionService.listar(),
+                rmCertificadoService.listarPendientes().size() + rmEducacionService.listarPendientes().size());
+    }
+
+    private static KpisAsistenteRm calcularKpis(List<RmProyectoView> proyectos, List<RmAsignacionView> asignaciones,
+                                                long validacionesPendientes) {
         int vacantes = proyectos.stream()
                 .filter(RmProyectoView::isConVacantesParaDotacion)
                 .mapToInt(RmProyectoView::getVacantes)
                 .sum();
-        long asigPendientes = rmAsignacionService.listar().stream()
+        long asigPendientes = asignaciones.stream()
                 .filter(RmAsignacionView::isRequiereDecisionRm)
                 .count();
-        long validacionesPendientes = rmCertificadoService.listarPendientes().size()
-                + rmEducacionService.listarPendientes().size();
         return new KpisAsistenteRm(proyectos.size(), vacantes, asigPendientes, validacionesPendientes);
     }
 
@@ -99,11 +108,36 @@ public class RmAsistenteContextoService {
     @Transactional(readOnly = true)
     public ContextoRm construir(Long proyectoContextoId, String mensaje) {
         String mensajeN = normalizar(mensaje);
+        // Cada lista se carga una sola vez por mensaje (antes los KPIs y el cuerpo las pedían por separado).
         List<RmProyectoView> todos = rmProyectoConsultaService.listar();
-        KpisAsistenteRm kpis = obtenerKpis();
+        List<RmAsignacionView> asignaciones = rmAsignacionService.listar();
+        int certsPend = rmCertificadoService.listarPendientes().size();
+        int eduPend = rmEducacionService.listarPendientes().size();
+        KpisAsistenteRm kpis = calcularKpis(todos, asignaciones, certsPend + eduPend);
 
         RmProyectoView enfocado = resolverProyectoEnfocado(todos, proyectoContextoId, mensajeN);
         List<RmProyectoView> analizados = enfocado != null ? List.of(enfocado) : todos;
+
+        // TASK-069: sin proyecto enfocado solo se buscan candidatos para los proyectos con vacantes (con tope);
+        // el proyecto enfocado siempre recibe candidatos, aunque tenga los cupos completos.
+        List<RmProyectoView> conVacantes = todos.stream()
+                .filter(v -> esDotable(v.getProyecto()) && v.getVacantes() > 0)
+                .sorted(Comparator.comparingInt((RmProyectoView v) -> rangoPrioridad(v.getProyecto()))
+                        .thenComparing(RmProyectoView::getVacantes, Comparator.reverseOrder()))
+                .toList();
+        Set<Long> idsConCandidatos = new HashSet<>();
+        if (enfocado != null) {
+            if (esDotable(enfocado.getProyecto())) {
+                idsConCandidatos.add(enfocado.getProyecto().getId());
+            }
+        } else {
+            conVacantes.stream().limit(MAX_PROYECTOS_CANDIDATOS)
+                    .forEach(v -> idsConCandidatos.add(v.getProyecto().getId()));
+        }
+        boolean enfocadoCuposCompletos = enfocado != null && esDotable(enfocado.getProyecto())
+                && enfocado.getVacantes() <= 0;
+        DatosCandidatos datosCandidatos = idsConCandidatos.isEmpty()
+                ? null : rmTalentMatchingService.cargarDatosCandidatos();
 
         Map<Long, ProyectoTarjetaRm> tarjetasProyectos = new LinkedHashMap<>();
         Map<String, CandidatoTarjetaRm> tarjetasCandidatos = new LinkedHashMap<>();
@@ -120,6 +154,11 @@ public class RmAsistenteContextoService {
         List<String> lineasPendientesRm = new ArrayList<>();
 
         t.append("\n## PROYECTOS, PRESUPUESTO Y VACANTES\n");
+        if (enfocado == null && conVacantes.size() > MAX_PROYECTOS_CANDIDATOS) {
+            t.append("Candidatos calculados solo para los ").append(MAX_PROYECTOS_CANDIDATOS)
+                    .append(" proyectos con vacantes de mayor prioridad (hay ").append(conVacantes.size())
+                    .append("). Para otro proyecto, el RM debe nombrarlo en su consulta.\n");
+        }
         for (RmProyectoView v : todos) {
             Proyecto p = v.getProyecto();
             var resPres = v.getResumenPresupuesto();
@@ -148,8 +187,8 @@ public class RmAsistenteContextoService {
                 continue;
             }
 
-            t.append("\n### Proyecto [[PROY:").append(p.getId()).append("]] \"").append(limpiar(p.getNombre())).append("\"\n");
-            t.append("- PM: ").append(limpiar(v.getPmNombre()))
+            t.append("\n### Proyecto [[PROY:").append(p.getId()).append("]] ").append(dato(p.getNombre())).append('\n');
+            t.append("- PM: ").append(dato(v.getPmNombre()))
                     .append(" | Estado: ").append(v.getEstadoTexto())
                     .append(" | Prioridad: ").append(v.getPrioridadTexto())
                     .append(" | Equipo: ").append(v.getIntegrantesActivos()).append('/').append(p.getColaboradoresRequeridos())
@@ -169,12 +208,16 @@ public class RmAsistenteContextoService {
                     String detalleBrecha = p.getNombre() + ": falta(n) " + hf.faltantes() + " cupo(s) de "
                             + hf.nombre() + " (" + hf.nivelRequerido() + ").";
                     lineasBrechas.add(detalleBrecha);
-                    t.append("  * ").append(limpiar(detalleBrecha)).append('\n');
+                    t.append("  * Faltan ").append(hf.faltantes()).append(" cupo(s) de ").append(dato(hf.nombre()))
+                            .append(" (").append(hf.nivelRequerido()).append(").\n");
                 }
             }
 
-            if (p.getEstado() == EstadoProyecto.ACTIVO || p.getEstado() == EstadoProyecto.EN_ESPERA) {
-                List<RecomendacionCandidato> recs = rmTalentMatchingService.recomendarParaProyecto(p, faltantes);
+            if (idsConCandidatos.contains(p.getId())) {
+                if (v.getVacantes() <= 0) {
+                    t.append("- Cupos completos: proponer a un candidato exige registrar una justificación de cupo.\n");
+                }
+                List<RecomendacionCandidato> recs = rmTalentMatchingService.recomendarParaProyecto(p, faltantes, datosCandidatos);
                 int tope = Math.min(3, recs.size());
                 for (int i = 0; i < tope; i++) {
                     RecomendacionCandidato rc = recs.get(i);
@@ -200,8 +243,8 @@ public class RmAsistenteContextoService {
                     );
                     tarjetasCandidatos.put(clave, candRm);
                     t.append("  * Candidato recomendado [[CAND:").append(clave).append("]] ")
-                            .append(limpiar(rc.nombre())).append(" | Match: ").append(rc.matchPorcentaje()).append("%")
-                            .append(" | Cubre: ").append(limpiar(candRm.habilidadesMatch()))
+                            .append(dato(rc.nombre())).append(" | Match: ").append(rc.matchPorcentaje()).append("%")
+                            .append(" | Cubre: ").append(dato(candRm.habilidadesMatch()))
                             .append(" | Disponibilidad: ").append(rc.horasDisponibles()).append(" h/sem")
                             .append(" | Costo estimado: S/ ").append(rc.costoTotalEstimado())
                             .append(" (cabe en presupuesto: ").append(rc.cabeEnPresupuesto() ? "sí" : "no").append(")\n");
@@ -211,16 +254,17 @@ public class RmAsistenteContextoService {
 
         // Asignaciones y solicitudes pendientes del RM
         t.append("\n## BANDEJA DE PENDIENTES DEL RM\n");
-        for (RmAsignacionView asig : rmAsignacionService.listar()) {
+        for (RmAsignacionView asig : asignaciones) {
             if (!asig.isRequiereDecisionRm()) continue;
             if (enfocado != null && !asig.getAsignacion().getProyecto().getId().equals(enfocado.getProyecto().getId())) {
                 continue;
             }
-            String linea = "Asignación #" + asig.getAsignacion().getId() + " en "
-                    + asig.getAsignacion().getProyecto().getNombre() + ": " + asig.getColaboradorNombre()
-                    + " (" + asig.getAsignacion().getHorasSemanales() + " h/sem, " + asig.getEstadoBandeja() + ").";
-            lineasPendientesRm.add(linea);
-            t.append("- ").append(limpiar(linea)).append('\n');
+            String proyectoNombre = asig.getAsignacion().getProyecto().getNombre();
+            String detalle = " (" + asig.getAsignacion().getHorasSemanales() + " h/sem, " + asig.getEstadoBandeja() + ").";
+            lineasPendientesRm.add("Asignación #" + asig.getAsignacion().getId() + " en "
+                    + proyectoNombre + ": " + asig.getColaboradorNombre() + detalle);
+            t.append("- Asignación #").append(asig.getAsignacion().getId()).append(" en ").append(dato(proyectoNombre))
+                    .append(": ").append(dato(asig.getColaboradorNombre())).append(limpiar(detalle)).append('\n');
         }
 
         var solicitudes = rmSolicitudPersonalService.listarPagina(
@@ -229,21 +273,21 @@ public class RmAsistenteContextoService {
             if (enfocado != null && !sol.getProyecto().getProyecto().getId().equals(enfocado.getProyecto().getId())) {
                 continue;
             }
-            String linea = "Solicitud de personal " + sol.getCodigo() + " de " + sol.getPmNombre()
-                    + " para " + sol.getSolicitud().getProyecto().getNombre() + ": solicita "
-                    + sol.getSolicitud().getCantidadColaboradores() + " colaborador(es).";
-            lineasPendientesRm.add(linea);
-            t.append("- ").append(limpiar(linea)).append('\n');
+            String proyectoNombre = sol.getSolicitud().getProyecto().getNombre();
+            String cantidad = ": solicita " + sol.getSolicitud().getCantidadColaboradores() + " colaborador(es).";
+            lineasPendientesRm.add("Solicitud de personal " + sol.getCodigo() + " de " + sol.getPmNombre()
+                    + " para " + proyectoNombre + cantidad);
+            t.append("- Solicitud de personal ").append(limpiar(sol.getCodigo())).append(" de ").append(dato(sol.getPmNombre()))
+                    .append(" para ").append(dato(proyectoNombre)).append(cantidad).append('\n');
         }
 
-        int certsPend = rmCertificadoService.listarPendientes().size();
-        int eduPend = rmEducacionService.listarPendientes().size();
         t.append("- Certificados pendientes de validación del RM: ").append(certsPend).append('\n');
         t.append("- Formaciones académicas pendientes de validación del RM: ").append(eduPend).append('\n');
 
         String resumenLocal = construirRespuestaAnaliticaLocal(
                 mensajeN, enfocado, kpis, analizados, tarjetasProyectos,
-                lineasPresupuesto, lineasBrechas, lineasPendientesRm, tarjetasCandidatos, certsPend, eduPend);
+                lineasPresupuesto, lineasBrechas, lineasPendientesRm, tarjetasCandidatos, certsPend, eduPend,
+                new AlcanceCandidatos(idsConCandidatos.size(), conVacantes.size(), enfocadoCuposCompletos));
 
         return new ContextoRm(
                 t.toString(),
@@ -286,7 +330,8 @@ public class RmAsistenteContextoService {
             List<String> lineasPendientesRm,
             Map<String, CandidatoTarjetaRm> tarjetasCandidatos,
             int certsPend,
-            int eduPend) {
+            int eduPend,
+            AlcanceCandidatos alcanceCandidatos) {
 
         StringBuilder r = new StringBuilder();
         String alcance = enfocado != null
@@ -309,7 +354,16 @@ public class RmAsistenteContextoService {
 
         if (pideCandidatos) {
             if (tarjetasCandidatos.isEmpty()) {
-                r.append("- No se encontraron candidatos disponibles con habilidades validadas que coincidan con las vacantes actuales.\n");
+                if (enfocado != null && !esDotable(enfocado.getProyecto())) {
+                    r.append("- El proyecto está en estado ").append(enfocado.getEstadoTexto())
+                            .append(": solo se recomiendan candidatos para proyectos activos o en espera.\n");
+                } else if (enfocado == null && alcanceCandidatos.proyectosConVacantes() == 0) {
+                    r.append("- No hay proyectos activos con vacantes en este momento. Para revisar candidatos de un proyecto")
+                            .append(" con el equipo completo, nómbralo en tu consulta.\n");
+                } else {
+                    r.append("- No hay colaboradores disponibles con habilidades validadas para ")
+                            .append(enfocado != null ? "este proyecto" : "las vacantes actuales").append(".\n");
+                }
             } else {
                 r.append("- He preseleccionado ").append(tarjetasCandidatos.size())
                         .append(" recomendación(es) priorizando habilidades validadas, disponibilidad, certificados y viabilidad presupuestal:\n");
@@ -319,9 +373,17 @@ public class RmAsistenteContextoService {
                             .append(" — ").append(c.matchPorcentaje()).append("% match | Cubre: ").append(c.habilidadesMatch())
                             .append(" | ").append(c.horasDisponibles()).append(" h/sem libres | Costo estimado: S/ ")
                             .append(c.costoTotalEstimado())
-                            .append(c.cabeEnPresupuesto() ? " (dentro del presupuesto)." : " (excede presupuesto disponible).\n");
+                            .append(c.cabeEnPresupuesto() ? " (dentro del presupuesto).\n" : " (excede presupuesto disponible).\n");
                 }
                 r.append("- Puedes proponer al candidato directamente al PM usando el botón **Proponer para el proyecto** en su tarjeta.\n");
+                if (alcanceCandidatos.enfocadoCuposCompletos()) {
+                    r.append("- El proyecto tiene sus cupos completos: al proponer deberás registrar una justificación de cupo.\n");
+                }
+            }
+            if (enfocado == null && alcanceCandidatos.proyectosConVacantes() > alcanceCandidatos.proyectosAnalizados()) {
+                r.append("- Analicé los ").append(alcanceCandidatos.proyectosAnalizados())
+                        .append(" proyectos con vacantes de mayor prioridad (hay ").append(alcanceCandidatos.proyectosConVacantes())
+                        .append("). Para otro proyecto, nómbralo en tu consulta.\n");
             }
             return r.toString();
         }
@@ -385,8 +447,27 @@ public class RmAsistenteContextoService {
         return sinTildes.toLowerCase(Locale.ROOT).trim();
     }
 
+    private static boolean esDotable(Proyecto p) {
+        return p.getEstado() == EstadoProyecto.ACTIVO || p.getEstado() == EstadoProyecto.EN_ESPERA;
+    }
+
+    private static int rangoPrioridad(Proyecto p) {
+        if (p.getPrioridad() == null) return 3;
+        return switch (p.getPrioridad()) {
+            case ALTA -> 0;
+            case MEDIA -> 1;
+            case BAJA -> 2;
+        };
+    }
+
+    // S17: texto escrito por usuarios (nombres de proyecto, PM, colaboradores) marcado como dato para la IA.
+    private static String dato(String s) {
+        return "<dato_usuario>" + limpiar(s) + "</dato_usuario>";
+    }
+
     private static String limpiar(String s) {
         if (s == null) return "";
-        return s.replace("[[", "(").replace("]]", ")");
+        return s.replace("[[", "(").replace("]]", ")")
+                .replace("<dato_usuario>", "").replace("</dato_usuario>", "");
     }
 }

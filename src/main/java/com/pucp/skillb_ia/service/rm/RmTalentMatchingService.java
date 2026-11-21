@@ -188,12 +188,52 @@ public class RmTalentMatchingService {
         return resultado;
     }
 
+    // TASK-069: datos de los colaboradores que el cálculo usa, cargados una sola vez (4 consultas en total)
+    // y reutilizables entre varios proyectos del mismo mensaje del asistente.
+    public record DatosCandidatos(
+            List<Usuario> colaboradores,
+            Map<Long, List<ColaboradorHabilidad>> habilidadesValidadas,
+            Map<Long, Integer> asignacionesActivas,
+            Map<Long, Integer> certificadosAprobados,
+            int maxAsignaciones) {}
+
+    @Transactional(readOnly = true)
+    public DatosCandidatos cargarDatosCandidatos() {
+        Map<Long, List<ColaboradorHabilidad>> habilidades = new HashMap<>();
+        for (ColaboradorHabilidad ch : colaboradorHabilidadRepository.findActivasPorEstadoValidacion(EstadoValidacion.VALIDADA)) {
+            habilidades.computeIfAbsent(ch.getColaborador().getId(), k -> new ArrayList<>()).add(ch);
+        }
+        return new DatosCandidatos(
+                usuarioRepository.findColaboradoresVisiblesRm(),
+                habilidades,
+                aMapaConteos(asignacionRepository.contarPorColaboradorYEstado(EstadoAsignacion.ACTIVA)),
+                aMapaConteos(certificadoRepository.contarPorColaboradorYEstado(EstadoCertificado.APROBADO)),
+                obtenerMaxAsignaciones());
+    }
+
+    private static Map<Long, Integer> aMapaConteos(List<Object[]> filas) {
+        Map<Long, Integer> mapa = new HashMap<>();
+        for (Object[] fila : filas) {
+            mapa.put(((Number) fila[0]).longValue(), ((Number) fila[1]).intValue());
+        }
+        return mapa;
+    }
+
     @Transactional(readOnly = true)
     public List<RecomendacionCandidato> recomendarParaProyecto(Proyecto proyecto, List<HabilidadFaltante> faltantes) {
         if (proyecto.getEstado() != EstadoProyecto.ACTIVO && proyecto.getEstado() != EstadoProyecto.EN_ESPERA) {
             return List.of();
         }
-        int maxAsignaciones = obtenerMaxAsignaciones();
+        return recomendarParaProyecto(proyecto, faltantes, cargarDatosCandidatos());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RecomendacionCandidato> recomendarParaProyecto(Proyecto proyecto, List<HabilidadFaltante> faltantes,
+                                                               DatosCandidatos datos) {
+        if (proyecto.getEstado() != EstadoProyecto.ACTIVO && proyecto.getEstado() != EstadoProyecto.EN_ESPERA) {
+            return List.of();
+        }
+        int maxAsignaciones = datos.maxAsignaciones();
         List<ProyectoHabilidadRequerida> todosRequisitos = habilidadRequeridaRepository.findByProyecto(proyecto);
         Map<Long, ProyectoHabilidadRequerida> mapaRequisitos = todosRequisitos.stream()
                 .collect(Collectors.toMap(r -> r.getHabilidad().getId(), r -> r, (a, b) -> a));
@@ -216,8 +256,11 @@ public class RmTalentMatchingService {
         }
         int maxTotal = maxHabilidades + 22 + 15 + 18;
 
+        // El resumen de presupuesto del proyecto es el mismo para todos los candidatos: se calcula una vez.
+        RmPresupuestoService.ResumenPresupuesto resumenPresupuesto = rmPresupuestoService.calcularResumen(proyecto);
+
         List<RecomendacionCandidato> candidatos = new ArrayList<>();
-        for (Usuario col : usuarioRepository.findColaboradoresVisiblesRm()) {
+        for (Usuario col : datos.colaboradores()) {
             if (yaEnProyecto.contains(col.getId())) {
                 continue;
             }
@@ -226,20 +269,17 @@ public class RmTalentMatchingService {
                 continue;
             }
 
-            List<ColaboradorHabilidad> validadas = colaboradorHabilidadRepository
-                    .findByColaboradorAndActivoTrueAndEstadoValidacion(col, EstadoValidacion.VALIDADA);
+            List<ColaboradorHabilidad> validadas = datos.habilidadesValidadas().getOrDefault(col.getId(), List.of());
             if (validadas.isEmpty()) {
                 continue;
             }
 
-            int activas = (int) asignacionRepository.countByColaboradorAndEstado(col, EstadoAsignacion.ACTIVA);
+            int activas = datos.asignacionesActivas().getOrDefault(col.getId(), 0);
             if (activas >= maxAsignaciones) {
                 // Ya está en el máximo de asignaciones: proponerlo exigiría justificar el cupo.
                 continue;
             }
-            int certsAprobados = (int) certificadoRepository.findByColaborador(col).stream()
-                    .filter(c -> c.getEstado() == EstadoCertificado.APROBADO)
-                    .count();
+            int certsAprobados = datos.certificadosAprobados().getOrDefault(col.getId(), 0);
 
             List<String> todasNombres = new ArrayList<>();
             List<String> cubreNombres = new ArrayList<>();
@@ -295,7 +335,7 @@ public class RmTalentMatchingService {
 
             BigDecimal horasSugeridas = disp.min(horasBaseProyecto).max(BigDecimal.ONE);
             RmPresupuestoService.ImpactoPresupuesto impacto = rmPresupuestoService.calcularImpacto(
-                    proyecto, col, horasSugeridas);
+                    proyecto, col, horasSugeridas, resumenPresupuesto);
             BigDecimal costoTotal = impacto.costo() != null && impacto.costo().calculable()
                     ? impacto.costo().costoTotal() : BigDecimal.ZERO;
             boolean costoCalculable = impacto.costo() != null && impacto.costo().calculable();

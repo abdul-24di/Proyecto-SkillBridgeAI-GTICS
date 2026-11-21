@@ -54,6 +54,10 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
 
     long countByColaboradorAndEstado(Usuario colaborador, EstadoAsignacion estado);
 
+    // TASK-069: conteo por colaborador en una sola consulta; cada fila es [colaboradorId, cantidad].
+    @Query("select a.colaborador.id, count(a) from Asignacion a where a.estado = :estado group by a.colaborador.id")
+    List<Object[]> contarPorColaboradorYEstado(@Param("estado") EstadoAsignacion estado);
+
     @Query("""
             select a
             from Asignacion a

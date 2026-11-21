@@ -20,6 +20,10 @@ public interface CertificadoRepository extends JpaRepository<Certificado, Long> 
 
     long countByColaboradorAndEstado(Usuario colaborador, EstadoCertificado estado);
 
+    // TASK-069: conteo por colaborador en una sola consulta; cada fila es [colaboradorId, cantidad].
+    @Query("select c.colaborador.id, count(c) from Certificado c where c.estado = :estado group by c.colaborador.id")
+    List<Object[]> contarPorColaboradorYEstado(@Param("estado") EstadoCertificado estado);
+
 
     // Para repartir el trabajo entre RMs y contar lo que revisó cada uno
     long countByRmResponsableAndEstado(Usuario rmResponsable, EstadoCertificado estado);

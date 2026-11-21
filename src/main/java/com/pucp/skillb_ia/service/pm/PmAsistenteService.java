@@ -110,10 +110,6 @@ public class PmAsistenteService {
         return new ArrayList<>();
     }
 
-    public List<String> obtenerHistorial(HttpSession session) {
-        return leerHistorial(session);
-    }
-
     public void limpiarHistorial(HttpSession session) {
         session.removeAttribute(ATTR_HISTORIAL);
         session.removeAttribute(ATTR_TURNOS);

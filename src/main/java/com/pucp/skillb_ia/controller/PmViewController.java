@@ -859,11 +859,6 @@ public class PmViewController {
         model.addAttribute("columnasProyecto", PmReporteExportService.COLUMNAS_PROYECTO);
         model.addAttribute("columnasDetalle", PmReporteExportService.COLUMNAS_DETALLE);
         model.addAttribute("metricasResumen", PmReporteExportService.METRICAS);
-
-        // Atributos de compatibilidad por si se consultan las tarjetas de portafolio
-        var paginaReportes = Paginador.paginar(pmProyectoService.listar(pm), pagina, 6);
-        model.addAttribute("paginaReportes", paginaReportes);
-        model.addAttribute("proyectos", paginaReportes.getContent());
         model.addAttribute("pm", pm);
         return "pm/pm-reportes";
     }
@@ -910,7 +905,7 @@ public class PmViewController {
                     .header("Content-Disposition", "attachment; filename=\"" + archivo + "\"")
                     .contentType(org.springframework.http.MediaType.parseMediaType(com.pucp.skillb_ia.util.ReporteExcel.TIPO_CONTENIDO))
                     .body(contenido);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
             return org.springframework.web.util.UriComponentsBuilder.fromPath("redirect:/pm/reportes")
                     .queryParam("periodo", filtros.periodo())

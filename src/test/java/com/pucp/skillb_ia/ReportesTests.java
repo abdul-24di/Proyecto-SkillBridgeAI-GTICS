@@ -19,6 +19,9 @@ import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.AdminReporteService;
 import com.pucp.skillb_ia.service.col.ColDesempenoService;
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.parser.PdfTextExtractor;
+import com.pucp.skillb_ia.service.pm.PmReporteExportService;
 import com.pucp.skillb_ia.service.pm.PmReporteService;
 import com.pucp.skillb_ia.util.Periodo;
 import org.junit.jupiter.api.AfterEach;
@@ -29,6 +32,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -42,6 +46,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -63,6 +71,7 @@ class ReportesTests {
     @Autowired private AdminReporteService adminReporteService;
     @Autowired private PmReporteService pmReporteService;
     @Autowired private ColDesempenoService colDesempenoService;
+    @MockitoSpyBean private PmReporteExportService pmReporteExportService;
 
     private MockMvc mvc;
 
@@ -168,6 +177,74 @@ class ReportesTests {
         pdf("/pm/reportes/pdf?proyectoId=" + proyecto.getId());
     }
 
+    @Test
+    void elPdfConsolidadoPersonalizadoSoloIncluyeLasSeccionesYColumnasElegidas() throws Exception {
+        Usuario pm = usuario("pm", "PROJECT_MANAGER");
+        Usuario colaborador = usuario("col", "COLABORADOR");
+        Proyecto proyecto = proyecto(pm);
+        asignar(colaborador, proyecto);
+        actividad(proyecto, colaborador, pm, EstadoActividad.COMPLETADA, EstadoEntrega.A_TIEMPO, "6", 0,
+                LocalDate.now().plusDays(3), LocalDateTime.now());
+        autenticar(pm);
+        String base = "/pm/reportes/consolidado/pdf?todoPeriodo=true&proyecto=" + proyecto.getId();
+
+        String completo = textoPdf(base);
+        assertThat(completo).contains("Resumen ejecutivo del periodo", "Progreso (%)",
+                "Prioridad", "Presupuesto", PmReporteExportService.SECCION_DETALLE, "Strikes");
+
+        String personalizado = textoPdf(base + "&personalizado=true&resumen=false&hojas=proyectos"
+                + "&colProyecto=1&colProyecto=7");
+        assertThat(personalizado)
+                .contains(PmReporteExportService.SECCION_PROYECTOS, "Estado", "Puntualidad (%)", proyecto.getNombre())
+                .doesNotContain("Resumen ejecutivo del periodo", "Progreso (%)", "Prioridad", "Presupuesto",
+                        PmReporteExportService.SECCION_DETALLE, "Strikes",
+                        PmReporteExportService.NOTA_PRESUPUESTO);
+
+        // Personalizado sin ninguna hoja: vuelve a los reportes con el mensaje y los filtros.
+        String destino = mvc.perform(get(base + "&personalizado=true"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("error", "Selecciona al menos una hoja para exportar."))
+                .andReturn().getResponse().getRedirectedUrl();
+        assertThat(destino).startsWith("/pm/reportes?").contains("todoPeriodo=true", "proyecto=" + proyecto.getId());
+    }
+
+    @Test
+    void siFallaLaGeneracionDelArchivoVuelveALosReportesConElMensajeYLosFiltros() throws Exception {
+        Usuario pm = usuario("pm", "PROJECT_MANAGER");
+        Proyecto proyecto = proyecto(pm);
+        autenticar(pm);
+        String filtros = "?todoPeriodo=true&proyecto=" + proyecto.getId() + "&estado=ACTIVO&prioridad=MEDIA";
+
+        doThrow(new IllegalStateException("No se pudo generar el archivo PDF."))
+                .when(pmReporteExportService).crearPdf(any(), any());
+        doThrow(new IllegalStateException("No se pudo generar el archivo Excel."))
+                .when(pmReporteExportService).crearExcel(any(), any());
+
+        String destinoPdf = mvc.perform(get("/pm/reportes/consolidado/pdf" + filtros))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("error", "No se pudo generar el archivo PDF."))
+                .andReturn().getResponse().getRedirectedUrl();
+        String destinoExcel = mvc.perform(get("/pm/reportes/consolidado/excel" + filtros))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("error", "No se pudo generar el archivo Excel."))
+                .andReturn().getResponse().getRedirectedUrl();
+
+        for (String destino : java.util.List.of(destinoPdf, destinoExcel)) {
+            assertThat(destino).startsWith("/pm/reportes?")
+                    .contains("todoPeriodo=true", "proyecto=" + proyecto.getId(), "estado=ACTIVO", "prioridad=MEDIA");
+        }
+    }
+
+    @Test
+    void laVistaDeReportesDelPmYaNoCargaLasTarjetasDePortafolio() throws Exception {
+        Usuario pm = usuario("pm", "PROJECT_MANAGER");
+        autenticar(pm);
+        mvc.perform(get("/pm/reportes"))
+                .andExpect(status().isOk())
+                .andExpect(model().attributeDoesNotExist("paginaReportes"))
+                .andExpect(model().attributeExists("pm", "reporte"));
+    }
+
     // ---------- Colaborador ----------
 
     @Test
@@ -213,6 +290,22 @@ class ReportesTests {
         // Un PDF válido comienza con "%PDF".
         assertThat(archivo.length).isGreaterThan(200);
         assertThat(new String(archivo, 0, 4)).isEqualTo("%PDF");
+    }
+
+    private String textoPdf(String url) throws Exception {
+        MvcResult r = mvc.perform(get(url)).andExpect(status().isOk())
+                .andExpect(content().contentType("application/pdf")).andReturn();
+        PdfReader lector = new PdfReader(r.getResponse().getContentAsByteArray());
+        try {
+            PdfTextExtractor extractor = new PdfTextExtractor(lector);
+            StringBuilder texto = new StringBuilder();
+            for (int pagina = 1; pagina <= lector.getNumberOfPages(); pagina++) {
+                texto.append(extractor.getTextFromPage(pagina)).append('\n');
+            }
+            return texto.toString();
+        } finally {
+            lector.close();
+        }
     }
 
     private Usuario usuario(String prefijo, String nombreRol) {

@@ -410,4 +410,58 @@ public class RmReporteExportService {
             horas.setDataFormat(formatos.getFormat(FORMATO_HORAS_EXCEL));
         }
     }
+
+    // ============================================================
+    // HORAS DE COLABORADORES (Excel y PDF con las mismas dos hojas)
+    // ============================================================
+
+    // colaboradores: el conjunto completo según los filtros de la pantalla, no solo la página visible.
+    public byte[] crearExcelHoras(RmReporteView reporte, List<RmReporteView.ColaboradorReporte> colaboradores) {
+        return ReporteExcel.crear("Horas de colaboradores — " + reporte.getPeriodoTexto(),
+                datosHoras(reporte, colaboradores), hojasHoras(colaboradores));
+    }
+
+    public byte[] crearPdfHoras(RmReporteView reporte, List<RmReporteView.ColaboradorReporte> colaboradores) {
+        return ReportePdf.crear("Horas de colaboradores — " + reporte.getPeriodoTexto(),
+                "SkillBridge AI — Reporte del Resource Manager", datosHoras(reporte, colaboradores),
+                hojasHoras(colaboradores));
+    }
+
+    public String nombreArchivoHoras(RmReporteView reporte) {
+        return "horas-colaboradores-" + reporte.getPeriodoValor();
+    }
+
+    private Map<String, String> datosHoras(RmReporteView reporte, List<RmReporteView.ColaboradorReporte> colaboradores) {
+        BigDecimal total = colaboradores.stream().map(RmReporteView.ColaboradorReporte::getHoras)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        long enReferencia = colaboradores.stream().filter(RmReporteView.ColaboradorReporte::isAlcanzaReferencia).count();
+        Map<String, String> datos = new LinkedHashMap<>();
+        datos.put("Periodo", reporte.getPeriodoTexto());
+        if (reporte.getProyectoSeleccionadoNombre() != null) {
+            datos.put("Proyecto", reporte.getProyectoSeleccionadoNombre());
+        }
+        datos.put("Colaboradores", String.valueOf(colaboradores.size()));
+        datos.put("Horas acumuladas", total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + " h");
+        datos.put("En la referencia de 160 h", enReferencia + " de " + colaboradores.size());
+        datos.put("Fecha de generación", ReportePdf.ahora());
+        return datos;
+    }
+
+    private List<ReporteExcel.Hoja> hojasHoras(List<RmReporteView.ColaboradorReporte> colaboradores) {
+        List<List<Object>> resumen = new ArrayList<>();
+        List<List<Object>> desglose = new ArrayList<>();
+        for (RmReporteView.ColaboradorReporte c : colaboradores) {
+            resumen.add(List.of(c.getNombre(), c.getCargo() == null ? "—" : c.getCargo(), c.getHoras(),
+                    c.getTareas(), c.getCantidadProyectos(), c.isAlcanzaReferencia() ? "Sí" : "No"));
+            for (RmReporteView.DesgloseProyecto p : c.getProyectos()) {
+                desglose.add(List.of(c.getNombre(), p.getProyecto(), p.getHoras(), p.getTareas()));
+            }
+        }
+        return List.of(
+                new ReporteExcel.Hoja("Colaboradores",
+                        List.of("Colaborador", "Rol", "Horas del mes", "Tareas completadas", "Proyectos",
+                                "Alcanza 160 h"), resumen),
+                new ReporteExcel.Hoja("Desglose por proyecto",
+                        List.of("Colaborador", "Proyecto", "Horas", "Tareas completadas"), desglose));
+    }
 }

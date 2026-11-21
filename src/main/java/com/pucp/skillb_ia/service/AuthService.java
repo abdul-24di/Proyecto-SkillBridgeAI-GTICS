@@ -159,7 +159,8 @@ public class AuthService {
         tokenUsuarioRepository.save(token);
 
         String enlace = "/activar-cuenta?token=" + token.getToken();
-        boolean enviado = emailService.enviarActivacion(usuario.getCorreo(), enlace);
+        boolean enviado = emailService.enviarActivacion(usuario.getCorreo(), enlace,
+                usuario.getRol() != null ? usuario.getRol().getNombre() : null, VIGENCIA_ACTIVACION_HORAS);
 
         // Acción automática del sistema — usuario null en el log (consideraciones_bd_v4.md: NULL = sistema).
         if (enviado) {
@@ -250,7 +251,7 @@ public class AuthService {
             token.setFechaExpiracion(LocalDateTime.now().plusMinutes(VIGENCIA_RECUPERACION_MINUTOS));
             tokenUsuarioRepository.save(token);
 
-            emailService.enviarCodigoRecuperacion(usuario.getCorreo(), codigo);
+            emailService.enviarCodigoRecuperacion(usuario.getCorreo(), codigo, VIGENCIA_RECUPERACION_MINUTOS);
         });
     }
 

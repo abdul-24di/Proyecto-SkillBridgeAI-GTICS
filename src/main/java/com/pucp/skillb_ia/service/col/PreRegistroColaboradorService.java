@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -260,7 +261,6 @@ public class PreRegistroColaboradorService {
             case "estudios" -> "Formación académica";
             case "password" -> "Contraseña";
             case "confirmarPassword", "passwordsCoinciden" -> "Confirmar contraseña";
-            case "aceptaPolitica" -> "Política de datos";
             default -> campo;
         };
     }
@@ -287,8 +287,10 @@ public class PreRegistroColaboradorService {
 
     // Cada fila se guarda por separado: si una falla (p. ej. el almacenamiento), el resto sigue y el
     // colaborador puede completarla después desde su perfil.
-    public void guardar(Usuario usuario, ActivarCuentaForm form, HttpSession session) {
-        intentar(usuario, "CV", () -> colaboradorPerfilService.actualizarCv(
+    // Devuelve lo que no se pudo guardar (vacío si todo salió bien), para avisarle al colaborador.
+    public List<String> guardar(Usuario usuario, ActivarCuentaForm form, HttpSession session) {
+        List<String> noGuardado = new ArrayList<>();
+        intentar(noGuardado, usuario, "CV", () -> colaboradorPerfilService.actualizarCv(
                 usuario, archivosPendientes.abrir(form.getCvGuardado(), session)));
 
         for (ExperienciaForm f : form.getExperiencias()) {
@@ -300,31 +302,37 @@ public class PreRegistroColaboradorService {
             exp.setFechaInicio(f.getFechaInicio());
             exp.setFechaFin(f.isActual() ? null : f.getFechaFin());
             exp.setActual(f.isActual());
-            intentar(usuario, "experiencia", () -> colaboradorPerfilService.agregarExperiencia(usuario, exp));
+            intentar(noGuardado, usuario, "experiencia", () -> colaboradorPerfilService.agregarExperiencia(usuario, exp));
         }
 
         for (CertificadoPreRegistroForm f : form.getCertificados()) {
             if (f.estaVacia()) continue;
-            intentar(usuario, "certificado", () -> colaboradorPerfilService.agregarHabilidad(
+            intentar(noGuardado, usuario, "certificado", () -> colaboradorPerfilService.agregarHabilidad(
                     usuario, f.getHabilidadId(), null, null, f.getNivel(),
                     archivosPendientes.abrir(f.getArchivoGuardado(), session)));
         }
 
         for (EstudioPreRegistroForm f : form.getEstudios()) {
             if (f.estaVacia()) continue;
-            intentar(usuario, "formación académica", () -> colaboradorPerfilService.agregarEducacion(
+            intentar(noGuardado, usuario, "formación académica", () -> colaboradorPerfilService.agregarEducacion(
                     usuario, f.getInstitucion(), f.getTitulo(), f.getFechaInicio().toString(),
                     f.getFechaFin().toString(), archivosPendientes.abrir(f.getArchivoGuardado(), session), false));
         }
 
         archivosPendientes.limpiar(session);
+        return noGuardado;
     }
 
-    private void intentar(Usuario usuario, String que, Runnable accion) {
+    // Si falla (p. ej. el almacenamiento de archivos no está configurado), se anota para avisarle al colaborador.
+    // Antes solo quedaba en el log y, al entrar, el sistema le volvía a pedir el CV sin decirle por qué.
+    private void intentar(List<String> noGuardado, Usuario usuario, String que, Runnable accion) {
         try {
             accion.run();
         } catch (RuntimeException e) {
-            log.warn("No se pudo guardar {} del pre-registro de {}: {}", que, usuario.getCorreo(), e.getMessage());
+            log.error("No se pudo guardar {} del pre-registro de {}: {}", que, usuario.getCorreo(), e.getMessage());
+            if (!noGuardado.contains(que)) {
+                noGuardado.add(que);
+            }
         }
     }
 }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Código de recuperación de contraseña</title>
+</head>
+<body style="margin:0;padding:0;background:#e9eef5;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e9eef5;">
+  <tr>
+    <td align="center" style="padding:32px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;">
+        <tr><td style="padding:0;" th:insert="~{email/plantilla :: encabezado}"></td></tr>
+        <tr>
+          <td style="padding:32px;font-family:Arial,Helvetica,sans-serif;color:#1e293b;font-size:15px;line-height:1.6;">
+            <h1 style="margin:0 0 16px;font-size:20px;color:#0f172a;">Recupera tu contraseña</h1>
+            <p style="margin:0 0 12px;">
+              Recibimos una solicitud para restablecer la contraseña de tu cuenta. Ingresa este código en la
+              pantalla de recuperación:
+            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+              <tr>
+                <td style="background:#eaf3fc;border:1px solid #206bc4;border-radius:6px;padding:14px 28px;
+                           font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:bold;
+                           letter-spacing:8px;color:#1a5aa5;" th:text="${codigo}">123456</td>
+              </tr>
+            </table>
+            <p style="margin:0 0 8px;font-size:13px;color:#475569;">
+              El código es válido por <strong th:text="${minutosVigencia} + ' minutos'">15 minutos</strong>.
+              Si pides otro, este deja de funcionar.
+            </p>
+            <p style="margin:0;font-size:13px;color:#475569;">
+              Si no solicitaste este cambio, ignora este correo: tu contraseña no cambiará.
+            </p>
+          </td>
+        </tr>
+        <tr><td style="padding:0;" th:insert="~{email/plantilla :: pie}"></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

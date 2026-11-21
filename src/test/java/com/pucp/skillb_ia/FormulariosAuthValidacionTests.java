@@ -55,7 +55,7 @@ class FormulariosAuthValidacionTests {
                 .andExpect(status().isOk())
                 .andExpect(view().name("auth/activar-cuenta"))
                 .andExpect(model().attributeHasFieldErrors("activarCuentaForm",
-                        "nombreCompleto", "password", "aceptaPolitica"));
+                        "nombreCompleto", "password"));
     }
 
     @Test

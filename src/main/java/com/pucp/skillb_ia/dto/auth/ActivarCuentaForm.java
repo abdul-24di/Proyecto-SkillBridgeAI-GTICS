@@ -50,9 +50,6 @@ public class ActivarCuentaForm {
     @NotBlank(message = "Confirma tu contraseña.")
     private String confirmarPassword;
 
-    @AssertTrue(message = "Debes aceptar la política para continuar.")
-    private boolean aceptaPolitica;
-
     @AssertTrue(message = "Las contraseñas no coinciden.")
     public boolean isPasswordsCoinciden() {
         return password == null || confirmarPassword == null || password.equals(confirmarPassword);
@@ -82,6 +79,4 @@ public class ActivarCuentaForm {
     public void setPassword(String password) { this.password = password; }
     public String getConfirmarPassword() { return confirmarPassword; }
     public void setConfirmarPassword(String confirmarPassword) { this.confirmarPassword = confirmarPassword; }
-    public boolean isAceptaPolitica() { return aceptaPolitica; }
-    public void setAceptaPolitica(boolean aceptaPolitica) { this.aceptaPolitica = aceptaPolitica; }
 }

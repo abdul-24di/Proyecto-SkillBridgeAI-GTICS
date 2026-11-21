@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Activa tu cuenta en SkillBridge AI</title>
+</head>
+<body style="margin:0;padding:0;background:#e9eef5;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#e9eef5;">
+  <tr>
+    <td align="center" style="padding:32px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:8px;">
+        <tr><td style="padding:0;" th:insert="~{email/plantilla :: encabezado}"></td></tr>
+        <tr>
+          <td style="padding:32px;font-family:Arial,Helvetica,sans-serif;color:#1e293b;font-size:15px;line-height:1.6;">
+            <h1 style="margin:0 0 16px;font-size:20px;color:#0f172a;">Te damos la bienvenida</h1>
+            <p style="margin:0 0 12px;">
+              Se creó una cuenta de <strong th:text="${rol}">Colaborador</strong> para ti en SkillBridge AI.
+            </p>
+            <p style="margin:0 0 12px;" th:if="${esColaborador}">
+              Para activarla, completa tus datos personales, tu DNI, tu CV en PDF y, si quieres, tu experiencia,
+              certificados y formación. Después el Administrador revisará tu registro.
+            </p>
+            <p style="margin:0 0 12px;" th:unless="${esColaborador}">
+              Para activarla, completa tus datos personales y tu DNI, y elige tu contraseña.
+            </p>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+              <tr>
+                <td style="background:#206bc4;border-radius:6px;">
+                  <a th:href="${enlace}" href="#"
+                     style="display:inline-block;padding:12px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">
+                    Activar mi cuenta
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <p style="margin:0 0 8px;font-size:13px;color:#475569;">
+              El enlace es válido por <strong th:text="${horasVigencia} + ' horas'">48 horas</strong> y solo se puede usar una vez.
+            </p>
+            <p style="margin:0;font-size:13px;color:#475569;">
+              Si el botón no funciona, copia este enlace en tu navegador:<br>
+              <a th:href="${enlace}" th:text="${enlace}" href="#" style="color:#206bc4;word-break:break-all;">enlace</a>
+            </p>
+          </td>
+        </tr>
+        <tr><td style="padding:0;" th:insert="~{email/plantilla :: pie}"></td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

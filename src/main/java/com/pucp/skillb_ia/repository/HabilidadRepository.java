@@ -15,5 +15,11 @@ public interface HabilidadRepository extends JpaRepository<Habilidad, Long> {
     // importar la categoría (una habilidad no puede repetirse en dos categorías).
     Optional<Habilidad> findByNombreIgnoreCase(String nombre);
 
+    // Para validar que un nombre no se repita. Toma la primera coincidencia: una base con datos antiguos puede
+    // tener el mismo nombre en dos categorías, y con findByNombreIgnoreCase eso terminaba en un error genérico.
+    Optional<Habilidad> findFirstByNombreIgnoreCaseOrderByIdAsc(String nombre);
+
+    boolean existsByNombreIgnoreCaseAndIdNot(String nombre, Long id);
+
     long countByCategoria_Id(Long categoriaId);
 }

@@ -1,10 +1,13 @@
 package com.pucp.skillb_ia.controller;
 
+import com.pucp.skillb_ia.dto.ColDocumentoForm;
+import com.pucp.skillb_ia.dto.ColEntregaActividadForm;
 import com.pucp.skillb_ia.dto.col.ColForoPublicacionForm;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.pm.PmForoService;
 import jakarta.validation.Valid;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import com.pucp.skillb_ia.service.EvaluacionService;
 import com.pucp.skillb_ia.model.Asignacion;
@@ -160,8 +163,13 @@ public class ColaboradorViewController {
         try {
             Usuario colaborador = principal.getUsuario();
             model.addAttribute("colaborador", colaborador);
+            if (!model.containsAttribute("colEntregaForm")) {
+                model.addAttribute("colEntregaForm", new ColEntregaActividadForm());
+            }
+            if (!model.containsAttribute("colDocumentoForm")) {
+                model.addAttribute("colDocumentoForm", new ColDocumentoForm());
+            }
             var detalle = colaboradorProyectoService.obtenerDetalleProyecto(colaborador, asignacionId, paginaTodas, paginaMias);
-
             model.addAttribute("proyecto", detalle.getProyecto());
             model.addAttribute("asignacion", detalle.getAsignacion());
             model.addAttribute("integrantes", detalle.getIntegrantes());
@@ -200,17 +208,33 @@ public class ColaboradorViewController {
     public String subirDocumentoProyecto(@AuthenticationPrincipal UsuarioDetails principal,
                                          @RequestParam Long proyectoId,
                                          @RequestParam Long asignacionId,
-                                         @RequestParam("archivo") MultipartFile archivo,
+                                         @ModelAttribute("colDocumentoForm") ColDocumentoForm form,
+                                         BindingResult result,
                                          RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
+        String destino = "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=documentos";
+
+        String errorArchivo = colaboradorDocumentoService.validarArchivo(form.getArchivo());
+        if (errorArchivo != null) {
+            result.addError(new FieldError("colDocumentoForm", "archivo", errorArchivo));
+        }
+        if (result.hasErrors()) {
+            form.setArchivo(null);
+            redirectAttributes.addFlashAttribute("colDocumentoForm", form);
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.colDocumentoForm", result);
+            redirectAttributes.addFlashAttribute("abrirModalSubirDocumento", true);
+            return destino;
+        }
+
         try {
-            colaboradorDocumentoService.subirDocumento(principal.getUsuario(), proyectoId, archivo);
+            colaboradorDocumentoService.subirDocumento(principal.getUsuario(), proyectoId, form.getArchivo());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Documento subido correctamente.");
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorDocumento", GlobalExceptionHandler.mensajeSeguro(e));
+            redirectAttributes.addFlashAttribute("abrirModalSubirDocumento", true);
         }
-        return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=documentos";
+        return destino;
     }
 
     @PostMapping("/proyectos/documentos/{documentoId}/eliminar")
@@ -223,8 +247,9 @@ public class ColaboradorViewController {
             colaboradorDocumentoService.eliminarDocumento(principal.getUsuario(), documentoId);
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Documento eliminado.");
-        } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorEliminarDoc", GlobalExceptionHandler.mensajeSeguro(e));
+            redirectAttributes.addFlashAttribute("abrirModalEliminarDocId", documentoId);
         }
         return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=documentos";
     }
@@ -433,13 +458,17 @@ public class ColaboradorViewController {
 
     @PostMapping("/foro/upload-imagen")
     @org.springframework.web.bind.annotation.ResponseBody
-    public java.util.Map<String, String> uploadImagenForo(@RequestParam("image") MultipartFile image) {
+    public org.springframework.http.ResponseEntity<java.util.Map<String, String>> uploadImagenForo(
+            @RequestParam("image") MultipartFile image) {
         try {
             String url = colaboradorForoService.subirImagenForo(image);
-            return java.util.Map.of("url", url);
+            return org.springframework.http.ResponseEntity.ok(java.util.Map.of("url", url));
         } catch (IllegalArgumentException e) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, e.getMessage());
+            return org.springframework.http.ResponseEntity.badRequest()
+                    .body(java.util.Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return org.springframework.http.ResponseEntity.internalServerError()
+                    .body(java.util.Map.of("error", "No se pudo subir la imagen. Inténtalo de nuevo."));
         }
     }
 
@@ -854,20 +883,42 @@ public class ColaboradorViewController {
     public String marcarActividadListaParaRevision(@AuthenticationPrincipal UsuarioDetails principal,
                                                    @PathVariable Long actividadId,
                                                    @RequestParam Long asignacionId,
-                                                   @RequestParam(required = false) MultipartFile evidencia,
-                                                   @RequestParam(required = false) String comentario,
+                                                   @Valid @ModelAttribute("colEntregaForm") ColEntregaActividadForm form,
+                                                   BindingResult result,
                                                    RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
+        String destino = "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=actividades";
+
+        String errorEvidencia = colaboradorProyectoService.validarEvidencia(form.getEvidencia());
+        if (errorEvidencia != null) {
+            result.addError(new FieldError("colEntregaForm", "evidencia", errorEvidencia));
+        }
+
+        if (result.hasErrors()) {
+            form.setEvidencia(null);
+            redirectAttributes.addFlashAttribute("colEntregaForm", form);
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.colEntregaForm", result);
+            redirectAttributes.addFlashAttribute("abrirModalActividadId", actividadId);
+            return destino;
+        }
+
         try {
-            colaboradorProyectoService.marcarActividadListaParaRevision(principal.getUsuario(), actividadId, evidencia, comentario);
+            colaboradorProyectoService.marcarActividadListaParaRevision(
+                    principal.getUsuario(), actividadId, form.getEvidencia(), form.getComentario());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Actividad marcada como lista para revisión. El PM la revisará pronto.");
         } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
+            form.setEvidencia(null);
+            redirectAttributes.addFlashAttribute("colEntregaForm", form);
+            redirectAttributes.addFlashAttribute("errorEntrega", e.getMessage());
+            redirectAttributes.addFlashAttribute("abrirModalActividadId", actividadId);
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("mensajeError", "No se pudo procesar la evidencia. Verifica el archivo e inténtalo de nuevo.");
+            form.setEvidencia(null);
+            redirectAttributes.addFlashAttribute("colEntregaForm", form);
+            redirectAttributes.addFlashAttribute("errorEntrega", "No se pudo procesar la evidencia. Verifica el archivo e inténtalo de nuevo.");
+            redirectAttributes.addFlashAttribute("abrirModalActividadId", actividadId);
         }
-        return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=actividades";
+        return destino;
     }
 
 

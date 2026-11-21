@@ -11,21 +11,31 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Archivo demasiado grande (evidencia, documento, foto, etc.)
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public String archivoDemasiadoGrande(HttpServletRequest request, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("mensajeError", "El archivo que intentaste subir es demasiado grande.");
-        return "redirect:" + paginaAnterior(request, "/");
-    }
+    private static final Pattern RUTA_MARCAR_LISTO =
+            Pattern.compile("^/colaborador/proyectos/actividades/(\\d+)/marcar-listo$");
+    private static final String RUTA_SUBIR_DOCUMENTO = "/colaborador/proyectos/documentos/subir";
 
-    // Petición de subida mal formada (p. ej. un POST sin archivo enviado a mano): es un error del cliente.
     @ExceptionHandler(MultipartException.class)
-    public void subidaInvalida(HttpServletResponse response) throws IOException {
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+    public String subidaRechazada(HttpServletRequest request, RedirectAttributes redirectAttributes) {
+        String mensaje = "No se pudo recibir el archivo: es demasiado grande o no se pudo leer.";
+        String ruta = request.getRequestURI();
+        Matcher actividad = RUTA_MARCAR_LISTO.matcher(ruta);
+        if (actividad.matches()) {
+            redirectAttributes.addFlashAttribute("errorEntrega", mensaje + " El máximo permitido es 10 MB.");
+            redirectAttributes.addFlashAttribute("abrirModalActividadId", Long.valueOf(actividad.group(1)));
+        } else if (RUTA_SUBIR_DOCUMENTO.equals(ruta)) {
+            redirectAttributes.addFlashAttribute("errorDocumento", mensaje + " El máximo permitido es 20 MB.");
+            redirectAttributes.addFlashAttribute("abrirModalSubirDocumento", true);
+        } else {
+            redirectAttributes.addFlashAttribute("mensajeError", mensaje);
+        }
+        return "redirect:" + paginaAnterior(request, "/");
     }
 
     // Error de negocio: recurso no encontrado o acceso denegado

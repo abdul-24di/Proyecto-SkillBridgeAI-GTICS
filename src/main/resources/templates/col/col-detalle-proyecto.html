@@ -614,6 +614,8 @@
                         <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
                     <div class="modal-body">
+                        <div th:if="${abrirModalEliminarDocId == doc.id and errorEliminarDoc != null}"
+                             class="alert alert-danger small" th:text="${errorEliminarDoc}"></div>
                         <p class="mb-0">¿Seguro que deseas eliminar <strong th:text="${doc.nombre}"></strong>?</p>
                     </div>
                     <div class="modal-footer">
@@ -635,12 +637,17 @@
                 <h5 class="modal-title">Subir documento</h5>
                 <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form method="POST" th:action="@{/colaborador/proyectos/documentos/subir}" enctype="multipart/form-data">
+            <form method="POST" th:action="@{/colaborador/proyectos/documentos/subir}" enctype="multipart/form-data"
+                  th:object="${colDocumentoForm}" novalidate>
                 <input type="hidden" name="proyectoId" th:value="${proyecto.id}"/>
                 <input type="hidden" name="asignacionId" th:value="${asignacion.id}"/>
                 <div class="modal-body">
+                    <div th:if="${abrirModalSubirDocumento != null and errorDocumento != null}"
+                         class="alert alert-danger small" th:text="${errorDocumento}"></div>
                     <label class="form-label">Archivo</label>
-                    <input type="file" name="archivo" class="form-control">
+                    <input type="file" name="archivo" class="form-control" data-max-mb="20"
+                           th:classappend="${#fields.hasErrors('archivo')} ? 'is-invalid' : ''">
+                    <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('archivo')}" th:errors="*{archivo}"></div>
                     <div class="form-hint mt-2">Formatos aceptados: PDF, Word, Excel, imágenes y archivos de diseño. Máximo 20 MB.</div>
                 </div>
                 <div class="modal-footer">
@@ -699,19 +706,32 @@
                     <div class="alert alert-success small mb-0">Esta actividad ya fue confirmada por el PM.</div>
                 </div>
 
-                <form id="detalleActividadForm" method="post" enctype="multipart/form-data">
+                <form id="detalleActividadForm" method="post" enctype="multipart/form-data"
+                      th:object="${colEntregaForm}" novalidate>
 
                     <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
                     <hr>
+                    <div th:if="${abrirModalActividadId != null and errorEntrega != null}"
+                         class="alert alert-danger small" th:text="${errorEntrega}"></div>
+
                     <div class="mb-3">
                         <label class="form-label">Evidencia (PDF, JPG o PNG) <span class="text-red">*</span></label>
-                        <input type="file" name="evidencia" class="form-control">
+                        <input type="file" name="evidencia" class="form-control" accept=".pdf,.jpg,.jpeg,.png"
+                               data-max-mb="10"
+                               th:classappend="${#fields.hasErrors('evidencia')} ? 'is-invalid' : ''">
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('evidencia')}" th:errors="*{evidencia}"></div>
                     </div>
                     <div class="mb-2">
                         <label class="form-label">Comentario <span class="text-red">*</span></label>
-                        <textarea name="comentario" class="form-control" rows="2" placeholder="Cuéntale al PM cómo quedó tu avance..."></textarea>
+                        <textarea th:field="*{comentario}" class="form-control" rows="2" maxlength="300"
+                                  placeholder="Cuéntale al PM cómo quedó tu avance..."
+                                  th:classappend="${#fields.hasErrors('comentario')} ? 'is-invalid' : ''"></textarea>
+                        <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('comentario')}" th:errors="*{comentario}"></div>
                     </div>
                 </form>
+
+
+
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
@@ -812,6 +832,22 @@
 </script>
 
 
+<script th:if="${abrirModalActividadId != null}" th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+        var actividadId = /*[[${abrirModalActividadId}]]*/ null;
+        var fila = document.querySelector('tr.activity-row[data-id="' + actividadId + '"]');
+        if (fila) mostrarDetalleActividad(fila);
+    });
+</script>
+
+<script th:if="${abrirModalSubirDocumento != null or abrirModalEliminarDocId != null}" th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        var idEliminar = /*[[${abrirModalEliminarDocId}]]*/ null;
+        var idModal = idEliminar ? 'deleteDocModal-' + idEliminar : 'subirDocumentoModal';
+        var modal = document.getElementById(idModal);
+        if (modal) (window.bootstrap || window.tabler).Modal.getOrCreateInstance(modal).show();
+    });
+</script>
 
 <div id="pureLightboxOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 99999; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
     <button type="button" onclick="closeLightbox()" style="position: absolute; right: 20px; top: 20px; background: transparent; border: none; color: white; font-size: 40px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>

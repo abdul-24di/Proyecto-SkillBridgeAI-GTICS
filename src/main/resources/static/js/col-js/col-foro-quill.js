@@ -9,6 +9,28 @@ document.addEventListener('DOMContentLoaded', function() {
         ['clean']                                         // remove formatting button
     ];
 
+    var TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    var MAX_IMAGEN_MB = 5;
+
+
+    function mostrarErrorEditor(quillInstance, texto) {
+        var contenedor = quillInstance.container.closest('.modal-body') || quillInstance.container.parentNode;
+        var aviso = contenedor.querySelector('.js-editor-error');
+        if (!aviso) {
+            aviso = document.createElement('div');
+            aviso.className = 'alert alert-danger small js-editor-error';
+            contenedor.insertBefore(aviso, contenedor.firstChild);
+        }
+        aviso.textContent = texto;
+        aviso.style.display = '';
+    }
+
+    function limpiarErrorEditor(quillInstance) {
+        var contenedor = quillInstance.container.closest('.modal-body') || quillInstance.container.parentNode;
+        var aviso = contenedor.querySelector('.js-editor-error');
+        if (aviso) aviso.style.display = 'none';
+    }
+
     function selectLocalImage(quillInstance) {
         const input = document.createElement('input');
         input.setAttribute('type', 'file');
@@ -17,36 +39,52 @@ document.addEventListener('DOMContentLoaded', function() {
 
         input.onchange = () => {
             const file = input.files[0];
-            if (/^image\//.test(file.type)) {
-                uploadToServer(file, quillInstance);
-            } else {
-                console.warn('You could only upload images.');
+            if (!file) return;
+            limpiarErrorEditor(quillInstance);
+
+            if (TIPOS_IMAGEN.indexOf(file.type) === -1) {
+                mostrarErrorEditor(quillInstance, 'Solo se permiten imágenes JPEG, PNG, GIF o WEBP.');
+                return;
             }
+            if (file.size > MAX_IMAGEN_MB * 1024 * 1024) {
+                mostrarErrorEditor(quillInstance, 'La imagen no puede superar los ' + MAX_IMAGEN_MB + ' MB.');
+                return;
+            }
+            uploadToServer(file, quillInstance);
         };
     }
 
     function uploadToServer(file, quillInstance) {
         const fd = new FormData();
         fd.append('image', file);
-        
+
         fetch('/colaborador/foro/upload-imagen', {
             method: 'POST',
             headers: csrfHeaders(),
             body: fd
         })
-        .then(response => {
-            if(!response.ok) throw new Error("Upload failed");
-            return response.json();
-        })
-        .then(result => {
-            const range = quillInstance.getSelection(true);
-            quillInstance.insertEmbed(range.index, 'image', result.url);
-            quillInstance.setSelection(range.index + 1);
-        })
-        .catch(error => {
-            console.error('Error uploading image', error);
-            alert('Error al subir la imagen.');
-        });
+            .then(async response => {
+                let datos = null;
+                try { datos = await response.json(); } catch (e) {  }
+                if (!response.ok || !datos || !datos.url) {
+                    throw new Error((datos && datos.error)
+                        || 'No se pudo subir la imagen. Verifica que sea una imagen válida de hasta ' + MAX_IMAGEN_MB + ' MB.');
+                }
+                return datos;
+            })
+            .then(result => {
+                const range = quillInstance.getSelection(true);
+                quillInstance.insertEmbed(range.index, 'image', result.url);
+                quillInstance.setSelection(range.index + 1);
+            })
+            .catch(error => {
+                console.error('Error uploading image', error);
+
+                const texto = (error instanceof TypeError)
+                    ? 'No se pudo subir la imagen. Revisa tu conexión e inténtalo de nuevo.'
+                    : error.message;
+                mostrarErrorEditor(quillInstance, texto);
+            });
     }
 
     // Inicializar editor para Nueva Publicación

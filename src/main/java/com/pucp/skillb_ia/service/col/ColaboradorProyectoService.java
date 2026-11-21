@@ -408,6 +408,25 @@ public class ColaboradorProyectoService {
     // ============================================================
     // MARCAR ACTIVIDAD COMO "LISTO PARA REVISAR"
     // ============================================================
+
+    // Devuelve el mensaje de error o null si la evidencia es válida.
+    public String validarEvidencia(MultipartFile evidencia) {
+        if (evidencia == null || evidencia.isEmpty()) {
+            return "Debes adjuntar una evidencia para marcar la actividad como lista.";
+        }
+        if (evidencia.getContentType() == null || !TIPOS_EVIDENCIA_PERMITIDOS.contains(evidencia.getContentType())) {
+            return "La evidencia debe estar en formato PDF, JPG o PNG.";
+        }
+        String nombre = evidencia.getOriginalFilename();
+        if (nombre == null || !EXTENSIONES_EVIDENCIA_PERMITIDAS.contains(extensionDe(nombre))) {
+            return "La evidencia debe ser un archivo .pdf, .jpg o .png.";
+        }
+        if (evidencia.getSize() > TAMANO_MAXIMO_EVIDENCIA_BYTES) {
+            return "La evidencia supera el máximo de 10MB.";
+        }
+        return null;
+    }
+
     @Transactional
     public void marcarActividadListaParaRevision(Usuario colaborador, Long actividadId,
                                                  MultipartFile evidencia, String comentario) {
@@ -431,19 +450,11 @@ public class ColaboradorProyectoService {
         if (actividad.getEstado() == EstadoActividad.COMPLETADA) {
             throw new IllegalArgumentException("Esta actividad ya fue completada.");
         }
-        if (evidencia == null || evidencia.isEmpty()) {
-            throw new IllegalArgumentException("Debes adjuntar una evidencia para marcar la actividad como lista.");
+        String errorEvidencia = validarEvidencia(evidencia);
+        if (errorEvidencia != null) {
+            throw new IllegalArgumentException(errorEvidencia);
         }
-        if (evidencia.getContentType() == null || !TIPOS_EVIDENCIA_PERMITIDOS.contains(evidencia.getContentType())) {
-            throw new IllegalArgumentException("La evidencia debe estar en formato PDF, JPG o PNG.");
-        }
-        String nombreEvidencia = evidencia.getOriginalFilename();
-        if (nombreEvidencia == null || !EXTENSIONES_EVIDENCIA_PERMITIDAS.contains(extensionDe(nombreEvidencia))) {
-            throw new IllegalArgumentException("La evidencia debe ser un archivo .pdf, .jpg o .png.");
-        }
-        if (evidencia.getSize() > TAMANO_MAXIMO_EVIDENCIA_BYTES) {
-            throw new IllegalArgumentException("La evidencia supera el máximo de 10MB.");
-        }
+
         if (comentario == null || comentario.isBlank()) {
             throw new IllegalArgumentException("Debes escribir un comentario para marcar la actividad como lista.");
         }

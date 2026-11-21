@@ -1837,6 +1837,25 @@ public class RmViewController {
                 .filter(RmReporteView.ColaboradorReporte::isAlcanzaReferencia).count());
         return "rm/rm-horas-colaboradores";
     }
+
+    // Exporta las horas con los mismos filtros de la pantalla (todas las filas, no solo la página visible).
+    @GetMapping("/reportes/horas-colaboradores/exportar")
+    public ResponseEntity<byte[]> exportarHorasColaboradores(
+            @RequestParam(name = "periodo", required = false) String periodo,
+            @RequestParam(name = "proyecto", required = false) Long proyectoId,
+            @RequestParam(name = "busqueda", required = false) String busqueda,
+            @RequestParam(name = "formato", defaultValue = "excel") String formato) {
+        var filtros = rmReporteService.normalizarFiltrosHoras(periodo, proyectoId, busqueda, null);
+        var paginaHoras = rmReporteService.listarPaginaHoras(filtros, null);
+        RmReporteView reporte = paginaHoras.reporte();
+        String nombre = rmReporteExportService.nombreArchivoHoras(reporte);
+        if ("pdf".equalsIgnoreCase(formato)) {
+            return archivo(rmReporteExportService.crearPdfHoras(reporte, paginaHoras.colaboradores()),
+                    nombre + ".pdf", "application/pdf");
+        }
+        return archivo(rmReporteExportService.crearExcelHoras(reporte, paginaHoras.colaboradores()),
+                nombre + ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    }
     @GetMapping("/reportes/recursos/excel")
     public ResponseEntity<byte[]> exportarReporteExcel(
             @RequestParam(name = "periodo", required = false) String periodo,

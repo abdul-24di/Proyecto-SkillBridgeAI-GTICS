@@ -992,7 +992,7 @@ public class AdminViewController {
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Foro eliminado correctamente.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "No se pudo eliminar el foro: " + e.getMessage());
+            ra.addFlashAttribute("error", "No se pudo eliminar el foro. " + mensajeSeguro(e));
         }
         return "redirect:/admin/foros";
     }
@@ -1095,7 +1095,7 @@ public class AdminViewController {
                                         @AuthenticationPrincipal UsuarioDetails principal,
                                         RedirectAttributes ra, HttpServletRequest request) {
         try {
-            pmForoService.eliminarRespuesta(principal.getUsuario(), respuestaId);
+            adminForoService.eliminarRespuesta(respuestaId);
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Respuesta eliminada.");
         } catch (IllegalArgumentException e) {

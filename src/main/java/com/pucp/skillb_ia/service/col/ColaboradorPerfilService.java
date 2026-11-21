@@ -484,7 +484,7 @@ public class ColaboradorPerfilService {
 
         //El nombre es único en todo el catalogo. Si ya existe, se lo decimos al colaborador para que la busque en el
         //selector del catálogo.
-        Optional<Habilidad> existente = habilidadRepository.findByNombreIgnoreCase(nombreLimpio);
+        Optional<Habilidad> existente = habilidadRepository.findFirstByNombreIgnoreCaseOrderByIdAsc(nombreLimpio);
 
         if (existente.isPresent()) {
             throw new IllegalArgumentException(

@@ -306,12 +306,6 @@
                     <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('passwordsCoinciden')}" th:errors="*{passwordsCoinciden}"></div>
                 </div>
 
-                <div class="auth-check mb-3">
-                    <input type="checkbox" class="form-check-input" id="activationTerms" th:field="*{aceptaPolitica}">
-                    <label for="activationTerms">Acepto la política de tratamiento de datos de SkillBridge AI.</label>
-                    <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('aceptaPolitica')}" th:errors="*{aceptaPolitica}"></div>
-                </div>
-
                 <button type="submit" class="auth-submit" id="activarCuentaEnviar">Activar cuenta</button>
             </div>
 

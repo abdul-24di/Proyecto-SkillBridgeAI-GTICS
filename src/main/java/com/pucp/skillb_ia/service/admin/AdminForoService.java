@@ -56,7 +56,17 @@ public class AdminForoService {
 
     @Transactional
     public void eliminarForo(Long foroId) {
-        foroRepository.deleteById(foroId);
+        Foro foro = obtenerForo(foroId);
+        // Desde aquí solo se eliminan foros de comunidad; el foro de un proyecto vive mientras exista el proyecto.
+        if (foro.getTipo() != TipoForo.GENERAL) {
+            throw new IllegalArgumentException("Solo se pueden eliminar foros de comunidad.");
+        }
+        // Antes fallaba con un error de la base si el foro ya tenía publicaciones.
+        foroRepository.borrarVotosDeRespuestas(foroId);
+        foroRepository.borrarRespuestas(foroId);
+        foroRepository.borrarVotosDePublicaciones(foroId);
+        foroRepository.borrarPublicaciones(foroId);
+        foroRepository.delete(foro);
     }
 
     @Transactional(readOnly = true)
@@ -109,5 +119,15 @@ public class AdminForoService {
             p.setActivo(false);
             publicacionForoRepository.save(p);
         });
+    }
+
+    // El Administrador modera el foro de comunidad: puede retirar cualquier respuesta, igual que las publicaciones.
+    // Antes solo podía borrar las suyas.
+    @Transactional
+    public void eliminarRespuesta(Long respuestaId) {
+        var respuesta = respuestaForoRepository.findById(respuestaId)
+                .orElseThrow(() -> new IllegalArgumentException("Respuesta no encontrada."));
+        respuesta.setActivo(false);
+        respuestaForoRepository.save(respuesta);
     }
 }

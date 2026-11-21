@@ -118,7 +118,7 @@
                               ❤️ <span th:text="${resp.totalLikes}">0</span>
                           </button>
                       </form>
-                      <form th:if="${admin.id == resp.respuesta.autor.id}" method="POST" th:action="@{/admin/foros/respuesta/{id}/eliminar(id=${resp.respuesta.id})}" class="d-inline ms-1" onsubmit="return confirm('¿Seguro que deseas eliminar esta respuesta?');">
+                      <form method="POST" th:action="@{/admin/foros/respuesta/{id}/eliminar(id=${resp.respuesta.id})}" class="d-inline ms-1" onsubmit="return confirm('¿Seguro que deseas eliminar esta respuesta?');">
                           <input type="hidden" name="foroId" th:value="${foro.id}" />
                           <button type="submit" class="btn btn-sm btn-outline-danger mt-1">Eliminar</button>
                       </form>

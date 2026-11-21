@@ -13,7 +13,13 @@ import com.pucp.skillb_ia.service.DniService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.col.PreRegistroArchivosService;
 import com.pucp.skillb_ia.service.col.PreRegistroColaboradorService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -68,7 +74,16 @@ public class AuthViewController {
     // ============================================================
 
     @GetMapping({"/activar-cuenta", "/activar-cuenta.html"})
-    public String activarCuentaForm(@RequestParam(required = false) String token, Model model, HttpSession session) {
+    public String activarCuentaForm(@RequestParam(required = false) String token, Model model, HttpSession session,
+                                    HttpServletRequest request, HttpServletResponse response,
+                                    RedirectAttributes redirectAttributes) {
+        // Si en este navegador ya hay alguien con sesión iniciada (p. ej. el Admin que creó la cuenta), se cierra
+        // primero. Antes, al terminar la activación el login llevaba al panel de esa otra sesión y parecía que
+        // la cuenta nueva tenía otro rol.
+        if (cerrarSesionAbierta(request, response)) {
+            redirectAttributes.addAttribute("token", token);
+            return "redirect:/activar-cuenta";
+        }
         ActivarCuentaForm form = new ActivarCuentaForm();
         form.setToken(token);
         agregarFilasEnBlanco(form);
@@ -80,7 +95,8 @@ public class AuthViewController {
     @PostMapping("/activar-cuenta")
     public String activarCuentaSubmit(@Valid @ModelAttribute("activarCuentaForm") ActivarCuentaForm form,
                                        BindingResult result, Model model, HttpSession session,
-                                       RedirectAttributes redirectAttributes) {
+                                       RedirectAttributes redirectAttributes,
+                                       HttpServletRequest request, HttpServletResponse response) {
         // Sin un enlace vigente no se procesa nada (ni se guarda ningún archivo): el GET muestra el estado.
         AuthService.ResultadoToken resultado = authService.validarTokenActivacion(form.getToken());
         if (!resultado.esValido()) {
@@ -119,7 +135,12 @@ public class AuthViewController {
                     form.getTelefono(), form.getDescripcion(), form.getPassword());
             dniService.registrar(usuario, form.getDni(), dniVerificado);
             if (esColaborador) {
-                preRegistroColaboradorService.guardar(usuario, form, session);
+                List<String> noGuardado = preRegistroColaboradorService.guardar(usuario, form, session);
+                if (!noGuardado.isEmpty()) {
+                    redirectAttributes.addFlashAttribute("avisoPreRegistro",
+                            "Tu cuenta se activó, pero no se pudo guardar: " + String.join(", ", noGuardado)
+                                    + ". Al ingresar, vuelve a subirlo; si el problema sigue, avisa al Administrador.");
+                }
             }
         } catch (IllegalStateException e) {
             // El enlace expiró o ya se usó entre que se abrió el form y se envió:
@@ -127,7 +148,19 @@ public class AuthViewController {
             redirectAttributes.addAttribute("token", form.getToken());
             return "redirect:/activar-cuenta";
         }
+        cerrarSesionAbierta(request, response);
         return "redirect:/login?activado";
+    }
+
+    // Cierra la sesión de quien esté conectado en este navegador (mismo cierre que hace Spring Security en /logout).
+    // Devuelve true si había una sesión iniciada.
+    private boolean cerrarSesionAbierta(HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            return false;
+        }
+        new SecurityContextLogoutHandler().logout(request, response, auth);
+        return true;
     }
 
     // Cada sección dinámica del formulario necesita al menos una fila para mostrarse.

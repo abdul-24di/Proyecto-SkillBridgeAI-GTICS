@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -107,9 +108,11 @@ class SeguridadTests {
     }
 
     @Test
-    void unaSubidaSinArchivoEsUnError400Y_noUn500() throws Exception {
+    void unaSubidaSinArchivoVuelveConUnAvisoY_noEsUn500() throws Exception {
+        // Una subida que no se pudo recibir regresa a la página anterior con un mensaje de error.
         mvcSinSeguridad.perform(post("/pm/foro/upload-imagen"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attributeExists("mensajeError"));
     }
 
     // ---------- inundación de peticiones ----------

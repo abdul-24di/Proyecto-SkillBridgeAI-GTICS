@@ -183,7 +183,8 @@ public class AdminHabilidadService {
         CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
                 .orElseThrow(() -> new IllegalArgumentException("Categoría inválida."));
 
-        if (habilidadRepository.findByNombreIgnoreCase(nombreLimpio).isPresent()) {
+        validarLargo(nombreLimpio);
+        if (habilidadRepository.findFirstByNombreIgnoreCaseOrderByIdAsc(nombreLimpio).isPresent()) {
             throw new IllegalArgumentException("Ya existe la habilidad \"" + nombreLimpio + "\" en el catálogo (no puede repetirse en otra categoría).");
         }
 
@@ -208,11 +209,13 @@ public class AdminHabilidadService {
         CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
                 .orElseThrow(() -> new IllegalArgumentException("Categoría inválida."));
 
-        habilidadRepository.findByNombreIgnoreCase(nombreLimpio)
-                .filter(h -> !h.getId().equals(habilidadId))
-                .ifPresent(h -> {
-                    throw new IllegalArgumentException("Ya existe la habilidad \"" + nombreLimpio + "\" en el catálogo (no puede repetirse en otra categoría).");
-                });
+        validarLargo(nombreLimpio);
+        // Solo se revisa si el nombre cambió: así se puede cambiar la categoría de una habilidad aunque la base
+        // tenga datos antiguos con ese mismo nombre repetido en otra categoría.
+        boolean cambiaNombre = !habilidad.getNombre().equalsIgnoreCase(nombreLimpio);
+        if (cambiaNombre && habilidadRepository.existsByNombreIgnoreCaseAndIdNot(nombreLimpio, habilidadId)) {
+            throw new IllegalArgumentException("Ya existe la habilidad \"" + nombreLimpio + "\" en el catálogo (no puede repetirse en otra categoría).");
+        }
 
         String nombreAnterior = habilidad.getNombre();
         habilidad.setNombre(nombreLimpio);
@@ -241,6 +244,13 @@ public class AdminHabilidadService {
         habilidadRepository.save(habilidad);
         auditoriaService.registrar(admin, "REACTIVAR_HABILIDAD", "HABILIDAD", habilidad.getId(),
                 "Reactivó la habilidad \"" + habilidad.getNombre() + "\".");
+    }
+
+    // La columna es VARCHAR(100): sin este control, un nombre largo terminaba en un error sin explicación.
+    private static void validarLargo(String nombre) {
+        if (nombre.length() > 100) {
+            throw new IllegalArgumentException("El nombre de la habilidad no puede superar los 100 caracteres.");
+        }
     }
 
     private HabilidadFila aFila(Habilidad h) {

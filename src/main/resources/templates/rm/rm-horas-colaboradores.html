@@ -45,7 +45,11 @@
     </div>
     <div class="page-head page-head-stack-mobile page-head-button-mobile">
       <div><h1 class="page-title">Horas de colaboradores</h1><div class="text-secondary" th:text="|Consolidado de tareas completadas en ${reporte.periodoTexto}.|">Consolidado mensual.</div></div>
-      <a class="btn btn-outline-secondary" th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado})}">Volver al reporte</a>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-primary" th:href="@{/rm/reportes/horas-colaboradores/exportar(formato='excel',periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado},busqueda=${busqueda})}">Exportar Excel</a>
+        <a class="btn btn-outline-primary" th:href="@{/rm/reportes/horas-colaboradores/exportar(formato='pdf',periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado},busqueda=${busqueda})}">Exportar PDF</a>
+        <a class="btn btn-outline-secondary" th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado})}">Volver al reporte</a>
+      </div>
     </div>
 
     <div class="card section-card mb-4">

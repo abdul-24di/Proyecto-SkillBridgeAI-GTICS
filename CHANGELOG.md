@@ -1,5 +1,18 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 21 de Noviembre 2026 — Observaciones del grupo
+
+- **Habilidades (Admin):** editar daba "No se pudo completar la operación" cuando la base tenía el mismo nombre en dos categorías (lo dejaba el script demo anterior). Ahora se edita igual y, si el nombre nuevo ya existe, el mensaje lo dice. También se controla el largo (100).
+- **Foro de comunidad (Admin):** eliminar un foro con publicaciones mostraba un error de la base; ahora borra el foro con sus publicaciones, respuestas y "me gusta". El Admin puede retirar cualquier respuesta, no solo las suyas.
+- **Pre-registro:** se quitó el check de "política de tratamiento de datos". Si el CV u otro archivo no se puede guardar (p. ej. sin credenciales de S3 y sin `APP_STORAGE_TYPE=local`), el login lo avisa en lugar de volver a pedir el CV sin explicación.
+- **Activación con otra sesión abierta:** abrir el enlace de activación cierra antes la sesión que hubiera en el navegador; antes, al terminar, el login llevaba al panel de esa otra sesión y parecía que la cuenta tenía otro rol.
+- **Correos con plantilla HTML:** invitación (con el rol de la cuenta y botón "Activar mi cuenta") y código de recuperación (`templates/email/`), con texto plano de respaldo.
+- **Reportes:** "Horas de colaboradores" del RM ahora exporta a Excel y PDF; el resto de reportes de los 4 roles ya tenía ambos formatos y se comprobó que descargan.
+- **DNI en el perfil:** probado en los 4 roles; se registra una vez y no se puede cambiar.
+- **Tests:** 827 en verde (`ObservacionesGrupoTests`).
+
+---
+
 ## Sesión 16 de Noviembre 2026 (2) — Observaciones del jefe de práctica
 
 - **RM:** ya no puede aprobar un proyecto sin fecha de inicio y de fin, ni con el fin antes del inicio.

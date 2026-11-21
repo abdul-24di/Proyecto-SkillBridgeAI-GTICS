@@ -10,6 +10,7 @@ import com.pucp.skillb_ia.model.TokenUsuario;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.service.AuthService;
 import com.pucp.skillb_ia.service.DniService;
+import com.pucp.skillb_ia.service.DniVerificacionService;
 import com.pucp.skillb_ia.service.col.ColaboradorPerfilService;
 import com.pucp.skillb_ia.service.col.PreRegistroArchivosService;
 import com.pucp.skillb_ia.service.col.PreRegistroColaboradorService;
@@ -46,13 +47,16 @@ public class AuthViewController {
     private final ColaboradorPerfilService colaboradorPerfilService;
     private final PreRegistroArchivosService preRegistroArchivosService;
     private final DniService dniService;
+    private final DniVerificacionService dniVerificacionService;
 
     public AuthViewController(AuthService authService,
                               PreRegistroColaboradorService preRegistroColaboradorService,
                               ColaboradorPerfilService colaboradorPerfilService,
                               PreRegistroArchivosService preRegistroArchivosService,
-                              DniService dniService) {
+                              DniService dniService,
+                              DniVerificacionService dniVerificacionService) {
         this.dniService = dniService;
+        this.dniVerificacionService = dniVerificacionService;
         this.authService = authService;
         this.preRegistroColaboradorService = preRegistroColaboradorService;
         this.colaboradorPerfilService = colaboradorPerfilService;
@@ -134,6 +138,9 @@ public class AuthViewController {
             Usuario usuario = authService.activarCuenta(form.getToken(), form.getNombreCompleto(),
                     form.getTelefono(), form.getDescripcion(), form.getPassword());
             dniService.registrar(usuario, form.getDni(), dniVerificado);
+            if (!dniVerificado) {
+                dniVerificacionService.notificarSinVerificar(usuario);
+            }
             if (esColaborador) {
                 List<String> noGuardado = preRegistroColaboradorService.guardar(usuario, form, session);
                 if (!noGuardado.isEmpty()) {

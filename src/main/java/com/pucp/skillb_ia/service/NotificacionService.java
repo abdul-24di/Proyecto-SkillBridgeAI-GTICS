@@ -187,6 +187,13 @@ public class NotificacionService {
             return "/colaborador/perfil#mis-cursos";
         }
         if ("USUARIO".equals(item.getEntidad()) && item.getEntidadId() != null) {
+            // DNI verificado, sin verificar o quitado: lleva a la sección del DNI del perfil de cada rol.
+            if (item.getTipo() != null && item.getTipo().startsWith("DNI_")) {
+                if (esColaborador) return "/colaborador/perfil#dni";
+                if (esPm) return "/pm/perfil#dni";
+                if (esRm) return "/rm/perfil#dni";
+                if (rolNombre.equals("ADMINISTRADOR")) return "/admin/perfil#dni";
+            }
             if ("CV_PENDIENTE".equals(item.getTipo()) && rolNombre.equals("ADMINISTRADOR")) {
                 return "/admin/experiencia/" + item.getEntidadId();
             }

@@ -57,6 +57,7 @@ public class AdminViewController {
     private final ColaboradorPerfilService colaboradorPerfilService;
     private final com.pucp.skillb_ia.service.admin.AdminForoService adminForoService;
     private final com.pucp.skillb_ia.service.pm.PmForoService pmForoService;
+    private final com.pucp.skillb_ia.service.DniVerificacionService dniVerificacionService;
 
     public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
                                 AdminConfiguracionService adminConfiguracionService,
@@ -67,8 +68,10 @@ public class AdminViewController {
                                 ColaboradorPerfilService colaboradorPerfilService,
                                 com.pucp.skillb_ia.service.admin.AdminForoService adminForoService,
                                 com.pucp.skillb_ia.service.pm.PmForoService pmForoService,
-                                com.pucp.skillb_ia.service.AdminReporteService adminReporteService) {
+                                com.pucp.skillb_ia.service.AdminReporteService adminReporteService,
+                                com.pucp.skillb_ia.service.DniVerificacionService dniVerificacionService) {
         this.adminReporteService = adminReporteService;
+        this.dniVerificacionService = dniVerificacionService;
         this.adminUsuarioService = adminUsuarioService;
         this.adminHabilidadService = adminHabilidadService;
         this.adminConfiguracionService = adminConfiguracionService;
@@ -720,6 +723,10 @@ public class AdminViewController {
     // Los dos formularios de la pantalla (teléfono y contraseña) necesitan su objeto en el modelo
     // aunque se haya enviado solo uno; el que falló conserva lo escrito y sus errores.
     private void completarModeloPerfil(Model model, UsuarioDetails principal) {
+        // El DNI puede haberse verificado o quitado en segundo plano (DniReintentoScheduler).
+        if (principal != null) {
+            dniVerificacionService.sincronizar(principal.getUsuario());
+        }
         if (!model.containsAttribute("telefonoPerfilForm")) {
             model.addAttribute("telefonoPerfilForm", new TelefonoPerfilForm(principal.getUsuario().getTelefono()));
         }

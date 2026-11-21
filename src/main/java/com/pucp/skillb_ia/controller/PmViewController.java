@@ -983,6 +983,11 @@ public class PmViewController {
     // La vista tiene dos formularios: si uno vuelve con errores, el otro también debe estar en el modelo.
     private void cargarVistaPerfil(UsuarioDetails principal, Model model) {
         model.addAttribute("perfil", pmPerfilService.obtener(principal.getUsuario()));
+        // El DNI puede haberse verificado o quitado en segundo plano (DniReintentoScheduler).
+        usuarioRepository.findById(principal.getUsuario().getId()).ifPresent(u -> {
+            principal.getUsuario().setDni(u.getDni());
+            principal.getUsuario().setDniVerificado(u.isDniVerificado());
+        });
         model.addAttribute("pm", principal.getUsuario());
         if (!model.containsAttribute("pmPerfilDatosForm")) {
             PmPerfilDatosForm form = new PmPerfilDatosForm();

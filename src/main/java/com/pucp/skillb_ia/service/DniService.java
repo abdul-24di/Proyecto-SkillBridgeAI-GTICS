@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-// DNI de los usuarios: formato, que no se repita y consulta en la API de verifica.id (clase 10.1, consumo de
-// servicios web con RestTemplate y Authorization: Bearer). El DNI se registra una sola vez y no se edita.
-// Si la API no está configurada o no responde, el DNI se guarda "sin verificar": una falla externa no debe
-// impedir que alguien active su cuenta.
+// DNI de los usuarios: formato, que no se repita y consulta en la API de apisperu (clase 10.1, consumo de
+// servicios web con RestTemplate y Authorization: Bearer). Si la API no está configurada o no responde, el DNI se
+// guarda "sin verificar": una falla externa no debe impedir que alguien active su cuenta. Un DNI sin verificar se
+// puede corregir y se vuelve a consultar (DniVerificacionService); uno verificado ya no cambia.
 @Service
 public class DniService {
 
@@ -34,6 +34,7 @@ public class DniService {
 
     public static final String REGEX = "^[0-9]{8}$";
     public static final String MENSAJE_FORMATO = "El DNI debe tener exactamente 8 dígitos, sin espacios ni letras.";
+    public static final String MENSAJE_YA_VERIFICADO = "Tu DNI ya está verificado y no se puede cambiar.";
 
     // Resultado de consultar la API.
     public enum EstadoConsulta { ENCONTRADO, NO_ENCONTRADO, NO_DISPONIBLE }
@@ -66,7 +67,12 @@ public class DniService {
      *                                  registrado, la API no lo encuentra o el nombre no coincide
      */
     public boolean validar(String dni, String nombreCompleto) {
-        String limpio = validarFormatoYUnico(dni);
+        return validar(dni, nombreCompleto, null);
+    }
+
+    /** Igual que {@link #validar(String, String)}, sin contar como repetido el DNI del propio usuario. */
+    public boolean validar(String dni, String nombreCompleto, Long usuarioId) {
+        String limpio = validarFormatoYUnico(dni, usuarioId);
         Consulta consulta = consultar(limpio);
         if (consulta.estado() == EstadoConsulta.NO_DISPONIBLE) {
             return false;
@@ -88,21 +94,34 @@ public class DniService {
      * @throws IllegalArgumentException si el formato es inválido o el DNI ya está registrado
      */
     public String validarFormatoYUnico(String dni) {
+        return validarFormatoYUnico(dni, null);
+    }
+
+    /** Igual que {@link #validarFormatoYUnico(String)}; si usuarioId no es null, su propio DNI no cuenta como repetido. */
+    public String validarFormatoYUnico(String dni, Long usuarioId) {
         String limpio = dni == null ? "" : dni.trim();
         if (!limpio.matches(REGEX)) {
             throw new IllegalArgumentException(MENSAJE_FORMATO);
         }
-        if (usuarioRepository.existsByDni(limpio)) {
+        boolean repetido = usuarioId == null
+                ? usuarioRepository.existsByDni(limpio)
+                : usuarioRepository.existsByDniAndIdNot(limpio, usuarioId);
+        if (repetido) {
             throw new IllegalArgumentException("Ese DNI ya está registrado en otra cuenta.");
         }
         return limpio;
     }
 
-    /** Guarda el DNI del usuario. Solo se permite una vez: después no se puede cambiar. */
+    /** true si hay token de la API: sin él no tiene sentido reintentar la verificación. */
+    public boolean apiConfigurada() {
+        return !apiKey.isEmpty();
+    }
+
+    /** Guarda el DNI del usuario. Se puede corregir mientras esté "sin verificar"; verificado ya no cambia. */
     @Transactional
     public void registrar(Usuario usuario, String dni, boolean verificado) {
-        if (usuario.getDni() != null && !usuario.getDni().isBlank()) {
-            throw new IllegalStateException("Tu DNI ya está registrado y no se puede cambiar.");
+        if (usuario.isDniVerificado() && usuario.getDni() != null && !usuario.getDni().isBlank()) {
+            throw new IllegalStateException(MENSAJE_YA_VERIFICADO);
         }
         usuario.setDni(dni.trim());
         usuario.setDniVerificado(verificado);
@@ -126,13 +145,14 @@ public class DniService {
                     new HttpEntity<>(headers), Map.class);
             Map<String, Object> cuerpo = respuesta.getBody();
             if (cuerpo != null && Boolean.FALSE.equals(cuerpo.get("success"))) {
-                String mensaje = cuerpo.get("message") instanceof String m ? m.toLowerCase(Locale.ROOT) : "";
-                if (mensaje.contains("token") || mensaje.contains("autentic") || mensaje.contains("unauth")
-                        || mensaje.contains("limite") || mensaje.contains("límite") || mensaje.contains("plan")) {
-                    log.warn("[DNI] La API rechazó la consulta ({}): el DNI se guardará sin verificar.", mensaje);
-                    return new Consulta(EstadoConsulta.NO_DISPONIBLE, null);
+                String mensaje = cuerpo.get("message") instanceof String m ? m : "";
+                // Solo "DNI no encontrado" bloquea el registro; cualquier otro rechazo (token, plan, límite,
+                // mantenimiento, sin mensaje) es un problema del servicio y el DNI se guarda sin verificar.
+                if (esDniNoEncontrado(mensaje)) {
+                    return new Consulta(EstadoConsulta.NO_ENCONTRADO, null);
                 }
-                return new Consulta(EstadoConsulta.NO_ENCONTRADO, null);
+                log.warn("[DNI] La API rechazó la consulta ({}): el DNI se guardará sin verificar.", mensaje);
+                return new Consulta(EstadoConsulta.NO_DISPONIBLE, null);
             }
             String nombre = extraerNombreCompleto(cuerpo);
             if (nombre == null || nombre.isBlank()) {
@@ -151,11 +171,17 @@ public class DniService {
         }
     }
 
+    /** El mensaje de success=false indica que el DNI no existe (sin importar mayúsculas ni tildes). */
+    private boolean esDniNoEncontrado(String mensaje) {
+        String texto = Normalizer.normalize(mensaje, Normalizer.Form.NFD).replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
+        return texto.contains("no se encontr") || texto.contains("no encontrado") || texto.contains("not found")
+                || texto.contains("no existe");
+    }
+
     /**
-     * Saca el nombre completo de la respuesta de la API. Acepta los datos en la raíz o dentro de "data", con el
-     * nombre completo en un solo campo o separado en nombres y apellidos.
-     * [Por confirmar con el ejemplo de respuesta de verifica.id: si los campos se llaman distinto, solo se
-     * ajusta este método.]
+     * Saca el nombre completo de la respuesta de apisperu. Acepta los datos en la raíz o dentro de "data", con
+     * el nombre completo en un solo campo o separado en nombres y apellidos.
      */
     @SuppressWarnings("unchecked")
     String extraerNombreCompleto(Map<String, Object> respuesta) {
@@ -187,7 +213,7 @@ public class DniService {
      * nombre oficial, sin importar mayúsculas, tildes ni el orden. Permite escribir solo un nombre y un
      * apellido ("Luis Paredes" para "PAREDES DIAZ LUIS ABDUL").
      */
-    boolean nombresCoinciden(String escrito, String oficial) {
+    public boolean nombresCoinciden(String escrito, String oficial) {
         List<String> palabrasEscritas = palabras(escrito);
         List<String> palabrasOficiales = palabras(oficial);
         return palabrasEscritas.size() >= 2 && palabrasOficiales.containsAll(palabrasEscritas);

@@ -13,6 +13,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByCorreo(String correo);
     boolean existsByCorreo(String correo);
     boolean existsByDni(String dni);
+    boolean existsByDniAndIdNot(String dni, Long id);
+    // DNI guardados "sin verificar" que la tarea programada vuelve a consultar.
+    List<Usuario> findByDniIsNotNullAndDniVerificadoFalse();
     List<Usuario> findByCargo(Cargo cargo);
 
     @Query("""

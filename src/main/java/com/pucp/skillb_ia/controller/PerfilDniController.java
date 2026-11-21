@@ -1,9 +1,7 @@
 package com.pucp.skillb_ia.controller;
 
-import com.pucp.skillb_ia.model.Usuario;
-import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
-import com.pucp.skillb_ia.service.DniService;
+import com.pucp.skillb_ia.service.DniVerificacionService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,18 +10,15 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-// Registro del DNI desde el perfil, para las cuentas creadas antes de que se pidiera al activar la cuenta.
-// Sirve para cualquier rol con sesión (lo protege anyRequest().authenticated() en SecurityConfig) y solo funciona
-// una vez: si el usuario ya tiene DNI, no se cambia.
+// Registro, corrección o nueva verificación del DNI desde el perfil. Sirve para cualquier rol con sesión (lo protege
+// anyRequest().authenticated() en SecurityConfig). Un DNI "sin verificar" se puede corregir; uno verificado no.
 @Controller
 public class PerfilDniController {
 
-    private final DniService dniService;
-    private final UsuarioRepository usuarioRepository;
+    private final DniVerificacionService dniVerificacionService;
 
-    public PerfilDniController(DniService dniService, UsuarioRepository usuarioRepository) {
-        this.dniService = dniService;
-        this.usuarioRepository = usuarioRepository;
+    public PerfilDniController(DniVerificacionService dniVerificacionService) {
+        this.dniVerificacionService = dniVerificacionService;
     }
 
     @PostMapping("/perfil/dni")
@@ -33,26 +28,18 @@ public class PerfilDniController {
         if (principal == null) return "redirect:/login";
         String volver = "redirect:" + GlobalExceptionHandler.paginaAnterior(request, "/") + "#dni";
 
-        // Se lee de la base de datos (no de la sesión) para no registrar dos veces si abrió el perfil en dos pestañas.
-        Usuario usuario = usuarioRepository.findById(principal.getUsuario().getId()).orElse(null);
-        if (usuario == null) return "redirect:/login";
-        if (usuario.getDni() != null && !usuario.getDni().isBlank()) {
-            redirectAttributes.addFlashAttribute("dniError", "Tu DNI ya está registrado y no se puede cambiar.");
-            return volver;
-        }
-
+        // El servicio lee el usuario de la base de datos (no de la sesión): si ya está verificado, no se cambia.
         try {
-            boolean verificado = dniService.validar(dni, usuario.getNombre() + " " + usuario.getApellido());
-            dniService.registrar(usuario, dni, verificado);
+            boolean verificado = dniVerificacionService.registrarDesdePerfil(principal.getUsuario().getId(), dni);
             // Los perfiles del Admin y del PM muestran la copia del usuario guardada en la sesión: se actualiza y se
             // vuelve a guardar (mismo patrón que usa RmViewController al aprobar un proyecto).
-            principal.getUsuario().setDni(usuario.getDni());
-            principal.getUsuario().setDniVerificado(verificado);
+            dniVerificacionService.sincronizar(principal.getUsuario());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("dniGuardado", verificado
-                    ? "DNI registrado y verificado."
-                    : "DNI registrado. Quedó como \"sin verificar\" porque la consulta no estaba disponible.");
-        } catch (IllegalArgumentException e) {
+                    ? "DNI verificado."
+                    : "DNI guardado. Quedó como \"sin verificar\" porque la consulta no estaba disponible; "
+                    + "lo volveremos a intentar automáticamente.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
             redirectAttributes.addFlashAttribute("dniError", e.getMessage());
             redirectAttributes.addFlashAttribute("dniIngresado", dni);
         }

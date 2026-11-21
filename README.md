@@ -78,18 +78,26 @@ versiona.
 ### DNI de los usuarios
 
 Al activar la cuenta, todos los roles ingresan su DNI (8 dígitos, no se puede repetir
-entre usuarios ni editar después). Se consulta en la API de verifica.id (la de la clase
-10.1) con `RestTemplate` y la cabecera `Authorization: Bearer`, y se comprueba que el
-nombre escrito coincida con el del documento.
+entre usuarios ni editar después). Se consulta en la API de apisperu (consumo de servicios
+web de la clase 10.1) con `RestTemplate` y la cabecera `Authorization: Bearer`, y se
+comprueba que el nombre escrito coincida con el del documento.
 
 | Variable | Por defecto | Uso |
 |---|---|---|
-| `DNI_API_KEY` | vacía | API key de verifica.id |
-| `DNI_API_URL` | `https://api.verifica.id/v2/consulta/personas` | Endpoint de consulta |
+| `DNI_API_KEY` | vacía | Token de apisperu.com |
+| `DNI_API_URL` | `https://dniruc.apisperu.com/api/v1/dni` | Endpoint de consulta |
+| `DNI_REINTENTO_CRON` | `0 15 * * * *` | Cada cuánto se reintentan los DNI sin verificar |
 
-Si la key falta o la API no responde (caída, sin saldo), el registro no se bloquea: el
-DNI se guarda como **"sin verificar"** y el log lo avisa con el prefijo `[DNI]`. Las
-cuentas creadas antes de pedir el DNI pueden registrarlo una sola vez desde su perfil.
+Solo bloquea el registro que la API diga que el DNI no existe (HTTP 404 o `success=false`
+con "No se encontraron resultados"). Si la key falta, la API no responde o rechaza la
+consulta por otro motivo (token, plan, límite, mantenimiento), el registro no se bloquea: el
+DNI se guarda como **"sin verificar"**, el usuario recibe una notificación con el motivo y
+el log lo avisa con el prefijo `[DNI]`. Un DNI sin verificar no se queda así: cada hora
+una tarea programada lo vuelve a consultar, y el usuario puede corregirlo o pulsar
+"Verificar ahora" en su perfil. Si la consulta lo confirma, queda verificado y ya no se
+puede cambiar; si no existe o no corresponde al nombre de la cuenta, se quita y se le
+notifica el motivo para que lo registre de nuevo. Las cuentas creadas antes de pedir el
+DNI lo registran desde su perfil.
 La key, como las demás credenciales, **nunca** se guarda en `application.properties`
 ni se versiona.
 

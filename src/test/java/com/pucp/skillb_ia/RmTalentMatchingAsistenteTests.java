@@ -283,6 +283,50 @@ class RmTalentMatchingAsistenteTests {
                 .doesNotContain("sugerencias de IA");
     }
 
+    @Test
+    void brechasEnLoteCoincidenConElCalculoPorProyecto() {
+        Usuario rm = crearUsuario("rm.lote", "RESOURCE_MANAGER");
+        Usuario pm = crearUsuario("pm.lote", "PROJECT_MANAGER");
+        Habilidad habA = crearHabilidad("Lote A");
+        Habilidad habB = crearHabilidad("Lote B");
+        Proyecto uno = crearProyecto(pm, rm, "Proyecto Lote Uno", 4);
+        requerirHabilidad(uno, habA, NivelDominio.INTERMEDIO, 2, new BigDecimal("10.00"));
+        requerirHabilidad(uno, habB, NivelDominio.BASICO, 1, new BigDecimal("8.00"));
+        Proyecto dos = crearProyecto(pm, rm, "Proyecto Lote Dos", 2);
+        requerirHabilidad(dos, habA, NivelDominio.BASICO, 1, new BigDecimal("6.00"));
+
+        // Integrante sin habilidad solicitada: cubre lo que tenga validado (habA).
+        Usuario sinSolicitada = crearUsuario("IntegranteLibre", "COLABORADOR");
+        validarHabilidadColaborador(sinSolicitada, habA, NivelDominio.AVANZADO);
+        crearAsignacionActiva(uno, sinSolicitada);
+        // Integrante con habilidad solicitada: cubre solo esa (habB).
+        Usuario conSolicitada = crearUsuario("IntegranteB", "COLABORADOR");
+        Asignacion conHab = new Asignacion();
+        conHab.setProyecto(uno);
+        conHab.setColaborador(conSolicitada);
+        conHab.setHabilidadSolicitada(habB);
+        conHab.setHorasSemanales(new BigDecimal("4.00"));
+        conHab.setOrigen(OrigenAsignacion.PROPUESTA_PM);
+        conHab.setEstado(EstadoAsignacion.ACTIVA);
+        asignacionRepository.save(conHab);
+
+        var brechas = rmTalentMatchingService.cargarDatosBrechas(List.of(uno.getId(), dos.getId()));
+        var candidatos = rmTalentMatchingService.cargarDatosCandidatos();
+
+        for (Proyecto p : List.of(uno, dos)) {
+            assertThat(rmTalentMatchingService.calcularHabilidadesFaltantes(p, brechas, candidatos))
+                    .containsExactlyInAnyOrderElementsOf(rmTalentMatchingService.calcularHabilidadesFaltantes(p));
+        }
+        assertThat(rmTalentMatchingService.calcularHabilidadesFaltantes(uno, brechas, candidatos))
+                .singleElement()
+                .satisfies(hf -> {
+                    assertThat(hf.habilidadId()).isEqualTo(habA.getId());
+                    assertThat(hf.cubiertos()).isEqualTo(1);
+                    assertThat(hf.faltantes()).isEqualTo(1);
+                });
+        assertThat(rmTalentMatchingService.calcularHabilidadesFaltantes(dos, brechas, candidatos)).hasSize(1);
+    }
+
     private List<RecomendacionCandidato> recomendar(Proyecto proyecto) {
         return rmTalentMatchingService.recomendarParaProyecto(
                 proyecto, rmTalentMatchingService.calcularHabilidadesFaltantes(proyecto));

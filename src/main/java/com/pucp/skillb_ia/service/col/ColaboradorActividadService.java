@@ -33,7 +33,7 @@ public class ColaboradorActividadService {
     private final ColaboradorCursoService colaboradorCursoService;
 
     //Establecemos que la meta mensual de horas sea de 160 horas al mes
-    private static final BigDecimal META_MENSUAL_HORAS = new BigDecimal("160");
+    public static final BigDecimal META_MENSUAL_HORAS = new BigDecimal("160");
 
     public ColaboradorActividadService(ActividadRepository actividadRepository,
                                        PenalizacionService penalizacionService,

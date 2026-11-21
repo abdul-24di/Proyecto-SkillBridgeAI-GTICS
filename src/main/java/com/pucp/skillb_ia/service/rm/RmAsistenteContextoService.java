@@ -9,6 +9,7 @@ import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.DatosBrechas;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.DatosCandidatos;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.HabilidadFaltante;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.RecomendacionCandidato;
@@ -136,8 +137,14 @@ public class RmAsistenteContextoService {
         }
         boolean enfocadoCuposCompletos = enfocado != null && esDotable(enfocado.getProyecto())
                 && enfocado.getVacantes() <= 0;
-        DatosCandidatos datosCandidatos = idsConCandidatos.isEmpty()
+        // TASK-074: brechas y candidatos se calculan con datos cargados en lote una sola vez por mensaje
+        // (consultas fijas, sin importar cuántos proyectos ni cuántos integrantes haya).
+        List<Long> idsDescritos = enfocado != null
+                ? List.of(enfocado.getProyecto().getId())
+                : todos.stream().map(v -> v.getProyecto().getId()).toList();
+        DatosCandidatos datosCandidatos = idsDescritos.isEmpty()
                 ? null : rmTalentMatchingService.cargarDatosCandidatos();
+        DatosBrechas datosBrechas = rmTalentMatchingService.cargarDatosBrechas(idsDescritos);
 
         Map<Long, ProyectoTarjetaRm> tarjetasProyectos = new LinkedHashMap<>();
         Map<String, CandidatoTarjetaRm> tarjetasCandidatos = new LinkedHashMap<>();
@@ -201,7 +208,8 @@ public class RmAsistenteContextoService {
                     + (asig != null ? asig : BigDecimal.ZERO) + ", comprometido S/ " + comp
                     + ", saldo disponible S/ " + disp + " (" + v.getVacantes() + " vacante(s)).");
 
-            List<HabilidadFaltante> faltantes = rmTalentMatchingService.calcularHabilidadesFaltantes(p);
+            List<HabilidadFaltante> faltantes =
+                    rmTalentMatchingService.calcularHabilidadesFaltantes(p, datosBrechas, datosCandidatos);
             if (!faltantes.isEmpty()) {
                 t.append("- Habilidades faltantes en el proyecto:\n");
                 for (HabilidadFaltante hf : faltantes) {

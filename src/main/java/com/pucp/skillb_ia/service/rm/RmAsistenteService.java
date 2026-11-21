@@ -5,16 +5,15 @@ import com.pucp.skillb_ia.dto.RmAsistenteRespuesta.CandidatoTarjetaRm;
 import com.pucp.skillb_ia.dto.RmAsistenteRespuesta.ProyectoTarjetaRm;
 import com.pucp.skillb_ia.dto.RmAsistenteRespuesta.TurnoConversacionRm;
 import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.service.AsistenteRitmoService;
 import com.pucp.skillb_ia.service.col.ColAsistenteIaClient;
 import com.pucp.skillb_ia.service.rm.RmAsistenteContextoService.ContextoRm;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,18 +32,16 @@ public class RmAsistenteService {
     private final RmAsistenteContextoService contextoService;
     private final ColAsistenteIaClient iaClient;
     private final RmAsignacionService rmAsignacionService;
-    private final int maxPorMinuto;
-    private final Map<Long, ArrayDeque<Long>> envios = new ConcurrentHashMap<>();
-    private volatile long ultimoBarrido = System.currentTimeMillis();
+    private final AsistenteRitmoService asistenteRitmoService;
 
     public RmAsistenteService(RmAsistenteContextoService contextoService,
                               ColAsistenteIaClient iaClient,
                               RmAsignacionService rmAsignacionService,
-                              @Value("${app.ia.mensajes-por-minuto:10}") int maxPorMinuto) {
+                              AsistenteRitmoService asistenteRitmoService) {
         this.contextoService = contextoService;
         this.iaClient = iaClient;
         this.rmAsignacionService = rmAsignacionService;
-        this.maxPorMinuto = maxPorMinuto;
+        this.asistenteRitmoService = asistenteRitmoService;
     }
 
     public RmAsistenteRespuesta responder(Long rmId, Long proyectoContextoId, String mensajeCrudo, HttpSession session) {
@@ -56,7 +53,7 @@ public class RmAsistenteService {
             throw new IllegalArgumentException("Tu mensaje es muy largo (máximo " + MAX_MENSAJE + " caracteres).");
         }
         if (rmId != null) {
-            validarRitmo(rmId);
+            asistenteRitmoService.validar(rmId);
         }
 
         ContextoRm contexto = contextoService.construir(proyectoContextoId, mensaje);
@@ -167,40 +164,6 @@ public class RmAsistenteService {
                 proyectos,
                 candidatos
         );
-    }
-
-    // P50: compute() hace atómico el conteo por usuario y el barrido retira a quien no envía hace más de un minuto,
-    // así el mapa no crece sin límite.
-    private void validarRitmo(Long rmId) {
-        long ahora = System.currentTimeMillis();
-        barrerColasAntiguas(ahora);
-        boolean[] excedido = {false};
-        envios.compute(rmId, (k, cola) -> {
-            ArrayDeque<Long> actual = cola != null ? cola : new ArrayDeque<>();
-            while (!actual.isEmpty() && ahora - actual.peekFirst() > 60_000) {
-                actual.pollFirst();
-            }
-            if (actual.size() >= maxPorMinuto) {
-                excedido[0] = true;
-            } else {
-                actual.addLast(ahora);
-            }
-            return actual;
-        });
-        if (excedido[0]) {
-            throw new IllegalArgumentException("Enviaste muchos mensajes seguidos. Espera un momento e inténtalo de nuevo.");
-        }
-    }
-
-    private void barrerColasAntiguas(long ahora) {
-        if (ahora - ultimoBarrido < 60_000) {
-            return;
-        }
-        ultimoBarrido = ahora;
-        for (Long id : envios.keySet()) {
-            envios.computeIfPresent(id, (k, cola) ->
-                    cola.isEmpty() || ahora - cola.peekLast() > 60_000 ? null : cola);
-        }
     }
 
     @SuppressWarnings("unchecked")

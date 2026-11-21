@@ -4,13 +4,15 @@ import com.pucp.skillb_ia.dto.ColAsistenteRespuesta.Accion;
 import com.pucp.skillb_ia.dto.ColAsistenteRespuesta.CursoTarjeta;
 import com.pucp.skillb_ia.dto.ColAsistenteRespuesta.Fuente;
 import com.pucp.skillb_ia.dto.ColAsistenteRespuesta.ProyectoTarjeta;
-import com.pucp.skillb_ia.dto.ColHorasResumenView;
+import com.pucp.skillb_ia.dto.ColBonoMensualView;
 import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
 import com.pucp.skillb_ia.dto.CursoDisponibleView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
+import com.pucp.skillb_ia.model.enums.TipoPenalizacion;
 import com.pucp.skillb_ia.repository.*;
+import com.pucp.skillb_ia.service.PenalizacionService;
 import org.jsoup.Jsoup;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
+import java.time.YearMonth;
 import java.util.*;
 
 
@@ -26,6 +29,34 @@ public class ColAsistenteContextoService {
 
     private static final int MAX_CURSOS = 10;
     private static final int MAX_PUBLICACIONES = 5;
+
+    // TASK-075: reglas de uso de la plataforma, comprobadas en el código (PenalizacionService,
+    // ColaboradorActividadService, ColaboradorProyectoService, ColaboradorCursoService y ColaboradorViewController).
+    // Los números salen de las constantes de esos servicios, así la guía no se desactualiza si cambian;
+    // ColAsistenteContextoTests lo verifica. Si cambia una regla escrita como texto, actualizar también este texto.
+    public static final String GUIA_PLATAFORMA = """
+
+            ## GUÍA DE USO DE SKILLBRIDGE (reglas de la plataforma)
+            Páginas del colaborador:
+            - Dashboard (/colaborador/dashboard): proyectos, actividades pendientes, horas del mes, strikes, descuento y bono.
+            - Perfil (/colaborador/perfil): datos, habilidades con certificado, formación, foto, contraseña y "Mis cursos".
+            - Mis proyectos (/colaborador/proyectos): asignaciones, estado e historial; desde el detalle se ven actividades, documentos y el foro del proyecto.
+            - Explorar (/colaborador/explorar): proyectos abiertos para postular y catálogo de cursos para solicitar.
+            - Foros (/colaborador/foros), Chat con el PM (/colaborador/chat), Mi desempeño (/colaborador/desempeno, con descarga en Excel) y Asistente (/colaborador/asistente).
+            Postular a un proyecto (en Explorar): el proyecto debe estar ACTIVO; se elige uno de sus perfiles requeridos; hay que tener esa habilidad VALIDADA por el RM, horas disponibles iguales o mayores a las horas del perfil, cupo libre y ninguna solicitud pendiente o asignación activa en ese proyecto. Al postular se avisa al PM y al RM.
+            Actividades: para marcarla lista se sube evidencia PDF, JPG o PNG de %d MB como máximo y un comentario obligatorio de hasta %d caracteres. Solo se puede con la asignación activa. Entregarla después de la fecha límite genera un strike.
+            Strikes y descuento: cada actividad entregada tarde (o vencida sin entregar) es un strike; el PM también puede aplicarlo al devolver o confirmar una actividad. Con %d strikes en un mismo proyecto se avisa al PM para que evalúe si el colaborador continúa. El descuento del mes es %d %% por cada bloque completo de %d strikes del mes, sumando todos los proyectos.
+            Bono: la meta es %s horas al mes. Cuentan las actividades completadas en el mes y las horas de los cursos cuya evidencia aprobó el RM en el mes. Las horas sobre la meta cuentan para el bono hasta un tope mensual. Si el mes tiene descuento por strikes, no hay bono. Es informativo: la plataforma no registra la nómina.
+            Cursos: se solicitan en Explorar y el RM aprueba la inscripción. Todo curso necesita evidencia aprobada por el RM para quedar COMPLETADO. La primera evidencia (PDF, JPG o PNG, %d MB como máximo) se sube antes de la fecha de fin del curso; si vence sin evidencia queda NO_COMPLETADO, sin penalización. Si el RM rechaza la evidencia, se puede reenviar sin plazo. No se puede solicitar un curso si en el mes ya se alcanzó el tope de horas que cuentan para el bono, ni un curso ya terminado o ya completado.
+            Perfil: una habilidad nueva necesita certificado y la valida el RM; la formación académica también la aprueba el RM; la experiencia profesional solo la puede editar el Admin.
+            """.formatted(
+            ColaboradorProyectoService.TAMANO_MAXIMO_EVIDENCIA_BYTES / (1024 * 1024),
+            ColaboradorProyectoService.MAX_COMENTARIO_ENTREGA,
+            PenalizacionService.MAXIMO_STRIKES,
+            PenalizacionService.PORCENTAJE_POR_BLOQUE,
+            PenalizacionService.STRIKES_POR_BLOQUE,
+            ColaboradorActividadService.META_MENSUAL_HORAS,
+            ColaboradorCursoService.TAMANO_MAXIMO_EVIDENCIA_BYTES / (1024 * 1024));
 
     private static final Set<String> IGNORAR = new HashSet<>(Arrays.asList(
             "como", "para", "que", "con", "los", "las", "una", "uno", "por", "del", "mis", "mas", "muy",
@@ -129,6 +160,7 @@ public class ColAsistenteContextoService {
         }
 
         agregarPerfil(t, col, misHabilidades);
+        t.append(GUIA_PLATAFORMA);
         agregarExperienciaYFormacion(t, col);
         agregarCursosDelColaborador(t, col);
         agregarAsignacionesYActividades(t, col);
@@ -234,7 +266,7 @@ public class ColAsistenteContextoService {
             t.append("No tiene proyectos asignados ni solicitudes.\n");
         }
 
-        t.append("\n## ACTIVIDADES PENDIENTES Y HORAS DEL MES\n");
+        t.append("\n## ACTIVIDADES PENDIENTES\n");
         List<Actividad> pendientes = colaboradorActividadService.listarActividadesPendientes(col);
         int n = 0;
         for (Actividad a : pendientes) {
@@ -248,9 +280,54 @@ public class ColAsistenteContextoService {
         if (n == 0) {
             t.append("No tiene actividades pendientes.\n");
         }
-        ColHorasResumenView horas = colaboradorActividadService.obtenerResumenHoras(col);
-        t.append("Horas trabajadas este mes: ").append(horas.getHorasTrabajadasMes()).append(" de una meta de ")
-                .append(horas.getMetaMensual()).append(" (faltan ").append(horas.getHorasFaltantesMes()).append(").\n");
+        agregarHorasStrikesYBono(t, col, asignaciones);
+    }
+
+    // TASK-075: horas, strikes, descuento y bono del mes. Por decisión del usuario no se envía ningún
+    // monto en soles ni dato del sueldo a la IA: el colaborador los ve en su dashboard o en Mi desempeño.
+    private void agregarHorasStrikesYBono(StringBuilder t, Usuario col, List<Asignacion> asignaciones) {
+        t.append("\n## HORAS, STRIKES Y BONO DEL MES (calculados por el sistema)\n");
+        ColBonoMensualView bono = colaboradorActividadService.obtenerResumenBonoMensual(col);
+        t.append("Horas trabajadas este mes: ").append(bono.getHorasTrabajadasMes()).append(" de una meta de ")
+                .append(bono.getMetaMensual()).append(" h");
+        BigDecimal faltan = bono.getMetaMensual().subtract(bono.getHorasTrabajadasMes());
+        t.append(faltan.signum() > 0 ? " (faltan " + faltan + " h).\n" : " (meta cumplida).\n");
+        t.append("Horas extra sobre la meta: ").append(bono.getHorasExtra())
+                .append(" | horas extra que cuentan para el bono: ").append(bono.getHorasExtraBonificables())
+                .append(" (tope del mes: ").append(bono.getTopeHorasExtra()).append(" h).\n");
+
+        YearMonth mesActual = YearMonth.now();
+        int strikesMes = 0;
+        Map<Long, Integer> strikesPorProyecto = new HashMap<>();
+        for (Penalizacion p : colaboradorActividadService.listarMisPenalizaciones(col)) {
+            if (p.getTipo() != TipoPenalizacion.ACTIVIDAD_TARDIA) {
+                continue;
+            }
+            if (p.getFecha() != null && YearMonth.from(p.getFecha()).equals(mesActual)) {
+                strikesMes++;
+            }
+            if (p.getProyecto() != null) {
+                strikesPorProyecto.merge(p.getProyecto().getId(), 1, Integer::sum);
+            }
+        }
+        int porcentajeDescuento = colaboradorActividadService.obtenerPorcentajeDescuentoMesActual(col);
+        t.append("Strikes este mes (todos los proyectos): ").append(strikesMes)
+                .append(" | descuento del mes: ").append(porcentajeDescuento).append("%.\n");
+        for (Asignacion a : asignaciones) {
+            if (a.getEstado() == EstadoAsignacion.ACTIVA) {
+                t.append("- Strikes en ").append(limpiar(a.getProyecto().getNombre())).append(": ")
+                        .append(strikesPorProyecto.getOrDefault(a.getProyecto().getId(), 0)).append(" de ").append(PenalizacionService.MAXIMO_STRIKES).append('\n');
+            }
+        }
+
+        if (bono.isTuvoDescuentoEsteMes()) {
+            t.append("Bono del mes: no aplica, porque este mes tiene descuento por strikes.\n");
+        } else if (bono.getHorasExtraBonificables().signum() > 0) {
+            t.append("Bono del mes: sí aplica por ").append(bono.getHorasExtraBonificables()).append(" h extra.\n");
+        } else {
+            t.append("Bono del mes: aún no, porque no tiene horas extra sobre la meta.\n");
+        }
+        t.append("Montos en soles (bono, descuento, sueldo): no disponibles aquí; el colaborador los ve en su Dashboard o en Mi desempeño (/colaborador/desempeno).\n");
     }
 
 

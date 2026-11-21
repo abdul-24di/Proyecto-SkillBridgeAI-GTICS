@@ -22,9 +22,9 @@ import java.util.List;
 @Service
 public class PenalizacionService {
 
-    private static final int MAXIMO_STRIKES = 3;
-    private static final int STRIKES_POR_BLOQUE = 3;
-    private static final int PORCENTAJE_POR_BLOQUE = 5;
+    public static final int MAXIMO_STRIKES = 3;
+    public static final int STRIKES_POR_BLOQUE = 3;
+    public static final int PORCENTAJE_POR_BLOQUE = 5;
 
     private final PenalizacionRepository penalizacionRepository;
     private final AsignacionRepository asignacionRepository;

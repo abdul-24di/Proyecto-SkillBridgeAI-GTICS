@@ -21,6 +21,8 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
 
     List<Asignacion> findByProyectoAndEstado(Proyecto proyecto, EstadoAsignacion estado);
 
+    List<Asignacion> findByProyectoIdInAndEstado(Collection<Long> proyectoIds, EstadoAsignacion estado);
+
     List<Asignacion> findByProyectoOrderByFechaSolicitudDesc(Proyecto proyecto);
 
     @Query("""

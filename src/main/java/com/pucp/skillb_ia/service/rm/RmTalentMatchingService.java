@@ -152,16 +152,55 @@ public class RmTalentMatchingService {
 
     @Transactional(readOnly = true)
     public List<HabilidadFaltante> calcularHabilidadesFaltantes(Proyecto proyecto) {
-        List<ProyectoHabilidadRequerida> requisitos = habilidadRequeridaRepository.findByProyecto(proyecto);
-        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        return calcularHabilidadesFaltantes(proyecto,
+                habilidadRequeridaRepository.findByProyecto(proyecto),
+                asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA),
+                colaborador -> colaboradorHabilidadRepository
+                        .findByColaboradorAndActivoTrueAndEstadoValidacion(colaborador, EstadoValidacion.VALIDADA));
+    }
 
+    // TASK-074: requisitos y asignaciones activas de varios proyectos cargados en 2 consultas,
+    // para que el asistente del RM no consulte por proyecto ni por integrante.
+    public record DatosBrechas(
+            Map<Long, List<ProyectoHabilidadRequerida>> requisitos,
+            Map<Long, List<Asignacion>> activas) {}
+
+    @Transactional(readOnly = true)
+    public DatosBrechas cargarDatosBrechas(Collection<Long> proyectoIds) {
+        if (proyectoIds.isEmpty()) {
+            return new DatosBrechas(Map.of(), Map.of());
+        }
+        Map<Long, List<ProyectoHabilidadRequerida>> requisitos = new HashMap<>();
+        for (ProyectoHabilidadRequerida r : habilidadRequeridaRepository.findByProyectoIdInConHabilidad(proyectoIds)) {
+            requisitos.computeIfAbsent(r.getProyecto().getId(), k -> new ArrayList<>()).add(r);
+        }
+        Map<Long, List<Asignacion>> activas = new HashMap<>();
+        for (Asignacion a : asignacionRepository.findByProyectoIdInAndEstado(proyectoIds, EstadoAsignacion.ACTIVA)) {
+            activas.computeIfAbsent(a.getProyecto().getId(), k -> new ArrayList<>()).add(a);
+        }
+        return new DatosBrechas(requisitos, activas);
+    }
+
+    // Igual que calcularHabilidadesFaltantes(proyecto), pero sin consultas: usa los datos ya cargados en lote.
+    public List<HabilidadFaltante> calcularHabilidadesFaltantes(Proyecto proyecto, DatosBrechas brechas,
+                                                                DatosCandidatos candidatos) {
+        return calcularHabilidadesFaltantes(proyecto,
+                brechas.requisitos().getOrDefault(proyecto.getId(), List.of()),
+                brechas.activas().getOrDefault(proyecto.getId(), List.of()),
+                colaborador -> candidatos.habilidadesValidadas().getOrDefault(colaborador.getId(), List.of()));
+    }
+
+    private List<HabilidadFaltante> calcularHabilidadesFaltantes(
+            Proyecto proyecto,
+            List<ProyectoHabilidadRequerida> requisitos,
+            List<Asignacion> activas,
+            java.util.function.Function<Usuario, List<ColaboradorHabilidad>> validadasDe) {
         Map<Long, Integer> cubiertosPorHabilidad = new HashMap<>();
         for (Asignacion a : activas) {
             if (a.getHabilidadSolicitada() != null) {
                 cubiertosPorHabilidad.merge(a.getHabilidadSolicitada().getId(), 1, Integer::sum);
             } else {
-                List<ColaboradorHabilidad> validadas = colaboradorHabilidadRepository
-                        .findByColaboradorAndActivoTrueAndEstadoValidacion(a.getColaborador(), EstadoValidacion.VALIDADA);
+                List<ColaboradorHabilidad> validadas = validadasDe.apply(a.getColaborador());
                 for (ColaboradorHabilidad ch : validadas) {
                     cubiertosPorHabilidad.merge(ch.getHabilidad().getId(), 1, Integer::sum);
                 }

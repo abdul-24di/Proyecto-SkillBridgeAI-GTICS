@@ -36,7 +36,7 @@ public class ColaboradorCursoService {
 
     //Para la evidencia de finalización del curso
     private static final Set<String> TIPOS_EVIDENCIA_PERMITIDOS = Set.of("application/pdf", "image/jpeg", "image/png");
-    private static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10 MB
+    public static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10 MB
 
     //Días antes de la fecha fin en los que se avisa (una sola vez) al colaborador que aún no sube evidencia.
     private static final int DIAS_AVISO_FIN_CURSO = 3;

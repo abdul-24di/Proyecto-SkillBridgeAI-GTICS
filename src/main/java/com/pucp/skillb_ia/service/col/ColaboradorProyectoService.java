@@ -31,7 +31,8 @@ public class ColaboradorProyectoService {
             Set.of("application/pdf", "image/jpeg", "image/png");
     private static final Set<String> EXTENSIONES_EVIDENCIA_PERMITIDAS =
             Set.of("pdf", "jpg", "jpeg", "png");
-    private static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10MB
+    public static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10MB
+    public static final int MAX_COMENTARIO_ENTREGA = 300;
 
     private final ProyectoRepository proyectoRepository;
     private final AsignacionRepository asignacionRepository;
@@ -458,8 +459,8 @@ public class ColaboradorProyectoService {
         if (comentario == null || comentario.isBlank()) {
             throw new IllegalArgumentException("Debes escribir un comentario para marcar la actividad como lista.");
         }
-        if (comentario.trim().length() > 300) {
-            throw new IllegalArgumentException("El comentario no puede superar los 300 caracteres.");
+        if (comentario.trim().length() > MAX_COMENTARIO_ENTREGA) {
+            throw new IllegalArgumentException("El comentario no puede superar los " + MAX_COMENTARIO_ENTREGA + " caracteres.");
         }
 
         String evidenciaUrl = guardarEvidencia(evidencia, actividad.getId());

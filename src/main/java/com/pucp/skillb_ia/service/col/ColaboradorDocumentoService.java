@@ -136,27 +136,39 @@ public class ColaboradorDocumentoService {
     // ============================================================
     // SUBIDA DEL DOCUMENTO
     // ============================================================
+    public String validarArchivo(MultipartFile archivo) {
+        if (archivo == null || archivo.isEmpty()) {
+            return "Selecciona un archivo para subir.";
+        }
+        if (archivo.getSize() > TAMANO_MAXIMO_DOCUMENTO_BYTES) {
+            return "El archivo no puede superar los 20 MB.";
+        }
+        String nombre = archivo.getOriginalFilename();
+        if (nombre == null || nombre.isBlank()) {
+            return "El archivo no tiene un nombre válido.";
+        }
+        int punto = nombre.lastIndexOf('.');
+        if (punto == -1 || punto == nombre.length() - 1) {
+            return "El archivo debe tener una extensión válida.";
+        }
+        String extension = nombre.substring(punto + 1).toLowerCase();
+        if (!EXTENSIONES_PERMITIDAS.contains(extension)) {
+            return "Tipo de archivo no permitido. Formatos aceptados: PDF, Word, Excel, imágenes y archivos de diseño.";
+        }
+        return null;
+    }
+
     @Transactional
     public void subirDocumento(Usuario colaborador, Long proyectoId, MultipartFile archivo) {
         Proyecto proyecto = validarAccesoEscritura(colaborador, proyectoId);
 
-        if (archivo == null || archivo.isEmpty()) {
-            throw new IllegalArgumentException("Selecciona un archivo para subir.");
-        }
-        if (archivo.getSize() > TAMANO_MAXIMO_DOCUMENTO_BYTES) {
-            throw new IllegalArgumentException("El archivo no puede superar los 20 MB.");
+        String errorArchivo = validarArchivo(archivo);
+        if (errorArchivo != null) {
+            throw new IllegalArgumentException(errorArchivo);
         }
 
         String nombreOriginal = archivo.getOriginalFilename();
-        if (nombreOriginal == null || nombreOriginal.isBlank()) {
-            throw new IllegalArgumentException("El archivo no tiene un nombre válido.");
-        }
-
         String extension = obtenerExtension(nombreOriginal);
-        if (!EXTENSIONES_PERMITIDAS.contains(extension)) {
-            throw new IllegalArgumentException(
-                    "Tipo de archivo no permitido. Formatos aceptados: PDF, Word, Excel, imágenes y archivos de diseño.");
-        }
 
         CategoriaDocumento categoria = determinarCategoria(extension);
 

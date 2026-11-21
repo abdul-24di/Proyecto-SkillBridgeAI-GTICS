@@ -1,10 +1,5 @@
 @import url('../notificaciones.css');
 
-/* =========================================================
-   SKILLBRIDGE AI
-   ESTILOS COMPARTIDOS - COLABORADOR
-   ========================================================= */
-
 html,
 body {
     min-height: 100%;
@@ -273,4 +268,9 @@ svg {
     .pagination-wrap .pagination {
         justify-content: center;
     }
+}
+
+
+#detalleActividadForm hr {
+    margin: 0.25rem 0 1.25rem;
 }

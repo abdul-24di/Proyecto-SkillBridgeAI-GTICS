@@ -131,9 +131,33 @@ document.addEventListener('DOMContentLoaded', function() {
         var formId = editorDiv.getAttribute('data-form-id');
         var formResp = document.getElementById(formId);
         var inputResp = document.getElementById('input-' + formId);
-        
-        formResp.onsubmit = function() {
+
+        formResp.onsubmit = function(e) {
+            var texto = quillRespuesta.getText().trim();
+            var tieneImagen = quillRespuesta.root.querySelector('img') !== null;
+
+
+            if (texto.length === 0 && !tieneImagen) {
+                e.preventDefault();
+                mostrarErrorEditor(quillRespuesta, 'Escribe tu respuesta antes de publicar.');
+                return false;
+            }
             inputResp.value = quillRespuesta.root.innerHTML;
         };
+
+
+        quillRespuesta.on('text-change', function() {
+            limpiarErrorEditor(quillRespuesta);
+        });
+
+
+        var modalResp = editorDiv.closest('.modal');
+        if (modalResp) {
+            modalResp.addEventListener('hidden.bs.modal', function() {
+                limpiarErrorEditor(quillRespuesta);
+            });
+        }
+
+
     });
 });

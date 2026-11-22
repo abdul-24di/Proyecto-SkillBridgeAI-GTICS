@@ -17,10 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.function.Function;
 
 @Service
@@ -33,6 +36,8 @@ public class RmCertificadoService {
             List.of(NivelExperiencia.JUNIOR, NivelExperiencia.SEMI_SENIOR, NivelExperiencia.SENIOR);
 
     public static final int TAMANIO_PAGINA = 6;
+    /** Un pendiente con más de estos días de espera cuenta como atrasado en la bandeja (TASK-050). */
+    public static final int DIAS_PENDIENTE_ATRASADO = 7;
 
     public record FiltrosCertificados(String busqueda, String habilidad, EstadoCertificado estado) {
     }
@@ -137,16 +142,24 @@ public class RmCertificadoService {
         return crearVista(obtenerEntidad(certificadoId));
     }
 
-    @Transactional(readOnly = true)
-    public long contarRevisadosHoy() {
+    /** Días de espera del pendiente más antiguo (subido primero); 0 si no hay pendientes. */
+    public long diasPendienteMasAntiguo(List<RmCertificadoView> pendientes) {
         LocalDate hoy = LocalDate.now();
-        Long rmId = rmAlcanceService.idRmActual();
-        if (rmId == null) {
-            return certificadoRepository.countByFechaRevisionBetween(
-                    hoy.atStartOfDay(), hoy.plusDays(1).atStartOfDay());
-        }
-        return certificadoRepository.countByRmResponsableIdAndFechaRevisionBetween(
-                rmId, hoy.atStartOfDay(), hoy.plusDays(1).atStartOfDay());
+        return pendientes.stream()
+                .map(item -> item.getCertificado().getFechaSubida())
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .map(fecha -> Math.max(0, ChronoUnit.DAYS.between(fecha.toLocalDate(), hoy)))
+                .orElse(0L);
+    }
+
+    /** Pendientes que llevan más de {@link #DIAS_PENDIENTE_ATRASADO} días esperando revisión. */
+    public long contarPendientesAtrasados(List<RmCertificadoView> pendientes) {
+        LocalDate limite = LocalDate.now().minusDays(DIAS_PENDIENTE_ATRASADO);
+        return pendientes.stream()
+                .map(item -> item.getCertificado().getFechaSubida())
+                .filter(fecha -> fecha != null && fecha.toLocalDate().isBefore(limite))
+                .count();
     }
 
     @Transactional

@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -170,7 +171,8 @@ class RmCertificadoTests {
         mockMvc.perform(get("/rm/colaboradores/certificados"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("rm/rm-certificados-pendientes"))
-                .andExpect(model().attributeExists("certificados", "totalPendientes", "revisadosHoy"));
+                .andExpect(model().attributeExists("certificados", "totalPendientes",
+                        "diasPendienteMasAntiguo", "pendientesAtrasados", "diasAtrasado"));
         mockMvc.perform(get("/rm/colaboradores/certificados/revision")
                         .param("id", certificado.getId().toString()))
                 .andExpect(status().isOk())
@@ -232,6 +234,44 @@ class RmCertificadoTests {
                 .andExpect(model().attribute("habilidad", (Object) null))
                 .andExpect(model().attribute("totalRegistros", 3L))
                 .andExpect(model().attribute("totalPendientes", 3));
+    }
+
+    @Test
+    void bandejaPendientesMuestraElPendienteMasAntiguoYLosAtrasados() throws Exception {
+        // fecha_subida no es actualizable: se fija antes del primer guardado.
+        guardarSubidoHace("/uploads/certificados/antiguo.pdf", EstadoCertificado.PENDIENTE, 10);
+        guardarSubidoHace("/uploads/certificados/reciente.pdf", EstadoCertificado.PENDIENTE, 2);
+        guardarSubidoHace("/uploads/certificados/limite.pdf", EstadoCertificado.PENDIENTE,
+                RmCertificadoService.DIAS_PENDIENTE_ATRASADO);
+        // Un rechazado más viejo no cuenta: solo se miden los pendientes.
+        guardarSubidoHace("/uploads/certificados/rechazado.pdf", EstadoCertificado.RECHAZADO, 30);
+
+        MvcResult resultado = mockMvc.perform(get("/rm/colaboradores/certificados")
+                        .param("busqueda", "reciente"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalPendientes", 3))
+                .andExpect(model().attribute("diasPendienteMasAntiguo", 10L))
+                .andExpect(model().attribute("pendientesAtrasados", 1L))
+                .andExpect(model().attribute("diasAtrasado", RmCertificadoService.DIAS_PENDIENTE_ATRASADO))
+                .andReturn();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("Pendiente más antiguo"));
+        assertTrue(html.contains("Más de 7 días"));
+        assertFalse(html.contains("Revisados hoy"));
+        assertFalse(html.contains("Habilidades afectadas"));
+    }
+
+    @Test
+    void bandejaPendientesVaciaMuestraGuionEnElPendienteMasAntiguo() throws Exception {
+        MvcResult resultado = mockMvc.perform(get("/rm/colaboradores/certificados"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("totalPendientes", 0))
+                .andExpect(model().attribute("diasPendienteMasAntiguo", 0L))
+                .andExpect(model().attribute("pendientesAtrasados", 0L))
+                .andReturn();
+        String html = resultado.getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertTrue(html.contains("id=\"oldestPendingDays\" class=\"metric-number\">—</div>"));
+        assertTrue(html.contains("Sin pendientes"));
     }
 
     @Test
@@ -925,6 +965,16 @@ class RmCertificadoTests {
 
     private Certificado guardarPendiente(String archivo) {
         return guardar(archivo, habilidad, EstadoCertificado.PENDIENTE);
+    }
+
+    private Certificado guardarSubidoHace(String archivo, EstadoCertificado estado, int dias) {
+        Certificado certificado = new Certificado();
+        certificado.setColaborador(colaborador);
+        certificado.setHabilidad(habilidad);
+        certificado.setArchivoUrl(archivo);
+        certificado.setEstado(estado);
+        certificado.setFechaSubida(LocalDateTime.now().minusDays(dias));
+        return certificadoRepository.save(certificado);
     }
 
     private Certificado guardar(String archivo, Habilidad habilidadCertificado, EstadoCertificado estado) {

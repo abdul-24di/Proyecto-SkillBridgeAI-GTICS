@@ -800,9 +800,9 @@ public class RmViewController {
         model.addAttribute("totalPendientes", certificados.size());
         model.addAttribute("totalColaboradores", certificados.stream()
                 .map(item -> item.getCertificado().getColaborador().getId()).distinct().count());
-        model.addAttribute("totalHabilidades", certificados.stream()
-                .map(item -> item.getCertificado().getHabilidad().getId()).distinct().count());
-        model.addAttribute("revisadosHoy", rmCertificadoService.contarRevisadosHoy());
+        model.addAttribute("diasPendienteMasAntiguo", rmCertificadoService.diasPendienteMasAntiguo(certificados));
+        model.addAttribute("pendientesAtrasados", rmCertificadoService.contarPendientesAtrasados(certificados));
+        model.addAttribute("diasAtrasado", RmCertificadoService.DIAS_PENDIENTE_ATRASADO);
         return "rm/rm-certificados-pendientes";
     }
 

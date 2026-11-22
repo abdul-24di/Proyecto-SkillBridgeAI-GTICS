@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
-import java.time.LocalDateTime;
 
 public interface CertificadoRepository extends JpaRepository<Certificado, Long> {
     List<Certificado> findByColaborador(Usuario colaborador);
@@ -27,8 +26,6 @@ public interface CertificadoRepository extends JpaRepository<Certificado, Long> 
 
     // Para repartir el trabajo entre RMs y contar lo que revisó cada uno
     long countByRmResponsableAndEstado(Usuario rmResponsable, EstadoCertificado estado);
-
-    long countByRmResponsableIdAndFechaRevisionBetween(Long rmId, LocalDateTime inicio, LocalDateTime fin);
 
     long countByColaboradorAndHabilidadAndEstado(
             Usuario colaborador, Habilidad habilidad, EstadoCertificado estado);
@@ -66,6 +63,4 @@ public interface CertificadoRepository extends JpaRepository<Certificado, Long> 
             order by c.fechaSubida desc
             """)
     List<Certificado> findByColaboradorIdConDetalle(@Param("colaboradorId") Long colaboradorId);
-
-    long countByFechaRevisionBetween(LocalDateTime inicio, LocalDateTime fin);
 }

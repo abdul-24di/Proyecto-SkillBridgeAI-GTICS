@@ -5,6 +5,7 @@ import com.pucp.skillb_ia.dto.ColEntregaActividadForm;
 import com.pucp.skillb_ia.dto.col.ColForoPublicacionForm;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.pm.PmForoService;
+import com.pucp.skillb_ia.util.Periodo;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
@@ -609,17 +611,29 @@ public class ColaboradorViewController {
     // ============================================================
     // MI DESEMPEÑO (reporte del colaborador, por mes)
     // ============================================================
+    // El mes pedido no puede ser anterior al mes en que se activó el perfil.
+    private YearMonth periodoValido(Usuario colaborador, String mes) {
+        YearMonth periodo = Periodo.leer(mes);
+        YearMonth primerMes = YearMonth.from(colaborador.getFechaCreacion());
+        if (periodo.isBefore(primerMes)) {
+            return primerMes;
+        }
+        return periodo;
+    }
 
     @GetMapping({"/desempeno", "/col-desempeno.html"})
     public String desempeno(@AuthenticationPrincipal UsuarioDetails principal,
                             @RequestParam(required = false) String mes, Model model) {
         if (principal == null) return "redirect:/login";
         Usuario colaborador = usuarioRepository.findById(principal.getUsuario().getId()).orElseThrow();
-        java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+        java.time.YearMonth periodo = periodoValido(colaborador, mes);
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("mes", periodo.toString());
+        model.addAttribute("mesMinimo", java.time.YearMonth.from(colaborador.getFechaCreacion()).toString());
         model.addAttribute("mesMaximo", java.time.YearMonth.now().toString());
         model.addAttribute("desempeno", colDesempenoService.obtener(colaborador, periodo));
+
+
         return "col/col-desempeno";
     }
 
@@ -627,7 +641,7 @@ public class ColaboradorViewController {
     public org.springframework.http.ResponseEntity<byte[]> desempenoExcel(@AuthenticationPrincipal UsuarioDetails principal,
                                                                           @RequestParam(required = false) String mes) {
         Usuario colaborador = usuarioRepository.findById(principal.getUsuario().getId()).orElseThrow();
-        java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+        java.time.YearMonth periodo = periodoValido(colaborador, mes);
         byte[] contenido = colDesempenoService.excel(colaborador, colDesempenoService.obtener(colaborador, periodo));
         return org.springframework.http.ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"mi-desempeno-" + periodo + ".xlsx\"")
@@ -639,7 +653,7 @@ public class ColaboradorViewController {
     public org.springframework.http.ResponseEntity<byte[]> desempenoPdf(@AuthenticationPrincipal UsuarioDetails principal,
                                                                         @RequestParam(required = false) String mes) {
         Usuario colaborador = usuarioRepository.findById(principal.getUsuario().getId()).orElseThrow();
-        java.time.YearMonth periodo = com.pucp.skillb_ia.util.Periodo.leer(mes);
+        java.time.YearMonth periodo = periodoValido(colaborador, mes);
         byte[] contenido = colDesempenoService.pdf(colaborador, colDesempenoService.obtener(colaborador, periodo));
         return org.springframework.http.ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"mi-desempeno-" + periodo + ".pdf\"")

@@ -93,6 +93,9 @@ public class ColDesempenoService {
 
         List<FilaMes> historial = new ArrayList<>();
         for (YearMonth m : Periodo.ultimos(mes, MESES_HISTORIAL)) {
+            if (m.isBefore(YearMonth.from(colaborador.getFechaCreacion()))) {
+                continue;
+            }
             List<Actividad> completadas = todas.stream()
                     .filter(a -> a.getEstado() == EstadoActividad.COMPLETADA && a.getFechaEntrega() != null
                             && Periodo.contiene(m, a.getFechaEntrega().toLocalDate()))

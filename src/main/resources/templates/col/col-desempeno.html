@@ -26,7 +26,7 @@
       <div class="row g-2 align-items-end">
         <div class="col-sm-4 col-md-3">
           <label class="form-label" for="mesDesempeno">Mes</label>
-          <input id="mesDesempeno" type="month" name="mes" class="form-control" th:value="${mes}" th:max="${mesMaximo}">
+          <input id="mesDesempeno" type="month" name="mes" class="form-control" th:value="${mes}" th:min="${mesMinimo}" th:max="${mesMaximo}">
         </div>
         <div class="col-auto"><button type="submit" class="btn btn-primary">Ver</button></div>
         <div class="col-auto ms-auto">

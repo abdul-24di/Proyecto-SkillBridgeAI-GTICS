@@ -108,7 +108,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Teléfono móvil</label>
-                                        <input type="tel" class="form-control" th:field="*{telefono}" th:classappend="${#fields.hasErrors('telefono')} ? 'is-invalid' : ''" placeholder="Ejemplo: +51987654321">
+                                        <input type="tel" class="form-control" th:field="*{telefono}" th:classappend="${#fields.hasErrors('telefono')} ? 'is-invalid' : ''" inputmode="tel" maxlength="20" pattern="[0-9]{7,20}|\+[0-9]{7,19}" title="Solo dígitos y un + inicial opcional, entre 7 y 20 caracteres." data-entrada="telefono" placeholder="Ejemplo: 987654321 o +51987654321">
                                         <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('telefono')}" th:errors="*{telefono}"></div>
                                         <div class="form-hint" th:unless="${#fields.hasErrors('telefono')}">Solo dígitos y un + inicial opcional.</div>
                                     </div>
@@ -149,5 +149,6 @@
 </div>
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script th:src="@{/js/foto-perfil-preview.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
 </body>
 </html>

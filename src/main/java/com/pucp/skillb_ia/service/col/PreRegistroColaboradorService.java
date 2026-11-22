@@ -61,7 +61,7 @@ public class PreRegistroColaboradorService {
 
     // Solo se validan las filas que el usuario empezó a llenar; una fila en blanco se ignora.
     public void validar(ActivarCuentaForm form, BindingResult result, HttpSession session) {
-        // El teléfono (9 dígitos, igual que el perfil del colaborador) ya lo validó el formulario.
+        // El teléfono (regla única de PoliticaTelefono) ya lo validó el formulario.
         form.setCvGuardado(resolverArchivo(form.getCv(), form.getCvGuardado(), colaboradorPerfilService::validarCv,
                 "cv", "cv.invalido", result, session));
         validarExperiencias(form.getExperiencias(), result);

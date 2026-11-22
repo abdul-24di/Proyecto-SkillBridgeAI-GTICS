@@ -236,7 +236,7 @@ class PreRegistroColaboradorTests {
         mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .param("token", token).param("nombreCompleto", "Ana Perez")
-                        .param("telefono", "+51987654321")
+                        .param("telefono", "+51 98a7")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                         .param("aceptaPolitica", "true"))
                 .andExpect(status().isOk())

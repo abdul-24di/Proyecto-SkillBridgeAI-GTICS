@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.service.col;
 
+import com.pucp.skillb_ia.dto.auth.PoliticaTelefono;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
@@ -245,8 +246,8 @@ public class ColaboradorPerfilService {
         }
         String limpio = telefono.trim();
 
-        if (!limpio.matches("\\d{9}")) {
-            throw new IllegalArgumentException("El teléfono debe tener exactamente 9 dígitos numéricos, sin letras ni otros caracteres.");
+        if (!limpio.matches(PoliticaTelefono.REGEX)) {
+            throw new IllegalArgumentException(PoliticaTelefono.MENSAJE);
         }
         return limpio;
     }

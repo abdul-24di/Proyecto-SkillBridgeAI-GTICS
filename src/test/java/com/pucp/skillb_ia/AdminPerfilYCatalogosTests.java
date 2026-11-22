@@ -97,7 +97,7 @@ class AdminPerfilYCatalogosTests {
 
     @Test
     void telefonoInvalidoVuelveAlPerfilConElErrorDelCampo() throws Exception {
-        for (String telefono : new String[]{"", "12-34", "999 999 999", "abc1234567", "00000000000000000000", "0000000000", "12345678", "+51987654321"}) {
+        for (String telefono : new String[]{"", "12-34", "999 999 999", "abc1234567", "123456", "+123456", "000000000000000000000", "+51 987654321", "51+987654321"}) {
             mockMvc.perform(post("/admin/perfil/telefono").param("telefono", telefono))
                     .andExpect(status().isOk())
                     .andExpect(view().name("admin/admin-perfil"))
@@ -111,6 +111,14 @@ class AdminPerfilYCatalogosTests {
                 .andExpect(status().is3xxRedirection());
         assertThat(usuarioRepository.findById(admin.getId()).orElseThrow().getTelefono())
                 .isEqualTo("987654321");
+    }
+
+    @Test
+    void telefonoConPrefijoInternacionalSeGuarda() throws Exception {
+        mockMvc.perform(post("/admin/perfil/telefono").param("telefono", "+51987654321"))
+                .andExpect(status().is3xxRedirection());
+        assertThat(usuarioRepository.findById(admin.getId()).orElseThrow().getTelefono())
+                .isEqualTo("+51987654321");
     }
 
     @Test

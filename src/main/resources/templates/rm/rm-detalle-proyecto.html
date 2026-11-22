@@ -193,7 +193,7 @@
           <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
           <div class="col-md-8">
             <label for="projectBudget" class="form-label">Presupuesto asignado (S/)</label>
-            <input id="projectBudget" name="presupuesto" type="text" class="form-control"
+            <input id="projectBudget" name="presupuesto" data-entrada="monto" type="text" class="form-control"
                    inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required aria-describedby="projectBudgetAyuda"
                    th:value="${proyecto.proyecto.presupuesto}">
             <div id="projectBudgetAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
@@ -410,6 +410,7 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
 <script src="../../static/js/rm-js/rm-presupuesto-confirmacion.js" th:src="@{/js/rm-js/rm-presupuesto-confirmacion.js}"></script>
 <script th:if="${proyectoCerrable}" src="../../static/js/rm-js/rm-proyecto-cierre.js" th:src="@{/js/rm-js/rm-proyecto-cierre.js}"></script>

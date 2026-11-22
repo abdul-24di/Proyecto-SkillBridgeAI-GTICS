@@ -519,10 +519,10 @@
 
                                         <div class="col-md-6">
                                             <label class="form-label">Número de celular</label>
-                                            <input type="text" name="telefono" class="form-control"
-
-
-                                                   th:value="${colaborador.telefono}" placeholder="Ej. 987654321">
+                                            <input type="tel" inputmode="tel" name="telefono" class="form-control"
+                                                   required maxlength="20" pattern="[0-9]{7,20}|\+[0-9]{7,19}"
+                                                   title="Solo dígitos y un + inicial opcional, entre 7 y 20 caracteres." data-entrada="telefono"
+                                                   th:value="${colaborador.telefono}" placeholder="Ej. 987654321 o +51987654321">
                                         </div>
                                     </div>
                                     <div class="mt-3 d-flex justify-content-end">
@@ -924,6 +924,7 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
 <script th:src="@{/js/foto-perfil-preview.js}"></script>
 <script src="../../static/js/col-js/col-perfil.js" th:src="@{/js/col-js/col-perfil.js}"></script>
 <script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>

@@ -1,12 +1,12 @@
 package com.pucp.skillb_ia.dto.auth;
 
-// Misma regla de teléfono que ya usa el perfil del colaborador: exactamente 9 dígitos, sin letras,
-// espacios, guiones ni signos.
+// Regla única de teléfono para todos los roles (Admin, RM, PM, Colaborador y activación de cuenta):
+// entre 7 y 20 caracteres, solo dígitos y, opcionalmente, un signo + al inicio.
 public final class PoliticaTelefono {
 
-    public static final String REGEX = "^[0-9]{9}$";
-    public static final String MENSAJE =
-            "El teléfono debe tener exactamente 9 dígitos numéricos, sin letras ni otros caracteres.";
+    public static final String REGEX = "^(?:[0-9]{7,20}|\\+[0-9]{7,19})$";
+    public static final String MENSAJE = "El teléfono debe tener entre 7 y 20 caracteres, solo dígitos "
+            + "y, opcionalmente, un signo + al inicio (sin espacios, guiones ni paréntesis).";
 
     private PoliticaTelefono() {}
 }

@@ -171,7 +171,7 @@
                 <input th:if="${navegacion.origen != null}" type="hidden" name="origen" th:value="${navegacion.origen}">
                 <div class="col-sm-8">
                   <label for="assignmentProjectBudget" class="form-label">Nuevo presupuesto total (S/)</label>
-                  <input id="assignmentProjectBudget" name="presupuesto" type="text" class="form-control"
+                  <input id="assignmentProjectBudget" name="presupuesto" data-entrada="monto" type="text" class="form-control"
                          inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required aria-describedby="assignmentProjectBudgetAyuda"
                          th:value="${asignacion.asignacion.proyecto.presupuesto}">
                   <div id="assignmentProjectBudgetAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
@@ -284,5 +284,6 @@
 
 <script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
 <script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
 </body>
 </html>

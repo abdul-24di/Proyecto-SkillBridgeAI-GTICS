@@ -129,7 +129,7 @@
                             <form th:action="@{/rm/perfil/telefono}" method="post" class="row g-3 mt-1">
                                 <div class="col-md-12">
                                     <label class="form-label">Teléfono</label>
-                                    <input type="tel" class="form-control" name="telefono"
+                                    <input type="tel" inputmode="tel" class="form-control" name="telefono" data-entrada="telefono"
                                            th:value="${telefonoIngresado != null ? telefonoIngresado : rm.telefono}"
                                            required minlength="7" maxlength="20" pattern="[0-9]{7,20}|\+[0-9]{7,19}"
                                            title="Solo dígitos y un + inicial opcional, entre 7 y 20 caracteres."
@@ -172,6 +172,7 @@
 </div>
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
 <script th:src="@{/js/foto-perfil-preview.js}"></script>
 </body>
 </html>

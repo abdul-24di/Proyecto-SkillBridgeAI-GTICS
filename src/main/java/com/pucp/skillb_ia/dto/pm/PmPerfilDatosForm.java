@@ -1,4 +1,5 @@
 package com.pucp.skillb_ia.dto.pm;
+import com.pucp.skillb_ia.dto.auth.PoliticaTelefono;
 import jakarta.validation.constraints.*;
 
 public class PmPerfilDatosForm {
@@ -12,7 +13,7 @@ public class PmPerfilDatosForm {
     @Size(max = 50, message = "Máximo 50 caracteres")
     private String cargo;
     
-    @Pattern(regexp = "^$|[0-9]{7,20}|\\+[0-9]{7,19}", message = "Debe ser un número válido, ej: +51987654321")
+    @Pattern(regexp = "^$|" + PoliticaTelefono.REGEX, message = PoliticaTelefono.MENSAJE)
     private String telefono;
 
     public String getNombre() { return nombre; }

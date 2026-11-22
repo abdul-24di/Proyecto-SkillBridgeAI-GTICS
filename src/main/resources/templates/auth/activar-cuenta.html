@@ -112,7 +112,7 @@
 
                 <div class="mb-3">
                     <label class="form-label" for="activationPhone">Teléfono</label>
-                    <input id="activationPhone" th:field="*{telefono}" th:errorclass="is-invalid" type="tel" inputmode="numeric" class="form-control" placeholder="Ejemplo: 987654321" autocomplete="tel" maxlength="9" data-requerido="El teléfono es obligatorio." data-patron="^[0-9]{9}$" data-patron-mensaje="El teléfono debe tener exactamente 9 dígitos, sin espacios ni signos.">
+                    <input id="activationPhone" th:field="*{telefono}" th:errorclass="is-invalid" type="tel" inputmode="tel" class="form-control" placeholder="Ejemplo: 987654321 o +51987654321" autocomplete="tel" maxlength="20" data-entrada="telefono" data-requerido="El teléfono es obligatorio." data-patron="^(?:[0-9]{7,20}|\+[0-9]{7,19})$" data-patron-mensaje="El teléfono debe tener entre 7 y 20 caracteres: solo dígitos y, opcionalmente, un + al inicio.">
                     <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('telefono')}" th:text="${#fields.errors('telefono')[0]}"></div>
                 </div>
 
@@ -355,6 +355,7 @@
 
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/auth-js/auth.js" th:src="@{/js/auth-js/auth.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
 <script src="../../static/js/auth-js/preregistro-filas.js" th:src="@{/js/auth-js/preregistro-filas.js}"></script>
 <script src="../../static/js/auth-js/preregistro-pasos.js" th:src="@{/js/auth-js/preregistro-pasos.js}"></script>
 </body>

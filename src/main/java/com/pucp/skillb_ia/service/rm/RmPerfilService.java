@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.service.rm;
 
+import com.pucp.skillb_ia.dto.auth.PoliticaTelefono;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
@@ -28,10 +29,9 @@ public class RmPerfilService {
     private static final Set<String> TIPOS_IMAGEN_PERMITIDOS = Set.of("image/jpeg", "image/png");
     private static final long TAMANO_MAXIMO_FOTO_BYTES = 2L * 1024 * 1024; // 2 MB
     // Solo dígitos y un '+' inicial opcional; 7 a 20 caracteres en total (columna VARCHAR(20)).
-    private static final Pattern TELEFONO_PATRON = Pattern.compile("^(?:[0-9]{7,20}|\\+[0-9]{7,19})$");
+    private static final Pattern TELEFONO_PATRON = Pattern.compile(PoliticaTelefono.REGEX);
     public static final String MENSAJE_TELEFONO_OBLIGATORIO = "El teléfono es obligatorio.";
-    public static final String MENSAJE_TELEFONO_FORMATO = "El teléfono debe tener entre 7 y 20 caracteres, solo dígitos "
-            + "y, opcionalmente, un signo + al inicio (sin espacios, guiones ni paréntesis).";
+    public static final String MENSAJE_TELEFONO_FORMATO = PoliticaTelefono.MENSAJE;
 
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;

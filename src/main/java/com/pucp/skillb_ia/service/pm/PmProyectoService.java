@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class PmProyectoService {
@@ -45,6 +46,11 @@ public class PmProyectoService {
     private final NotificacionService notificacionService;
     private final ChatBaseService chatBaseService;
     private final RmResponsableService rmResponsableService;
+    private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
+
+    private static final long TAMANO_MAXIMO_DOCUMENTO_CONTEXTO = 20L * 1024 * 1024;
+    private static final Set<String> EXTENSIONES_DOCUMENTO_CONTEXTO =
+            Set.of("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "png", "jpg", "jpeg");
 
 
     public PmProyectoService(ProyectoRepository proyectoRepository,
@@ -56,7 +62,9 @@ public class PmProyectoService {
                              CierreAsignacionesService cierreAsignacionesService,
                              NotificacionService notificacionService,
                              ChatBaseService chatBaseService,
-                             RmResponsableService rmResponsableService) {
+                             RmResponsableService rmResponsableService,
+                             ArchivoAlmacenamientoService archivoAlmacenamientoService) {
+        this.archivoAlmacenamientoService = archivoAlmacenamientoService;
         this.chatBaseService = chatBaseService;
         this.rmResponsableService = rmResponsableService;
         this.notificacionService = notificacionService;
@@ -236,6 +244,40 @@ public class PmProyectoService {
                 (int) total,
                 (int) completadas,
                 requisitos);
+    }
+
+    /** Devuelve el mensaje de error del documento de contexto, o null si es válido o no se adjuntó. */
+    public String validarDocumentoContexto(MultipartFile archivo) {
+        if (archivo == null || archivo.isEmpty()) return null;
+        if (archivo.getSize() > TAMANO_MAXIMO_DOCUMENTO_CONTEXTO) {
+            return "El documento de contexto no puede superar los 20 MB.";
+        }
+        String extension = extensionDe(archivo.getOriginalFilename());
+        if (!EXTENSIONES_DOCUMENTO_CONTEXTO.contains(extension)) {
+            return "Tipo de documento no permitido. Formatos aceptados: PDF, Word, Excel, PowerPoint, TXT e imágenes.";
+        }
+        return null;
+    }
+
+    /** Guarda el documento de contexto que adjunta el PM al crear el proyecto (lo consulta el RM). */
+    @Transactional
+    public void guardarDocumentoContexto(Long proyectoId, MultipartFile archivo, Usuario pm) {
+        if (archivo == null || archivo.isEmpty()) return;
+        String error = validarDocumentoContexto(archivo);
+        if (error != null) throw new IllegalArgumentException(error);
+        Proyecto proyecto = proyectoRepository.findById(proyectoId)
+                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
+        verificarPropietario(proyecto, pm);
+        String nombreArchivo = "contexto-" + java.util.UUID.randomUUID() + "." + extensionDe(archivo.getOriginalFilename());
+        String url = archivoAlmacenamientoService.guardar(archivo, "documentos/proyecto-" + proyecto.getId(), nombreArchivo);
+        proyecto.setDocumentoContextoUrl(url);
+        proyectoRepository.save(proyecto);
+    }
+
+    private static String extensionDe(String nombre) {
+        if (nombre == null) return "";
+        int punto = nombre.lastIndexOf('.');
+        return punto < 0 || punto == nombre.length() - 1 ? "" : nombre.substring(punto + 1).toLowerCase();
     }
 
     private static void verificarPropietario(Proyecto proyecto, Usuario pm) {

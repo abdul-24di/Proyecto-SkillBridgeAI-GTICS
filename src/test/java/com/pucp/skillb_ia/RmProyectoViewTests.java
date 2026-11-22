@@ -212,6 +212,67 @@ class RmProyectoViewTests {
     }
 
     @Test
+    void revisionMuestraDuracionEstimadaYDecisionJuntoAlPresupuesto() throws Exception {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setFechaInicio(java.time.LocalDate.now().plusDays(1));
+        proyecto.setFechaFinEstimada(java.time.LocalDate.now().plusDays(1 + 7 * 6 + 3));
+        proyectoRepository.save(proyecto);
+
+        String html = mockMvc.perform(get("/rm/proyectos/revision").param("id", proyectoId.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        // TASK-055: 4.ª card de resumen y "Decisión del RM" apilada bajo el presupuesto.
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Duración estimada"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("6 semanas y 3 días"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("El Project Manager no adjuntó un documento de contexto."));
+        int presupuesto = html.indexOf("Presupuesto del proyecto</h3>");
+        int decision = html.indexOf("Decisión del RM</h3>");
+        int requerimientos = html.indexOf("Requerimientos de talento</h3>");
+        org.junit.jupiter.api.Assertions.assertTrue(presupuesto < decision && decision < requerimientos);
+    }
+
+    @Test
+    void duracionTextoSinFechasOConPocosDias() {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setFechaInicio(null);
+        proyecto.setFechaFinEstimada(null);
+        org.junit.jupiter.api.Assertions.assertEquals("Sin definir", vista(proyecto).getDuracionTexto());
+        proyecto.setFechaInicio(java.time.LocalDate.of(2026, 1, 1));
+        proyecto.setFechaFinEstimada(java.time.LocalDate.of(2026, 1, 11));
+        org.junit.jupiter.api.Assertions.assertEquals("10 días", vista(proyecto).getDuracionTexto());
+        proyecto.setFechaFinEstimada(java.time.LocalDate.of(2026, 1, 29));
+        org.junit.jupiter.api.Assertions.assertEquals("4 semanas", vista(proyecto).getDuracionTexto());
+    }
+
+    @Test
+    void descripcionSeSeparaEnSeccionesDelPm() throws Exception {
+        Proyecto proyecto = proyectoRepository.findById(proyectoId).orElseThrow();
+        proyecto.setDescripcion("Objetivo general\n\nHabilidades adicionales sugeridas: Recursos humanos\n\nNotas para el RM: Aprobar pronto");
+        proyectoRepository.save(proyecto);
+
+        var secciones = vista(proyecto).getDescripcionSecciones();
+        org.junit.jupiter.api.Assertions.assertEquals(List.of(
+                new com.pucp.skillb_ia.dto.RmProyectoView.SeccionDescripcion("Descripción", "Objetivo general"),
+                new com.pucp.skillb_ia.dto.RmProyectoView.SeccionDescripcion("Habilidades adicionales sugeridas", "Recursos humanos"),
+                new com.pucp.skillb_ia.dto.RmProyectoView.SeccionDescripcion("Notas para el RM", "Aprobar pronto")), secciones);
+
+        proyecto.setDescripcion("  ");
+        org.junit.jupiter.api.Assertions.assertTrue(vista(proyecto).getDescripcionSecciones().isEmpty());
+
+        String html = mockMvc.perform(get("/rm/proyectos/detalle").param("id", proyectoId.toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(">Notas para el RM</div>"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(">Revisar ahora</a>"));
+    }
+
+    private com.pucp.skillb_ia.dto.RmProyectoView vista(Proyecto proyecto) {
+        return new com.pucp.skillb_ia.dto.RmProyectoView(proyecto, "PM", "En revisión", "Media",
+                0, 0, 0, List.of(), List.of(), null);
+    }
+
+    @Test
     void asignaPresupuestoYAprobarActivaElProyecto() {
         definirFechas();
         revisionService.asignarPresupuesto(proyectoId, new BigDecimal("45000"), rmId);

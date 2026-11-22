@@ -43,46 +43,14 @@
   <main class="page-wrap">
     <div class="alert alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
     <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
-    <!-- Responsable de revisión -->
-    <div class="card section-card mb-3" th:if="${proyectoGestionable}">
-      <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div>
-          <div class="text-secondary small">Resource Manager responsable</div>
-          <div class="fw-bold fs-4" th:if="${responsableNombre != null}" th:text="${responsableNombre}">Nombre RM</div>
-          <div class="fw-bold fs-4 text-danger" th:if="${responsableNombre == null}">Sin asignar</div>
-          <span class="badge bg-red-lt text-red mt-1" th:if="${motivoUrgencia != null}"
-                th:text="|Urgente: ${motivoUrgencia}|">Urgente</span>
-        </div>
-        <div class="d-flex gap-2">
-          <form method="post" th:if="${responsableNombre == null}"
-                th:action="@{/rm/proyectos/{id}/tomar(id=${proyecto.proyecto.id})}">
-            <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
-            <button type="submit" class="btn btn-primary">Tomar este proyecto</button>
-          </form>
-          <form method="post" th:if="${esResponsable and proyecto.proyecto.estado.name() == 'EN_REVISION'}"
-                th:action="@{/rm/proyectos/{id}/liberar(id=${proyecto.proyecto.id})}">
-            <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
-            <button type="submit" class="btn btn-outline-secondary">Liberar proyecto</button>
-          </form>
-        </div>
-      </div>
-      <div class="card-footer text-secondary small"
-           th:if="${responsableNombre != null and !esResponsable}">
-        Solo el RM responsable puede gestionar este proyecto. Tú lo ves en modo lectura.
-      </div>
-    </div>
     <nav class="breadcrumb-wrap" aria-label="Migas de pan">
       <a class="breadcrumb-link" th:href="@{/rm/proyectos}">Proyectos</a>
       <span class="breadcrumb-separator">›</span>
       <span class="text-secondary" th:text="${proyecto.proyecto.nombre}">Proyecto</span>
     </nav>
 
-    <div class="alert alert-info d-flex justify-content-between align-items-center gap-3 flex-wrap"
-         th:if="${proyecto.proyecto.estado.name() == 'EN_REVISION'}">
-      <span>Este proyecto espera la revisión del Resource Manager.</span>
-      <a class="btn btn-primary btn-sm" th:href="@{/rm/proyectos/revision(id=${proyecto.proyecto.id})}">Revisar ahora</a>
-    </div>
-
+    <!-- Cabecera: el responsable de revisión y "Revisar ahora" van dentro de la misma card (antes eran una card
+         y un aviso aparte, casi vacíos a la derecha). La descripción se separa en sus secciones. -->
     <div class="card project-header-card mb-4">
       <div class="card-body">
         <div class="row g-3 align-items-start">
@@ -93,13 +61,11 @@
               <span class="badge" th:classappend="${proyecto.prioridadClase}" th:text="|Prioridad ${proyecto.prioridadTexto}|">Prioridad</span>
             </div>
             <div class="project-owner mt-2">Project Manager: <strong th:text="${proyecto.pmNombre}">PM</strong></div>
-            <div class="project-description text-secondary mt-3"
-                 th:text="${proyecto.proyecto.descripcion != null and !proyecto.proyecto.descripcion.isBlank() ? proyecto.proyecto.descripcion : 'Sin descripción registrada.'}">
-              Descripción.
-            </div>
           </div>
           <div class="col-lg-auto">
             <div class="d-flex gap-2 flex-wrap header-actions">
+              <a class="btn btn-primary" th:if="${proyecto.proyecto.estado.name() == 'EN_REVISION'}"
+                 th:href="@{/rm/proyectos/revision(id=${proyecto.proyecto.id})}">Revisar ahora</a>
               <!-- TASK-023: solo en ACTIVO y EN_ESPERA (RmAsignacionService.esProyectoAsignable). -->
               <a class="btn btn-outline-primary" id="projectSearchLink" th:if="${proyectoAsignable}"
                  th:href="@{/rm/proyectos/buscar-colaboradores(proyectoId=${proyecto.proyecto.id})}">Buscar colaborador</a>
@@ -109,6 +75,40 @@
                  th:href="@{/rm/foros/detalle(id=${foroId})}">Ver foro</a>
             </div>
           </div>
+        </div>
+        <div class="project-description-grid mt-3" th:if="${!#lists.isEmpty(proyecto.descripcionSecciones)}">
+          <div class="project-description-block" th:each="seccion : ${proyecto.descripcionSecciones}">
+            <div class="info-label" th:text="${seccion.titulo}">Descripción</div>
+            <div class="project-description-text" th:text="${seccion.texto}">Texto</div>
+          </div>
+        </div>
+        <div class="text-secondary mt-3" th:if="${#lists.isEmpty(proyecto.descripcionSecciones)}">Sin descripción registrada.</div>
+      </div>
+      <!-- Responsable de revisión -->
+      <div class="card-footer project-responsable" th:if="${proyectoGestionable}">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="text-secondary small">Resource Manager responsable:</span>
+            <strong th:if="${responsableNombre != null}" th:text="${responsableNombre}">Nombre RM</strong>
+            <strong class="text-danger" th:if="${responsableNombre == null}">Sin asignar</strong>
+            <span class="badge bg-red-lt text-red" th:if="${motivoUrgencia != null}"
+                  th:text="|Urgente: ${motivoUrgencia}|">Urgente</span>
+          </div>
+          <div class="d-flex gap-2">
+            <form method="post" th:if="${responsableNombre == null}"
+                  th:action="@{/rm/proyectos/{id}/tomar(id=${proyecto.proyecto.id})}">
+              <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+              <button type="submit" class="btn btn-primary btn-sm">Tomar este proyecto</button>
+            </form>
+            <form method="post" th:if="${esResponsable and proyecto.proyecto.estado.name() == 'EN_REVISION'}"
+                  th:action="@{/rm/proyectos/{id}/liberar(id=${proyecto.proyecto.id})}">
+              <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+              <button type="submit" class="btn btn-outline-secondary btn-sm">Liberar proyecto</button>
+            </form>
+          </div>
+        </div>
+        <div class="text-secondary small mt-1" th:if="${responsableNombre != null and !esResponsable}">
+          Solo el RM responsable puede gestionar este proyecto. Tú lo ves en modo lectura.
         </div>
       </div>
     </div>
@@ -296,8 +296,8 @@
         <div class="card h-100">
           <div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3>
             <div class="section-description">Habilidades solicitadas para el proyecto.</div></div></div>
-          <div th:if="${!#lists.isEmpty(proyecto.requisitos)}">
-            <div class="requirement-row p-3" th:each="requisito : ${proyecto.requisitos}">
+          <div class="requirement-grid" th:if="${!#lists.isEmpty(proyecto.requisitos)}">
+            <div class="requirement-row" th:each="requisito : ${proyecto.requisitos}">
               <div class="d-flex justify-content-between gap-2"><div><div class="fw-semibold" th:text="${requisito.habilidad}">Habilidad</div>
                 <div class="small text-secondary" th:text="|Nivel ${requisito.nivel}|">Nivel</div></div>
                 <span class="badge bg-blue-lt" th:text="|${requisito.cantidadPersonas} persona(s)|">1 persona</span></div>

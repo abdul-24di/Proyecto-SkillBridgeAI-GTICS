@@ -140,8 +140,11 @@
 
 <div class="mb-3">
   <label class="form-label">Documento de Contexto / Requisitos (Opcional)</label>
-  <input type="file" name="documentoProyecto" class="form-control">
-  <div class="form-hint">Sube un archivo (PDF, DOCX) con más detalle del proyecto para el RM.</div>
+  <input type="file" name="documentoProyecto" class="form-control"
+         accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg"
+         th:classappend="${#fields.hasErrors('documentoProyecto')} ? 'is-invalid' : ''">
+  <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('documentoProyecto')}" th:errors="*{documentoProyecto}"></div>
+  <div class="form-hint">Sube un archivo (PDF, Word, Excel, PowerPoint, TXT o imagen; máx. 20 MB) con más detalle del proyecto para el RM.</div>
 </div>
 
 <div><label class="form-label">Notas para el Resource Manager (opcional)</label><textarea th:field="*{notasRM}" th:classappend="${#fields.hasErrors('notasRM')} ? 'is-invalid' : ''" class="form-control" rows="6" placeholder="Requisitos especiales, urgencia o experiencia deseada"></textarea><div class="invalid-feedback d-block" th:if="${#fields.hasErrors('notasRM')}" th:errors="*{notasRM}"></div></div>

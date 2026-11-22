@@ -264,6 +264,10 @@ public class PmViewController {
                 }
             }
         }
+        String errorDocumento = pmProyectoService.validarDocumentoContexto(form.getDocumentoProyecto());
+        if (errorDocumento != null) {
+            result.rejectValue("documentoProyecto", "documentoProyecto.invalido", errorDocumento);
+        }
         if (result.hasErrors()) {
             model.addAttribute("habilidades", habilidadRepository.findByActivaTrue());
             model.addAttribute("pm", principal.getUsuario());
@@ -283,6 +287,12 @@ public class PmViewController {
                     form.getColaboradoresRequeridos() != null ? form.getColaboradoresRequeridos() : 1, null,
                     form.getHabilidadIds(), form.getNivelesRequeridos(), form.getCantidadesPersonas(), form.getHorasSemanalesHab(),
                     principal.getUsuario());
+            // El documento se sube después de crear el proyecto: si falla, el proyecto queda creado sin él.
+            try {
+                pmProyectoService.guardarDocumentoContexto(nuevo.getId(), form.getDocumentoProyecto(), principal.getUsuario());
+            } catch (Exception e) {
+                ra.addFlashAttribute("error", "El proyecto se creó, pero no se pudo subir el documento de contexto: " + mensajeSeguro(e));
+            }
             ra.addFlashAttribute("success", "Proyecto creado exitosamente. Está pendiente de revisión por el RM.");
             return "redirect:/pm/proyectos/detalle?id=" + nuevo.getId();
         } catch (Exception e) {

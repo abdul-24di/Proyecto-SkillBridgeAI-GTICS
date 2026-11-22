@@ -5,7 +5,11 @@ import com.pucp.skillb_ia.service.rm.RmPresupuestoService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class RmProyectoView {
     private final Proyecto proyecto;
@@ -89,6 +93,47 @@ public class RmProyectoView {
     public String getPresupuestoEtiqueta() {
         return proyecto.getPresupuesto() != null ? "Presupuesto asignado" : "Presupuesto solicitado";
     }
+
+    /** Duración entre el inicio y el fin estimado propuestos (TASK-055). */
+    public String getDuracionTexto() {
+        LocalDate inicio = proyecto.getFechaInicio();
+        LocalDate fin = proyecto.getFechaFinEstimada();
+        if (inicio == null || fin == null || fin.isBefore(inicio)) return "Sin definir";
+        long dias = ChronoUnit.DAYS.between(inicio, fin);
+        if (dias < 14) return dias + (dias == 1 ? " día" : " días");
+        long semanas = dias / 7;
+        long resto = dias % 7;
+        return semanas + " semanas" + (resto == 0 ? "" : " y " + resto + (resto == 1 ? " día" : " días"));
+    }
+
+    /**
+     * Separa la descripción en las secciones que agrega el PM al crear el proyecto
+     * ("Habilidades adicionales sugeridas:" y "Notas para el RM:", ver PmViewController).
+     */
+    public List<SeccionDescripcion> getDescripcionSecciones() {
+        String texto = proyecto.getDescripcion();
+        if (texto == null || texto.isBlank()) return List.of();
+        List<SeccionDescripcion> secciones = new ArrayList<>();
+        Matcher marcador = MARCADOR_SECCION.matcher(texto);
+        String titulo = "Descripción";
+        int inicio = 0;
+        while (marcador.find()) {
+            agregarSeccion(secciones, titulo, texto.substring(inicio, marcador.start()));
+            titulo = marcador.group(1);
+            inicio = marcador.end();
+        }
+        agregarSeccion(secciones, titulo, texto.substring(inicio));
+        return secciones;
+    }
+
+    private static final Pattern MARCADOR_SECCION =
+            Pattern.compile("(?:^|\\s+)(Habilidades adicionales sugeridas|Notas para el RM):\\s*");
+
+    private static void agregarSeccion(List<SeccionDescripcion> secciones, String titulo, String texto) {
+        if (!texto.isBlank()) secciones.add(new SeccionDescripcion(titulo, texto.strip()));
+    }
+
+    public record SeccionDescripcion(String titulo, String texto) {}
 
     public String getTextoBusqueda() {
         String rm = proyecto.getRmRevisor() == null

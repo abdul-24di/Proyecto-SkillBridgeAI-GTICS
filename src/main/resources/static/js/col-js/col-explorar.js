@@ -13,6 +13,8 @@ applyModalEl?.addEventListener("show.bs.modal", (event) => {
     document.getElementById("applyModalTitle").textContent = "Postulación al " + btn.dataset.projectName;
     document.getElementById("applyProyectoId").value = btn.dataset.projectId;
     document.getElementById("applyMessageInput").value = "";
+    document.getElementById("applyError").classList.add("d-none");
+    document.getElementById("applyPerfilSelect").classList.remove("is-invalid");
 
 
 
@@ -29,6 +31,65 @@ applyModalEl?.addEventListener("show.bs.modal", (event) => {
 });
 
 
+/* ================= POSTULAR SIN RECARGAR ================= */
+const applyForm = document.getElementById("applyForm");
+const applyError = document.getElementById("applyError");
+
+document.getElementById("applyPerfilSelect")?.addEventListener("change", () => {
+    document.getElementById("applyPerfilSelect").classList.remove("is-invalid");
+});
+
+applyForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    applyError.classList.add("d-none");
+
+    const perfilSelect = document.getElementById("applyPerfilSelect");
+    if (!perfilSelect.value) {
+        perfilSelect.classList.add("is-invalid");
+        return;
+    }
+
+    const boton = applyForm.querySelector("button[type='submit']");
+    boton.disabled = true;
+
+    try {
+        const respuesta = await fetch(applyForm.action + "-ajax", {
+            method: "POST",
+            body: new URLSearchParams(new FormData(applyForm))
+        });
+
+        // Si la sesión expiró, el servidor redirige al login: recargamos para que te lleve allá.
+        if (respuesta.redirected) {
+            window.location.reload();
+            return;
+        }
+
+        const texto = await respuesta.text();
+        if (respuesta.ok) {
+            sessionStorage.setItem("mensajeExitoPostulacion", texto);
+            window.location.reload();
+        } else {
+            applyError.textContent = texto;
+            applyError.classList.remove("d-none");
+        }
+    } catch (e) {
+        applyError.textContent = "No se pudo enviar la solicitud. Inténtalo de nuevo.";
+        applyError.classList.remove("d-none");
+    }
+
+    boton.disabled = false;
+});
+
+// Muestra el mensaje de éxito después de recargar
+const mensajeExitoPostulacion = sessionStorage.getItem("mensajeExitoPostulacion");
+if (mensajeExitoPostulacion) {
+    sessionStorage.removeItem("mensajeExitoPostulacion");
+    const cajaExito = document.getElementById("alertaExitoJs");
+    if (cajaExito) {
+        cajaExito.className = "alert alert-success";
+        cajaExito.textContent = mensajeExitoPostulacion;
+    }
+}
 
 function mostrarPerfilColaborador(colaboradorId) {
     document.querySelectorAll("#collabProfileDetail .collab-detail-card").forEach(card => {

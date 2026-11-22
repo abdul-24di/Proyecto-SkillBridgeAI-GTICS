@@ -82,6 +82,7 @@
             </div>
         </div>
 
+        <div id="alertaExitoJs"></div>
         <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
         <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
 
@@ -495,18 +496,22 @@
 <!-- MODAL: POSTULACIÓN A PROYECTO -->
 <div class="modal modal-blur fade col-modal" id="applyModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-        <form th:action="@{/colaborador/proyectos/solicitar}" method="post">
+        <form id="applyForm" th:action="@{/colaborador/proyectos/solicitar}" method="post" novalidate>
             <div class="modal-header">
                 <h5 class="modal-title" id="applyModalTitle">Postulación</h5>
                 <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
+                <div id="applyError" class="alert alert-danger d-none" role="alert"></div>
                 <input type="hidden" name="proyectoId" id="applyProyectoId">
 
                 <label class="form-label" for="applyPerfilSelect">Perfil al que deseas postularte <span class="text-danger">*</span></label>
-                <select id="applyPerfilSelect" name="habilidadId" class="form-select mb-3" required>
-                    <option value="" selected disabled>Selecciona un perfil...</option>
-                </select>
+                <div class="mb-3">
+                    <select id="applyPerfilSelect" name="habilidadId" class="form-select" required>
+                        <option value="" selected disabled>Selecciona un perfil...</option>
+                    </select>
+                    <div class="invalid-feedback">Falta completar este campo: selecciona el perfil al que deseas postularte.</div>
+                </div>
 
 
                 <label class="form-label">¿Por qué te interesa participar?</label>

@@ -5,9 +5,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// El chat del proyecto es GRUPAL — "miembros" = colaboradores con asignación
-// activa + el PM del proyecto. El RM NO tiene acceso al chat (A9), a
-// diferencia del foro (A7).
+
 @Entity
 @Table(name = "conversacion")
 public class Conversacion {

@@ -6,9 +6,11 @@ import com.pucp.skillb_ia.dto.col.ColForoPublicacionForm;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.service.pm.PmForoService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.*;
 import com.pucp.skillb_ia.service.EvaluacionService;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Foro;
@@ -21,11 +23,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
@@ -567,6 +564,26 @@ public class ColaboradorViewController {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
         }
         return "redirect:/colaborador/explorar";
+    }
+
+
+    @PostMapping(value = "/proyectos/solicitar-ajax", produces = "text/plain;charset=UTF-8")
+    @ResponseBody
+    public ResponseEntity<String> solicitarIncorporacionAjax(@AuthenticationPrincipal UsuarioDetails principal,
+                                                             @RequestParam Long proyectoId,
+                                                             @RequestParam(required = false) Long habilidadId,
+                                                             @RequestParam(required = false) String mensaje,
+                                                             HttpServletRequest request) {
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Tu sesión expiró. Vuelve a iniciar sesión.");
+        }
+        try {
+            colaboradorProyectoService.solicitarIncorporacion(principal.getUsuario(), proyectoId, habilidadId, mensaje);
+            request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
+            return ResponseEntity.ok("Tu solicitud fue enviada. Quedará pendiente de aprobación del PM y del RM.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/cursos/solicitar")

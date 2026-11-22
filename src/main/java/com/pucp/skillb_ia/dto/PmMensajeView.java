@@ -17,9 +17,6 @@ public class PmMensajeView {
         this.autorIniciales = iniciales(mensaje.getAutor().getNombre(), mensaje.getAutor().getApellido());
         this.contenido = mensaje.getContenido();
         this.hora = mensaje.getFechaHora().format(DateTimeFormatter.ofPattern("HH:mm"));
-        // For simplicity, we assume the DTO is created in the context of the requesting user.
-        // Wait, to know if it's their own message, we can pass the PM ID.
-        // Or we can just include the autorId and let the frontend decide!
         this.esPropio = false; 
     }
 

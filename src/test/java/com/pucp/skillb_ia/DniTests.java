@@ -288,6 +288,22 @@ class DniTests {
         assertThat(usuarioRepository.findById(pm.getId()).orElseThrow().getDni()).isNull();
     }
 
+    @Test
+    void verificarAhoraDesdeElPerfilTambienAvisaConUnaNotificacion() {
+        Usuario usuario = usuarioConDniSinVerificar("verificarahora");
+        RestTemplate api = mock(RestTemplate.class);
+        when(api.exchange(startsWith(URL + "/"), eq(HttpMethod.GET), any(), eq(Map.class)))
+                .thenReturn(ResponseEntity.ok(Map.of("success", true, "nombres", "ANA",
+                        "apellidoPaterno", "PEREZ", "apellidoMaterno", "SOTO")));
+        DniVerificacionService servicio = new DniVerificacionService(
+                new DniService(usuarioRepository, api, "clave", URL), usuarioRepository, notificacionService);
+
+        assertThat(servicio.registrarDesdePerfil(usuario.getId(), usuario.getDni())).isTrue();
+
+        assertThat(usuarioRepository.findById(usuario.getId()).orElseThrow().isDniVerificado()).isTrue();
+        assertThat(tiposDeNotificacion(usuario)).containsExactly(DniVerificacionService.TIPO_VERIFICADO);
+    }
+
     // ---------- Utilidades ----------
 
     private Usuario usuario(String prefijo, String nombreRol) {

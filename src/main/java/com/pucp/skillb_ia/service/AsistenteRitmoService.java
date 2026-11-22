@@ -45,7 +45,7 @@ public class AsistenteRitmoService {
             return actual;
         });
         if (excedido[0]) {
-            throw new IllegalArgumentException("Enviaste muchos mensajes seguidos. Espera un momento e inténtalo de nuevo.");
+            throw new LimiteMensajesException("Enviaste muchos mensajes seguidos. Espera un momento e inténtalo de nuevo.");
         }
     }
 

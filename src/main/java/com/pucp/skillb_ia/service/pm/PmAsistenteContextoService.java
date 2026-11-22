@@ -460,7 +460,8 @@ public class PmAsistenteContextoService {
 
         StringBuilder r = new StringBuilder();
         String alcance = enfocado != null
-                ? "del proyecto **" + enfocado.getNombre() + "** [[PROY:" + enfocado.getId() + "]]"
+                // El marcador ya se muestra con el nombre del proyecto: escribir también el nombre lo repetía.
+                ? "del proyecto [[PROY:" + enfocado.getId() + "]]"
                 : "de tu portafolio actual (" + kpis.totalProyectos() + " proyecto(s))";
 
         boolean pideCandidatos = mensajeN.contains("candidat") || mensajeN.contains("recomiend")

@@ -343,7 +343,8 @@ public class RmAsistenteContextoService {
 
         StringBuilder r = new StringBuilder();
         String alcance = enfocado != null
-                ? "del proyecto **" + enfocado.getProyecto().getNombre() + "** [[PROY:" + enfocado.getProyecto().getId() + "]]"
+                // El marcador ya se muestra con el nombre del proyecto: escribir también el nombre lo repetía.
+                ? "del proyecto [[PROY:" + enfocado.getProyecto().getId() + "]]"
                 : "de los proyectos bajo tu gestión (" + kpis.totalProyectos() + " proyecto(s))";
 
         boolean pideCandidatos = mensajeN.contains("candidat") || mensajeN.contains("recomiend")

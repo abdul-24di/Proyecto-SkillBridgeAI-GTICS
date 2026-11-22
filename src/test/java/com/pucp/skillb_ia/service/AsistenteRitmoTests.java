@@ -19,8 +19,17 @@ class AsistenteRitmoTests {
         ritmo.validar(1L, ahora + 2);
 
         assertThatThrownBy(() -> ritmo.validar(1L, ahora + 3))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(LimiteMensajesException.class)
                 .hasMessage(MENSAJE);
+    }
+
+    @Test
+    void laApiRespondeElLimiteCon429YElMismoMensaje() {
+        var respuesta = new com.pucp.skillb_ia.controller.ApiErrorAdvice()
+                .demasiadosMensajes(new LimiteMensajesException(MENSAJE));
+
+        org.assertj.core.api.Assertions.assertThat(respuesta.getStatusCode().value()).isEqualTo(429);
+        org.assertj.core.api.Assertions.assertThat(respuesta.getBody()).containsEntry("error", MENSAJE);
     }
 
     @Test

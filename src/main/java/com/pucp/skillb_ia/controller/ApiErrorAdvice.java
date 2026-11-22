@@ -37,6 +37,13 @@ public class ApiErrorAdvice {
         return error(HttpStatus.BAD_REQUEST, mensajeOGenerico(ex));
     }
 
+    // Demasiados mensajes seguidos al asistente IA. Es más específico que IllegalArgumentException, así que
+    // Spring usa este manejador y no el de 400.
+    @ExceptionHandler(com.pucp.skillb_ia.service.LimiteMensajesException.class)
+    public ResponseEntity<Map<String, String>> demasiadosMensajes(com.pucp.skillb_ia.service.LimiteMensajesException ex) {
+        return error(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
     // La operación no se puede hacer en el estado actual (por ejemplo, una solicitud que ya existe).
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> estadoInvalido(IllegalStateException ex) {

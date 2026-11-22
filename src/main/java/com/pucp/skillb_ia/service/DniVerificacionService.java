@@ -57,6 +57,14 @@ public class DniVerificacionService {
         if (!verificado && cambio) {
             notificarSinVerificar(usuario);
         }
+        // Mismo aviso que cuando lo verifica el reintento automático, para que cada resultado quede en sus
+        // notificaciones.
+        if (verificado) {
+            notificacionService.crear(usuario, TIPO_VERIFICADO, CategoriaNotificacion.SISTEMA,
+                    "Tu DNI fue verificado",
+                    "La consulta confirmó tu DNI " + limpio + ". Ya no se puede modificar.",
+                    "USUARIO", usuario.getId());
+        }
         return verificado;
     }
 

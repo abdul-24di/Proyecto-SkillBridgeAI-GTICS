@@ -69,7 +69,7 @@ formularios Thymeleaf (`@Controller`), no por API.
 | Autorización por dato | Los servicios comprueban la pertenencia: el PM solo usa el chat de sus proyectos (`PmChatService`), el colaborador solo el de proyectos con asignación `ACTIVA` (`ColChatService`), el RM solo el de proyectos donde es el responsable (`RmChatService`). Un mensaje privado solo puede ir a un miembro del proyecto. Cada usuario solo marca sus propias notificaciones. |
 | CSRF | Activo. Todo `POST` debe enviar el token en la cabecera `X-CSRF-TOKEN`; las vistas lo leen de `<meta name="_csrf">` (`static/js/csrf.js`). Sin token: **403**. |
 | Errores | Un solo `@RestControllerAdvice` (`ApiErrorAdvice`) para los cinco controladores REST convierte los errores en JSON `{"error": "mensaje"}` con su código HTTP. Los mensajes están escritos para el usuario y no exponen detalles técnicos. |
-| Límite de peticiones | `LimiteSolicitudesFilter` limita las peticiones por IP y por minuto (429). El asistente además acepta como máximo `IA_MENSAJES_POR_MINUTO` consultas por colaborador (10 por defecto). |
+| Límite de peticiones | `LimiteSolicitudesFilter` limita las peticiones por IP y por minuto (429). El asistente además acepta como máximo `IA_MENSAJES_POR_MINUTO` consultas por usuario y por minuto (10 por defecto); al superarlo responde 429. |
 | IA externa | La llave del proveedor de IA se lee de la variable de entorno `IA_API_KEY`; nunca va en el código ni en el repositorio. Sin llave, el asistente funciona en modo sin IA (responde solo con datos internos). |
 | CORS | No se configura: la API solo la consume el propio sitio (mismo origen). |
 | Validación de entrada | En el servicio: proyecto obligatorio, mensaje no vacío, máximo 1000 caracteres y sin espacios al inicio ni al final (mismas reglas en los tres chats, `ChatBaseService`). |
@@ -573,9 +573,15 @@ Http Status: HTTP 400 Bad Request
 |---|---|
 | `mensaje` vacío | Escribe tu consulta. |
 | Sin body o JSON mal formado | Debes enviar los datos en formato JSON. |
-| Más de `IA_MENSAJES_POR_MINUTO` consultas en un minuto | Enviaste muchos mensajes seguidos. Espera un momento e inténtalo de nuevo. |
 
-Opción 3: Sin token CSRF o con otro rol: HTTP 403 Forbidden.
+Opción 3: Demasiadas consultas seguidas
+Http Status: HTTP 429 Too Many Requests
+
+| Caso | `error` devuelto |
+|---|---|
+| Más de `IA_MENSAJES_POR_MINUTO` consultas en un minuto (el límite es compartido por los asistentes del Colaborador, PM y RM) | Enviaste muchos mensajes seguidos. Espera un momento e inténtalo de nuevo. |
+
+Opción 4: Sin token CSRF o con otro rol: HTTP 403 Forbidden.
 
 **Datos de salida:**
 

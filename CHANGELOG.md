@@ -1,5 +1,15 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 21 de Noviembre 2026 (2) — Revisión de los cambios de asistentes, foros y DNI
+
+- **Prueba en la app** de los cambios de Abraham (candidatos PM/RM, reportes del PM, foros en los 4 roles, límite de mensajes y DNI con un servicio simulado): todo funciona.
+- **Asistentes PM y RM:** la respuesta repetía el nombre del proyecto ("del proyecto X X"); el marcador `[[PROY:id]]` ya lo muestra.
+- **DNI:** verificarlo con "Verificar ahora" desde el perfil también deja la notificación "Tu DNI fue verificado", igual que el reintento automático.
+- **API del asistente del colaborador:** al superar el límite de mensajes responde **429 Too Many Requests** (antes 400). Las vistas del PM y del RM siguen mostrando el mismo aviso. Documentado en `docs/informe/04-apis-rest.md`.
+- **Tests:** 861 en verde.
+
+---
+
 ## Sesión 21 de Noviembre 2026 — Observaciones del grupo
 
 - **Habilidades (Admin):** editar daba "No se pudo completar la operación" cuando la base tenía el mismo nombre en dos categorías (lo dejaba el script demo anterior). Ahora se edita igual y, si el nombre nuevo ya existe, el mensaje lo dice. También se controla el largo (100).

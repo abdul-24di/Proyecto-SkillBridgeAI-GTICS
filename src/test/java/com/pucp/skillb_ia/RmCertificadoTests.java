@@ -1004,17 +1004,24 @@ class RmCertificadoTests {
     void perfilNoEnlazaUnCertificadoPendienteDeOtroRm() throws Exception {
         Usuario otroRm = obtenerUsuario("rm.otro.certificados@skillbridge.test", "Otro", "RM",
                 obtenerRol("RESOURCE_MANAGER"));
-        Certificado pendiente = guardarPendiente("/uploads/certificados/perfil-otro-rm.pdf");
-        pendiente.setRmResponsable(otroRm);
-        certificadoRepository.save(pendiente);
-        autenticarRm();
+        try {
+            Certificado pendiente = guardarPendiente("/uploads/certificados/perfil-otro-rm.pdf");
+            pendiente.setRmResponsable(otroRm);
+            certificadoRepository.save(pendiente);
+            autenticarRm();
 
-        String revision = "/rm/colaboradores/certificados/revision?id=" + pendiente.getId();
-        assertFalse(perfilDelColaborador().contains(revision));
+            String revision = "/rm/colaboradores/certificados/revision?id=" + pendiente.getId();
+            assertFalse(perfilDelColaborador().contains(revision));
 
-        pendiente.setRmResponsable(rm);
-        certificadoRepository.save(pendiente);
-        assertTrue(perfilDelColaborador().contains(revision));
+            pendiente.setRmResponsable(rm);
+            certificadoRepository.save(pendiente);
+            assertTrue(perfilDelColaborador().contains(revision));
+        } finally {
+            // Se desactiva para no quedar como RM activo sin carga en el contexto compartido:
+            // el reparto de revisiones (RmRevisionAsignadorService.elegirRm) lo elegiría en otras clases.
+            otroRm.setActivo(false);
+            usuarioRepository.save(otroRm);
+        }
     }
 
     @Test

@@ -1,7 +1,9 @@
 package com.pucp.skillb_ia.service.pm;
 
 import com.pucp.skillb_ia.dto.PmForoView;
-import com.pucp.skillb_ia.dto.PmPublicacionView;
+import com.pucp.skillb_ia.dto.ForoPublicacionView;
+import com.pucp.skillb_ia.service.ForoDetalleService;
+import com.pucp.skillb_ia.service.ForoDetalleService.PermisosForo;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Foro;
 import com.pucp.skillb_ia.model.Proyecto;
@@ -58,6 +60,7 @@ public class PmForoService {
     private final AuditoriaService auditoriaService;
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
     private final NotificacionService notificacionService;
+    private final ForoDetalleService foroDetalleService;
 
     public PmForoService(ForoRepository foroRepository,
                          PublicacionForoRepository publicacionRepository,
@@ -68,8 +71,10 @@ public class PmForoService {
                          VotoRespuestaRepository votoRespuestaRepository,
                          AuditoriaService auditoriaService,
                          ArchivoAlmacenamientoService archivoAlmacenamientoService,
-                         NotificacionService notificacionService) {
+                         NotificacionService notificacionService,
+                         ForoDetalleService foroDetalleService) {
         this.notificacionService = notificacionService;
+        this.foroDetalleService = foroDetalleService;
         this.foroRepository = foroRepository;
         this.publicacionRepository = publicacionRepository;
         this.respuestaRepository = respuestaRepository;
@@ -135,50 +140,39 @@ public class PmForoService {
         return vistas;
     }
 
-    /** Devuelve las publicaciones del foro del proyecto indicado. */
+    /** Devuelve las publicaciones del foro del proyecto indicado (orden "fecha" o "votos"). */
     @Transactional(readOnly = true)
-    public List<PmPublicacionView> obtenerDetalle(Long proyectoId, Usuario pm) {
+    public List<ForoPublicacionView> obtenerDetalle(Long proyectoId, Usuario pm, String orden) {
         Proyecto proyecto = obtenerProyectoDelPm(proyectoId, pm);
-        
         return foroRepository.findByProyecto(proyecto)
-                .map(foro -> publicacionRepository.findByForoConDetalle(foro)
-                        .stream()
-                        .map(pub -> mapToPmPublicacionView(pub, pm))
-                        .toList())
+                .map(foro -> foroDetalleService.listar(foro, pm, permisos(foro, pm), orden))
                 .orElse(java.util.Collections.emptyList());
     }
 
     @Transactional(readOnly = true)
-    public List<PmPublicacionView> obtenerDetallePorForo(Long foroId, Usuario pm) {
+    public List<ForoPublicacionView> obtenerDetallePorForo(Long foroId, Usuario pm, String orden) {
         Foro foro = foroRepository.findById(foroId)
                 .orElseThrow(() -> new IllegalArgumentException("Foro no encontrado"));
-        
+
         if (!foro.isEsPublico() && foro.getTipo() == TipoForo.PROYECTO) {
             if (foro.getProyecto() != null && !foro.getProyecto().getPm().getId().equals(pm.getId())) {
                 throw new SecurityException("No tienes permiso para ver este foro.");
             }
         }
-
-        return publicacionRepository.findByForoConDetalle(foro)
-                .stream()
-                .map(pub -> mapToPmPublicacionView(pub, pm))
-                .toList();
+        return foroDetalleService.listar(foro, pm, permisos(foro, pm), orden);
     }
 
-    private PmPublicacionView mapToPmPublicacionView(PublicacionForo pub, Usuario pm) {
-        List<RespuestaForo> respuestas = respuestaRepository.findByPublicacionConAutor(pub);
-        List<PmPublicacionView.RespuestaView> respuestasView = new ArrayList<>();
-        
-        for (RespuestaForo resp : respuestas) {
-            long totalLikesResp = votoRespuestaRepository.countByRespuestaAndTipo(resp, TipoVoto.POSITIVO);
-            boolean meGustaResp = votoRespuestaRepository.findByUsuarioAndRespuesta(pm, resp).isPresent();
-            respuestasView.add(new PmPublicacionView.RespuestaView(resp, totalLikesResp, meGustaResp));
-        }
+    /**
+     * El PM vota y participa en los foros que ve; modera la solución solo en el foro de sus
+     * proyectos; elimina solo lo propio.
+     */
+    private PermisosForo permisos(Foro foro, Usuario pm) {
+        return new PermisosForo(true, true, esForoDeSuProyecto(foro, pm), false);
+    }
 
-        long totalLikesPub = votoPublicacionRepository.countByPublicacionAndTipo(pub, TipoVoto.POSITIVO);
-        boolean meGustaPub = votoPublicacionRepository.findByUsuarioAndPublicacion(pm, pub).isPresent();
-
-        return new PmPublicacionView(pub, respuestasView, totalLikesPub, meGustaPub);
+    private boolean esForoDeSuProyecto(Foro foro, Usuario pm) {
+        return foro.getProyecto() != null && foro.getProyecto().getPm() != null
+                && foro.getProyecto().getPm().getId().equals(pm.getId());
     }
 
     @Transactional(readOnly = true)
@@ -283,44 +277,23 @@ public class PmForoService {
         return doc.text().isBlank() && doc.select("img").isEmpty();
     }
 
-    /** Marca o desmarca una respuesta como solución de la publicación. */
+    /**
+     * Marca o desmarca una respuesta como solución de la publicación (TASK-046): puede el autor
+     * de la publicación o el PM del proyecto dueño del foro. En un foro de comunidad, solo el autor.
+     */
     @Transactional
     public void alternarSolucion(Usuario pm, Long respuestaId) {
         RespuestaForo respuesta = respuestaRepository.findById(respuestaId)
+                .filter(RespuestaForo::isActivo)
                 .orElseThrow(() -> new IllegalArgumentException("Respuesta no encontrada."));
         PublicacionForo publicacion = respuesta.getPublicacion();
 
-        // Verificar que el PM tiene acceso al foro de este proyecto
-        if (publicacion.getForo().getProyecto() != null) {
-            obtenerProyectoDelPm(publicacion.getForo().getProyecto().getId(), pm);
+        boolean esAutor = publicacion.getAutor() != null && publicacion.getAutor().getId().equals(pm.getId());
+        if (!esAutor && !esForoDeSuProyecto(publicacion.getForo(), pm)) {
+            throw new IllegalStateException(
+                    "Solo el autor de la publicación o el PM del proyecto pueden marcar la solución.");
         }
-
-        if (respuesta.isEsSolucion()) {
-            respuesta.setEsSolucion(false);
-            respuestaRepository.save(respuesta);
-            auditoriaService.registrar(pm, "DESMARCAR_SOLUCION_FORO", "RESPUESTA_FORO",
-                    respuesta.getId(), "PM desmarcó la respuesta como solución en \"" + publicacion.getTitulo() + "\".");
-            return;
-        }
-
-        respuestaRepository.findByPublicacionAndEsSolucionTrue(publicacion).ifPresent(anterior -> {
-            anterior.setEsSolucion(false);
-            respuestaRepository.save(anterior);
-        });
-
-        respuesta.setEsSolucion(true);
-        respuestaRepository.save(respuesta);
-        auditoriaService.registrar(pm, "MARCAR_SOLUCION_FORO", "RESPUESTA_FORO",
-                respuesta.getId(), "PM marcó una respuesta como solución en \"" + publicacion.getTitulo() + "\".");
-
-        if (respuesta.getAutor() != null && !respuesta.getAutor().getId().equals(pm.getId())) {
-            notificacionService.crear(respuesta.getAutor(), "RESPUESTA_MARCADA_SOLUCION",
-                    CategoriaNotificacion.MENSAJE,
-                    "Tu respuesta fue marcada como solución",
-                    pm.getNombre() + " " + pm.getApellido()
-                            + " marcó tu respuesta como la solución de \"" + publicacion.getTitulo() + "\".",
-                    "FORO", publicacion.getForo().getId());
-        }
+        foroDetalleService.alternarSolucion(pm, respuesta);
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────

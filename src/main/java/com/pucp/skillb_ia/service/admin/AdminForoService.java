@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import com.pucp.skillb_ia.dto.AdminPublicacionView;
+import com.pucp.skillb_ia.dto.ForoPublicacionView;
+import com.pucp.skillb_ia.model.RespuestaForo;
 import com.pucp.skillb_ia.repository.RespuestaForoRepository;
-import java.util.ArrayList;
+import com.pucp.skillb_ia.service.ForoDetalleService;
+import com.pucp.skillb_ia.service.ForoDetalleService.PermisosForo;
 
 @Service
 public class AdminForoService {
@@ -21,13 +23,45 @@ public class AdminForoService {
     private final ForoRepository foroRepository;
     private final PublicacionForoRepository publicacionForoRepository;
     private final RespuestaForoRepository respuestaForoRepository;
+    private final ForoDetalleService foroDetalleService;
 
     public AdminForoService(ForoRepository foroRepository,
                             PublicacionForoRepository publicacionForoRepository,
-                            RespuestaForoRepository respuestaForoRepository) {
+                            RespuestaForoRepository respuestaForoRepository,
+                            ForoDetalleService foroDetalleService) {
         this.foroRepository = foroRepository;
         this.publicacionForoRepository = publicacionForoRepository;
         this.respuestaForoRepository = respuestaForoRepository;
+        this.foroDetalleService = foroDetalleService;
+    }
+
+    /**
+     * Detalle del foro para el Admin (orden "fecha" o "votos"): vota, responde y elimina cualquier
+     * publicación o respuesta; modera la solución solo en los foros de comunidad.
+     */
+    @Transactional(readOnly = true)
+    public List<ForoPublicacionView> obtenerDetalle(Long foroId, Usuario admin, String orden) {
+        Foro foro = obtenerForo(foroId);
+        PermisosForo permisos = new PermisosForo(true, true, foro.getProyecto() == null, true);
+        return foroDetalleService.listar(foro, admin, permisos, orden);
+    }
+
+    /**
+     * Marca o desmarca la solución (TASK-046): el Admin puede en los foros de comunidad;
+     * en el foro de un proyecto, solo si es el autor de la publicación.
+     */
+    @Transactional
+    public void alternarSolucion(Usuario admin, Long respuestaId) {
+        RespuestaForo respuesta = respuestaForoRepository.findById(respuestaId)
+                .filter(RespuestaForo::isActivo)
+                .orElseThrow(() -> new IllegalArgumentException("Respuesta no encontrada."));
+        PublicacionForo publicacion = respuesta.getPublicacion();
+        boolean esAutor = publicacion.getAutor() != null && publicacion.getAutor().getId().equals(admin.getId());
+        if (!esAutor && publicacion.getForo().getProyecto() != null) {
+            throw new IllegalStateException(
+                    "En el foro de un proyecto solo el autor de la publicación o el PM pueden marcar la solución.");
+        }
+        foroDetalleService.alternarSolucion(admin, respuesta);
     }
 
     @Transactional(readOnly = true)
@@ -73,17 +107,6 @@ public class AdminForoService {
     public Foro obtenerForo(Long foroId) {
         return foroRepository.findById(foroId)
                 .orElseThrow(() -> new IllegalArgumentException("Foro no encontrado: " + foroId));
-    }
-
-    @Transactional(readOnly = true)
-    public List<AdminPublicacionView> listarPublicaciones(Long foroId) {
-        Foro foro = obtenerForo(foroId);
-        List<PublicacionForo> publicaciones = publicacionForoRepository.findByForoAndActivoTrueOrderByFechaCreacionDesc(foro);
-        List<AdminPublicacionView> vistas = new ArrayList<>();
-        for (PublicacionForo pub : publicaciones) {
-            vistas.add(new AdminPublicacionView(pub, respuestaForoRepository.findByPublicacionConAutor(pub)));
-        }
-        return vistas;
     }
 
     @Transactional

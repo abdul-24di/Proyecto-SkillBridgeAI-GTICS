@@ -2,6 +2,7 @@ package com.pucp.skillb_ia;
 
 import com.pucp.skillb_ia.model.Cargo;
 import com.pucp.skillb_ia.repository.CargoRepository;
+import com.pucp.skillb_ia.dto.ForoPublicacionView;
 import com.pucp.skillb_ia.dto.RmForoView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.*;
@@ -129,11 +130,11 @@ class RmForoTests {
 
         assertEquals("Publicación más votada", porVotos.getPublicaciones().get(0).getTitulo());
         assertEquals("Publicación más reciente", porFecha.getPublicaciones().get(0).getTitulo());
-        RmForoView.Publicacion publicacion = porVotos.getPublicaciones().get(0);
-        assertEquals(2, publicacion.getPuntaje());
+        ForoPublicacionView publicacion = porVotos.getPublicaciones().get(0);
+        assertEquals(2, publicacion.getTotalLikes());
         assertEquals(1, publicacion.getRespuestas().size());
         assertTrue(publicacion.getRespuestas().get(0).isSolucion());
-        assertEquals(1, publicacion.getRespuestas().get(0).getPuntaje());
+        assertEquals(1, publicacion.getRespuestas().get(0).getTotalLikes());
         assertEquals(2, porVotos.getParticipantes());
     }
 

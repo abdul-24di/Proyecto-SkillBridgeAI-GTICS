@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Detalle de foro común a RM, PM, Colaborador y Admin (TASK-046).
+  Requiere /css/foro-detalle.css. Los datos vienen de ForoPublicacionView / ForoRespuestaView.
+-->
+
+<!--
+  Selector "Más recientes / Más votadas" (GET).
+  accion: URL del detalle; nombreParam/valorParam: parámetro que identifica el foro (puede ser null).
+-->
+<form th:fragment="orden(accion, ordenActual, nombreParam, valorParam)"
+      method="get" th:action="@{${accion}}" class="foro-orden d-flex align-items-end gap-2">
+  <input th:if="${nombreParam != null}" type="hidden" th:name="${nombreParam}" th:value="${valorParam}">
+  <div>
+    <label class="form-label mb-1" for="forumSort">Ordenar publicaciones</label>
+    <select class="form-select form-select-sm" id="forumSort" name="ordenar" onchange="this.form.submit()">
+      <option value="fecha" th:selected="${ordenActual != 'votos'}">Más recientes</option>
+      <option value="votos" th:selected="${ordenActual == 'votos'}">Más votadas</option>
+    </select>
+  </div>
+  <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Ordenar</button></noscript>
+</form>
+
+<!--
+  Publicación con sus respuestas.
+  base: prefijo de las acciones POST del rol (/pm/foro, /colaborador/foro, /admin/foros) o null (solo lectura).
+  foroId / proyectoId: campos ocultos con los que cada rol vuelve al detalle (pueden ser null).
+  Los modales #replyModal{id} y #deletePostModal-{id} los define la plantilla del rol.
+-->
+<article th:fragment="publicacion(pub, base, foroId, proyectoId)"
+         class="card foro-post mb-3" th:id="|publicacion-${pub.id}|">
+  <div class="card-body">
+    <div class="foro-autor">
+      <span class="avatar foro-avatar bg-blue-lt text-blue" th:text="${pub.autorIniciales}">US</span>
+      <div class="flex-fill">
+        <div class="fw-semibold" th:text="${pub.autorNombre}">Autor</div>
+        <div class="small text-secondary"
+             th:text="|${pub.autorCargo} · ${#temporals.format(pub.fechaCreacion, 'dd/MM/yyyy HH:mm')}|">Cargo · fecha</div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2 flex-wrap mt-3">
+      <h3 class="foro-post-titulo mb-0" th:text="${pub.titulo}">Título</h3>
+      <span th:if="${pub.etiqueta != null}" class="badge bg-blue-lt" th:text="${pub.etiqueta}">Etiqueta</span>
+      <span th:if="${pub.resuelta}" class="badge bg-green-lt">✓ Resuelta</span>
+    </div>
+
+    <div class="foro-contenido mt-2" th:utext="${pub.contenido}">Contenido</div>
+
+    <div class="foro-acciones mt-3">
+      <form th:if="${base != null and pub.puedeDarLike}" method="post"
+            th:action="@{|${base}/publicacion/${pub.id}/like|}" class="d-inline">
+        <input th:if="${foroId != null}" type="hidden" name="foroId" th:value="${foroId}">
+        <input th:if="${proyectoId != null}" type="hidden" name="proyectoId" th:value="${proyectoId}">
+        <button type="submit" class="btn btn-sm foro-like"
+                th:classappend="${pub.meGusta} ? 'btn-red text-white' : 'btn-outline-secondary'"
+                th:attr="aria-pressed=${pub.meGusta}">♥ <span th:text="${pub.totalLikes}">0</span></button>
+      </form>
+      <span th:unless="${base != null and pub.puedeDarLike}" class="foro-like-texto">♥ <span th:text="${pub.totalLikes}">0</span></span>
+      <span class="text-secondary small" th:text="|${pub.totalRespuestas} respuestas|">0 respuestas</span>
+      <button th:if="${base != null and pub.puedeResponder}" type="button" class="btn btn-sm btn-outline-secondary"
+              data-bs-toggle="modal" th:data-bs-target="|#replyModal${pub.id}|">Responder</button>
+      <button th:if="${base != null and pub.puedeEliminar}" type="button" class="btn btn-sm btn-outline-danger"
+              data-bs-toggle="modal" th:data-bs-target="|#deletePostModal-${pub.id}|">Eliminar</button>
+    </div>
+  </div>
+
+  <div class="card-footer p-0">
+    <div class="px-3 py-2 border-bottom fw-semibold">Respuestas</div>
+    <div th:if="${pub.respuestas.isEmpty()}" class="text-secondary px-3 py-4 text-center">
+      Esta publicación aún no tiene respuestas.
+    </div>
+    <div th:each="resp : ${pub.respuestas}" class="foro-respuesta"
+         th:classappend="${resp.solucion} ? 'foro-respuesta-solucion'">
+      <div class="d-flex align-items-start gap-3">
+        <span class="avatar foro-avatar bg-purple-lt text-purple" th:text="${resp.autorIniciales}">US</span>
+        <div class="flex-fill">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="fw-semibold" th:text="${resp.autorNombre}">Autor</div>
+            <span th:if="${resp.solucion}" class="badge bg-green-lt">✓ Solución</span>
+          </div>
+          <div class="small text-secondary"
+               th:text="|${resp.autorCargo} · ${#temporals.format(resp.fechaCreacion, 'dd/MM/yyyy HH:mm')}|">Cargo · fecha</div>
+          <div class="foro-contenido foro-contenido-respuesta mt-2" th:utext="${resp.contenido}">Respuesta</div>
+
+          <div class="foro-acciones mt-2">
+            <form th:if="${base != null and resp.puedeDarLike}" method="post"
+                  th:action="@{|${base}/respuesta/${resp.id}/like|}" class="d-inline">
+              <input th:if="${foroId != null}" type="hidden" name="foroId" th:value="${foroId}">
+              <input th:if="${proyectoId != null}" type="hidden" name="proyectoId" th:value="${proyectoId}">
+              <button type="submit" class="btn btn-sm foro-like"
+                      th:classappend="${resp.meGusta} ? 'btn-red text-white' : 'btn-outline-secondary'"
+                      th:attr="aria-pressed=${resp.meGusta}">♥ <span th:text="${resp.totalLikes}">0</span></button>
+            </form>
+            <span th:unless="${base != null and resp.puedeDarLike}" class="foro-like-texto">♥ <span th:text="${resp.totalLikes}">0</span></span>
+            <form th:if="${base != null and resp.puedeMarcarSolucion}" method="post"
+                  th:action="@{|${base}/respuesta/${resp.id}/marcar-solucion|}" class="d-inline">
+              <input th:if="${foroId != null}" type="hidden" name="foroId" th:value="${foroId}">
+              <input th:if="${proyectoId != null}" type="hidden" name="proyectoId" th:value="${proyectoId}">
+              <button type="submit" class="btn btn-sm"
+                      th:classappend="${resp.solucion} ? 'btn-outline-secondary' : 'btn-outline-success'"
+                      th:text="${resp.solucion} ? 'Quitar solución' : 'Marcar como solución'">Marcar como solución</button>
+            </form>
+            <form th:if="${base != null and resp.puedeEliminar}" method="post"
+                  th:action="@{|${base}/respuesta/${resp.id}/eliminar|}" class="d-inline"
+                  onsubmit="return confirm('¿Seguro que deseas eliminar esta respuesta? Esta acción no se puede deshacer.');">
+              <input th:if="${foroId != null}" type="hidden" name="foroId" th:value="${foroId}">
+              <input th:if="${proyectoId != null}" type="hidden" name="proyectoId" th:value="${proyectoId}">
+              <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</article>
+
+</body>
+</html>

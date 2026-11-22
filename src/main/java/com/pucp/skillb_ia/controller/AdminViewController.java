@@ -1005,9 +1005,13 @@ public class AdminViewController {
     }
 
     @GetMapping("/foros/{id}/publicaciones")
-    public String foroDetalle(@PathVariable Long id, @AuthenticationPrincipal UsuarioDetails principal, Model model) {
+    public String foroDetalle(@PathVariable Long id,
+                              @RequestParam(value = "ordenar", defaultValue = "fecha") String ordenar,
+                              @AuthenticationPrincipal UsuarioDetails principal, Model model) {
+        String orden = com.pucp.skillb_ia.service.ForoDetalleService.normalizarOrden(ordenar);
         model.addAttribute("foro", adminForoService.obtenerForo(id));
-        model.addAttribute("publicaciones", pmForoService.obtenerDetallePorForo(id, principal.getUsuario()));
+        model.addAttribute("publicaciones", adminForoService.obtenerDetalle(id, principal.getUsuario(), orden));
+        model.addAttribute("ordenActual", orden);
         return "admin/admin-foro-detalle";
     }
 
@@ -1063,7 +1067,7 @@ public class AdminViewController {
                                      @AuthenticationPrincipal UsuarioDetails principal,
                                      RedirectAttributes ra, HttpServletRequest request) {
         try {
-            pmForoService.alternarSolucion(principal.getUsuario(), respuestaId);
+            adminForoService.alternarSolucion(principal.getUsuario(), respuestaId);
         } catch (Exception e) {
             ra.addFlashAttribute("error", mensajeSeguro(e));
         }

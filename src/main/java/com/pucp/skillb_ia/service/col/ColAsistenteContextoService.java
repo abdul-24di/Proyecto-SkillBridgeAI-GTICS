@@ -602,7 +602,7 @@ public class ColAsistenteContextoService {
             }
             RespuestaForo respuesta = solucion != null ? solucion : respuestaPorPublicacion.get(p.getId());
 
-            String url = "/colaborador/foros/detalle?foroId=" + foro.getId() + "#pub-" + p.getId();
+            String url = "/colaborador/foros/detalle?foroId=" + foro.getId() + "#publicacion-" + p.getId();
             publicaciones.put(p.getId(), new Fuente(p.getId(), p.getTitulo(), foro.getNombre(), url, solucion != null));
 
             t.append("- [[PUB:").append(p.getId()).append("]] título: \"").append(limpiar(p.getTitulo()))

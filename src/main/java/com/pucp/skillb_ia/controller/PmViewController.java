@@ -8,6 +8,7 @@ import com.pucp.skillb_ia.repository.HabilidadRepository;
 import com.pucp.skillb_ia.repository.UsuarioRepository;
 import com.pucp.skillb_ia.security.UsuarioDetails;
 import com.pucp.skillb_ia.service.CierreAsignacionesService;
+import com.pucp.skillb_ia.service.ForoDetalleService;
 import com.pucp.skillb_ia.service.pm.PmActividadService;
 import com.pucp.skillb_ia.service.pm.PmAsignacionService;
 import com.pucp.skillb_ia.service.pm.PmChatService;
@@ -636,6 +637,7 @@ public class PmViewController {
     @GetMapping({"/foro/detalle", "/pm-foro-detalle.html"})
     public String foroDetalle(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
                               @RequestParam(value = "foroId", required = false) Long foroId,
+                              @RequestParam(value = "ordenar", defaultValue = "fecha") String ordenar,
                               @AuthenticationPrincipal UsuarioDetails principal,
                               Model model) {
         Usuario pm = principal.getUsuario();
@@ -645,13 +647,15 @@ public class PmViewController {
             pubForm.setForoId(foroId);
             model.addAttribute("pmForoPublicacionForm", pubForm);
         }
+        String orden = ForoDetalleService.normalizarOrden(ordenar);
+        model.addAttribute("ordenActual", orden);
         if (foroId != null) {
-            model.addAttribute("publicaciones", pmForoService.obtenerDetallePorForo(foroId, pm));
+            model.addAttribute("publicaciones", pmForoService.obtenerDetallePorForo(foroId, pm, orden));
             model.addAttribute("foroBase", pmForoService.obtenerForoBase(foroId));
             model.addAttribute("pm", pm);
             return "pm/pm-foro-detalle";
         } else if (proyectoId != null) {
-            model.addAttribute("publicaciones", pmForoService.obtenerDetalle(proyectoId, pm));
+            model.addAttribute("publicaciones", pmForoService.obtenerDetalle(proyectoId, pm, orden));
             model.addAttribute("proyecto", pmProyectoService.obtener(proyectoId, pm));
             model.addAttribute("pm", pm);
             return "pm/pm-foro-detalle";

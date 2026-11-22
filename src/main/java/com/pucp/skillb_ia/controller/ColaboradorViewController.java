@@ -194,7 +194,7 @@ public class ColaboradorViewController {
             if (foroOpt.isPresent()) {
                 model.addAttribute("foroDelProyecto", foroOpt.get());
                 model.addAttribute("publicacionesForoProyecto",
-                        colaboradorForoService.listarPublicacionesConRespuestas(colaborador, foroOpt.get().getId()));
+                        colaboradorForoService.listarPublicacionesConRespuestas(colaborador, foroOpt.get().getId(), "fecha"));
             }
         } catch (IllegalArgumentException e) {
             redirectAttributes.addFlashAttribute("mensajeError", e.getMessage());
@@ -309,6 +309,7 @@ public class ColaboradorViewController {
 
     @GetMapping({"/foros/detalle", "/col-foro-detalle.html"})
     public String foroDetalle(@RequestParam("foroId") Long foroId,
+                              @RequestParam(value = "ordenar", defaultValue = "fecha") String ordenar,
                               @AuthenticationPrincipal UsuarioDetails principal, Model model) {
         if (principal == null) {
             return "redirect:/login";
@@ -318,7 +319,9 @@ public class ColaboradorViewController {
             Foro foro = colaboradorForoService.obtenerForo(colaborador, foroId);
             model.addAttribute("colaborador", colaborador);
             model.addAttribute("foro", foro);
-            model.addAttribute("publicaciones", colaboradorForoService.listarPublicacionesConRespuestas(colaborador, foroId));
+            String orden = com.pucp.skillb_ia.service.ForoDetalleService.normalizarOrden(ordenar);
+            model.addAttribute("ordenActual", orden);
+            model.addAttribute("publicaciones", colaboradorForoService.listarPublicacionesConRespuestas(colaborador, foroId, orden));
             model.addAttribute("etiquetas", colaboradorForoService.listarEtiquetas());
             model.addAttribute("puedeParticipar", colaboradorForoService.puedeParticipar(colaborador, foro));
             if (!model.containsAttribute("colForoPublicacionForm")) {

@@ -1,11 +1,13 @@
 package com.pucp.skillb_ia.service.rm;
 
+import com.pucp.skillb_ia.dto.ForoPublicacionView;
 import com.pucp.skillb_ia.dto.RmForoView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
-import com.pucp.skillb_ia.model.enums.TipoVoto;
 import com.pucp.skillb_ia.repository.*;
+import com.pucp.skillb_ia.service.ForoDetalleService;
+import com.pucp.skillb_ia.service.ForoDetalleService.PermisosForo;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,27 +37,18 @@ public class RmForoConsultaService {
     }
 
     private final ForoRepository foroRepository;
-    private final PublicacionForoRepository publicacionRepository;
-    private final RespuestaForoRepository respuestaRepository;
-    private final VotoPublicacionRepository votoPublicacionRepository;
-    private final VotoRespuestaRepository votoRespuestaRepository;
     private final AsignacionRepository asignacionRepository;
     private final RmAlcanceService rmAlcanceService;
+    private final ForoDetalleService foroDetalleService;
 
     public RmForoConsultaService(ForoRepository foroRepository,
-                                 PublicacionForoRepository publicacionRepository,
-                                 RespuestaForoRepository respuestaRepository,
-                                 VotoPublicacionRepository votoPublicacionRepository,
-                                 VotoRespuestaRepository votoRespuestaRepository,
                                  AsignacionRepository asignacionRepository,
-                                 RmAlcanceService rmAlcanceService) {
+                                 RmAlcanceService rmAlcanceService,
+                                 ForoDetalleService foroDetalleService) {
         this.foroRepository = foroRepository;
-        this.publicacionRepository = publicacionRepository;
-        this.respuestaRepository = respuestaRepository;
-        this.votoPublicacionRepository = votoPublicacionRepository;
-        this.votoRespuestaRepository = votoRespuestaRepository;
         this.asignacionRepository = asignacionRepository;
         this.rmAlcanceService = rmAlcanceService;
+        this.foroDetalleService = foroDetalleService;
     }
 
     /** El RM ve el foro general y los foros de sus propios proyectos. */
@@ -132,7 +125,7 @@ public class RmForoConsultaService {
                 && !rmAlcanceService.puedeVer(foro.getProyecto(), rmAlcanceService.idRmActual())) {
             throw new IllegalArgumentException("No se encontró el foro solicitado.");
         }
-        return crearVista(foro, "votos".equalsIgnoreCase(orden) ? "votos" : "fecha");
+        return crearVista(foro, ForoDetalleService.normalizarOrden(orden));
     }
 
     /** Id del foro del proyecto (como máximo uno), para enlazarlo desde su detalle. */
@@ -142,11 +135,9 @@ public class RmForoConsultaService {
     }
 
     private RmForoView crearVista(Foro foro, String orden) {
-        List<RmForoView.Publicacion> publicaciones = publicacionRepository
-                .findByForoConDetalle(foro).stream()
-                .map(this::crearPublicacion)
-                .sorted(comparadorPublicaciones(orden))
-                .toList();
+        // El RM solo consulta: misma vista que los demás roles, sin acciones.
+        List<ForoPublicacionView> publicaciones =
+                foroDetalleService.listar(foro, null, PermisosForo.SOLO_LECTURA, orden);
 
         Set<Long> participantes = new HashSet<>();
         publicaciones.forEach(publicacion -> {
@@ -166,7 +157,7 @@ public class RmForoConsultaService {
                 .orElse(foro.getFechaCreacion());
 
         List<String> etiquetas = publicaciones.stream()
-                .map(RmForoView.Publicacion::getEtiqueta)
+                .map(ForoPublicacionView::getEtiqueta)
                 .filter(etiqueta -> etiqueta != null && !etiqueta.isBlank())
                 .distinct()
                 .sorted(String.CASE_INSENSITIVE_ORDER)
@@ -191,38 +182,6 @@ public class RmForoConsultaService {
                 publicaciones, etiquetas);
     }
 
-    private RmForoView.Publicacion crearPublicacion(PublicacionForo publicacion) {
-        List<RmForoView.Respuesta> respuestas = respuestaRepository
-                .findByPublicacionConAutor(publicacion).stream()
-                .map(this::crearRespuesta)
-                .sorted(Comparator.comparingLong(RmForoView.Respuesta::getPuntaje).reversed()
-                        .thenComparing(RmForoView.Respuesta::getFechaCreacion))
-                .toList();
-        long positivos = votoPublicacionRepository
-                .countByPublicacionAndTipo(publicacion, TipoVoto.POSITIVO);
-        long negativos = votoPublicacionRepository
-                .countByPublicacionAndTipo(publicacion, TipoVoto.NEGATIVO);
-        return new RmForoView.Publicacion(
-                publicacion.getId(), publicacion.getAutor().getId(),
-                publicacion.getTitulo(), publicacion.getContenido(),
-                nombreCompleto(publicacion.getAutor()), iniciales(publicacion.getAutor()),
-                cargoAutor(publicacion.getAutor()),
-                publicacion.getEtiqueta() == null ? null : publicacion.getEtiqueta().getNombre(),
-                publicacion.getFechaCreacion(), positivos, negativos, respuestas);
-    }
-
-    private RmForoView.Respuesta crearRespuesta(RespuestaForo respuesta) {
-        long positivos = votoRespuestaRepository
-                .countByRespuestaAndTipo(respuesta, TipoVoto.POSITIVO);
-        long negativos = votoRespuestaRepository
-                .countByRespuestaAndTipo(respuesta, TipoVoto.NEGATIVO);
-        return new RmForoView.Respuesta(
-                respuesta.getId(), respuesta.getAutor().getId(), respuesta.getContenido(),
-                nombreCompleto(respuesta.getAutor()), iniciales(respuesta.getAutor()),
-                cargoAutor(respuesta.getAutor()), respuesta.isEsSolucion(),
-                respuesta.getFechaCreacion(), positivos, negativos);
-    }
-
     private String opcionValida(String valor, List<String> opciones) {
         if (valor == null) return null;
         return opciones.stream()
@@ -245,15 +204,6 @@ public class RmForoConsultaService {
                 .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
     }
 
-    private Comparator<RmForoView.Publicacion> comparadorPublicaciones(String orden) {
-        if ("votos".equals(orden)) {
-            return Comparator.comparingLong(RmForoView.Publicacion::getPuntaje).reversed()
-                    .thenComparing(RmForoView.Publicacion::getFechaCreacion,
-                            Comparator.reverseOrder());
-        }
-        return Comparator.comparing(RmForoView.Publicacion::getFechaCreacion).reversed();
-    }
-
     private String claseEstado(EstadoProyecto estado) {
         return switch (estado) {
             case ACTIVO -> "bg-green-lt";
@@ -273,29 +223,11 @@ public class RmForoConsultaService {
         };
     }
 
-    private String cargoAutor(Usuario usuario) {
-        if (usuario.getCargo() != null) return usuario.getCargo().getNombre();
-        return switch (usuario.getRol().getNombre()) {
-            case "PROJECT_MANAGER" -> "Project Manager";
-            case "RESOURCE_MANAGER" -> "Resource Manager";
-            case "ADMINISTRADOR" -> "Administrador";
-            default -> "Colaborador";
-        };
-    }
-
     private String nombreCompleto(Usuario usuario) {
         String nombre = valor(usuario.getNombre());
         String apellido = valor(usuario.getApellido());
         String completo = (nombre + " " + apellido).trim();
         return completo.isEmpty() ? usuario.getCorreo() : completo;
-    }
-
-    private String iniciales(Usuario usuario) {
-        String nombre = valor(usuario.getNombre()).trim();
-        String apellido = valor(usuario.getApellido()).trim();
-        String iniciales = (nombre.isEmpty() ? "" : nombre.substring(0, 1))
-                + (apellido.isEmpty() ? "" : apellido.substring(0, 1));
-        return iniciales.isEmpty() ? "US" : iniciales.toUpperCase();
     }
 
     private String valor(String texto) {

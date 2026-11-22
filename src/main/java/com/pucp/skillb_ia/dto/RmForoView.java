@@ -3,7 +3,7 @@ package com.pucp.skillb_ia.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/** Datos preparados para las vistas de consulta de foros del Resource Manager. */
+/** Datos preparados para las vistas de consulta de foros del Resource Manager (publicaciones con la vista común ForoPublicacionView, TASK-046). */
 public class RmForoView {
     private final Long id;
     private final String nombre;
@@ -21,7 +21,7 @@ public class RmForoView {
     private final int colaboradoresRequeridos;
     private final int participantes;
     private final LocalDateTime ultimaActividad;
-    private final List<Publicacion> publicaciones;
+    private final List<ForoPublicacionView> publicaciones;
     private final List<String> etiquetas;
 
     public RmForoView(Long id, String nombre, String tipo, boolean publico,
@@ -30,7 +30,7 @@ public class RmForoView {
                       String proyectoPrioridad, String proyectoPrioridadClase,
                       String pmNombre, int integrantesActivos, int colaboradoresRequeridos,
                       int participantes, LocalDateTime ultimaActividad,
-                      List<Publicacion> publicaciones, List<String> etiquetas) {
+                      List<ForoPublicacionView> publicaciones, List<String> etiquetas) {
         this.id = id;
         this.nombre = nombre;
         this.tipo = tipo;
@@ -67,7 +67,7 @@ public class RmForoView {
     public int getColaboradoresRequeridos() { return colaboradoresRequeridos; }
     public int getParticipantes() { return participantes; }
     public LocalDateTime getUltimaActividad() { return ultimaActividad; }
-    public List<Publicacion> getPublicaciones() { return publicaciones; }
+    public List<ForoPublicacionView> getPublicaciones() { return publicaciones; }
     public List<String> getEtiquetas() { return etiquetas; }
     public int getTotalPublicaciones() { return publicaciones.size(); }
     public int getTotalRespuestas() {
@@ -82,92 +82,5 @@ public class RmForoView {
     public String getTextoBusqueda() {
         return nombre + " " + proyectoNombre + " " + pmNombre + " " + getTemaReciente()
                 + " " + String.join(" ", etiquetas);
-    }
-
-    public static class Publicacion {
-        private final Long id;
-        private final Long autorId;
-        private final String titulo;
-        private final String contenido;
-        private final String autorNombre;
-        private final String autorIniciales;
-        private final String autorCargo;
-        private final String etiqueta;
-        private final LocalDateTime fechaCreacion;
-        private final long positivos;
-        private final long negativos;
-        private final List<Respuesta> respuestas;
-
-        public Publicacion(Long id, Long autorId, String titulo, String contenido, String autorNombre,
-                           String autorIniciales, String autorCargo, String etiqueta,
-                           LocalDateTime fechaCreacion, long positivos, long negativos,
-                           List<Respuesta> respuestas) {
-            this.id = id;
-            this.autorId = autorId;
-            this.titulo = titulo;
-            this.contenido = contenido;
-            this.autorNombre = autorNombre;
-            this.autorIniciales = autorIniciales;
-            this.autorCargo = autorCargo;
-            this.etiqueta = etiqueta;
-            this.fechaCreacion = fechaCreacion;
-            this.positivos = positivos;
-            this.negativos = negativos;
-            this.respuestas = List.copyOf(respuestas);
-        }
-
-        public Long getId() { return id; }
-        public Long getAutorId() { return autorId; }
-        public String getTitulo() { return titulo; }
-        public String getContenido() { return contenido; }
-        public String getAutorNombre() { return autorNombre; }
-        public String getAutorIniciales() { return autorIniciales; }
-        public String getAutorCargo() { return autorCargo; }
-        public String getEtiqueta() { return etiqueta; }
-        public LocalDateTime getFechaCreacion() { return fechaCreacion; }
-        public long getPositivos() { return positivos; }
-        public long getNegativos() { return negativos; }
-        public long getPuntaje() { return positivos - negativos; }
-        public List<Respuesta> getRespuestas() { return respuestas; }
-    }
-
-    public static class Respuesta {
-        private final Long id;
-        private final Long autorId;
-        private final String contenido;
-        private final String autorNombre;
-        private final String autorIniciales;
-        private final String autorCargo;
-        private final boolean solucion;
-        private final LocalDateTime fechaCreacion;
-        private final long positivos;
-        private final long negativos;
-
-        public Respuesta(Long id, Long autorId, String contenido, String autorNombre,
-                         String autorIniciales, String autorCargo, boolean solucion,
-                         LocalDateTime fechaCreacion, long positivos, long negativos) {
-            this.id = id;
-            this.autorId = autorId;
-            this.contenido = contenido;
-            this.autorNombre = autorNombre;
-            this.autorIniciales = autorIniciales;
-            this.autorCargo = autorCargo;
-            this.solucion = solucion;
-            this.fechaCreacion = fechaCreacion;
-            this.positivos = positivos;
-            this.negativos = negativos;
-        }
-
-        public Long getId() { return id; }
-        public Long getAutorId() { return autorId; }
-        public String getContenido() { return contenido; }
-        public String getAutorNombre() { return autorNombre; }
-        public String getAutorIniciales() { return autorIniciales; }
-        public String getAutorCargo() { return autorCargo; }
-        public boolean isSolucion() { return solucion; }
-        public LocalDateTime getFechaCreacion() { return fechaCreacion; }
-        public long getPositivos() { return positivos; }
-        public long getNegativos() { return negativos; }
-        public long getPuntaje() { return positivos - negativos; }
     }
 }

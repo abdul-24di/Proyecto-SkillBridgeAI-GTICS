@@ -1,7 +1,8 @@
 package com.pucp.skillb_ia.service.col;
 
-import com.pucp.skillb_ia.dto.ColPublicacionForoView;
-import com.pucp.skillb_ia.dto.ColRespuestaForoView;
+import com.pucp.skillb_ia.dto.ForoPublicacionView;
+import com.pucp.skillb_ia.service.ForoDetalleService;
+import com.pucp.skillb_ia.service.ForoDetalleService.PermisosForo;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
@@ -51,6 +52,7 @@ public class ColaboradorForoService {
 
     private final NotificacionService notificacionService;
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
+    private final ForoDetalleService foroDetalleService;
 
     public ColaboradorForoService(ForoRepository foroRepository,
                                   PublicacionForoRepository publicacionForoRepository,
@@ -61,7 +63,9 @@ public class ColaboradorForoService {
                                   VotoRespuestaRepository votoRespuestaRepository,
                                   AuditoriaService auditoriaService,
                                   NotificacionService notificacionService,
-                                  ArchivoAlmacenamientoService archivoAlmacenamientoService) {
+                                  ArchivoAlmacenamientoService archivoAlmacenamientoService,
+                                  ForoDetalleService foroDetalleService) {
+        this.foroDetalleService = foroDetalleService;
         this.foroRepository = foroRepository;
         this.publicacionForoRepository = publicacionForoRepository;
         this.respuestaForoRepository = respuestaForoRepository;
@@ -198,27 +202,13 @@ public class ColaboradorForoService {
         return publicacionForoRepository.findByForoConDetalle(foro);
     }
 
-    //Para la vista de detalle. Cada publicación ya viene con su lista de respuestas y sus likes
-    public List<ColPublicacionForoView> listarPublicacionesConRespuestas(Usuario colaborador, Long foroId) {
-        List<PublicacionForo> publicaciones = listarPublicaciones(colaborador, foroId);
-        List<ColPublicacionForoView> resultado = new ArrayList<>();
-
-        for (PublicacionForo publicacion : publicaciones) {
-            List<RespuestaForo> respuestas = respuestaForoRepository.findByPublicacionConAutor(publicacion);
-            List<ColRespuestaForoView> respuestasVista = new ArrayList<>();
-
-            for (RespuestaForo respuesta : respuestas) {
-                long totalLikesResp = votoRespuestaRepository.countByRespuestaAndTipo(respuesta, TipoVoto.POSITIVO);
-                boolean meGustaResp = votoRespuestaRepository.findByUsuarioAndRespuesta(colaborador, respuesta).isPresent();
-                respuestasVista.add(new ColRespuestaForoView(respuesta, totalLikesResp, meGustaResp));
-            }
-
-            long totalLikesPub = votoPublicacionRepository.countByPublicacionAndTipo(publicacion, TipoVoto.POSITIVO);
-            boolean meGustaPub = votoPublicacionRepository.findByUsuarioAndPublicacion(colaborador, publicacion).isPresent();
-
-            resultado.add(new ColPublicacionForoView(publicacion, respuestasVista, totalLikesPub, meGustaPub));
-        }
-        return resultado;
+    //Para la vista de detalle (vista común de los 4 roles, TASK-046). Quien puede leer el foro da
+    //"me gusta"; responder y marcar la solución de sus publicaciones exige poder participar.
+    @Transactional(readOnly = true)
+    public List<ForoPublicacionView> listarPublicacionesConRespuestas(Usuario colaborador, Long foroId, String orden) {
+        Foro foro = validarAccesoLectura(colaborador, foroId);
+        PermisosForo permisos = new PermisosForo(true, puedeParticipar(colaborador, foro), false, false);
+        return foroDetalleService.listar(foro, colaborador, permisos, orden);
     }
 
     // ============================================================

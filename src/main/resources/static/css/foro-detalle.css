@@ -1,0 +1,82 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   DETALLE DE FORO - COMÚN A RM, PM, COLABORADOR Y ADMIN
+   (fragments/foro-publicacion.html, TASK-046)
+   ========================================================= */
+
+.foro-post {
+  border-radius: .75rem;
+}
+
+.foro-autor {
+  display: flex;
+  align-items: flex-start;
+  gap: .75rem;
+}
+
+.foro-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  font-size: .76rem;
+}
+
+.foro-post-titulo {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1f2a37;
+}
+
+/* El contenido es HTML del editor ya saneado en el servidor. */
+.foro-contenido {
+  color: #404b5a;
+  font-size: .92rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.foro-contenido-respuesta {
+  color: #4b5665;
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
+.foro-contenido p:last-child,
+.foro-contenido ul:last-child,
+.foro-contenido ol:last-child {
+  margin-bottom: 0;
+}
+
+.foro-contenido img {
+  max-width: 100%;
+  height: auto;
+  border-radius: .5rem;
+}
+
+.foro-contenido pre {
+  white-space: pre-wrap;
+}
+
+.foro-acciones {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.foro-like-texto {
+  color: #7b8794;
+  font-size: .82rem;
+}
+
+.foro-respuesta {
+  padding: .95rem 1rem;
+}
+
+.foro-respuesta + .foro-respuesta {
+  border-top: 1px solid #edf0f4;
+}
+
+.foro-respuesta-solucion {
+  background: #f2fbf5;
+}

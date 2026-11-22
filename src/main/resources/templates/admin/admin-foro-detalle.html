@@ -7,6 +7,7 @@
   <title th:text="'SkillBridge AI — ' + ${foro.nombre}">Foro</title>
   <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
   <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/foro-detalle.css" th:href="@{/css/foro-detalle.css}">
   <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
 
 <style>
@@ -67,90 +68,29 @@
       <a class="btn-close" data-bs-dismiss="alert"></a>
     </div>
 
-    <!-- Publicaciones -->
+    <!-- Publicaciones (fragmento común a los 4 roles, TASK-046) -->
     <div th:if="${#lists.isEmpty(publicaciones)}" class="card">
       <div class="card-body text-center py-5 text-secondary">
         Aún no hay publicaciones en este foro. ¡Sé el primero en publicar!
       </div>
     </div>
 
-    <div th:each="pub : ${publicaciones}" class="card mb-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="d-flex gap-3 flex-grow-1">
-            <span class="avatar avatar-sm" th:text="${pub.publicacion.autor.nombre.substring(0,1) + pub.publicacion.autor.apellido.substring(0,1)}">AA</span>
-            <div class="flex-grow-1">
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <strong th:text="${pub.publicacion.autor.nombre + ' ' + pub.publicacion.autor.apellido}">Autor</strong>
-                <span class="badge bg-purple-lt text-purple" th:text="${pub.publicacion.autor.rol.nombre}">Rol</span>
-                <span class="text-secondary small" th:text="${#temporals.format(pub.publicacion.fechaCreacion, 'dd MMM yyyy HH:mm')}">Fecha</span>
-              </div>
-              <h4 class="mb-2" th:text="${pub.publicacion.titulo}">Título</h4>
-              <div th:utext="${pub.publicacion.contenido}"></div>
-              
-              <div class="mt-2 mb-3">
-                <form method="POST" th:action="@{/admin/foros/publicacion/{id}/like(id=${pub.publicacion.id})}" class="d-inline">
-                  <input type="hidden" name="foroId" th:value="${foro.id}" />
-                  <button type="submit" class="btn btn-sm mt-1" th:classappend="${pub.meGusta} ? 'btn-red text-white' : 'btn-outline-secondary'">
-                      ❤️ <span th:text="${pub.totalLikes}"></span>
-                  </button>
-                </form>
-                <button type="button" class="btn btn-sm btn-outline-primary ms-2 mt-1" data-bs-toggle="modal" th:data-bs-target="'#replyModal' + ${pub.publicacion.id}">Responder</button>
-              </div>
-
-              <!-- Respuestas -->
-              <div class="mt-4" th:if="${pub.totalRespuestas > 0}">
-                <h5 class="mb-2 border-bottom pb-1 text-secondary">Comentarios</h5>
-                <div th:each="resp : ${pub.respuestas}" class="mb-2 p-2 rounded d-flex gap-2" th:classappend="${resp.esSolucion} ? 'bg-green-lt' : 'bg-light'">
-                  <span class="avatar avatar-sm bg-secondary-lt" th:text="${resp.autorIniciales}">US</span>
-                  <div>
-                    <div class="small fw-semibold d-flex align-items-center gap-2">
-                      <span th:text="${resp.autorNombre}">Autor</span>
-                      <span th:if="${resp.esSolucion}" class="badge bg-green-lt">✔️ Solución</span>
-                      <span class="text-secondary ms-2" th:text="${#temporals.format(resp.respuesta.fechaCreacion, 'dd MMM HH:mm')}"></span>
-                    </div>
-                    <div class="small mt-1" th:utext="${resp.respuesta.contenido}"></div>
-                    
-                    <div class="mt-2">
-                      <form method="POST" th:action="@{/admin/foros/respuesta/{id}/like(id=${resp.respuesta.id})}" class="d-inline">
-                          <input type="hidden" name="foroId" th:value="${foro.id}" />
-                          <button type="submit" class="btn btn-sm mt-1" th:classappend="${resp.meGusta} ? 'btn-red text-white' : 'btn-outline-secondary'">
-                              ❤️ <span th:text="${resp.totalLikes}">0</span>
-                          </button>
-                      </form>
-                      <form method="POST" th:action="@{/admin/foros/respuesta/{id}/eliminar(id=${resp.respuesta.id})}" class="d-inline ms-1" onsubmit="return confirm('¿Seguro que deseas eliminar esta respuesta?');">
-                          <input type="hidden" name="foroId" th:value="${foro.id}" />
-                          <button type="submit" class="btn btn-sm btn-outline-danger mt-1">Eliminar</button>
-                      </form>
-                      <form th:if="${admin.id == pub.publicacion.autor.id and !pub.resuelta and !resp.esSolucion}" method="POST" th:action="@{/admin/foros/respuesta/{id}/marcar-solucion(id=${resp.respuesta.id})}" class="d-inline ms-1">
-                          <input type="hidden" name="foroId" th:value="${foro.id}" />
-                          <button type="submit" class="btn btn-sm btn-outline-success mt-1">Marcar Solución</button>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="ms-3">
-            <button type="button" class="btn btn-sm btn-outline-danger"
-                    data-bs-toggle="modal"
-                    th:data-bs-target="'#modalEliminarPub-' + ${pub.publicacion.id}">Eliminar</button>
-          </div>
-        </div>
-      </div>
+    <div class="d-flex justify-content-end mb-3" th:unless="${#lists.isEmpty(publicaciones)}">
+      <form th:replace="~{fragments/foro-publicacion :: orden(|/admin/foros/${foro.id}/publicaciones|, ${ordenActual}, null, null)}"></form>
     </div>
 
-    <!-- Modales de eliminación de publicaciones -->
-    <div th:each="pub : ${publicaciones}">
-      <div class="modal modal-blur fade" th:id="'modalEliminarPub-' + ${pub.publicacion.id}" tabindex="-1">
+    <th:block th:each="pub : ${publicaciones}">
+      <article th:replace="~{fragments/foro-publicacion :: publicacion(${pub}, '/admin/foros', ${foro.id}, null)}"></article>
+
+      <!-- Modal eliminar publicación -->
+      <div th:if="${pub.puedeEliminar}" class="modal modal-blur fade" th:id="'deletePostModal-' + ${pub.id}" tabindex="-1">
         <div class="modal-dialog modal-sm modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-body text-center py-4">
               <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01"/><path d="M5 19h14a2 2 0 0 0 1.84-2.75l-7.1-12.25a2 2 0 0 0-3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75"/></svg>
               <h3>¿Eliminar publicación?</h3>
               <div class="text-secondary mb-4">Esta acción no se puede deshacer.</div>
-              <form th:action="@{/admin/foros/publicacion/{id}/eliminar(id=${pub.publicacion.id})}" method="POST">
+              <form th:action="@{/admin/foros/publicacion/{id}/eliminar(id=${pub.id})}" method="POST">
                 <input type="hidden" name="foroId" th:value="${foro.id}">
                 <div class="d-flex gap-2 w-100">
                   <button type="button" class="btn w-50" data-bs-dismiss="modal">Cancelar</button>
@@ -160,31 +100,31 @@
             </div>
           </div>
         </div>
-        
-        <!-- Modal Responder -->
-        <div class="modal modal-blur fade pm-modal" th:id="'replyModal' + ${pub.publicacion.id}" tabindex="-1">
-            <div class="modal-dialog modal-lg modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Responder a: <span th:text="${pub.publicacion.titulo}"></span></h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                    </div>
-                    <form method="POST" th:action="@{/admin/foros/responder}">
-                        <input type="hidden" name="foroId" th:value="${foro.id}" />
-                        <input type="hidden" name="publicacionId" th:value="${pub.publicacion.id}" />
-                        <div class="modal-body">
-                            <textarea name="contenido" class="form-control" rows="5" placeholder="Escribe tu respuesta..." required></textarea>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Publicar Respuesta</button>
-                        </div>
-                    </form>
-                </div>
+      </div>
+
+      <!-- Modal responder -->
+      <div th:if="${pub.puedeResponder}" class="modal modal-blur fade" th:id="'replyModal' + ${pub.id}" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Responder a: <span th:text="${pub.titulo}"></span></h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+            <form method="POST" th:action="@{/admin/foros/responder}">
+              <input type="hidden" name="foroId" th:value="${foro.id}" />
+              <input type="hidden" name="publicacionId" th:value="${pub.id}" />
+              <div class="modal-body">
+                <textarea name="contenido" class="form-control" rows="5" placeholder="Escribe tu respuesta..." required></textarea>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Publicar Respuesta</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </th:block>
   </main>
 </div>
 

@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-detalle-proyecto.css" th:href="@{/css/col-css/col-detalle-proyecto.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-foros.css" th:href="@{/css/col-css/col-foros.css}">
+    <link rel="stylesheet" href="../../static/css/foro-detalle.css" th:href="@{/css/foro-detalle.css}">
     <link rel="stylesheet" href="../../static/css/chat.css" th:href="@{/css/chat.css}">
     <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
 
@@ -438,15 +439,15 @@
 
                         <div th:if="${foroDelProyecto != null}" th:each="pub : ${publicacionesForoProyecto}" class="mb-3 pb-3 border-bottom">
                             <div class="d-flex justify-content-between align-items-start">
-                                <div class="fw-semibold" th:text="${pub.publicacion.titulo}">Título</div>
-                                <span th:if="${pub.publicacion.etiqueta != null}" class="badge bg-blue-lt" th:text="${pub.publicacion.etiqueta.nombre}">Etiqueta</span>
+                                <div class="fw-semibold" th:text="${pub.titulo}">Título</div>
+                                <span th:if="${pub.etiqueta != null}" class="badge bg-blue-lt" th:text="${pub.etiqueta}">Etiqueta</span>
                             </div>
                             <div class="text-secondary small mb-1">
-                                <span th:text="${pub.publicacion.autor.nombre} + ' ' + ${pub.publicacion.autor.apellido}">Autor</span>
-                                · <span th:text="${#temporals.format(pub.publicacion.fechaCreacion, 'dd/MM/yyyy HH:mm')}">Fecha</span>
+                                <span th:text="${pub.autorNombre}">Autor</span>
+                                · <span th:text="${#temporals.format(pub.fechaCreacion, 'dd/MM/yyyy HH:mm')}">Fecha</span>
                                 · <span th:text="${pub.totalRespuestas} + ' respuesta(s)'">0 respuestas</span>
                             </div>
-                            <div th:utext="${pub.publicacion.contenido}">Contenido</div>
+                            <div class="foro-contenido" th:utext="${pub.contenido}">Contenido</div>
                         </div>
                     </div>
                 </div>

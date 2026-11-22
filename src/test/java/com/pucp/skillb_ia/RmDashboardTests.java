@@ -156,6 +156,49 @@ class RmDashboardTests {
     }
 
     @Test
+    void lasOchoTarjetasIndicadorasUsanLaMismaGrillaEIncluyenFormacionAcademica() throws Exception {
+        educacionRepository.deleteAll();
+        Rol rol = rolRepository.findByNombre("COLABORADOR").orElseGet(() -> {
+            Rol nuevo = new Rol();
+            nuevo.setNombre("COLABORADOR");
+            return rolRepository.save(nuevo);
+        });
+        Usuario colaborador = usuarioRepository.findByCorreo("col.dashboard.edu@skillbridge.test")
+                .orElseGet(() -> {
+                    Usuario nuevo = new Usuario();
+                    nuevo.setCorreo("col.dashboard.edu@skillbridge.test");
+                    nuevo.setNombre("Dana");
+                    nuevo.setApellido("Dashboard");
+                    nuevo.setRol(rol);
+                    return usuarioRepository.save(nuevo);
+                });
+        guardarEducacion(colaborador, EstadoCertificado.PENDIENTE, true);
+        guardarEducacion(colaborador, EstadoCertificado.PENDIENTE, true);
+        guardarEducacion(colaborador, EstadoCertificado.PENDIENTE, true);
+
+        String html = mockMvc.perform(get("/rm/dashboard"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        Matcher columnas = Pattern.compile("<div class=\"([^\"]*)\">\\s*<div class=\"card summary-card h-100\">")
+                .matcher(html);
+        int total = 0;
+        while (columnas.find()) {
+            total++;
+            assertEquals("col-sm-6 col-xl-3", columnas.group(1), "Todas las tarjetas tienen el mismo ancho");
+        }
+        assertEquals(8, total);
+        assertEquals(1, html.split("summary-cards\"", -1).length - 1, "Una sola grilla de indicadores");
+
+        Matcher formacion = Pattern.compile("Formación académica pendiente\\s*</div>\\s*"
+                + "<div class=\"summary-number\">\\s*<span>(\\d+)</span>[\\s\\S]*?"
+                + "<a class=\"stretched-link\" href=\"([^\"]*)\"").matcher(html);
+        assertTrue(formacion.find(), "No se encontró la tarjeta indicadora de formación académica");
+        assertEquals("3", formacion.group(1));
+        assertEquals("/rm/colaboradores/educacion", formacion.group(2));
+    }
+
+    @Test
     void dashboardCuentaSoloSolicitudesDeCursoPendientesYEnlazaALaBandeja() throws Exception {
         notificacionRepository.deleteAll();
         colaboradorCursoRepository.deleteAll();
@@ -659,7 +702,10 @@ class RmDashboardTests {
         Matcher tarjeta = Pattern.compile("\\.summary-card \\{([^}]*)}").matcher(css);
         assertTrue(tarjeta.find());
         assertFalse(tarjeta.group(1).contains("transition"), "La transición también es común");
-        assertTrue(tarjeta.group(1).contains("min-height: 150px;"), "Conserva su tamaño propio");
+        assertFalse(tarjeta.group(1).contains("min-height"), "La altura es la del contenido");
+        Matcher cuerpo = Pattern.compile("\\.summary-card \\.card-body \\{([^}]*)}").matcher(css);
+        assertTrue(cuerpo.find());
+        assertFalse(cuerpo.group(1).contains("min-height"), "El cuerpo tampoco fuerza una altura mínima");
     }
 
     @Test

@@ -196,6 +196,22 @@ class ObservacionesGrupoTests {
                         .string(org.hamcrest.Matchers.containsString("no se pudo guardar: CV")));
     }
 
+    @Test
+    void unaInvitacionSinActivarNoCuentaComoUsuarioActivoDeSuRol() {
+        // Antes, un RM invitado que aún no activaba su cuenta podía quedar como responsable de un proyecto
+        // (la auditoría mostraba "asignado a null null").
+        Usuario invitado = new Usuario();
+        invitado.setCorreo("rm.invitado." + UUID.randomUUID() + "@test.local");
+        invitado.setRol(obtenerRol("RESOURCE_MANAGER"));
+        invitado.setActivo(true);
+        invitado = usuarioRepository.save(invitado);
+        Usuario activado = usuario("rm.activado.obs@test.local", "RESOURCE_MANAGER");
+
+        var ids = usuarioRepository.findActivosByRolNombre("RESOURCE_MANAGER").stream().map(Usuario::getId).toList();
+
+        assertThat(ids).contains(activado.getId()).doesNotContain(invitado.getId());
+    }
+
     // ---------- datos ----------
 
     private CategoriaHabilidad categoria() {

@@ -1,5 +1,15 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 22 de Noviembre 2026 — Arreglos vistos al armar el manual del Administrador
+
+- **RM sin activar como responsable:** la búsqueda de usuarios activos por rol incluía invitaciones que aún no se activaban, así que un proyecto podía quedar a cargo de un RM sin cuenta y la auditoría mostraba "asignado a null null". Ahora solo cuentan las cuentas activadas (`UsuarioRepository.findActivosByRolNombre`). También dejan de recibir avisos dirigidos a "todos los RM" o "todos los Admin".
+- **Auditoría:** 24 tipos de acción se mostraban con su código ("Asignar rm proyecto", "Subir cv", "Agregar"); ahora tienen su nombre en español.
+- **Textos:** el subtítulo de Reportes del Admin menciona Excel y PDF; la nota del DNI en la activación explica que un DNI sin verificar se puede corregir desde el perfil.
+- **Manual del Administrador:** 34 capturas en `docs/informe/capturas/manual-admin/`.
+- **Tests:** 876 en verde.
+
+---
+
 ## Sesión 21 de Noviembre 2026 (2) — Revisión de los cambios de asistentes, foros y DNI
 
 - **Prueba en la app** de los cambios de Abraham (candidatos PM/RM, reportes del PM, foros en los 4 roles, límite de mensajes y DNI con un servicio simulado): todo funciona.

@@ -24,8 +24,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             join fetch u.rol r
             where r.nombre = :rolNombre
               and u.activo = true
+              and u.nombre is not null
             order by u.nombre asc, u.apellido asc
             """)
+    // Solo cuentas ya activadas: una invitación pendiente todavía no tiene nombre (se registra al activar la cuenta)
+    // y no debe recibir proyectos ni avisos. Antes un RM invitado que aún no activaba su cuenta podía quedar como
+    // responsable de un proyecto y la auditoría mostraba "asignado a null null".
     List<Usuario> findActivosByRolNombre(@Param("rolNombre") String rolNombre);
 
     // Cuántos usuarios activos tienen un rol (p. ej. para no dejar el sistema sin Administradores).

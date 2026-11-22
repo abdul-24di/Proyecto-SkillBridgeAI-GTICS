@@ -107,7 +107,7 @@
                     <label class="form-label" for="activationDni">DNI</label>
                     <input id="activationDni" th:field="*{dni}" th:errorclass="is-invalid" type="text" inputmode="numeric" class="form-control" placeholder="Ejemplo: 45678912" autocomplete="off" maxlength="8" data-requerido="Ingresa tu DNI." data-patron="^[0-9]{8}$" data-patron-mensaje="El DNI debe tener exactamente 8 dígitos, sin espacios ni letras.">
                     <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('dni')}" th:text="${#fields.errors('dni')[0]}"></div>
-                    <div class="form-hint small text-secondary mt-1">Después de activar tu cuenta no podrás cambiarlo.</div>
+                    <div class="form-hint small text-secondary mt-1">Una vez verificado no podrás cambiarlo. Si queda sin verificar, podrás corregirlo desde tu perfil.</div>
                 </div>
 
                 <div class="mb-3">

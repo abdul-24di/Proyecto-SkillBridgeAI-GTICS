@@ -153,6 +153,32 @@ public class AdminAuditoriaService {
         ACCION_A_ETIQUETA.put("CREAR_RESPUESTA_FORO", "Respondió en foro");
         ACCION_A_ETIQUETA.put("EDITAR_RESPUESTA_FORO", "Editó respuesta en foro");
         ACCION_A_ETIQUETA.put("ELIMINAR_RESPUESTA_FORO", "Eliminó respuesta en foro");
+        ACCION_A_ETIQUETA.put("MARCAR_SOLUCION_FORO", "Marcó solución en foro");
+        ACCION_A_ETIQUETA.put("DESMARCAR_SOLUCION_FORO", "Quitó solución en foro");
+
+        // Acciones que antes se mostraban con su código ("Asignar rm proyecto", "Subir cv", "Agregar"...)
+        ACCION_A_ETIQUETA.put("LOGIN_FALLIDO", "Inicio de sesión fallido");
+        ACCION_A_ETIQUETA.put("AGREGAR", "Agregó");
+        ACCION_A_ETIQUETA.put("EDITAR", "Editó");
+        ACCION_A_ETIQUETA.put("ELIMINAR", "Eliminó");
+        ACCION_A_ETIQUETA.put("CREAR_CONFIGURACION", "Creó parámetro");
+        ACCION_A_ETIQUETA.put("SUBIR_CV", "Subió su CV");
+        ACCION_A_ETIQUETA.put("REVISAR_CV", "Aprobó pre-registro");
+        ACCION_A_ETIQUETA.put("RECHAZAR_CV", "Rechazó pre-registro");
+        ACCION_A_ETIQUETA.put("ASIGNAR_RM_PROYECTO", "Asignó RM a proyecto");
+        ACCION_A_ETIQUETA.put("TOMAR_PROYECTO", "Tomó proyecto");
+        ACCION_A_ETIQUETA.put("LIBERAR_PROYECTO", "Liberó proyecto");
+        ACCION_A_ETIQUETA.put("ACTUALIZAR_FECHAS_PROYECTO", "Actualizó fechas del proyecto");
+        ACCION_A_ETIQUETA.put("APLICAR_STRIKE", "Aplicó strike");
+        ACCION_A_ETIQUETA.put("LIMITE_STRIKES_ALCANZADO", "Alcanzó el límite de strikes");
+        ACCION_A_ETIQUETA.put("APROBACION_EDUCACION", "Aprobó formación académica");
+        ACCION_A_ETIQUETA.put("RECHAZO_EDUCACION", "Rechazó formación académica");
+        ACCION_A_ETIQUETA.put("SUBIR_EVIDENCIA_CURSO", "Subió evidencia de curso");
+        ACCION_A_ETIQUETA.put("APROBAR_EVIDENCIA_CURSO", "Aprobó evidencia de curso");
+        ACCION_A_ETIQUETA.put("RECHAZAR_EVIDENCIA_CURSO", "Rechazó evidencia de curso");
+        ACCION_A_ETIQUETA.put("CURSO_NO_COMPLETADO", "Curso no completado");
+        ACCION_A_ETIQUETA.put("ASISTENTE_ACCION_CONFIRMADA", "Acción desde el asistente IA");
+        ACCION_A_ETIQUETA.put("ASISTENTE_PM_PROPUESTA", "Propuesta desde el asistente IA");
     }
 
     // Dashboard: acciones auditadas en un día; altura es el % respecto del día con más acciones (para la columna).

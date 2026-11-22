@@ -52,6 +52,7 @@ class RmCertificadoTests {
     @Autowired private ColaboradorPerfilService colaboradorPerfilService;
     @Autowired private NotificacionRepository notificacionRepository;
     @Autowired private LogAuditoriaRepository logAuditoriaRepository;
+    @Autowired private EducacionRepository educacionRepository;
 
     private MockMvc mockMvc;
     private Usuario rm;
@@ -961,6 +962,171 @@ class RmCertificadoTests {
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertTrue(html.contains("Rechazada por el RM"));
         assertTrue(html.contains("El certificado esta vencido."));
+    }
+
+    // ===== TASK-053: desde el perfil del colaborador se llega a la revisión de cada pendiente =====
+
+    @Test
+    void perfilEnlazaLaRevisionDeCadaHabilidadYEstudioPendiente() throws Exception {
+        Certificado pendiente = guardarPendiente("/uploads/certificados/perfil-revisar.pdf");
+        Educacion estudioPendiente = guardarEducacion("Maestría T053", EstadoCertificado.PENDIENTE);
+        Educacion estudioAprobado = guardarEducacion("Bachiller T053", EstadoCertificado.APROBADO);
+        try {
+            String html = perfilDelColaborador();
+
+            assertTrue(html.contains("href=\"/rm/colaboradores/certificados/revision?id=" + pendiente.getId()
+                    + "&amp;origen=perfil\">Revisar</a>"), html);
+            assertTrue(html.contains("href=\"/rm/colaboradores/educacion/revision?id=" + estudioPendiente.getId()
+                    + "&amp;origen=perfil\">Revisar</a>"), html);
+            assertFalse(html.contains("/rm/colaboradores/educacion/revision?id=" + estudioAprobado.getId() + "\""));
+            // Accesos generales a las bandejas filtradas por el nombre del colaborador.
+            assertTrue(html.contains("href=\"/rm/colaboradores/certificados?busqueda=Carlos%20Prueba\">"
+                    + "Certificados pendientes</a>"), html);
+            assertTrue(html.contains("href=\"/rm/colaboradores/educacion?busqueda=Carlos%20Prueba\">Pendientes</a>"),
+                    html);
+        } finally {
+            educacionRepository.deleteAll(List.of(estudioPendiente, estudioAprobado));
+        }
+    }
+
+    @Test
+    void perfilSinPendientesNoMuestraRevisarNiAccesosGenerales() throws Exception {
+        guardar("/uploads/certificados/perfil-aprobado.pdf", habilidad, EstadoCertificado.APROBADO);
+
+        String html = perfilDelColaborador();
+
+        assertFalse(html.contains(">Revisar</a>"));
+        assertFalse(html.contains("Certificados pendientes</a>"));
+        assertFalse(html.contains("/rm/colaboradores/educacion?busqueda="));
+    }
+
+    @Test
+    void perfilNoEnlazaUnCertificadoPendienteDeOtroRm() throws Exception {
+        Usuario otroRm = obtenerUsuario("rm.otro.certificados@skillbridge.test", "Otro", "RM",
+                obtenerRol("RESOURCE_MANAGER"));
+        Certificado pendiente = guardarPendiente("/uploads/certificados/perfil-otro-rm.pdf");
+        pendiente.setRmResponsable(otroRm);
+        certificadoRepository.save(pendiente);
+        autenticarRm();
+
+        String revision = "/rm/colaboradores/certificados/revision?id=" + pendiente.getId();
+        assertFalse(perfilDelColaborador().contains(revision));
+
+        pendiente.setRmResponsable(rm);
+        certificadoRepository.save(pendiente);
+        assertTrue(perfilDelColaborador().contains(revision));
+    }
+
+    @Test
+    void perfilUneNivelGeneralEInformacionYApilaExperienciaYEducacion() throws Exception {
+        String html = perfilDelColaborador().replaceAll("\\s+", " ");
+
+        assertFalse(html.contains(">Estado actual<"), "La card duplicada \"Estado actual\" ya no existe");
+        int informacion = html.indexOf(">Información general<");
+        int nivel = html.indexOf("<form id=\"nivelExperienciaForm\"");
+        int habilidades = html.indexOf(">Habilidades<");
+        assertTrue(informacion > 0 && informacion < nivel && nivel < habilidades);
+        String formNivel = html.substring(nivel, html.indexOf("</form>", nivel));
+        assertTrue(formNivel.contains("<div class=\"input-group input-group-sm\"><select id=\"nivelExperiencia\""),
+                formNivel);
+        // Habilidades como etiquetas dentro de Información general (sin card propia).
+        assertTrue(html.contains("<div class=\"skill-chips\">"));
+        assertFalse(html.contains("<h3 class=\"card-title mb-1\">Habilidades</h3>"));
+        String cuerpo = html.substring(informacion, html.indexOf("</main>"));
+        assertFalse(cuerpo.contains("col-lg-6"), "Experiencia y Educación ya no comparten fila");
+        assertFalse(cuerpo.contains("h-100"), "Ninguna card estira su alto con espacio vacío");
+    }
+
+    @Test
+    void decidirDesdeElPerfilVuelveAlPerfilDelColaborador() throws Exception {
+        autenticarRm();
+        String perfil = "/rm/colaboradores/perfil?id=" + colaborador.getId();
+
+        Certificado aprobado = guardarPendiente("/uploads/certificados/origen-perfil.pdf");
+        mockMvc.perform(post("/rm/colaboradores/certificados/{id}/aprobar", aprobado.getId())
+                        .param("origen", "perfil"))
+                .andExpect(redirectedUrl(perfil))
+                .andExpect(flash().attribute("mensajeExito", "Certificado aprobado y perfil actualizado."));
+
+        Certificado rechazado = guardarPendiente("/uploads/certificados/origen-perfil-rechazo.pdf");
+        mockMvc.perform(post("/rm/colaboradores/certificados/{id}/rechazar", rechazado.getId())
+                        .param("motivo", " ").param("origen", "perfil"))
+                .andExpect(redirectedUrl("/rm/colaboradores/certificados/revision?id=" + rechazado.getId()
+                        + "&origen=perfil"));
+        mockMvc.perform(post("/rm/colaboradores/certificados/{id}/rechazar", rechazado.getId())
+                        .param("motivo", "Ilegible.").param("origen", "perfil"))
+                .andExpect(redirectedUrl(perfil));
+
+        Educacion estudio = guardarEducacion("Diplomado T053", EstadoCertificado.PENDIENTE);
+        Educacion otroEstudio = guardarEducacion("Curso T053", EstadoCertificado.PENDIENTE);
+        Educacion sinOrigen = guardarEducacion("Taller T053", EstadoCertificado.PENDIENTE);
+        try {
+            mockMvc.perform(post("/rm/colaboradores/educacion/{id}/aprobar", estudio.getId())
+                            .param("origen", "perfil"))
+                    .andExpect(redirectedUrl(perfil))
+                    .andExpect(flash().attribute("mensajeExito", "Formación académica aprobada."));
+            mockMvc.perform(post("/rm/colaboradores/educacion/{id}/rechazar", otroEstudio.getId())
+                            .param("motivo", "Documento incompleto.").param("origen", "perfil"))
+                    .andExpect(redirectedUrl(perfil));
+            // Sin origen se conserva la vuelta a la bandeja.
+            mockMvc.perform(post("/rm/colaboradores/educacion/{id}/aprobar", sinOrigen.getId()))
+                    .andExpect(redirectedUrl("/rm/colaboradores/educacion"));
+        } finally {
+            educacionRepository.deleteAll(List.of(estudio, otroEstudio, sinOrigen));
+        }
+    }
+
+    @Test
+    void revisionAbiertaDesdeElPerfilOfreceVolverAlPerfilYConservaElOrigen() throws Exception {
+        Certificado pendiente = guardarPendiente("/uploads/certificados/volver-perfil.pdf");
+        Educacion estudio = guardarEducacion("Especialización T053", EstadoCertificado.PENDIENTE);
+        String perfil = "href=\"/rm/colaboradores/perfil?id=" + colaborador.getId() + "\">Volver al perfil</a>";
+        String origen = "<input type=\"hidden\" name=\"origen\" value=\"perfil\">";
+        try {
+            String certificado = mockMvc.perform(get("/rm/colaboradores/certificados/revision")
+                            .param("id", pendiente.getId().toString()).param("origen", "perfil"))
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+            assertTrue(certificado.contains(perfil), certificado);
+            assertEquals(2, contar(certificado, origen));
+            // También en el certificado la decisión va al pie de la card del colaborador.
+            assertTrue(certificado.contains("class=\"decision-inline mt-auto\""));
+            assertFalse(certificado.contains("<h3 class=\"card-title mb-1\">Decisión del Resource Manager</h3>"));
+            assertFalse(certificado.contains(">Ver perfil completo</a>"));
+
+            String formacion = mockMvc.perform(get("/rm/colaboradores/educacion/revision")
+                            .param("id", estudio.getId().toString()).param("origen", "perfil"))
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+            assertTrue(formacion.contains(perfil), formacion);
+            assertEquals(2, contar(formacion, origen));
+            // La decisión está al pie de la card del colaborador, no en una card aparte.
+            assertTrue(formacion.contains("class=\"decision-inline mt-auto\""));
+            assertFalse(formacion.contains("<h3 class=\"card-title mb-1\">Decisión del Resource Manager</h3>"));
+
+            String sinOrigen = mockMvc.perform(get("/rm/colaboradores/educacion/revision")
+                            .param("id", estudio.getId().toString()))
+                    .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+            assertTrue(sinOrigen.contains(">Volver a pendientes</a>"));
+            assertFalse(sinOrigen.contains("name=\"origen\""));
+        } finally {
+            educacionRepository.delete(estudio);
+        }
+    }
+
+    private String perfilDelColaborador() throws Exception {
+        return mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaborador.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+    }
+
+    private Educacion guardarEducacion(String titulo, EstadoCertificado estado) {
+        Educacion educacion = new Educacion();
+        educacion.setColaborador(colaborador);
+        educacion.setTitulo(titulo);
+        educacion.setInstitucion("PUCP");
+        educacion.setFechaInicio(java.time.LocalDate.of(2018, 3, 1));
+        educacion.setFechaFin(java.time.LocalDate.of(2023, 12, 15));
+        educacion.setEstado(estado);
+        return educacionRepository.save(educacion);
     }
 
     private Certificado guardarPendiente(String archivo) {

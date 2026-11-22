@@ -58,6 +58,15 @@ public class RmColaboradorDetalle {
     public List<ExperienciaDetalle> getExperiencias() { return experiencias; }
     public List<EducacionDetalle> getEducacion() { return educacion; }
 
+    // Accesos generales a las bandejas de pendientes desde el perfil (TASK-053).
+    public boolean isTieneCertificadosPendientes() {
+        return habilidades.stream().anyMatch(habilidad -> habilidad.getCertificadoPendienteId() != null);
+    }
+
+    public boolean isTieneEducacionPendiente() {
+        return educacion.stream().anyMatch(estudio -> estudio.getRevisionId() != null);
+    }
+
     public String getHorasContratadasTexto() {
         return horasContratadasSemana == null
                 ? "Sin registrar"
@@ -69,18 +78,23 @@ public class RmColaboradorDetalle {
         private final String nivel;
         private final String estadoValidacion;
         private final String estadoCodigo;
+        // Certificado pendiente que el RM actual puede revisar; null si no hay.
+        private final Long certificadoPendienteId;
 
-        public HabilidadDetalle(String nombre, String nivel, String estadoValidacion, String estadoCodigo) {
+        public HabilidadDetalle(String nombre, String nivel, String estadoValidacion, String estadoCodigo,
+                                Long certificadoPendienteId) {
             this.nombre = nombre;
             this.nivel = nivel;
             this.estadoValidacion = estadoValidacion;
             this.estadoCodigo = estadoCodigo;
+            this.certificadoPendienteId = certificadoPendienteId;
         }
 
         public String getNombre() { return nombre; }
         public String getNivel() { return nivel; }
         public String getEstadoValidacion() { return estadoValidacion; }
         public String getEstadoCodigo() { return estadoCodigo; }
+        public Long getCertificadoPendienteId() { return certificadoPendienteId; }
 
         // Insignia distinta por estado: solo las validadas cuentan para asignar.
         public String getEstadoClase() {
@@ -150,9 +164,12 @@ public class RmColaboradorDetalle {
         private final boolean actual;
         private final String estado;
         private final String archivoUrl;
+        // Id de la formación si está pendiente y el RM actual puede revisarla; null en otro caso.
+        private final Long revisionId;
 
         public EducacionDetalle(String institucion, String titulo, LocalDate fechaInicio,
-                                LocalDate fechaFin, boolean actual, String estado, String archivoUrl) {
+                                LocalDate fechaFin, boolean actual, String estado, String archivoUrl,
+                                Long revisionId) {
             this.institucion = institucion;
             this.titulo = titulo;
             this.fechaInicio = fechaInicio;
@@ -160,6 +177,7 @@ public class RmColaboradorDetalle {
             this.actual = actual;
             this.estado = estado;
             this.archivoUrl = archivoUrl;
+            this.revisionId = revisionId;
         }
 
         public String getInstitucion() { return institucion; }
@@ -169,5 +187,6 @@ public class RmColaboradorDetalle {
         public boolean isActual() { return actual; }
         public String getEstado() { return estado; }
         public String getArchivoUrl() { return archivoUrl; }
+        public Long getRevisionId() { return revisionId; }
     }
 }

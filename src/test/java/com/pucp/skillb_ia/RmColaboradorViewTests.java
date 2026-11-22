@@ -799,9 +799,11 @@ class RmColaboradorViewTests {
         int educacion = html.indexOf(">Educación<");
         int evaluaciones = html.indexOf(">Historial de Desempeño (Evaluaciones)<");
         assertTrue(experiencia > 0 && experiencia < educacion && educacion < evaluaciones);
-        // Experiencia y Educación comparten fila en dos columnas; Evaluaciones ocupa todo el ancho debajo.
-        String fila = html.substring(html.lastIndexOf("<div class=\"row row-cards mb-4\">", experiencia), evaluaciones);
-        assertEquals(2, contar(fila, "<div class=\"col-lg-6\"> <div class=\"card section-card h-100\">"));
+        // TASK-053: Experiencia y Educación van apiladas a todo el ancho (sin huecos por alturas distintas).
+        String bloque = html.substring(html.lastIndexOf("<div class=\"card section-card mb-4\">", experiencia),
+                html.lastIndexOf("<div class=\"card section-card mb-4\">", evaluaciones));
+        assertEquals(2, contar(bloque, "<div class=\"card section-card mb-4\">"));
+        assertFalse(bloque.contains("col-lg-6") || bloque.contains("h-100"));
         assertTrue(html.contains("<div class=\"card section-card mb-4\"> <div class=\"card-header section-header\"> "
                 + "<div> <h3 class=\"card-title mb-1\">Historial de Desempeño (Evaluaciones)</h3>"));
 

@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.service.rm;
 import com.pucp.skillb_ia.dto.RmColaboradorDetalle;
 import com.pucp.skillb_ia.dto.RmColaboradorResumen;
 import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.Certificado;
 import com.pucp.skillb_ia.model.ColaboradorHabilidad;
 import com.pucp.skillb_ia.model.Educacion;
 import com.pucp.skillb_ia.model.ExperienciaProfesional;
@@ -26,6 +27,8 @@ import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.function.Predicate;
 
 @Service
@@ -85,6 +88,7 @@ public class RmColaboradorConsultaService {
     private final ExperienciaProfesionalRepository experienciaProfesionalRepository;
     private final EducacionRepository educacionRepository;
     private final RmPresupuestoService presupuestoService;
+    private final RmAlcanceService rmAlcanceService;
 
     public RmColaboradorConsultaService(
             UsuarioRepository usuarioRepository,
@@ -94,7 +98,8 @@ public class RmColaboradorConsultaService {
             ConfiguracionSistemaRepository configuracionSistemaRepository,
             ExperienciaProfesionalRepository experienciaProfesionalRepository,
             EducacionRepository educacionRepository,
-            RmPresupuestoService presupuestoService) {
+            RmPresupuestoService presupuestoService,
+            RmAlcanceService rmAlcanceService) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorHabilidadRepository = colaboradorHabilidadRepository;
         this.asignacionRepository = asignacionRepository;
@@ -103,6 +108,7 @@ public class RmColaboradorConsultaService {
         this.experienciaProfesionalRepository = experienciaProfesionalRepository;
         this.educacionRepository = educacionRepository;
         this.presupuestoService = presupuestoService;
+        this.rmAlcanceService = rmAlcanceService;
     }
 
     // Candidato + costo estimado para un proyecto concreto (sección 11 de la
@@ -225,6 +231,16 @@ public class RmColaboradorConsultaService {
         int maxAsignaciones = obtenerMaxAsignaciones();
         RmColaboradorResumen resumen = crearResumen(colaborador, maxAsignaciones);
 
+        // Certificados pendientes que este RM puede revisar, por habilidad (TASK-053: botón "Revisar").
+        Long rmId = rmAlcanceService.idRmActual();
+        Map<Long, Long> certificadoPendientePorHabilidad =
+                certificadoRepository.findByColaboradorIdConDetalle(colaboradorId)
+                        .stream()
+                        .filter(certificado -> certificado.getEstado() == EstadoCertificado.PENDIENTE)
+                        .filter(certificado -> rmAlcanceService.puedeVerRevision(certificado.getRmResponsable(), rmId))
+                        .collect(Collectors.toMap(certificado -> certificado.getHabilidad().getId(),
+                                Certificado::getId, (primero, segundo) -> primero));
+
         // Perfil completo: todas las habilidades activas, con su estado de validación.
         List<RmColaboradorDetalle.HabilidadDetalle> habilidades = obtenerHabilidadesPerfil(colaborador)
                 .stream()
@@ -232,7 +248,8 @@ public class RmColaboradorConsultaService {
                         item.getHabilidad().getNombre(),
                         textoEnum(item.getNivelDominio().name()),
                         textoEnum(item.getEstadoValidacion().name()),
-                        item.getEstadoValidacion().name()))
+                        item.getEstadoValidacion().name(),
+                        certificadoPendientePorHabilidad.get(item.getHabilidad().getId())))
                 .toList();
 
         List<RmColaboradorDetalle.AsignacionDetalle> asignaciones = obtenerAsignacionesActivas(colaborador)
@@ -255,7 +272,7 @@ public class RmColaboradorConsultaService {
         List<RmColaboradorDetalle.EducacionDetalle> educacion =
                 educacionRepository.findByColaboradorAndActivoTrueOrderByFechaInicioDesc(colaborador)
                         .stream()
-                        .map(this::crearEducacion)
+                        .map(estudio -> crearEducacion(estudio, rmId))
                         .toList();
 
         return new RmColaboradorDetalle(
@@ -408,7 +425,11 @@ public class RmColaboradorConsultaService {
                 experiencia.isActual());
     }
 
-    private RmColaboradorDetalle.EducacionDetalle crearEducacion(Educacion educacion) {
+    private RmColaboradorDetalle.EducacionDetalle crearEducacion(Educacion educacion, Long rmId) {
+        // Solo una formación pendiente y visible para este RM lleva a la revisión (TASK-053).
+        Long revisionId = educacion.getEstado() == EstadoCertificado.PENDIENTE
+                && rmAlcanceService.puedeVerRevision(educacion.getRmResponsable(), rmId)
+                ? educacion.getId() : null;
         return new RmColaboradorDetalle.EducacionDetalle(
                 educacion.getInstitucion(),
                 educacion.getTitulo(),
@@ -416,7 +437,8 @@ public class RmColaboradorConsultaService {
                 educacion.getFechaFin(),
                 educacion.isActual(),
                 textoEnum(educacion.getEstado().name()),
-                educacion.getArchivoUrl());
+                educacion.getArchivoUrl(),
+                revisionId);
     }
 
     private String nombreCompleto(Usuario usuario) {

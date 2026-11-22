@@ -809,10 +809,12 @@ public class RmViewController {
     @GetMapping({"/colaboradores/certificados/revision", "/rm-revision-certificado.html"})
     public String certificateReview(
             @RequestParam(name = "id", required = false) Long certificadoId,
+            @RequestParam(required = false) String origen,
             Model model) {
         if (certificadoId == null) return "redirect:/rm/colaboradores/certificados";
         try {
             model.addAttribute("certificado", rmCertificadoService.obtener(certificadoId));
+            model.addAttribute("desdePerfil", ORIGEN_PERFIL.equals(origen));
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/colaboradores/certificados";
         }
@@ -867,18 +869,21 @@ public class RmViewController {
             @PathVariable("id") Long certificadoId,
             @RequestParam(name = "nivelHabilidad", required = false) NivelDominio nivelHabilidad,
             @RequestParam(name = "nivelGeneral", required = false) NivelExperiencia nivelGeneral,
+            @RequestParam(required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
+        boolean desdePerfil = ORIGEN_PERFIL.equals(origen);
         try {
+            Long colaboradorId = colaboradorDelCertificado(certificadoId);
             rmCertificadoService.aprobar(certificadoId, nivelHabilidad, nivelGeneral,
                     principal.getUsuario().getId());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Certificado aprobado y perfil actualizado.");
-            return "redirect:/rm/colaboradores/certificados";
+            return destinoTrasRevision(desdePerfil, colaboradorId, "/rm/colaboradores/certificados");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
-            return "redirect:/rm/colaboradores/certificados/revision?id=" + certificadoId;
+            return revisionConOrigen("/rm/colaboradores/certificados/revision?id=" + certificadoId, desdePerfil);
         }
     }
 
@@ -886,18 +891,41 @@ public class RmViewController {
     public String rejectCertificate(
             @PathVariable("id") Long certificadoId,
             @RequestParam("motivo") String motivo,
+            @RequestParam(required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
+        boolean desdePerfil = ORIGEN_PERFIL.equals(origen);
         try {
+            Long colaboradorId = colaboradorDelCertificado(certificadoId);
             rmCertificadoService.rechazar(certificadoId, motivo, principal.getUsuario().getId());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Certificado rechazado; el motivo quedó guardado.");
-            return "redirect:/rm/colaboradores/certificados";
+            return destinoTrasRevision(desdePerfil, colaboradorId, "/rm/colaboradores/certificados");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
-            return "redirect:/rm/colaboradores/certificados/revision?id=" + certificadoId;
+            return revisionConOrigen("/rm/colaboradores/certificados/revision?id=" + certificadoId, desdePerfil);
         }
+    }
+
+    // Revisión abierta desde el perfil del colaborador (TASK-053): al decidir se vuelve a ese perfil.
+    private static final String ORIGEN_PERFIL = "perfil";
+
+    private Long colaboradorDelCertificado(Long certificadoId) {
+        return rmCertificadoService.obtener(certificadoId).getCertificado().getColaborador().getId();
+    }
+
+    private Long colaboradorDeLaEducacion(Long educacionId) {
+        return rmEducacionService.obtener(educacionId).getEducacion().getColaborador().getId();
+    }
+
+    // El colaborador sale del registro revisado, nunca de un parámetro del formulario.
+    private static String destinoTrasRevision(boolean desdePerfil, Long colaboradorId, String bandeja) {
+        return "redirect:" + (desdePerfil ? "/rm/colaboradores/perfil?id=" + colaboradorId : bandeja);
+    }
+
+    private static String revisionConOrigen(String revision, boolean desdePerfil) {
+        return "redirect:" + revision + (desdePerfil ? "&origen=" + ORIGEN_PERFIL : "");
     }
 
     @GetMapping("/colaboradores/educacion")
@@ -959,11 +987,13 @@ public class RmViewController {
     @GetMapping("/colaboradores/educacion/revision")
     public String educationReview(
             @RequestParam(name = "id", required = false) Long educacionId,
+            @RequestParam(required = false) String origen,
             Model model,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (educacionId == null) return "redirect:/rm/colaboradores/educacion";
         try {
             model.addAttribute("formacion", rmEducacionService.obtener(educacionId));
+            model.addAttribute("desdePerfil", ORIGEN_PERFIL.equals(origen));
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
             return "redirect:/rm/colaboradores/educacion";
@@ -990,17 +1020,20 @@ public class RmViewController {
     @PostMapping("/colaboradores/educacion/{id}/aprobar")
     public String approveEducation(
             @PathVariable("id") Long educacionId,
+            @RequestParam(required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
+        boolean desdePerfil = ORIGEN_PERFIL.equals(origen);
         try {
+            Long colaboradorId = colaboradorDeLaEducacion(educacionId);
             rmEducacionService.aprobar(educacionId, principal.getUsuario().getId());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito", "Formación académica aprobada.");
-            return "redirect:/rm/colaboradores/educacion";
+            return destinoTrasRevision(desdePerfil, colaboradorId, "/rm/colaboradores/educacion");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
-            return "redirect:/rm/colaboradores/educacion/revision?id=" + educacionId;
+            return revisionConOrigen("/rm/colaboradores/educacion/revision?id=" + educacionId, desdePerfil);
         }
     }
 
@@ -1008,18 +1041,21 @@ public class RmViewController {
     public String rejectEducation(
             @PathVariable("id") Long educacionId,
             @RequestParam(name = "motivo", required = false) String motivo,
+            @RequestParam(required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
+        boolean desdePerfil = ORIGEN_PERFIL.equals(origen);
         try {
+            Long colaboradorId = colaboradorDeLaEducacion(educacionId);
             rmEducacionService.rechazar(educacionId, motivo, principal.getUsuario().getId());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Formación académica rechazada; el motivo quedó guardado.");
-            return "redirect:/rm/colaboradores/educacion";
+            return destinoTrasRevision(desdePerfil, colaboradorId, "/rm/colaboradores/educacion");
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
-            return "redirect:/rm/colaboradores/educacion/revision?id=" + educacionId;
+            return revisionConOrigen("/rm/colaboradores/educacion/revision?id=" + educacionId, desdePerfil);
         }
     }
 

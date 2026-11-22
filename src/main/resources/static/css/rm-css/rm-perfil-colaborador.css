@@ -108,6 +108,15 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Información general en cuatro columnas; la descripción ocupa dos (TASK-053). */
+.info-grid-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.info-span-2 {
+  grid-column: span 2;
+}
+
 .info-label {
   color: #8a94a6;
   font-size: .69rem;
@@ -128,33 +137,59 @@
   border-top: 1px solid #edf0f4;
 }
 
-/* =========================================================
-   STATUS
-   ========================================================= */
-
-.status-grid {
-  display: grid;
-  gap: 0;
+/* Nivel general como celda de "Información general" (TASK-053): select y botón en la misma línea. */
+.nivel-general .input-group {
+  max-width: 20rem;
 }
 
-.status-row {
+.nivel-general .form-hint {
+  margin-top: .25rem;
+  font-size: .75rem;
+}
+
+/* Habilidades como etiquetas compactas que se acomodan en filas (TASK-053). */
+.skill-chips {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.skill-chip {
+  display: inline-flex;
   align-items: center;
+  gap: .5rem;
+  padding: .4rem .6rem;
+  border: 1px solid #e6ebf1;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.skill-chip .btn {
+  padding: .1rem .5rem;
+}
+
+/* Experiencia y Educación en mosaico (TASK-053). */
+.timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: .75rem;
-  padding: .75rem 0;
+  padding: 1rem;
 }
 
-.status-row:first-child {
-  padding-top: 0;
+/* Experiencia y Educación: mismo mosaico, tarjetas algo más anchas por el texto. */
+.timeline-grid {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
 }
 
-.status-row:last-child {
-  padding-bottom: 0;
+.timeline-grid .timeline-item {
+  padding: .75rem .85rem;
+  border: 1px solid #e6ebf1;
+  border-radius: 8px;
+  background: #fbfcfe;
 }
 
-.status-row + .status-row {
-  border-top: 1px solid #edf0f4;
+.timeline-grid .timeline-item + .timeline-item {
+  border-top: 1px solid #e6ebf1;
 }
 
 /* =========================================================
@@ -171,6 +206,15 @@
 
 .skill-row + .skill-row {
   border-top: 1px solid #edf0f4;
+}
+
+/* Insignia de estado + botón "Revisar" (TASK-053). */
+.skill-actions,
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
 }
 
 /* =========================================================
@@ -239,7 +283,8 @@
    ========================================================= */
 
 @media (max-width: 991px) {
-  .info-grid-three {
+  .info-grid-three,
+  .info-grid-four {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -255,8 +300,13 @@
   }
 
   .info-grid,
-  .info-grid-three {
+  .info-grid-three,
+  .info-grid-four {
     grid-template-columns: 1fr;
+  }
+
+  .info-span-2 {
+    grid-column: auto;
   }
 
   .section-header {
@@ -268,9 +318,11 @@
     width: 100%;
   }
 
-  .skill-row,
-  .status-row {
-    align-items: flex-start;
-    flex-direction: column;
+  .section-actions {
+    width: 100%;
+  }
+
+  .skill-chip {
+    flex-wrap: wrap;
   }
 }

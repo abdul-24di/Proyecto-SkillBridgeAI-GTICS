@@ -112,7 +112,8 @@
               <div><div class="label-small">Horas comprometidas</div><div class="value-strong" th:text="|${asignacion.horasComprometidas} h / semana|">0</div></div>
               <div><div class="label-small">Experiencia</div><div class="value-strong" th:text="${asignacion.asignacion.colaborador.nivelExperiencia ?: 'Sin definir'}">Nivel</div></div>
             </div>
-            <div th:if="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-warning mt-4 mb-0">La asignación supera la disponibilidad declarada o el límite configurado. Para aprobarla deberás justificar la excepción.</div>
+            <div th:if="${asignacion.superaDisponibilidad}" class="alert alert-danger mt-4 mb-0">Las horas solicitadas superan la disponibilidad del colaborador; no se puede aprobar.</div>
+            <div th:if="${asignacion.superaLimite and !asignacion.superaDisponibilidad}" class="alert alert-warning mt-4 mb-0">El colaborador alcanzó el límite de asignaciones activas. Para aprobarla deberás justificar la excepción.</div>
             <div th:unless="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-success mt-4 mb-0">La carga y disponibilidad están dentro de los límites registrados.</div>
           </div>
         </div>
@@ -196,7 +197,7 @@
         <div class="decision-actions">
           <button type="button" class="btn btn-success decision-button"
                   data-bs-toggle="modal" data-bs-target="#approveAssignmentModal"
-                  th:disabled="${!impacto.suficiente}">Aprobar asignación</button>
+                  th:disabled="${!impacto.suficiente or asignacion.superaDisponibilidad}">Aprobar asignación</button>
           <button type="button" class="btn btn-outline-danger decision-button"
                   data-bs-toggle="modal" data-bs-target="#rejectAssignmentModal">Rechazar asignación</button>
         </div>
@@ -229,8 +230,8 @@
             </div>
           </div>
           <p class="mb-0">¿Confirmas que deseas aprobar esta asignación?</p>
-          <div th:if="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="mt-3">
-            <div class="alert alert-warning">Esta asignación excede la capacidad registrada. La regla actual requiere justificar la excepción.</div>
+          <div th:if="${asignacion.superaLimite}" class="mt-3">
+            <div class="alert alert-warning">El colaborador alcanzó el límite de asignaciones activas. La regla actual requiere justificar la excepción.</div>
             <label for="assignmentCapacityReason" class="form-label">Justificación de la excepción</label>
             <textarea id="assignmentCapacityReason" name="motivoCapacidad" class="form-control" rows="3" maxlength="300" required
                       placeholder="Explica por qué se aprueba a pesar de exceder la capacidad."></textarea>
@@ -238,7 +239,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-success" th:disabled="${!impacto.suficiente}">Confirmar aprobación</button>
+          <button type="submit" class="btn btn-success" th:disabled="${!impacto.suficiente or asignacion.superaDisponibilidad}">Confirmar aprobación</button>
         </div>
       </form>
     </div>

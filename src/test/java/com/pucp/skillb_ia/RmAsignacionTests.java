@@ -97,6 +97,7 @@ class RmAsignacionTests {
     @Autowired private ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     @Autowired private RmColaboradorConsultaService consultaService;
     @Autowired private LogAuditoriaRepository logAuditoriaRepository;
+    @Autowired private com.pucp.skillb_ia.repository.ConfiguracionSistemaRepository configuracionSistemaRepository;
 
     // Habilidades de Carla por estado; nombres únicos para que la coincidencia sea exacta.
     private static final String HAB_VALIDADA = "Java Asig T015";
@@ -272,12 +273,56 @@ class RmAsignacionTests {
         assertEquals(pm.getId(), actualizada.getRechazadoPor().getId());
     }
 
+    // TASK-054: más horas que las disponibles no se aprueba ni con justificación.
     @Test
-    void excesoDeDisponibilidadExigeJustificacionPeroPuedeAprobarse() {
+    void excesoDeDisponibilidadNoSePuedeAprobarNiConJustificacion() {
         Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "30");
 
-        assertThrows(IllegalArgumentException.class,
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> asignacionService.aprobar(
+                        asignacion.getId(), "Cobertura temporal autorizada por la organización.", rm.getId()));
+
+        assertEquals("Las horas propuestas (30 h/sem) superan las horas disponibles del colaborador (20 h/sem).",
+                error.getMessage());
+        Asignacion actualizada = asignacionRepository.findById(asignacion.getId()).orElseThrow();
+        assertEquals(EstadoAsignacion.PENDIENTE, actualizada.getEstado());
+        assertFalse(actualizada.isAprobadoPorRm());
+    }
+
+    // TASK-054: forzar el POST con horas de más (y justificación de capacidad) no crea la propuesta.
+    @Test
+    void propuestaConHorasSuperioresALasDisponiblesSeRechazaAunqueSeFuerceElPost() throws Exception {
+        long asignacionesAntes = asignacionRepository.count();
+        autenticarRm();
+        try {
+            mockMvc.perform(propuesta("buscar", "20.5").param("motivoCapacidad", "Excepción forzada."))
+                    .andExpect(redirectedUrl(BUSCAR + "?proyectoId=" + proyecto.getId()))
+                    .andExpect(flash().attribute("mensajeError",
+                            "Las horas propuestas (20.5 h/sem) superan las horas disponibles del colaborador (20 h/sem)."));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+        assertEquals(asignacionesAntes, asignacionRepository.count());
+
+        // Justo las horas disponibles sí se permiten.
+        Asignacion exacta = asignacionService.proponerDesdeRm(
+                proyecto.getId(), colaborador.getId(), new BigDecimal("20"), null, null, null, rm.getId());
+        assertEquals(EstadoAsignacion.PENDIENTE, exacta.getEstado());
+    }
+
+    // TASK-054: la excepción con justificación se mantiene solo para el límite de asignaciones activas.
+    @Test
+    void limiteDeAsignacionesActivasSigueAdmitiendoLaExcepcionJustificada() {
+        for (int i = 0; i < obtenerMaxAsignaciones(); i++) {
+            guardarAsignacion(otroProyectoActivo(), colaborador, OrigenAsignacion.PROPUESTA_PM,
+                    EstadoAsignacion.ACTIVA, true, true, LocalDateTime.now());
+        }
+        Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "4");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> asignacionService.aprobar(asignacion.getId(), null, rm.getId()));
+        assertEquals("El colaborador alcanzó el límite de asignaciones activas; debes justificar la excepción.",
+                error.getMessage());
 
         asignacionService.aprobar(
                 asignacion.getId(), "Cobertura temporal autorizada por la organización.", rm.getId());
@@ -1686,6 +1731,27 @@ class RmAsignacionTests {
         asignacion.setAprobadoPorRm(aprobadoRm);
         asignacion.setMensajeSolicitud("Solicitud de prueba.");
         return asignacionRepository.save(asignacion);
+    }
+
+    private int obtenerMaxAsignaciones() {
+        return configuracionSistemaRepository.findByClave("MAX_ASIGNACIONES_POR_COLABORADOR")
+                .map(c -> Integer.parseInt(c.getValor().trim()))
+                .orElse(3);
+    }
+
+    private Proyecto otroProyectoActivo() {
+        Proyecto otro = new Proyecto();
+        otro.setNombre("Proyecto carga T054 " + System.nanoTime());
+        otro.setDescripcion("Proyecto para ocupar la carga del colaborador.");
+        otro.setEstado(EstadoProyecto.ACTIVO);
+        otro.setPrioridad(Prioridad.MEDIA);
+        otro.setJustificacionPrioridad("Validación de TASK-054.");
+        otro.setColaboradoresRequeridos(3);
+        otro.setPm(pm);
+        otro.setPresupuesto(new BigDecimal("100000.00"));
+        otro.setFechaInicio(java.time.LocalDate.now());
+        otro.setFechaFinEstimada(java.time.LocalDate.now().plusMonths(3));
+        return proyectoRepository.save(otro);
     }
 
     private Asignacion guardarAsignacion(Proyecto destino, Usuario persona, OrigenAsignacion origen,

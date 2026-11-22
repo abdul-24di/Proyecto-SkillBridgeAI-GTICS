@@ -359,6 +359,8 @@ public class RmAsignacionService {
         rmResponsableService.validarResponsable(proyecto, rm);
         Usuario colaborador = obtenerColaboradorAsignable(colaboradorId);
         validarHoras(horasSemanales);
+        // TASK-054: las horas de más no admiten excepción.
+        validarHorasDentroDeDisponibilidad(horasSemanales, colaborador);
         // A20 / sección 13: nunca se propone sin presupuesto suficiente — el RM
         // reserva el costo de inmediato porque proponerDesdeRm() auto-aprueba por el RM.
         presupuestoService.validarPresupuestoSuficiente(proyecto, colaborador, horasSemanales);
@@ -379,8 +381,8 @@ public class RmAsignacionService {
 
         int activas = (int) asignacionRepository.countByColaboradorAndEstado(
                 colaborador, EstadoAsignacion.ACTIVA);
-        boolean excedeCapacidad = activas >= obtenerMaxAsignaciones()
-                || horasSemanales.compareTo(horasDisponibles(colaborador)) > 0;
+        // La excepción con justificación solo cubre el límite de asignaciones activas.
+        boolean excedeCapacidad = activas >= obtenerMaxAsignaciones();
         String mensaje = construirMensaje(justificacion, motivoCapacidad, excedeCapacidad);
 
         Asignacion asignacion = new Asignacion();
@@ -423,14 +425,14 @@ public class RmAsignacionService {
         validarDecisionRm(asignacion);
         rmResponsableService.validarResponsable(asignacion.getProyecto(), rm);
         obtenerProyectoAsignable(asignacion.getProyecto().getId());
+        validarHorasDentroDeDisponibilidad(asignacion.getHorasSemanales(), asignacion.getColaborador());
         // Al aprobar, el RM reserva el costo de esta asignación (sección 6/7.1).
         presupuestoService.validarPresupuestoSuficiente(
                 asignacion.getProyecto(), asignacion.getColaborador(), asignacion.getHorasSemanales());
 
         int activas = (int) asignacionRepository.countByColaboradorAndEstado(
                 asignacion.getColaborador(), EstadoAsignacion.ACTIVA);
-        boolean excedeCapacidad = activas >= obtenerMaxAsignaciones()
-                || asignacion.getHorasSemanales().compareTo(horasDisponibles(asignacion.getColaborador())) > 0;
+        boolean excedeCapacidad = activas >= obtenerMaxAsignaciones();
 
         asignacion.setMensajeSolicitud(construirMensaje(
                 asignacion.getMensajeSolicitud(), motivoCapacidad, excedeCapacidad));
@@ -708,7 +710,7 @@ public class RmAsignacionService {
 
         String motivo = textoObligatorio(
                 motivoCapacidad,
-                "La propuesta supera la disponibilidad o el límite de asignaciones; debes justificar la excepción.",
+                "El colaborador alcanzó el límite de asignaciones activas; debes justificar la excepción.",
                 300);
         String combinado = mensaje + (mensaje.isEmpty() ? "" : "\n")
                 + "Justificación de capacidad: " + motivo;
@@ -758,6 +760,16 @@ public class RmAsignacionService {
     private BigDecimal horasDisponibles(Usuario colaborador) {
         return colaborador.getHorasDisponibles() == null
                 ? BigDecimal.ZERO : colaborador.getHorasDisponibles();
+    }
+
+    // TASK-054: no se propone ni se aprueba con más horas que las disponibles del colaborador.
+    private void validarHorasDentroDeDisponibilidad(BigDecimal horas, Usuario colaborador) {
+        BigDecimal disponibles = horasDisponibles(colaborador);
+        if (horas != null && horas.compareTo(disponibles) > 0) {
+            throw new IllegalArgumentException("Las horas propuestas (" + horas.stripTrailingZeros().toPlainString()
+                    + " h/sem) superan las horas disponibles del colaborador ("
+                    + disponibles.stripTrailingZeros().toPlainString() + " h/sem).");
+        }
     }
 
     private String nombreCompleto(Usuario usuario) {

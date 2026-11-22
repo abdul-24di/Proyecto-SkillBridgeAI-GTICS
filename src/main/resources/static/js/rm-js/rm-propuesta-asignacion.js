@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var form = document.getElementById("propuestaForm");
   var horasInput = document.getElementById("propuestaHoras");
+  var horasAviso = document.getElementById("propuestaHorasAviso");
   var justificacion = document.getElementById("propuestaJustificacion");
   var capacidadWrap = document.getElementById("propuestaCapacidadWrap");
   var motivoCapacidad = document.getElementById("propuestaMotivoCapacidad");
@@ -65,11 +66,22 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function recalcular() {
+    calcularImpacto();
+    // TASK-054: más horas que las disponibles bloquea el envío (el servidor también lo rechaza).
+    var disponibles = numero(datosActuales.colaboradorHoras);
+    var excedeHoras = numero(horasInput.value) > disponibles;
+    horasAviso.textContent = "Supera las horas disponibles del colaborador: " + disponibles + " h/sem.";
+    horasAviso.classList.toggle("d-none", !excedeHoras);
+    horasInput.classList.toggle("is-invalid", excedeHoras);
+    if (excedeHoras) enviarBtn.disabled = true;
+  }
+
+  function calcularImpacto() {
     var d = datosActuales;
     var horas = numero(horasInput.value);
 
-    // Capacidad: solo pide la justificación de excepción cuando hace falta.
-    var excede = horas > numero(d.colaboradorHoras) || numero(d.colaboradorCarga) >= numero(d.colaboradorMax);
+    // Capacidad: la justificación de excepción solo cubre el límite de asignaciones activas.
+    var excede = numero(d.colaboradorCarga) >= numero(d.colaboradorMax);
     var mostrarCapacidad = horas > 0 && excede;
     capacidadWrap.classList.toggle("d-none", !mostrarCapacidad);
     motivoCapacidad.required = mostrarCapacidad;
@@ -122,6 +134,8 @@ document.addEventListener("DOMContentLoaded", function () {
     datosActuales = datos;
     form.reset();
     enviarBtn.textContent = "Confirmar asignación";
+    var horasColaborador = numero(datos.colaboradorHoras);
+    horasInput.max = horasColaborador > 0 ? Math.min(168, horasColaborador) : 168;
 
     propuestaModal.querySelectorAll("[data-campo]").forEach(function (input) {
       input.value = datos[input.dataset.campo] || "";

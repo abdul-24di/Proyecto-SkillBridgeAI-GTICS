@@ -179,6 +179,7 @@
                   <input id="propuestaHoras" name="horasSemanales" type="number" min="0.5" max="168" step="0.5" class="form-control" required>
                   <span class="input-group-text">h / semana</span>
                 </div>
+                <div id="propuestaHorasAviso" class="invalid-feedback d-block d-none"></div>
               </div>
               <div class="mb-3">
                 <label for="propuestaJustificacion" class="form-label">Justificación de la propuesta</label>
@@ -196,7 +197,7 @@
               </div>
               <div id="propuestaCapacidadWrap" class="d-none">
                 <div class="alert alert-warning py-2 small mb-2" id="propuestaCapacidadAviso">
-                  La propuesta supera la disponibilidad o el límite de asignaciones del colaborador.
+                  El colaborador ya tiene el máximo de asignaciones activas.
                 </div>
                 <label for="propuestaMotivoCapacidad" class="form-label required">Justificación de excepción de capacidad</label>
                 <textarea id="propuestaMotivoCapacidad" name="motivoCapacidad" class="form-control" rows="2" maxlength="300"

@@ -52,6 +52,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -311,11 +312,11 @@ class RmCursoTests {
         inscripcion(colaboradorDos, aws, OrigenCurso.SOLICITUD_COLABORADOR,
                 EstadoColaboradorCurso.RECHAZADO);
 
-        mockMvc.perform(get("/rm/cursos/solicitudes"))
+        String predeterminada = mockMvc.perform(get("/rm/cursos/solicitudes"))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("estadoSeleccionado", "SOLICITADO"))
-                .andExpect(content().string(org.hamcrest.Matchers.not(
-                        org.hamcrest.Matchers.containsString("Luis Ramos"))));
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertFalse(antesDelModal(predeterminada).contains("Luis Ramos"));
         mockMvc.perform(get("/rm/cursos/solicitudes").param("estado", ""))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("estadoSeleccionado", ""))
@@ -340,10 +341,78 @@ class RmCursoTests {
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Ana Torres")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Motivo de la aprobación")));
 
-        mockMvc.perform(get("/rm/cursos/asignar").param("curso", spring.getId().toString()))
-                .andExpect(status().isOk()).andExpect(view().name("rm/rm-asignar-curso"))
-                .andExpect(model().attributeExists("colaboradoresCurso", "cursosActivos"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Confirmar inscripción")));
+        // TASK-047: la asignación es un modal en el catálogo, la bandeja y el perfil; ya no hay página aparte.
+        for (String url : List.of("/rm/cursos", "/rm/cursos/solicitudes")) {
+            mockMvc.perform(get(url))
+                    .andExpect(model().attributeExists("colaboradoresCurso", "cursosModal"))
+                    .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"asignarCursoModal\"")))
+                    .andExpect(content().string(org.hamcrest.Matchers.containsString("data-bs-target=\"#asignarCursoModal\"")));
+        }
+        mockMvc.perform(get("/rm/colaboradores/perfil").param("id", colaboradorUno.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"asignarCursoModal\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString(
+                        "data-colaborador-id=\"" + colaboradorUno.getId() + "\"")));
+        mockMvc.perform(get("/rm/cursos/asignar")).andExpect(status().is4xxClientError());
+    }
+
+    // TASK-047: el modal trae las fichas y marca como bloqueados los cursos duplicados.
+    @Test
+    void modalAsignarCursoListaFichasYBloqueaDuplicados() {
+        inscripcion(colaboradorUno, spring, OrigenCurso.SOLICITUD_COLABORADOR, EstadoColaboradorCurso.SOLICITADO);
+        inscripcion(colaboradorUno, aws, OrigenCurso.ASIGNADO_POR_RM, EstadoColaboradorCurso.EN_CURSO);
+        Curso terminado = curso("Curso terminado test", "Técnico", "5.00", true);
+        terminado.setFechaFin(LocalDate.now().minusDays(1));
+        cursoRepository.save(terminado);
+
+        List<RmCursoView.CursoModal> cursos = cursoService.listarCursosParaModal();
+        assertEquals(List.of(aws.getId(), spring.getId()), cursos.stream().map(RmCursoView.CursoModal::getId).toList(),
+                "Solo cursos activos y vigentes");
+        RmCursoView.CursoModal fichaAws = cursos.get(0);
+        assertEquals(1, fichaAws.getInscritos());
+        assertEquals("Certificación", fichaAws.getCategoria());
+        assertEquals("40 h", fichaAws.getHoras());
+
+        RmCursoView.ColaboradorModal ana = cursoService.listarColaboradoresParaModal().stream()
+                .filter(item -> item.getId().equals(colaboradorUno.getId())).findFirst().orElseThrow();
+        assertEquals("Ana Torres", ana.getNombre());
+        assertEquals("AT", ana.getIniciales());
+        assertEquals("AWS Practitioner test", ana.getCursosEnCurso());
+        assertEquals(Set.of(spring.getId().toString(), aws.getId().toString()),
+                Set.of(ana.getCursosBloqueados().split(",")));
+        RmCursoView.ColaboradorModal luis = cursoService.listarColaboradoresParaModal().stream()
+                .filter(item -> item.getId().equals(colaboradorDos.getId())).findFirst().orElseThrow();
+        assertEquals("", luis.getCursosBloqueados());
+        assertEquals("Ninguno", luis.getCursosEnCurso());
+    }
+
+    // TASK-047: tras asignar (o fallar) se vuelve a la vista de origen con el flash.
+    @Test
+    void asignarCursoVuelveALaVistaDeOrigen() throws Exception {
+        autenticarRm();
+        mockMvc.perform(post("/rm/cursos/asignar").param("colaboradorId", colaboradorUno.getId().toString())
+                        .param("cursoId", spring.getId().toString()).param("motivo", "Refuerzo backend.")
+                        .param("origen", "perfil"))
+                .andExpect(redirectedUrl("/rm/colaboradores/perfil?id=" + colaboradorUno.getId()))
+                .andExpect(flash().attribute("mensajeExito", "Curso asignado correctamente; el colaborador fue notificado."));
+
+        mockMvc.perform(post("/rm/cursos/asignar").param("colaboradorId", colaboradorUno.getId().toString())
+                        .param("cursoId", spring.getId().toString()).param("motivo", "Otra vez.")
+                        .param("origen", "solicitudes"))
+                .andExpect(redirectedUrl("/rm/cursos/solicitudes"))
+                .andExpect(flash().attribute("mensajeError",
+                        "El colaborador ya tiene una solicitud pendiente o una inscripción activa en este curso."));
+
+        mockMvc.perform(post("/rm/cursos/asignar").param("colaboradorId", colaboradorDos.getId().toString())
+                        .param("cursoId", aws.getId().toString()).param("motivo", "Cloud.")
+                        .param("origen", "https://externo.test"))
+                .andExpect(redirectedUrl("/rm/cursos"))
+                .andExpect(flash().attributeExists("mensajeExito"));
+
+        mockMvc.perform(post("/rm/cursos/asignar").param("cursoId", aws.getId().toString())
+                        .param("motivo", "Sin colaborador.").param("origen", "catalogo"))
+                .andExpect(redirectedUrl("/rm/cursos"))
+                .andExpect(flash().attribute("mensajeError", "Selecciona el colaborador y el curso."));
     }
 
     // TASK-032: todas las tarjetas numéricas del catálogo (4) y de la bandeja (5) tienen un icono decorativo.
@@ -426,7 +495,7 @@ class RmCursoTests {
         assertEquals(List.of("Spring Boot avanzado test"),
                 catalogo.getCursos().stream().map(RmCursoView.CursoItem::getNombre).toList());
         assertTrue(html.contains("Spring Boot avanzado test"));
-        assertFalse(html.contains("Java 01 test"), "La vista recibe solo la página actual");
+        assertFalse(antesDelModal(html).contains("Java 01 test"), "La vista recibe solo la página actual");
         assertTrue(html.contains("Mostrando 7-7 de 7 cursos"));
         String filtros = "/rm/cursos?busqueda=test&amp;categoria=T%C3%A9cnico&amp;duracion=media&amp;pagina=";
         assertTrue(html.contains("href=\"" + filtros + "1\">Anterior"));
@@ -554,7 +623,7 @@ class RmCursoTests {
         assertEquals(List.of(evidencia.getId()),
                 bandeja.getInscripciones().stream().map(RmCursoView.InscripcionItem::getId).toList());
         assertTrue(html.contains("<option value=\"EVIDENCIA_PENDIENTE\" selected=\"selected\">Evidencia en revisión</option>"));
-        assertFalse(html.contains("Luis Ramos"), "Solo las evidencias en revisión");
+        assertFalse(antesDelModal(html).contains("Luis Ramos"), "Solo las evidencias en revisión");
         assertEquals(1, totalBandeja(null, "EVIDENCIA_PENDIENTE", null));
         assertEquals(1, totalBandeja(null, null, null), "Sin estado sigue mostrando solo SOLICITADO");
     }
@@ -1157,7 +1226,15 @@ class RmCursoTests {
         assertTrue(html.contains("<option value=\"NO_COMPLETADO\" selected=\"selected\">No completados</option>"));
         assertTrue(html.contains("Ana Torres"));
         assertTrue(html.contains("bg-secondary-lt text-secondary"), "Insignia de No completado en la fila");
-        assertFalse(html.contains("Luis Ramos"), "Un curso sin fecha fin sigue en curso");
+        assertFalse(antesDelModal(html).contains("Luis Ramos"), "Un curso sin fecha fin sigue en curso");
+    }
+
+    // TASK-047: el modal "Asignar curso" (después de </main>) lista todos los colaboradores y cursos;
+    // las comprobaciones de filtros y páginas miran solo el contenido de la vista.
+    private String antesDelModal(String html) {
+        int modal = html.indexOf("id=\"asignarCursoModal\"");
+        assertTrue(modal >= 0, "La vista incluye el modal Asignar curso");
+        return html.substring(0, modal);
     }
 
     private Curso cursoConFechaFin(String nombre, LocalDate fechaFin) {

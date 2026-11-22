@@ -7,6 +7,7 @@
   <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
   <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}">
   <link rel="stylesheet" th:href="@{/css/rm-css/rm-cursos.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-asignacion-modales.css}">
   <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}">
 
 <style>
@@ -42,7 +43,7 @@
     <div><h1 class="page-title">Cursos y capacitaciones</h1><div class="text-secondary">Consulta el catálogo activo y gestiona las inscripciones de colaboradores.</div></div>
     <div class="d-flex gap-2 flex-wrap course-head-actions">
       <a class="btn btn-outline-primary" th:href="@{/rm/cursos/solicitudes}">Solicitudes pendientes</a>
-      <a class="btn btn-primary" th:href="@{/rm/cursos/asignar}">Asignar curso</a>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#asignarCursoModal" data-origen="catalogo">Asignar curso</button>
     </div>
   </div>
 
@@ -86,7 +87,7 @@
             <h3 class="course-title mt-1" th:text="${curso.nombre}">Curso</h3>
             <div class="text-secondary small" th:text="${curso.descripcion}">Descripción</div>
             <div class="course-meta"><div><div class="info-label">Duración</div><div class="info-value" th:text="|${#numbers.formatDecimal(curso.horas, 1, 2)} h|">0 h</div></div><div><div class="info-label">Inscritos activos</div><div class="info-value" th:text="${curso.inscritos}">0</div></div></div>
-            <div class="course-actions"><a class="btn btn-primary btn-sm" th:href="@{/rm/cursos/asignar(curso=${curso.id})}">Asignar a colaborador</a></div>
+            <div class="course-actions"><button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#asignarCursoModal" data-origen="catalogo" th:data-curso-id="${curso.id}">Asignar a colaborador</button></div>
           </div></div>
         </div>
         <div class="col-12" th:if="${#lists.isEmpty(catalogo.cursos)}"><div class="card"><div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='libro', vacioTitulo='Sin cursos', vacioTexto='No se encontraron cursos activos con estos filtros.')}"></div></div></div>
@@ -104,5 +105,7 @@
     </div>
   </div>
 </main></div>
+<div th:replace="~{fragments/rm-curso-modales :: modalAsignarCurso}"></div>
 <script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/rm-js/rm-asignar-curso.js}"></script>
 </body></html>

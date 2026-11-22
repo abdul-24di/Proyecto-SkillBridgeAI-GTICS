@@ -6,6 +6,7 @@
   <title>SkillBridge AI — Solicitudes de cursos</title>
   <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
   <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-asignacion-modales.css}">
   <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}">
 
 <style>
@@ -39,7 +40,7 @@
   <div class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/cursos}">Cursos</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Solicitudes</span></div>
   <div class="page-head page-head-stack-mobile page-head-button-mobile">
     <div><h1 class="page-title">Solicitudes de cursos</h1><div class="text-secondary">Aprueba o rechaza solicitudes y consulta el historial de inscripciones.</div></div>
-    <div class="d-flex gap-2"><a class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Ver catálogo</a><a class="btn btn-primary" th:href="@{/rm/cursos/asignar}">Asignar curso</a></div>
+    <div class="d-flex gap-2"><a class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Ver catálogo</a><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#asignarCursoModal" data-origen="solicitudes">Asignar curso</button></div>
   </div>
 
   <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
@@ -244,7 +245,9 @@
     </div>
   </div>
 </main></div>
+<div th:replace="~{fragments/rm-curso-modales :: modalAsignarCurso}"></div>
 <script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/rm-js/rm-asignar-curso.js}"></script>
 <script th:src="@{/js/validacion-formularios.js}"></script>
 <script th:src="@{/js/rm-js/rm-solicitudes-cursos.js}"></script>
 

@@ -209,19 +209,84 @@ public final class RmCursoView {
         public LocalDateTime getFechaRevisionEvidencia() { return fechaRevisionEvidencia; }
     }
 
-    public static class ColaboradorOpcion {
+    /** Curso que se puede elegir en el modal "Asignar curso" (ficha del curso). */
+    public static class CursoModal {
         private final Long id;
         private final String nombre;
-        private final String cargo;
+        private final String categoria;
+        private final String modalidad;
+        private final String dias;
+        private final String fechaInicio;
+        private final String fechaFin;
+        private final String horas;
+        private final long inscritos;
+        private final String descripcion;
 
-        public ColaboradorOpcion(Long id, String nombre, String cargo) {
+        public CursoModal(Long id, String nombre, String categoria, String modalidad, String dias,
+                          String fechaInicio, String fechaFin, String horas, long inscritos,
+                          String descripcion) {
             this.id = id;
             this.nombre = nombre;
-            this.cargo = cargo;
+            this.categoria = categoria;
+            this.modalidad = modalidad;
+            this.dias = dias;
+            this.fechaInicio = fechaInicio;
+            this.fechaFin = fechaFin;
+            this.horas = horas;
+            this.inscritos = inscritos;
+            this.descripcion = descripcion;
         }
 
         public Long getId() { return id; }
         public String getNombre() { return nombre; }
+        public String getCategoria() { return categoria; }
+        public String getModalidad() { return modalidad; }
+        public String getDias() { return dias; }
+        public String getFechaInicio() { return fechaInicio; }
+        public String getFechaFin() { return fechaFin; }
+        public String getHoras() { return horas; }
+        public long getInscritos() { return inscritos; }
+        public String getDescripcion() { return descripcion; }
+    }
+
+    /** Colaborador que se puede elegir en el modal "Asignar curso" (ficha del colaborador). */
+    public static class ColaboradorModal {
+        private final Long id;
+        private final String nombre;
+        private final String iniciales;
+        private final String fotoUrl;
+        private final String cargo;
+        private final String nivel;
+        private final String horasDisponibles;
+        private final String carga;
+        private final String cursosEnCurso;
+        //Ids de cursos con solicitud pendiente o inscripción activa, separados por coma.
+        private final String cursosBloqueados;
+
+        public ColaboradorModal(Long id, String nombre, String iniciales, String fotoUrl, String cargo,
+                                String nivel, String horasDisponibles, String carga,
+                                String cursosEnCurso, String cursosBloqueados) {
+            this.id = id;
+            this.nombre = nombre;
+            this.iniciales = iniciales;
+            this.fotoUrl = fotoUrl;
+            this.cargo = cargo;
+            this.nivel = nivel;
+            this.horasDisponibles = horasDisponibles;
+            this.carga = carga;
+            this.cursosEnCurso = cursosEnCurso;
+            this.cursosBloqueados = cursosBloqueados;
+        }
+
+        public Long getId() { return id; }
+        public String getNombre() { return nombre; }
+        public String getIniciales() { return iniciales; }
+        public String getFotoUrl() { return fotoUrl; }
         public String getCargo() { return cargo; }
+        public String getNivel() { return nivel; }
+        public String getHorasDisponibles() { return horasDisponibles; }
+        public String getCarga() { return carga; }
+        public String getCursosEnCurso() { return cursosEnCurso; }
+        public String getCursosBloqueados() { return cursosBloqueados; }
     }
 }

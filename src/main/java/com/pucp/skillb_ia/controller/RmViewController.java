@@ -740,6 +740,7 @@ public class RmViewController {
                     rmColaboradorConsultaService.mapaSueldosBase().get(colaboradorId));
             model.addAttribute("evaluaciones",
                     evaluacionService.obtenerEvaluacionesPorColaborador(colaboradorId));
+            agregarModalAsignarCurso(model);
         } catch (IllegalArgumentException ex) {
             return "redirect:/rm/colaboradores?noEncontrado=true";
         }
@@ -1055,6 +1056,7 @@ public class RmViewController {
         model.addAttribute("busqueda", filtros.busqueda() == null ? "" : filtros.busqueda());
         model.addAttribute("categoriaSeleccionada", filtros.categoria() == null ? "" : filtros.categoria());
         model.addAttribute("duracionSeleccionada", filtros.duracion() == null ? "" : filtros.duracion());
+        agregarModalAsignarCurso(model);
         return "rm/rm-cursos";
     }
 
@@ -1073,40 +1075,45 @@ public class RmViewController {
         // "Todos" viaja como estado= en los enlaces: sin el parámetro se vuelve a las pendientes.
         model.addAttribute("estadoSeleccionado", filtros.estado() == null ? "" : filtros.estado().name());
         model.addAttribute("origenSeleccionado", filtros.origen() == null ? "" : filtros.origen().name());
+        agregarModalAsignarCurso(model);
         return "rm/rm-solicitudes-cursos";
     }
 
-    @GetMapping({"/cursos/asignar", "/rm-asignar-curso.html"})
-    public String assignCourse(
-            @RequestParam(name = "colaborador", required = false) Long colaboradorId,
-            @RequestParam(name = "curso", required = false) Long cursoId,
-            Model model) {
-        model.addAttribute("colaboradoresCurso", rmCursoService.listarColaboradoresActivos());
-        model.addAttribute("cursosActivos", rmCursoService.listarCursosActivos());
-        model.addAttribute("colaboradorSeleccionado", colaboradorId);
-        model.addAttribute("cursoSeleccionado", cursoId);
-        return "rm/rm-asignar-curso";
+    // Datos del modal "Asignar curso" (fragments/rm-curso-modales :: modalAsignarCurso), TASK-047.
+    private void agregarModalAsignarCurso(Model model) {
+        model.addAttribute("colaboradoresCurso", rmCursoService.listarColaboradoresParaModal());
+        model.addAttribute("cursosModal", rmCursoService.listarCursosParaModal());
     }
 
     @PostMapping("/cursos/asignar")
     public String assignCourseSubmit(
-            @RequestParam("colaboradorId") Long colaboradorId,
-            @RequestParam("cursoId") Long cursoId,
-            @RequestParam("motivo") String motivo,
+            @RequestParam(name = "colaboradorId", required = false) Long colaboradorId,
+            @RequestParam(name = "cursoId", required = false) Long cursoId,
+            @RequestParam(name = "motivo", required = false) String motivo,
+            @RequestParam(name = "origen", required = false) String origen,
             @AuthenticationPrincipal UsuarioDetails principal,
             RedirectAttributes redirectAttributes, HttpServletRequest request) {
         if (principal == null) return "redirect:/login";
+        // Orígenes cerrados: el modal vuelve a la vista desde donde se abrió.
+        String retorno = switch (origen == null ? "" : origen) {
+            case "perfil" -> colaboradorId != null
+                    ? "redirect:/rm/colaboradores/perfil?id=" + colaboradorId : "redirect:/rm/colaboradores";
+            case "solicitudes" -> "redirect:/rm/cursos/solicitudes";
+            default -> "redirect:/rm/cursos";
+        };
         try {
+            if (colaboradorId == null || cursoId == null) {
+                throw new IllegalArgumentException("Selecciona el colaborador y el curso.");
+            }
             rmCursoService.asignarDirectamente(
                     colaboradorId, cursoId, motivo, principal.getUsuario().getId());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             redirectAttributes.addFlashAttribute("mensajeExito",
                     "Curso asignado correctamente; el colaborador fue notificado.");
-            return "redirect:/rm/cursos/solicitudes?estado=EN_CURSO";
         } catch (IllegalArgumentException | IllegalStateException ex) {
             redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
-            return "redirect:/rm/cursos/asignar?colaborador=" + colaboradorId + "&curso=" + cursoId;
         }
+        return retorno;
     }
 
     @PostMapping("/cursos/solicitudes/{id}/aprobar")

@@ -110,6 +110,12 @@
                  th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id})}">
                 Ver asignaciones
               </a>
+              <button type="button" class="btn btn-outline-primary"
+                      data-bs-toggle="modal" data-bs-target="#asignarCursoModal"
+                      data-origen="perfil" data-colaborador-fijo="true"
+                      th:data-colaborador-id="${colaborador.resumen.id}">
+                Asignar curso
+              </button>
               <button type="button" class="btn btn-primary"
                       data-bs-toggle="modal" data-bs-target="#proyectosModal">
                 Proponer asignación
@@ -440,6 +446,9 @@
 
 <div th:replace="~{fragments/rm-asignacion-modales :: modalPropuesta}"></div>
 
+<!-- MODAL: ASIGNAR CURSO con el colaborador fijo (TASK-047) -->
+<div th:replace="~{fragments/rm-curso-modales :: modalAsignarCurso}"></div>
+
 <!-- MODAL: CONFIRMAR NIVEL GENERAL (TASK-036); envía #nivelExperienciaForm -->
 <div class="modal modal-blur fade rm-modal" id="nivelExperienciaModal" tabindex="-1" aria-labelledby="nivelExperienciaModalTitle" aria-hidden="true" data-nivel-select="nivelExperiencia">
   <div class="modal-dialog modal-dialog-centered">
@@ -467,6 +476,7 @@
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
 <script src="../../static/js/rm-js/rm-nivel-general.js" th:src="@{/js/rm-js/rm-nivel-general.js}"></script>
 <script src="../../static/js/rm-js/rm-propuesta-asignacion.js" th:src="@{/js/rm-js/rm-propuesta-asignacion.js}"></script>
+<script src="../../static/js/rm-js/rm-asignar-curso.js" th:src="@{/js/rm-js/rm-asignar-curso.js}"></script>
 <script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
 </body>
 </html>

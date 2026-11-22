@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Modal "Asignar curso" del RM (TASK-047). Lo usan rm-cursos, rm-solicitudes-cursos y rm-perfil-colaborador.
+  Modelo: colaboradoresCurso (RmCursoView.ColaboradorModal) y cursosModal (RmCursoView.CursoModal).
+  El botón que lo abre indica data-origen (catalogo | solicitudes | perfil) y, opcionalmente,
+  data-curso-id, data-colaborador-id y data-colaborador-fijo. Comportamiento: js/rm-js/rm-asignar-curso.js.
+  Estilos: css/rm-css/rm-asignacion-modales.css (mismos bloques que "Proponer asignación").
+-->
+<div th:fragment="modalAsignarCurso" class="modal modal-blur fade rm-modal" id="asignarCursoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Asignar curso</h5>
+          <div class="small text-secondary">Inscribe directamente a un colaborador en un curso activo. La inscripción queda “En curso”.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <!-- El form envuelve solo el cuerpo; el botón de envío usa form="asignarCursoForm". -->
+      <form method="post" th:action="@{/rm/cursos/asignar}" id="asignarCursoForm" class="modal-body">
+        <input type="hidden" name="colaboradorId" id="asignarCursoColaboradorId">
+        <input type="hidden" name="origen" id="asignarCursoOrigen" value="catalogo">
+
+        <div th:if="${#lists.isEmpty(colaboradoresCurso) or #lists.isEmpty(cursosModal)}" class="alert alert-warning">
+          No hay colaboradores o cursos vigentes disponibles para asignar.
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="mb-3">
+              <label class="form-label required" for="asignarCursoColaborador">Colaborador</label>
+              <select id="asignarCursoColaborador" class="form-select" required>
+                <option value="">Seleccionar colaborador</option>
+                <option th:each="item : ${colaboradoresCurso}" th:value="${item.id}"
+                        th:text="|${item.nombre} — ${item.cargo}|"
+                        th:data-nombre="${item.nombre}" th:data-iniciales="${item.iniciales}"
+                        th:data-foto="${item.fotoUrl}" th:data-cargo="${item.cargo}"
+                        th:data-nivel="${item.nivel}" th:data-horas="${item.horasDisponibles}"
+                        th:data-carga="${item.carga}" th:data-cursos="${item.cursosEnCurso}"
+                        th:data-bloqueados="${item.cursosBloqueados}">Colaborador</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required" for="asignarCursoCurso">Curso</label>
+              <select id="asignarCursoCurso" name="cursoId" class="form-select" required>
+                <option value="">Seleccionar curso</option>
+                <option th:each="item : ${cursosModal}" th:value="${item.id}"
+                        th:text="|${item.nombre} — ${item.horas}|"
+                        th:data-nombre="${item.nombre}" th:data-categoria="${item.categoria}"
+                        th:data-modalidad="${item.modalidad}" th:data-dias="${item.dias}"
+                        th:data-inicio="${item.fechaInicio}" th:data-fin="${item.fechaFin}"
+                        th:data-horas="${item.horas}" th:data-inscritos="${item.inscritos}"
+                        th:data-descripcion="${item.descripcion}">Curso</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required" for="asignarCursoMotivo">Motivo de la asignación</label>
+              <textarea id="asignarCursoMotivo" name="motivo" class="form-control" rows="4" maxlength="500" required
+                        placeholder="Explica por qué se recomienda esta capacitación."></textarea>
+              <div class="form-hint">Quedará guardado para mantener la trazabilidad de la decisión.</div>
+            </div>
+            <div id="asignarCursoDuplicado" class="alert alert-warning py-2 small d-none mb-0">
+              El colaborador ya tiene una solicitud pendiente o una inscripción activa en este curso.
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="propuesta-bloque mb-3">
+              <div class="propuesta-bloque-titulo">Curso</div>
+              <div class="fw-bold fs-3" data-curso-campo="nombre">Sin seleccionar</div>
+              <div class="info-grid-propuesta mt-2">
+                <div><div class="info-label">Categoría</div><div class="info-value" data-curso-campo="categoria">—</div></div>
+                <div><div class="info-label">Modalidad</div><div class="info-value" data-curso-campo="modalidad">—</div></div>
+                <div><div class="info-label">Días</div><div class="info-value" data-curso-campo="dias">—</div></div>
+                <div><div class="info-label">Horas</div><div class="info-value" data-curso-campo="horas">—</div></div>
+                <div><div class="info-label">Inicio</div><div class="info-value" data-curso-campo="inicio">—</div></div>
+                <div><div class="info-label">Fin</div><div class="info-value" data-curso-campo="fin">—</div></div>
+                <div><div class="info-label">Inscritos activos</div><div class="info-value" data-curso-campo="inscritos">—</div></div>
+              </div>
+              <div class="small text-secondary mt-2" data-curso-campo="descripcion"></div>
+            </div>
+
+            <div class="propuesta-bloque mb-3">
+              <div class="propuesta-bloque-titulo">Colaborador</div>
+              <div class="d-flex align-items-center gap-2">
+                <img id="asignarCursoFoto" class="avatar d-none" alt="Foto del colaborador">
+                <span id="asignarCursoIniciales" class="avatar bg-blue-lt text-blue">—</span>
+                <div>
+                  <div class="fw-bold fs-3" data-colaborador-campo="nombre">Sin seleccionar</div>
+                  <div class="small text-secondary" data-colaborador-campo="cargo"></div>
+                </div>
+              </div>
+              <div class="info-grid-propuesta mt-2">
+                <div><div class="info-label">Nivel general</div><div class="info-value" data-colaborador-campo="nivel">—</div></div>
+                <div><div class="info-label">Horas disponibles</div><div class="info-value" data-colaborador-campo="horas">—</div></div>
+                <div><div class="info-label">Carga actual</div><div class="info-value" data-colaborador-campo="carga">—</div></div>
+              </div>
+              <div class="mt-2"><div class="info-label">Cursos en curso</div>
+                <div class="small" data-colaborador-campo="cursos">—</div></div>
+            </div>
+
+            <div class="propuesta-bloque">
+              <div class="propuesta-bloque-titulo">Resumen</div>
+              <div class="small text-secondary">
+                Estado inicial: <span class="badge bg-blue-lt text-blue">En curso</span>.
+                Al confirmar, el colaborador recibirá una notificación con el nombre del curso.
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="asignarCursoForm" class="btn btn-primary" id="asignarCursoConfirmar"
+                th:disabled="${#lists.isEmpty(colaboradoresCurso) or #lists.isEmpty(cursosModal)}">Confirmar inscripción</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

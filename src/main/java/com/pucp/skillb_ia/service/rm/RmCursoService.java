@@ -108,6 +108,7 @@ public class RmCursoService {
     private final ColaboradorCursoService colaboradorCursoService;
 
     private final RmAlcanceService rmAlcanceService;
+    private final RmColaboradorConsultaService rmColaboradorConsultaService;
 
     public RmCursoService(CursoRepository cursoRepository,
                           ColaboradorCursoRepository colaboradorCursoRepository,
@@ -116,7 +117,9 @@ public class RmCursoService {
                           EmailService emailService,
                           AuditoriaService auditoriaService,
                           ColaboradorCursoService colaboradorCursoService,
-                          RmAlcanceService rmAlcanceService) {
+                          RmAlcanceService rmAlcanceService,
+                          RmColaboradorConsultaService rmColaboradorConsultaService) {
+        this.rmColaboradorConsultaService = rmColaboradorConsultaService;
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -264,22 +267,72 @@ public class RmCursoService {
                 todas.stream().filter(this::esEvidenciaPendiente).count());
     }
 
+    /**
+     * Colaboradores del modal "Asignar curso" (TASK-047): mismo resumen que el directorio del RM
+     * (foto, nivel, horas y carga) más sus cursos en curso y los cursos que no se pueden asignar
+     * por duplicado (misma regla que asignarDirectamente).
+     */
     @Transactional(readOnly = true)
-    public List<RmCursoView.ColaboradorOpcion> listarColaboradoresActivos() {
-        return usuarioRepository.findActivosByRolNombre(ROL_COLABORADOR).stream()
-                .map(usuario -> new RmCursoView.ColaboradorOpcion(
-                        usuario.getId(), nombreCompleto(usuario),
-                        valor(usuario.getCargo() != null ? usuario.getCargo().getNombre() : null, "Cargo sin registrar")))
+    public List<RmCursoView.ColaboradorModal> listarColaboradoresParaModal() {
+        Map<Long, List<ColaboradorCurso>> porColaborador = new HashMap<>();
+        for (ColaboradorCurso inscripcion : colaboradorCursoRepository.findAllConDetalle()) {
+            porColaborador.computeIfAbsent(inscripcion.getColaborador().getId(), id -> new ArrayList<>())
+                    .add(inscripcion);
+        }
+        return rmColaboradorConsultaService.listarColaboradoresActivos().stream()
+                .map(resumen -> {
+                    List<ColaboradorCurso> propias = porColaborador.getOrDefault(resumen.getId(), List.of());
+                    List<String> enCurso = propias.stream()
+                            .filter(item -> item.getEstado() == EstadoColaboradorCurso.EN_CURSO
+                                    || item.getEstado() == EstadoColaboradorCurso.EVIDENCIA_PENDIENTE)
+                            .map(item -> item.getCurso().getNombre()).distinct().sorted().toList();
+                    String bloqueados = propias.stream()
+                            .filter(item -> ESTADOS_DUPLICADOS.contains(item.getEstado()))
+                            .map(item -> String.valueOf(item.getCurso().getId())).distinct()
+                            .reduce((a, b) -> a + "," + b).orElse("");
+                    return new RmCursoView.ColaboradorModal(
+                            resumen.getId(), resumen.getNombreCompleto(), resumen.getIniciales(),
+                            resumen.getFotoUrl(), resumen.getCargo(), resumen.getNivel(),
+                            resumen.getHorasDisponiblesTexto() + " h/sem",
+                            resumen.getAsignacionesActivas() + " / " + resumen.getMaxAsignaciones() + " asignaciones",
+                            enCurso.isEmpty() ? "Ninguno" : String.join(", ", enCurso),
+                            bloqueados);
+                })
                 .toList();
     }
 
+    /** Cursos del modal "Asignar curso": activos y sin fecha de fin vencida (misma regla que asignarDirectamente). */
     @Transactional(readOnly = true)
-    public List<RmCursoView.CursoItem> listarCursosActivos() {
+    public List<RmCursoView.CursoModal> listarCursosParaModal() {
+        LocalDate hoy = LocalDate.now();
+        Map<Long, Long> inscritos = new HashMap<>();
+        for (ColaboradorCurso inscripcion : colaboradorCursoRepository.findAllConDetalle()) {
+            if (inscripcion.getEstado() == EstadoColaboradorCurso.EN_CURSO) {
+                inscritos.merge(inscripcion.getCurso().getId(), 1L, Long::sum);
+            }
+        }
         return cursoRepository.findByActivoTrueOrderByNombreAsc().stream()
-                .map(curso -> new RmCursoView.CursoItem(
-                        curso.getId(), curso.getNombre(), curso.getDescripcion(),
-                        valor(curso.getCategoria(), "Sin categoría"), curso.getHoras(), 0))
+                .filter(curso -> curso.getFechaFin() == null || !curso.getFechaFin().isBefore(hoy))
+                .map(curso -> new RmCursoView.CursoModal(
+                        curso.getId(), curso.getNombre(),
+                        valor(curso.getCategoria(), "Sin categoría"),
+                        textoModalidad(curso),
+                        valor(curso.getDias(), SIN_DATO),
+                        textoFecha(curso.getFechaInicio()), textoFecha(curso.getFechaFin()),
+                        textoHoras(curso.getHoras()),
+                        inscritos.getOrDefault(curso.getId(), 0L),
+                        recortar(valor(curso.getDescripcion(), "Sin descripción registrada.").trim(), 160)))
                 .toList();
+    }
+
+    private String textoModalidad(Curso curso) {
+        if (curso.isAutodidacta()) return "Autodidacta";
+        if (curso.getModalidad() == null) return SIN_DATO;
+        return switch (curso.getModalidad()) {
+            case VIRTUAL -> "Virtual";
+            case PRESENCIAL -> "Presencial";
+            case HIBRIDO -> "Híbrido";
+        };
     }
 
     @Transactional

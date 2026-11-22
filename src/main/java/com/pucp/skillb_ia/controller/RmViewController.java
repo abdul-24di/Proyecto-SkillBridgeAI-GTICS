@@ -1219,6 +1219,8 @@ public class RmViewController {
         model.addAttribute("solicitudesColaborador", contadores.solicitudesColaborador());
         model.addAttribute("activas", contadores.activas());
         model.addAttribute("historial", contadores.historial());
+        // TASK-048: acceso a las solicitudes de personal del PM con el número de pendientes.
+        model.addAttribute("solicitudesPersonalPendientes", rmSolicitudPersonalService.contarPendientes());
         // "+ Proponer asignación" (TASK-034): elegir proyecto en el modal abre su búsqueda de candidatos.
         agregarProyectosAsignables(model, filtros.proyectoId());
         return "rm/rm-asignaciones";

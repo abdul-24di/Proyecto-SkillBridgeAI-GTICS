@@ -46,7 +46,11 @@
     <div class="page-head page-head-stack-mobile page-head-button-mobile">
       <div><h1 class="page-title">Asignaciones</h1><div class="text-secondary">Gestiona aprobaciones, propuestas del RM, asignaciones activas e historial.</div></div>
       <!-- TASK-034: elegir el proyecto abre su búsqueda de candidatos, donde se propone con el modal -->
-      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#proyectosModal">+ Proponer asignación</button>
+      <div class="d-flex gap-2 flex-wrap">
+        <!-- TASK-048: acceso directo a las solicitudes de personal del PM -->
+        <a id="collaboratorRequestsLink" class="btn btn-outline-primary" th:href="@{/rm/asignaciones/solicitudes-colaboradores}">Solicitudes de colaboradores<span id="collaboratorRequestsBadge" th:if="${solicitudesPersonalPendientes != null and solicitudesPersonalPendientes > 0}" class="badge bg-red text-red-fg ms-2" th:text="${solicitudesPersonalPendientes}" th:title="|${solicitudesPersonalPendientes} pendientes|">0</span></a>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#proyectosModal">+ Proponer asignación</button>
+      </div>
     </div>
 
     <div class="row row-cards mb-4">

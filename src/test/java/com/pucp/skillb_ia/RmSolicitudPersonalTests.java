@@ -478,6 +478,55 @@ class RmSolicitudPersonalTests {
         assertFalse(html.contains("empty-state-action"));
     }
 
+    // TASK-048: Asignaciones enlaza a la bandeja y muestra cuántas solicitudes siguen pendientes.
+    @Test
+    void asignacionesEnlazaALaBandejaConElNumeroDePendientes() throws Exception {
+        String sinPendientes = html(mockMvc.perform(get("/rm/asignaciones"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("solicitudesPersonalPendientes", 0L)).andReturn());
+        assertTrue(sinPendientes.contains("id=\"collaboratorRequestsLink\" class=\"btn btn-outline-primary\" href=\""
+                + LISTADO + "\">Solicitudes de colaboradores"), sinPendientes);
+        assertFalse(sinPendientes.contains("collaboratorRequestsBadge"));
+
+        crearSolicitudDirecta(crearProyecto("Pendiente T048", Prioridad.ALTA), EstadoSolicitudPersonal.PENDIENTE, 0, 1);
+        crearSolicitudDirecta(crearProyecto("Pendiente 2 T048", Prioridad.BAJA), EstadoSolicitudPersonal.PENDIENTE, 1, 2);
+        crearSolicitudDirecta(crearProyecto("En atención T048", Prioridad.MEDIA), EstadoSolicitudPersonal.EN_ATENCION, 2, 1);
+        crearSolicitudDirecta(crearProyecto("Atendida T048", Prioridad.MEDIA), EstadoSolicitudPersonal.ATENDIDA, 3, 1);
+
+        String conPendientes = html(mockMvc.perform(get("/rm/asignaciones"))
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("solicitudesPersonalPendientes", 2L)).andReturn());
+        assertTrue(conPendientes.contains("<span id=\"collaboratorRequestsBadge\" class=\"badge bg-red text-red-fg ms-2\" "
+                + "title=\"2 pendientes\">2</span></a>"), conPendientes);
+    }
+
+    // TASK-048: "Marcar como atendida" abre un modal; el único formulario hacia /atendida está en él.
+    @Test
+    void marcarComoAtendidaSeConfirmaEnUnModalSoloEnAtencion() throws Exception {
+        SolicitudPersonal enAtencion = crearSolicitudDirecta(
+                crearProyecto("Modal T048", Prioridad.ALTA), EstadoSolicitudPersonal.EN_ATENCION, 0, 1);
+        String accion = LISTADO + "/" + enAtencion.getId() + "/atendida";
+
+        String html = html(mockMvc.perform(get(LISTADO + "/detalle").param("id", enAtencion.getId().toString()))
+                .andExpect(status().isOk()).andReturn());
+        assertTrue(html.contains("<button id=\"finishRequestButton\" class=\"btn btn-success\" type=\"button\" "
+                + "data-bs-toggle=\"modal\" data-bs-target=\"#finishRequestModal\">Marcar como atendida</button>"), html);
+        assertEquals(1, html.split("action=\"" + accion + "\"", -1).length - 1);
+        int modal = html.indexOf("id=\"finishRequestModal\"");
+        assertTrue(modal > 0 && html.indexOf("action=\"" + accion + "\"") > modal);
+        assertTrue(html.contains("no activa asignaciones"));
+        assertTrue(html.contains("<button type=\"submit\" class=\"btn btn-success\">Confirmar cierre</button>"));
+
+        for (EstadoSolicitudPersonal estado : List.of(EstadoSolicitudPersonal.PENDIENTE, EstadoSolicitudPersonal.ATENDIDA)) {
+            SolicitudPersonal otra = crearSolicitudDirecta(
+                    crearProyecto("Sin modal T048", Prioridad.BAJA), estado, 1, 1);
+            String sinModal = html(mockMvc.perform(get(LISTADO + "/detalle").param("id", otra.getId().toString()))
+                    .andExpect(status().isOk()).andReturn());
+            assertFalse(sinModal.contains("finishRequestModal"), estado.name());
+            assertFalse(sinModal.contains("/atendida\""), estado.name());
+        }
+    }
+
     private SolicitudPersonal crearSolicitudDirecta(Proyecto destino, EstadoSolicitudPersonal estado,
                                                     int horasAtras, int cantidad) {
         SolicitudPersonal solicitud = new SolicitudPersonal();

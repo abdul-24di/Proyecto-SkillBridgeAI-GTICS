@@ -88,6 +88,12 @@ public class RmSolicitudPersonalService {
                 .toList();
     }
 
+    /** Solicitudes PENDIENTE del RM actual (TASK-048: badge del acceso desde Asignaciones). */
+    @Transactional(readOnly = true)
+    public long contarPendientes() {
+        return contarPorEstado(solicitudesDelRm(), EstadoSolicitudPersonal.PENDIENTE);
+    }
+
     /**
      * Normaliza los parámetros GET del listado. Vacíos, "all" o valores desconocidos
      * significan "Todos" (null); la búsqueda se recorta a 100 caracteres.

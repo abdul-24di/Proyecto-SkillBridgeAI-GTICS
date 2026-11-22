@@ -58,9 +58,31 @@
 
   <div class="card section-card"><div class="card-header section-header"><div><h3 class="card-title mb-1">Gestionar solicitud</h3><div class="section-description">Primero inicia la atención, luego busca candidatos y crea propuestas de asignación.</div></div></div><div class="card-body">
     <div th:if="${solicitud.pendiente}" class="row align-items-center g-3"><div class="col-lg"><strong>La solicitud todavía no tiene un RM responsable.</strong><div class="text-secondary small mt-1">Al iniciar, quedará registrada a tu nombre y pasarás a la búsqueda del proyecto.</div></div><div class="col-lg-auto"><form method="post" th:action="@{/rm/asignaciones/solicitudes-colaboradores/{id}/iniciar(id=${solicitud.solicitud.id})}"><button class="btn btn-primary" type="submit">Iniciar atención y buscar</button></form></div></div>
-    <div th:if="${solicitud.enAtencion}" class="row g-3"><div class="col-md-6"><div class="action-choice"><h3>Buscar colaboradores</h3><p class="text-secondary">Revisa disponibilidad, carga y habilidades antes de proponer.</p><a class="btn btn-primary" th:href="@{/rm/proyectos/buscar-colaboradores(proyectoId=${solicitud.solicitud.proyecto.id})}">Buscar manualmente</a></div></div><div class="col-md-6"><div class="action-choice"><h3>Cerrar requerimiento</h3><p class="text-secondary">Hazlo después de generar las propuestas necesarias; no activa asignaciones automáticamente.</p><form method="post" th:action="@{/rm/asignaciones/solicitudes-colaboradores/{id}/atendida(id=${solicitud.solicitud.id})}"><button class="btn btn-success" type="submit">Marcar como atendida</button></form></div></div></div>
+    <div th:if="${solicitud.enAtencion}" class="row g-3"><div class="col-md-6"><div class="action-choice"><h3>Buscar colaboradores</h3><p class="text-secondary">Revisa disponibilidad, carga y habilidades antes de proponer.</p><a class="btn btn-primary" th:href="@{/rm/proyectos/buscar-colaboradores(proyectoId=${solicitud.solicitud.proyecto.id})}">Buscar manualmente</a></div></div><div class="col-md-6"><div class="action-choice"><h3>Cerrar requerimiento</h3><p class="text-secondary">Hazlo después de generar las propuestas necesarias; no activa asignaciones automáticamente.</p><button id="finishRequestButton" class="btn btn-success" type="button" data-bs-toggle="modal" data-bs-target="#finishRequestModal">Marcar como atendida</button></div></div></div>
     <div th:if="${solicitud.cerrada}" class="alert alert-success mb-0"><strong>Solicitud cerrada.</strong> El historial y el RM responsable se conservan para trazabilidad.</div>
   </div></div>
 </main></div>
+
+<!-- TASK-048: confirmar el cierre; recuerda que no activa asignaciones -->
+<div th:if="${solicitud.enAtencion}" class="modal modal-blur fade rm-modal" id="finishRequestModal" tabindex="-1" aria-labelledby="finishRequestModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="finishRequestModalTitle">Confirmar cierre de la solicitud</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" th:action="@{/rm/asignaciones/solicitudes-colaboradores/{id}/atendida(id=${solicitud.solicitud.id})}">
+        <div class="modal-body">
+          <p>¿Confirmas que deseas marcar la solicitud <strong th:text="${solicitud.codigo}">SOL-000</strong> como atendida?</p>
+          <div class="alert alert-warning mb-0">Marcarla como atendida <strong>no activa asignaciones</strong>: las propuestas que creaste siguen pendientes de su aprobación. La solicitud se cerrará y no podrá volver a atenderse.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Confirmar cierre</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 <script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
 </body></html>

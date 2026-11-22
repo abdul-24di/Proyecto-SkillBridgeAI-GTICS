@@ -5,6 +5,7 @@ import com.pucp.skillb_ia.service.rm.RmPresupuestoService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +23,23 @@ public class RmProyectoView {
     private final List<MiembroEquipo> equipo;
     private final List<RequisitoTalento> requisitos;
     private final RmPresupuestoService.ResumenPresupuesto resumenPresupuesto;
+    // TASK-056: solo se llenan en el detalle (RmProyectoConsultaService.obtener).
+    private final List<AsignacionProyecto> propuestas;
+    private final List<AsignacionProyecto> participantes;
 
     public RmProyectoView(Proyecto proyecto, String pmNombre, String estadoTexto, String prioridadTexto,
                           int integrantesActivos, int vacantes, int pendientesRm,
                           List<MiembroEquipo> equipo, List<RequisitoTalento> requisitos,
                           RmPresupuestoService.ResumenPresupuesto resumenPresupuesto) {
+        this(proyecto, pmNombre, estadoTexto, prioridadTexto, integrantesActivos, vacantes, pendientesRm,
+                equipo, requisitos, resumenPresupuesto, List.of(), List.of());
+    }
+
+    public RmProyectoView(Proyecto proyecto, String pmNombre, String estadoTexto, String prioridadTexto,
+                          int integrantesActivos, int vacantes, int pendientesRm,
+                          List<MiembroEquipo> equipo, List<RequisitoTalento> requisitos,
+                          RmPresupuestoService.ResumenPresupuesto resumenPresupuesto,
+                          List<AsignacionProyecto> propuestas, List<AsignacionProyecto> participantes) {
         this.proyecto = proyecto;
         this.pmNombre = pmNombre;
         this.estadoTexto = estadoTexto;
@@ -37,7 +50,27 @@ public class RmProyectoView {
         this.equipo = List.copyOf(equipo);
         this.requisitos = List.copyOf(requisitos);
         this.resumenPresupuesto = resumenPresupuesto;
+        this.propuestas = List.copyOf(propuestas);
+        this.participantes = List.copyOf(participantes);
     }
+
+    /** Todas las asignaciones del proyecto, en cualquier estado (TASK-056). */
+    public List<AsignacionProyecto> getPropuestas() { return propuestas; }
+
+    /** Quienes llegaron a trabajar en el proyecto: asignaciones activas o finalizadas con fecha de activación. */
+    public List<AsignacionProyecto> getParticipantes() { return participantes; }
+
+    /** Proyecto cerrado: el equipo se muestra como histórico de participantes. */
+    public boolean isCerrado() {
+        return proyecto.getEstado() == com.pucp.skillb_ia.model.enums.EstadoProyecto.FINALIZADO
+                || proyecto.getEstado() == com.pucp.skillb_ia.model.enums.EstadoProyecto.CANCELADO;
+    }
+
+    public record AsignacionProyecto(Long asignacionId, Long colaboradorId, String colaboradorNombre,
+                                     String iniciales, String cargo, BigDecimal horasSemanales,
+                                     String origenTexto, String estadoTexto, String estadoClase,
+                                     LocalDateTime fechaSolicitud, LocalDateTime fechaActivacion,
+                                     LocalDateTime fechaFinalizacion) {}
 
     public RmPresupuestoService.ResumenPresupuesto getResumenPresupuesto() { return resumenPresupuesto; }
 

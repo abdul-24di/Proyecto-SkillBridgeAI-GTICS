@@ -1869,7 +1869,9 @@ class RmProyectoViewTests {
 
         activarProyecto();
         String detalle = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
-        org.junit.jupiter.api.Assertions.assertEquals(2, contar(detalle, "class=\"empty-state\""));
+        // TASK-056: la card "Colaboradores propuestos" agrega su propio estado vacío.
+        org.junit.jupiter.api.Assertions.assertEquals(3, contar(detalle, "class=\"empty-state\""));
+        org.junit.jupiter.api.Assertions.assertTrue(detalle.contains("<div class=\"empty-state-title\">Sin propuestas</div>"));
         org.junit.jupiter.api.Assertions.assertTrue(detalle.contains("<div class=\"empty-state-title\">Sin integrantes activos</div>"));
         org.junit.jupiter.api.Assertions.assertTrue(detalle.contains("El proyecto todavía no tiene integrantes activos."));
         org.junit.jupiter.api.Assertions.assertTrue(detalle.contains("<div class=\"empty-state-title\">Sin habilidades requeridas</div>"));
@@ -1879,11 +1881,68 @@ class RmProyectoViewTests {
         // Con un requisito, la condición deja de mostrar ese estado vacío en ambas vistas.
         guardarRequisito("Requisito T031", NivelDominio.INTERMEDIO, 1);
         String detalleConRequisito = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
-        org.junit.jupiter.api.Assertions.assertEquals(1, contar(detalleConRequisito, "class=\"empty-state\""));
+        org.junit.jupiter.api.Assertions.assertEquals(2, contar(detalleConRequisito, "class=\"empty-state\""));
         org.junit.jupiter.api.Assertions.assertFalse(detalleConRequisito.contains("No se registraron habilidades requeridas."));
         fijarEstado(EstadoProyecto.EN_REVISION);
         org.junit.jupiter.api.Assertions.assertEquals(0,
                 contar(renderizar("/rm/proyectos/revision?id=" + proyectoId), "class=\"empty-state\""));
+    }
+
+    // TASK-056: todas las asignaciones del proyecto activo, con su estado y enlace al detalle.
+    @Test
+    void detalleActivoListaColaboradoresPropuestosEnCualquierEstado() throws Exception {
+        activarProyecto();
+        Asignacion pendienteRm = guardarAsignacion(EstadoAsignacion.PENDIENTE, false);
+        Asignacion pendientePm = guardarAsignacion(EstadoAsignacion.PENDIENTE, true);
+        pendientePm.setAprobadoPorPm(false);
+        asignacionRepository.save(pendientePm);
+        Asignacion rechazada = guardarAsignacion(EstadoAsignacion.RECHAZADA, false);
+        Asignacion activa = guardarAsignacion(EstadoAsignacion.ACTIVA, true);
+        activa.setFechaActivacion(java.time.LocalDateTime.now());
+        asignacionRepository.save(activa);
+
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("id=\"projectProposalsCard\""));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("<div class=\"empty-state-title\">Sin propuestas</div>"));
+        for (String estado : List.of(">Pendiente RM<", ">Pendiente PM<", ">Rechazada<", ">Activa<")) {
+            org.junit.jupiter.api.Assertions.assertTrue(html.contains(estado), estado);
+        }
+        for (Asignacion asignacion : List.of(pendienteRm, pendientePm, rechazada, activa)) {
+            String enlace = "href=\"/rm/asignaciones/activa?id=" + asignacion.getId() + "&amp;origen=proyecto\"";
+            org.junit.jupiter.api.Assertions.assertTrue(html.contains(enlace), enlace);
+        }
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("id=\"projectParticipantsTable\""));
+    }
+
+    // TASK-056: en un proyecto finalizado el equipo muestra a quienes participaron, con su periodo.
+    @Test
+    void detalleFinalizadoMuestraEquipoHistorico() throws Exception {
+        Asignacion finalizada = guardarAsignacion(EstadoAsignacion.FINALIZADA, true);
+        finalizada.setFechaActivacion(java.time.LocalDateTime.of(2026, 3, 2, 9, 0));
+        finalizada.setFechaFinalizacion(java.time.LocalDateTime.of(2026, 6, 30, 18, 0));
+        asignacionRepository.save(finalizada);
+        Asignacion rechazada = guardarAsignacion(EstadoAsignacion.RECHAZADA, false);
+        fijarEstado(EstadoProyecto.FINALIZADO);
+
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("Colaboradores que participaron en el proyecto."));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("id=\"projectParticipantsTable\""));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("02/03/2026 – 30/06/2026"));
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains(
+                "href=\"/rm/asignaciones/activa?id=" + finalizada.getId() + "&amp;origen=proyecto\""));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains(
+                "href=\"/rm/asignaciones/activa?id=" + rechazada.getId() + "&amp;origen=proyecto\""));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("Sin integrantes activos"));
+        org.junit.jupiter.api.Assertions.assertFalse(html.contains("id=\"projectProposalsCard\""));
+    }
+
+    @Test
+    void detalleFinalizadoSinParticipantesUsaEstadoVacio() throws Exception {
+        fijarEstado(EstadoProyecto.FINALIZADO);
+        String html = renderizar("/rm/proyectos/detalle?id=" + proyectoId);
+        org.junit.jupiter.api.Assertions.assertTrue(html.contains("<div class=\"empty-state-title\">Sin participantes registrados</div>"));
     }
 
     private RmViewController controladorCon(RmProyectoConsultaService consulta) {

@@ -1,5 +1,6 @@
 package com.pucp.skillb_ia.service.rm;
 
+import com.pucp.skillb_ia.dto.RmAsignacionView;
 import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Proyecto;
@@ -14,8 +15,10 @@ import com.pucp.skillb_ia.repository.ProyectoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -66,7 +69,7 @@ public class RmProyectoConsultaService {
         List<RmProyectoView> resultado = new ArrayList<>();
         for (Proyecto proyecto : proyectoRepository.findAllConPmOrderByFechaCreacionDesc()) {
             if (rmAlcanceService.puedeVer(proyecto, rmId)) {
-                resultado.add(crearVista(proyecto));
+                resultado.add(crearVista(proyecto, false));
             }
         }
         return resultado;
@@ -161,10 +164,11 @@ public class RmProyectoConsultaService {
             throw new IllegalArgumentException("No se encontró el proyecto solicitado.");
         }
         proyecto.getPm().getNombre();
-        return crearVista(proyecto);
+        return crearVista(proyecto, true);
     }
 
-    private RmProyectoView crearVista(Proyecto proyecto) {
+    // conDetalle: arma también las propuestas y los participantes (TASK-056); el listado no los necesita.
+    private RmProyectoView crearVista(Proyecto proyecto, boolean conDetalle) {
         List<Asignacion> asignaciones = asignacionRepository.findByProyecto(proyecto);
         List<Asignacion> activas = asignaciones.stream()
                 .filter(a -> a.getEstado() == EstadoAsignacion.ACTIVA)
@@ -188,6 +192,24 @@ public class RmProyectoConsultaService {
                 .toList();
 
         int vacantes = Math.max(0, proyecto.getColaboradoresRequeridos() - activas.size());
+
+        List<RmProyectoView.AsignacionProyecto> propuestas = List.of();
+        List<RmProyectoView.AsignacionProyecto> participantes = List.of();
+        if (conDetalle) {
+            propuestas = asignaciones.stream()
+                    .sorted(Comparator.comparing(Asignacion::getFechaSolicitud,
+                            Comparator.nullsLast(Comparator.reverseOrder())))
+                    .map(this::crearAsignacionProyecto)
+                    .toList();
+            participantes = asignaciones.stream()
+                    .filter(a -> a.getFechaActivacion() != null
+                            && (a.getEstado() == EstadoAsignacion.ACTIVA
+                                || a.getEstado() == EstadoAsignacion.FINALIZADA))
+                    .sorted(Comparator.comparing(Asignacion::getFechaActivacion))
+                    .map(this::crearAsignacionProyecto)
+                    .toList();
+        }
+
         return new RmProyectoView(
                 proyecto,
                 nombreCompleto(proyecto.getPm()),
@@ -198,7 +220,29 @@ public class RmProyectoConsultaService {
                 pendientesRm,
                 equipo,
                 requisitos,
-                presupuestoService.calcularResumen(proyecto));
+                presupuestoService.calcularResumen(proyecto),
+                propuestas,
+                participantes);
+    }
+
+    private RmProyectoView.AsignacionProyecto crearAsignacionProyecto(Asignacion asignacion) {
+        Usuario colaborador = asignacion.getColaborador();
+        // Mismos textos y colores de estado y origen que la bandeja de asignaciones (RmAsignacionView).
+        RmAsignacionView estado = new RmAsignacionView(
+                asignacion, null, null, null, 0, 0, BigDecimal.ZERO, 0, 0, List.of());
+        return new RmProyectoView.AsignacionProyecto(
+                asignacion.getId(),
+                colaborador.getId(),
+                nombreCompleto(colaborador),
+                iniciales(colaborador),
+                valor(colaborador.getCargo() != null ? colaborador.getCargo().getNombre() : null, "Cargo sin registrar"),
+                asignacion.getHorasSemanales(),
+                estado.getOrigenTexto(),
+                estado.getEstadoBandeja(),
+                estado.getEstadoClase(),
+                asignacion.getFechaSolicitud(),
+                asignacion.getFechaActivacion(),
+                asignacion.getFechaFinalizacion());
     }
 
     private boolean requiereDecisionRm(Asignacion asignacion) {

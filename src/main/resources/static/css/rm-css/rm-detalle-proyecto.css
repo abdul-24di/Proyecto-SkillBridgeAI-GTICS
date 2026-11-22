@@ -46,6 +46,11 @@
   gap: 1.25rem;
 }
 
+/* Resumen financiero: 4 montos en una fila si caben; 2x2 en columnas angostas. */
+.project-info-grid.budget-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 .project-budget-line {
   display: flex;
   align-items: center;

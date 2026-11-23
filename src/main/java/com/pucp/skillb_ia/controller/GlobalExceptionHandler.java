@@ -34,6 +34,7 @@ public class GlobalExceptionHandler {
             redirectAttributes.addFlashAttribute("abrirModalSubirDocumento", true);
         } else {
             redirectAttributes.addFlashAttribute("mensajeError", mensaje);
+            redirectAttributes.addFlashAttribute("error", mensaje);
         }
         return "redirect:" + paginaAnterior(request, "/");
     }
@@ -42,13 +43,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public String errorNegocio(Exception ex, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("error", ex.getMessage());
+        redirectAttributes.addFlashAttribute("mensajeError", ex.getMessage());
         return "redirect:" + paginaAnterior(request, "/");
     }
 
     // Intento de acceder a un recurso que no le pertenece
     @ExceptionHandler(SecurityException.class)
     public String errorSeguridad(HttpServletRequest request, RedirectAttributes redirectAttributes) {
-        redirectAttributes.addFlashAttribute("error", "No tienes permiso para realizar esta acción.");
+        String mensaje = "No tienes permiso para realizar esta acción.";
+        redirectAttributes.addFlashAttribute("error", mensaje);
+        redirectAttributes.addFlashAttribute("mensajeError", mensaje);
         return "redirect:" + paginaAnterior(request, "/");
     }
 

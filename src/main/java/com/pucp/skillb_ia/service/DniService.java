@@ -132,6 +132,7 @@ public class DniService {
      * Consulta el DNI en apisperu.com: GET {url}/{dni} con Authorization: Bearer {token}.
      * Nunca lanza excepciones: cualquier problema de la API se devuelve como NO_DISPONIBLE.
      */
+    @SuppressWarnings("unchecked")
     public Consulta consultar(String dni) {
         if (apiKey.isEmpty()) {
             return new Consulta(EstadoConsulta.NO_DISPONIBLE, null);
@@ -143,7 +144,7 @@ public class DniService {
         try {
             ResponseEntity<Map> respuesta = restTemplate.exchange(url + "/" + dni, HttpMethod.GET,
                     new HttpEntity<>(headers), Map.class);
-            Map<String, Object> cuerpo = respuesta.getBody();
+            Map<String, Object> cuerpo = (Map<String, Object>) respuesta.getBody();
             if (cuerpo != null && Boolean.FALSE.equals(cuerpo.get("success"))) {
                 String mensaje = cuerpo.get("message") instanceof String m ? m : "";
                 // Solo "DNI no encontrado" bloquea el registro; cualquier otro rechazo (token, plan, límite,

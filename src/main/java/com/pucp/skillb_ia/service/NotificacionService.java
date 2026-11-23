@@ -170,8 +170,13 @@ public class NotificacionService {
             if (esPm) return "/pm/proyectos/detalle?id=" + item.getEntidadId();
             if (esRm) return "/rm/proyectos/detalle?id=" + item.getEntidadId();
         }
-        if ("CERTIFICADO".equals(item.getEntidad()) && esColaborador) {
-            return "/colaborador/perfil";
+        if ("CERTIFICADO".equals(item.getEntidad())) {
+            if (esRm) {
+                return item.getEntidadId() != null
+                        ? "/rm/colaboradores/certificados/revision?id=" + item.getEntidadId()
+                        : "/rm/colaboradores/certificados";
+            }
+            if (esColaborador) return "/colaborador/perfil";
         }
         if ("EDUCACION".equals(item.getEntidad()) && item.getEntidadId() != null) {
             if (esRm) return "/rm/colaboradores/educacion/revision?id=" + item.getEntidadId();
@@ -278,6 +283,7 @@ public class NotificacionService {
         if (esPm) return "/pm/dashboard";
         if (esRm) return "/rm/dashboard";
         if (esColaborador) return "/colaborador/dashboard";
+        if ("ADMINISTRADOR".equals(rolNombre)) return "/admin/dashboard";
         
         return "#";
     }

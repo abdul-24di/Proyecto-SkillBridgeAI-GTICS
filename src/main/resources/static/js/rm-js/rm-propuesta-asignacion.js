@@ -178,14 +178,21 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
           var reqs = JSON.parse(datos.proyectoRequisitos);
           if (reqs && reqs.length > 0) {
-            var html = "";
+            reqLista.textContent = "";
             reqs.forEach(function(r) {
-              html += '<div class="border rounded p-2 bg-light text-center flex-fill">' +
-                      '<div class="fw-semibold">' + r.habilidad + '</div>' +
-                      '<div class="small text-secondary">' + r.nivel + ' · ' + r.cantidad + ' persona(s) · ' + (r.horas !== null ? r.horas + ' h/sem' : 'Sin definir horas') + '</div>' +
-                      '</div>';
+              var caja = document.createElement("div");
+              caja.className = "border rounded p-2 bg-light text-center flex-fill";
+              var titulo = document.createElement("div");
+              titulo.className = "fw-semibold";
+              titulo.textContent = r.habilidad || "";
+              var detalle = document.createElement("div");
+              detalle.className = "small text-secondary";
+              detalle.textContent = (r.nivel || "") + " · " + (r.cantidad || 0) + " persona(s) · "
+                + (r.horas !== null && r.horas !== undefined ? r.horas + " h/sem" : "Sin definir horas");
+              caja.appendChild(titulo);
+              caja.appendChild(detalle);
+              reqLista.appendChild(caja);
             });
-            reqLista.innerHTML = html;
             reqWrap.classList.remove("d-none");
           } else {
             reqWrap.classList.add("d-none");

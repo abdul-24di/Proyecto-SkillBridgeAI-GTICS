@@ -238,6 +238,7 @@ public class ColaboradorCursoService {
     // VENCIÓ SIN EVIDENCIA. Al cambiar el estado, una segunda ejecución ya no los vuelve a tocar.
     // Si aún no vence pero faltan DIAS_AVISO_FIN_CURSO días o menos, se avisa una sola vez al colaborador.
     // ============================================================
+    @Transactional
     public void marcarCursosSinEvidenciaVencidos(Usuario colaborador) {
         marcarSinEvidenciaVencidos(colaboradorCursoRepository.findByColaborador(colaborador));
     }

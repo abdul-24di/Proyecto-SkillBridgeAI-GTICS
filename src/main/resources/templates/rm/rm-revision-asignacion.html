@@ -45,60 +45,83 @@
       <th:block th:each="miga : ${navegacion.migas}"><a class="breadcrumb-link" th:href="@{${miga.url}}" th:text="${miga.texto}">Asignaciones</a><span class="breadcrumb-separator">›</span></th:block>
       <span class="text-secondary" th:text="${navegacion.actual}">Asignación</span>
     </nav>
+
+    <!-- Misma estructura que el detalle de una asignación (TASK-057): cabecera con estado y acciones -->
     <div class="page-head page-head-stack-mobile">
       <div>
         <a class="text-secondary text-decoration-none small" th:href="@{${navegacion.volverUrl}}" th:text="|← ${navegacion.volverTexto}|">← Volver a asignaciones</a>
         <h1 class="page-title mt-2"
             th:text="${asignacion.solicitudColaborador} ? 'Revisión de solicitud del colaborador' : 'Revisión de propuesta de asignación'">Revisión</h1>
-        <div class="text-secondary" th:text="|Asignación #${asignacion.asignacion.id} · ${asignacion.origenTexto}|">Asignación</div>
+        <div class="text-secondary" th:text="|${asignacion.asignacion.proyecto.nombre} · Asignación #${asignacion.asignacion.id} · ${asignacion.origenTexto}|">Asignación</div>
       </div>
-      <span class="badge bg-yellow-lt fs-6 status-badge"
-            th:text="${asignacion.solicitudColaborador and asignacion.asignacion.estado.name() == 'PENDIENTE' and !asignacion.asignacion.aprobadoPorRm and !asignacion.asignacion.aprobadoPorPm ? 'Pendiente RM y PM' : 'Pendiente de aprobación del Resource Manager'}">Pendiente de aprobación del Resource Manager</span>
+      <div class="decision-actions">
+        <span class="badge bg-yellow-lt fs-6 status-badge"
+              th:text="${asignacion.solicitudColaborador and asignacion.asignacion.estado.name() == 'PENDIENTE' and !asignacion.asignacion.aprobadoPorRm and !asignacion.asignacion.aprobadoPorPm ? 'Pendiente RM y PM' : 'Pendiente de aprobación del Resource Manager'}">Pendiente de aprobación del Resource Manager</span>
+        <button type="button" class="btn btn-outline-danger decision-button"
+                data-bs-toggle="modal" data-bs-target="#rejectAssignmentModal">Rechazar asignación</button>
+        <button type="button" class="btn btn-success decision-button"
+                data-bs-toggle="modal" data-bs-target="#approveAssignmentModal"
+                th:disabled="${!impacto.suficiente or asignacion.superaDisponibilidad}">Aprobar asignación</button>
+      </div>
     </div>
 
-    <div class="row g-4 align-items-start review-row">
-      <div class="col-lg-6">
-        <div class="card section-card">
-          <div class="card-header section-header">
-            <div>
-              <h3 class="card-title mb-1">Proyecto</h3>
-              <div class="section-description">Contexto del proyecto solicitado.</div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start gap-3">
-              <div>
-                <h3 class="mb-1" th:text="${asignacion.asignacion.proyecto.nombre}">Proyecto</h3>
-                <div class="text-secondary" th:text="${asignacion.asignacion.proyecto.descripcion}"></div>
-              </div>
-              <span class="badge project-status-badge"
-                    th:classappend="${asignacion.asignacion.proyecto.estado.name() == 'ACTIVO' ? 'bg-green-lt' : (asignacion.asignacion.proyecto.estado.name() == 'EN_REVISION' ? 'bg-yellow-lt' : (asignacion.asignacion.proyecto.estado.name() == 'EN_ESPERA' ? 'bg-orange-lt' : 'bg-secondary-lt'))}"
-                    th:text="${asignacion.asignacion.proyecto.estado.name() == 'EN_REVISION' ? 'En revisión' : (asignacion.asignacion.proyecto.estado.name() == 'EN_ESPERA' ? 'En espera' : #strings.capitalize(#strings.toLowerCase(asignacion.asignacion.proyecto.estado.name())))}">Activo</span>
-            </div>
-            <div class="info-grid mt-4">
-              <div><div class="label-small">Project Manager</div><div class="value-strong" th:text="${asignacion.projectManagerNombre}">PM</div></div>
-              <div><div class="label-small">Equipo actual</div><div class="value-strong" th:text="|${asignacion.equipoActual} / ${asignacion.asignacion.proyecto.colaboradoresRequeridos} integrantes|">0</div></div>
-              <div><div class="label-small">Vacantes</div><div class="value-strong" th:text="${asignacion.vacantes}">0</div></div>
-              <div><div class="label-small">Presupuesto</div><div class="value-strong" th:text="${asignacion.asignacion.proyecto.presupuesto == null ? 'Sin asignar' : 'S/ ' + #numbers.formatDecimal(asignacion.asignacion.proyecto.presupuesto, 1, 'COMMA', 2, 'POINT')}">Sin asignar</div></div>
-            </div>
-            <a class="btn btn-outline-primary btn-sm mt-4" th:href="@{/rm/proyectos/detalle(id=${asignacion.asignacion.proyecto.id})}">Ver proyecto</a>
-          </div>
-        </div>
+    <!-- Indicadores -->
+    <div class="row row-cards mb-3">
+      <div class="col-sm-6 col-xl-3">
+        <div class="card summary-card h-100"><div class="card-body d-flex align-items-center gap-3">
+          <span class="summary-icon bg-blue-lt text-blue">h</span>
+          <div><div class="summary-label">Horas semanales</div>
+            <div class="summary-number" id="indicadorHoras" th:text="|${asignacion.asignacion.horasSemanales} h|">0 h</div>
+            <div class="summary-hint" th:text="|Disponibles: ${asignacion.horasDisponibles} h|">Disponibles</div></div>
+        </div></div>
       </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card summary-card h-100"><div class="card-body d-flex align-items-center gap-3">
+          <span class="summary-icon bg-green-lt text-green">S/</span>
+          <div><div class="summary-label">Costo semanal</div>
+            <div class="summary-number" id="indicadorCostoSemanal" th:text="${impacto.costo.calculable} ? 'S/ ' + ${#numbers.formatDecimal(impacto.costo.costoSemanal, 1, 'COMMA', 2, 'POINT')} : 'Sin datos'">S/ 0.00</div>
+            <div class="summary-hint" th:if="${impacto.costo.calculable}" th:text="|S/ ${#numbers.formatDecimal(impacto.costo.valorHora, 1, 'COMMA', 2, 'POINT')} por hora|">Por hora</div>
+            <div class="summary-hint" th:unless="${impacto.costo.calculable}">Falta el sueldo o las fechas</div></div>
+        </div></div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card summary-card h-100"><div class="card-body d-flex align-items-center gap-3">
+          <span class="summary-icon bg-azure-lt text-azure">Σ</span>
+          <div><div class="summary-label">Costo total estimado</div>
+            <div class="summary-number" id="indicadorCostoTotal" th:text="${impacto.costo.calculable} ? 'S/ ' + ${#numbers.formatDecimal(impacto.costo.costoTotal, 1, 'COMMA', 2, 'POINT')} : 'Sin datos'">S/ 0.00</div>
+            <div class="summary-hint" th:if="${impacto.costo.calculable}" th:text="|${impacto.costo.duracionSemanas} semanas del proyecto|">Duración</div>
+            <div class="summary-hint" th:unless="${impacto.costo.calculable}">Falta el sueldo o las fechas</div></div>
+        </div></div>
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        <div class="card summary-card h-100"><div class="card-body d-flex align-items-center gap-3">
+          <span class="summary-icon" th:classappend="${impacto.suficiente} ? 'bg-green-lt text-green' : 'bg-red-lt text-red'">✓</span>
+          <div><div class="summary-label">Presupuesto disponible después</div>
+            <div class="summary-number" id="indicadorDisponibleDespues" th:classappend="${impacto.suficiente} ? 'text-success' : 'text-danger'"
+                 th:text="'S/ ' + ${#numbers.formatDecimal(impacto.disponibleDespues, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</div>
+            <div class="summary-hint" th:text="${impacto.suficiente} ? 'Presupuesto suficiente' : 'Presupuesto insuficiente'">Presupuesto</div></div>
+        </div></div>
+      </div>
+    </div>
 
+    <!-- Colaborador y proyecto -->
+    <div class="row row-cards mb-3">
       <div class="col-lg-6">
-        <div class="card section-card">
+        <div class="card section-card h-100">
           <div class="card-header section-header">
             <div>
               <h3 class="card-title mb-1">Colaborador</h3>
               <div class="section-description">Disponibilidad y carga antes de tomar la decisión.</div>
             </div>
           </div>
-          <div class="card-body">
+          <div class="card-body d-flex flex-column">
             <div class="d-flex align-items-center gap-3">
-              <span class="avatar profile-avatar bg-blue-lt text-blue" th:text="${asignacion.colaboradorIniciales}">CO</span>
-              <div>
-                <h3 class="mb-1" th:text="${asignacion.colaboradorNombre}">Colaborador</h3>
+              <img th:if="${asignacion.asignacion.colaborador.fotoUrl != null and !asignacion.asignacion.colaborador.fotoUrl.isBlank()}"
+                   th:src="${asignacion.asignacion.colaborador.fotoUrl}" class="avatar profile-avatar" alt="Foto del colaborador">
+              <span th:unless="${asignacion.asignacion.colaborador.fotoUrl != null and !asignacion.asignacion.colaborador.fotoUrl.isBlank()}"
+                    class="avatar profile-avatar bg-blue-lt text-blue" th:text="${asignacion.colaboradorIniciales}">CO</span>
+              <div class="min-width-0">
+                <div class="value-strong fs-3" th:text="${asignacion.colaboradorNombre}">Colaborador</div>
                 <div class="text-secondary" th:text="${asignacion.asignacion.colaborador.cargo?.nombre ?: 'Cargo sin registrar'}">Cargo</div>
               </div>
             </div>
@@ -106,23 +129,92 @@
               <span th:each="habilidad : ${asignacion.habilidades}" class="badge bg-blue-lt me-1" th:text="${habilidad}">Habilidad</span>
               <span th:if="${#lists.isEmpty(asignacion.habilidades)}" class="text-secondary small">Sin habilidades registradas</span>
             </div>
-            <div class="info-grid mt-4">
+            <div class="info-grid mt-3">
               <div><div class="label-small">Disponibilidad declarada</div><div class="value-strong" th:classappend="${asignacion.superaDisponibilidad} ? 'text-danger' : 'text-success'" th:text="|${asignacion.horasDisponibles} h / semana|">0</div></div>
               <div><div class="label-small">Carga actual</div><div class="value-strong" th:classappend="${asignacion.superaLimite} ? 'text-danger' : ''" th:text="|${asignacion.asignacionesActivas} / ${asignacion.maxAsignaciones} asignaciones|">0</div></div>
               <div><div class="label-small">Horas comprometidas</div><div class="value-strong" th:text="|${asignacion.horasComprometidas} h / semana|">0</div></div>
               <div><div class="label-small">Experiencia</div><div class="value-strong" th:text="${asignacion.asignacion.colaborador.nivelExperiencia ?: 'Sin definir'}">Nivel</div></div>
             </div>
-            <div th:if="${asignacion.superaDisponibilidad}" class="alert alert-danger mt-4 mb-0">Las horas solicitadas superan la disponibilidad del colaborador; no se puede aprobar.</div>
-            <div th:if="${asignacion.superaLimite and !asignacion.superaDisponibilidad}" class="alert alert-warning mt-4 mb-0">El colaborador alcanzó el límite de asignaciones activas. Para aprobarla deberás justificar la excepción.</div>
-            <div th:unless="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-success mt-4 mb-0">La carga y disponibilidad están dentro de los límites registrados.</div>
+            <div th:if="${asignacion.superaDisponibilidad}" class="alert alert-danger mt-3 mb-0">Las horas solicitadas superan la disponibilidad del colaborador; no se puede aprobar.</div>
+            <div th:if="${asignacion.superaLimite and !asignacion.superaDisponibilidad}" class="alert alert-warning mt-3 mb-0">El colaborador alcanzó el límite de asignaciones activas. Para aprobarla deberás justificar la excepción.</div>
+            <div th:unless="${asignacion.superaLimite or asignacion.superaDisponibilidad}" class="alert alert-success mt-3 mb-0">La carga y disponibilidad están dentro de los límites registrados.</div>
+            <div class="mt-auto pt-3"><a class="btn btn-outline-primary btn-sm" id="verPerfilColaborador"
+               th:href="@{/rm/colaboradores/perfil(id=${asignacion.asignacion.colaborador.id})}">Ver perfil</a></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Proyecto</h3>
+              <div class="section-description">Contexto del proyecto solicitado.</div>
+            </div>
+          </div>
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-start gap-3">
+              <div class="min-width-0">
+                <div class="value-strong fs-3" th:text="${asignacion.asignacion.proyecto.nombre}">Proyecto</div>
+                <div class="text-secondary" th:text="${asignacion.asignacion.proyecto.descripcion}"></div>
+              </div>
+              <span class="badge project-status-badge"
+                    th:classappend="${asignacion.asignacion.proyecto.estado.name() == 'ACTIVO' ? 'bg-green-lt' : (asignacion.asignacion.proyecto.estado.name() == 'EN_REVISION' ? 'bg-yellow-lt' : (asignacion.asignacion.proyecto.estado.name() == 'EN_ESPERA' ? 'bg-orange-lt' : 'bg-secondary-lt'))}"
+                    th:text="${asignacion.proyectoEstadoTexto}">Activo</span>
+            </div>
+            <div class="info-grid mt-3">
+              <div><div class="label-small">Project Manager</div><div class="value-strong" th:text="${asignacion.projectManagerNombre}">PM</div></div>
+              <div><div class="label-small">Equipo actual</div><div class="value-strong" th:text="|${asignacion.equipoActual} / ${asignacion.asignacion.proyecto.colaboradoresRequeridos} integrantes|">0</div></div>
+              <div><div class="label-small">Vacantes</div><div class="value-strong" th:text="${asignacion.vacantes}">0</div></div>
+              <div><div class="label-small">Presupuesto</div><div class="value-strong" th:text="${asignacion.asignacion.proyecto.presupuesto == null ? 'Sin asignar' : 'S/ ' + #numbers.formatDecimal(asignacion.asignacion.proyecto.presupuesto, 1, 'COMMA', 2, 'POINT')}">Sin asignar</div></div>
+              <div><div class="label-small">Inicio</div><div class="value-strong" th:text="${asignacion.asignacion.proyecto.fechaInicio != null} ? ${#temporals.format(asignacion.asignacion.proyecto.fechaInicio, 'dd MMM yyyy')} : 'Sin fecha'">Fecha</div></div>
+              <div><div class="label-small">Fin estimado</div><div class="value-strong" th:text="${asignacion.asignacion.proyecto.fechaFinEstimada != null} ? ${#temporals.format(asignacion.asignacion.proyecto.fechaFinEstimada, 'dd MMM yyyy')} : 'Sin fecha'">Fecha</div></div>
+            </div>
+            <div class="mt-auto pt-3"><a class="btn btn-outline-primary btn-sm" th:href="@{/rm/proyectos/detalle(id=${asignacion.asignacion.proyecto.id})}">Ver proyecto</a></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="row g-4 align-items-start review-row mt-1">
-      <div class="col-lg-6">
-        <div class="card section-card">
+    <!-- Línea de tiempo y solicitud -->
+    <div class="row row-cards mb-3">
+      <div class="col-lg-5">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Línea de tiempo</h3>
+              <div class="section-description">La asignación se activa con ambas aprobaciones.</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <ol class="assignment-timeline" id="lineaTiempo">
+              <li class="timeline-step is-done">
+                <span class="timeline-dot"></span>
+                <div><div class="timeline-title">Solicitada</div>
+                  <div class="timeline-date" th:text="${asignacion.asignacion.fechaSolicitud != null} ? ${#temporals.format(asignacion.asignacion.fechaSolicitud, 'dd MMM yyyy HH:mm')} : 'Sin fecha'">Fecha</div></div>
+              </li>
+              <li class="timeline-step" th:classappend="${asignacion.asignacion.aprobadoPorPm} ? 'is-done' : 'is-pending'">
+                <span class="timeline-dot"></span>
+                <div><div class="timeline-title">Aprobación del PM</div>
+                  <div class="timeline-date" th:text="${asignacion.asignacion.fechaAprobacionPm != null} ? ${#temporals.format(asignacion.asignacion.fechaAprobacionPm, 'dd MMM yyyy HH:mm')} : (${asignacion.asignacion.aprobadoPorPm} ? 'Aprobada' : 'Pendiente')">Fecha</div></div>
+              </li>
+              <li class="timeline-step is-current">
+                <span class="timeline-dot"></span>
+                <div><div class="timeline-title">Aprobación del RM</div>
+                  <div class="timeline-date">Pendiente de tu decisión</div></div>
+              </li>
+              <li class="timeline-step is-pending">
+                <span class="timeline-dot"></span>
+                <div><div class="timeline-title">Activación</div>
+                  <div class="timeline-date">Cuando ambas aprobaciones estén registradas</div></div>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="card section-card h-100">
           <div class="card-header section-header">
             <div>
               <h3 class="card-title mb-1">Datos de la solicitud</h3>
@@ -130,7 +222,7 @@
             </div>
           </div>
           <div class="card-body">
-            <div class="info-grid">
+            <div class="info-grid info-grid-three">
               <div><div class="label-small">Origen</div><div class="value-strong" th:text="${asignacion.origenTexto}">Origen</div></div>
               <div><div class="label-small">Horas semanales</div><div class="value-strong text-primary" th:text="|${asignacion.asignacion.horasSemanales} h / semana|">0</div></div>
               <div><div class="label-small">Fecha de solicitud</div><div class="value-strong" th:text="${#temporals.format(asignacion.asignacion.fechaSolicitud, 'dd MMM yyyy HH:mm')}">Fecha</div></div>
@@ -142,64 +234,50 @@
           </div>
         </div>
       </div>
-
-      <div class="col-lg-6">
-        <div class="card section-card">
-          <div class="card-header section-header">
-            <div>
-              <h3 class="card-title mb-1">Impacto en el presupuesto</h3>
-              <div class="section-description">Costo estimado de esta asignación para el proyecto.</div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div th:if="${!impacto.costo.calculable}" class="alert alert-warning mb-0">No se puede calcular el costo: falta el sueldo base del colaborador o las fechas de inicio/fin del proyecto.</div>
-            <div th:if="${impacto.costo.calculable}">
-              <div class="info-grid">
-                <div><div class="label-small">Valor por hora</div><div class="value-strong" th:text="'S/ ' + ${#numbers.formatDecimal(impacto.costo.valorHora, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
-                <div><div class="label-small">Costo semanal</div><div class="value-strong" th:text="'S/ ' + ${#numbers.formatDecimal(impacto.costo.costoSemanal, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
-                <div><div class="label-small">Duración del proyecto</div><div class="value-strong" th:text="${impacto.costo.duracionSemanas} + ' semanas'">0</div></div>
-                <div><div class="label-small">Costo total estimado</div><div class="value-strong" th:text="'S/ ' + ${#numbers.formatDecimal(impacto.costo.costoTotal, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
-              </div>
-              <hr>
-              <div class="d-flex justify-content-between gap-3"><span class="text-secondary">Presupuesto disponible antes</span><span th:text="'S/ ' + ${#numbers.formatDecimal(impacto.resumen.disponible, 1, 'COMMA', 2, 'POINT')}">S/ 0</span></div>
-              <div class="d-flex justify-content-between gap-3"><span class="text-secondary">Presupuesto disponible después</span><strong th:classappend="${impacto.suficiente} ? 'text-success' : 'text-danger'" th:text="'S/ ' + ${#numbers.formatDecimal(impacto.disponibleDespues, 1, 'COMMA', 2, 'POINT')}">S/ 0</strong></div>
-              <div th:if="${impacto.suficiente}" class="alert alert-success mt-3 mb-0">Hay presupuesto suficiente para aprobar.</div>
-              <div th:unless="${impacto.suficiente}" class="alert alert-danger mt-3 mb-0" th:text="'Presupuesto insuficiente: faltan S/ ' + ${#numbers.formatDecimal(impacto.deficit, 1, 'COMMA', 2, 'POINT')} + '. No se puede aprobar hasta aumentar el presupuesto del proyecto.'">Insuficiente</div>
-              <form th:unless="${impacto.suficiente}" class="row g-2 align-items-end mt-2" method="post"
-                    th:action="@{/rm/proyectos/{id}/presupuesto(id=${asignacion.asignacion.proyecto.id})}">
-                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <input type="hidden" name="asignacionId" th:value="${asignacion.asignacion.id}">
-                <input th:if="${navegacion.origen != null}" type="hidden" name="origen" th:value="${navegacion.origen}">
-                <div class="col-sm-8">
-                  <label for="assignmentProjectBudget" class="form-label">Nuevo presupuesto total (S/)</label>
-                  <input id="assignmentProjectBudget" name="presupuesto" data-entrada="monto" type="text" class="form-control"
-                         inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required aria-describedby="assignmentProjectBudgetAyuda"
-                         th:value="${asignacion.asignacion.proyecto.presupuesto}">
-                  <div id="assignmentProjectBudgetAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
-                </div>
-                <div class="col-sm-4 d-grid">
-                  <button type="submit" class="btn btn-primary">Actualizar</button>
-                </div>
-                <div class="form-hint">Al guardar volverás a esta revisión para completar la decisión.</div>
-              </form>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <div class="card section-card decision-card mt-4">
-      <div class="card-body decision-card-body">
-        <div class="decision-copy">
-          <h3 class="card-title mb-1">Decisión del Resource Manager</h3>
-          <div class="text-secondary small">Aprueba o rechaza la propuesta después de revisar la información.</div>
+    <!-- Impacto en el presupuesto: ancho completo para el detalle y, si falta, el formulario -->
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Impacto en el presupuesto</h3>
+          <div class="section-description">Costo estimado de esta asignación para el proyecto.</div>
         </div>
-        <div class="decision-actions">
-          <button type="button" class="btn btn-success decision-button"
-                  data-bs-toggle="modal" data-bs-target="#approveAssignmentModal"
-                  th:disabled="${!impacto.suficiente or asignacion.superaDisponibilidad}">Aprobar asignación</button>
-          <button type="button" class="btn btn-outline-danger decision-button"
-                  data-bs-toggle="modal" data-bs-target="#rejectAssignmentModal">Rechazar asignación</button>
+      </div>
+      <div class="card-body">
+        <div th:if="${!impacto.costo.calculable}" class="alert alert-warning mb-0">No se puede calcular el costo: falta el sueldo base del colaborador o las fechas de inicio/fin del proyecto.</div>
+        <div th:if="${impacto.costo.calculable}" class="row g-4">
+          <div class="col-lg-6">
+            <div class="info-grid">
+              <div><div class="label-small">Valor por hora</div><div class="value-strong" th:text="'S/ ' + ${#numbers.formatDecimal(impacto.costo.valorHora, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+              <div><div class="label-small">Costo semanal</div><div class="value-strong" th:text="'S/ ' + ${#numbers.formatDecimal(impacto.costo.costoSemanal, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+              <div><div class="label-small">Duración del proyecto</div><div class="value-strong" th:text="${impacto.costo.duracionSemanas} + ' semanas'">0</div></div>
+              <div><div class="label-small">Costo total estimado</div><div class="value-strong" th:text="'S/ ' + ${#numbers.formatDecimal(impacto.costo.costoTotal, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="d-flex justify-content-between gap-3"><span class="text-secondary">Presupuesto disponible antes</span><span th:text="'S/ ' + ${#numbers.formatDecimal(impacto.resumen.disponible, 1, 'COMMA', 2, 'POINT')}">S/ 0</span></div>
+            <div class="d-flex justify-content-between gap-3"><span class="text-secondary">Presupuesto disponible después</span><strong th:classappend="${impacto.suficiente} ? 'text-success' : 'text-danger'" th:text="'S/ ' + ${#numbers.formatDecimal(impacto.disponibleDespues, 1, 'COMMA', 2, 'POINT')}">S/ 0</strong></div>
+            <div th:if="${impacto.suficiente}" class="alert alert-success mt-3 mb-0">Hay presupuesto suficiente para aprobar.</div>
+            <div th:unless="${impacto.suficiente}" class="alert alert-danger mt-3 mb-0" th:text="'Presupuesto insuficiente: faltan S/ ' + ${#numbers.formatDecimal(impacto.deficit, 1, 'COMMA', 2, 'POINT')} + '. No se puede aprobar hasta aumentar el presupuesto del proyecto.'">Insuficiente</div>
+            <form th:unless="${impacto.suficiente}" class="row g-2 align-items-end mt-2" method="post"
+                  th:action="@{/rm/proyectos/{id}/presupuesto(id=${asignacion.asignacion.proyecto.id})}">
+              <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+              <input type="hidden" name="asignacionId" th:value="${asignacion.asignacion.id}">
+              <input th:if="${navegacion.origen != null}" type="hidden" name="origen" th:value="${navegacion.origen}">
+              <div class="col-sm-8">
+                <label for="assignmentProjectBudget" class="form-label">Nuevo presupuesto total (S/)</label>
+                <input id="assignmentProjectBudget" name="presupuesto" data-entrada="monto" type="text" class="form-control"
+                       inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required aria-describedby="assignmentProjectBudgetAyuda"
+                       th:value="${asignacion.asignacion.proyecto.presupuesto}">
+                <div id="assignmentProjectBudgetAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
+              </div>
+              <div class="col-sm-4 d-grid">
+                <button type="submit" class="btn btn-primary">Actualizar</button>
+              </div>
+              <div class="form-hint">Al guardar volverás a esta revisión para completar la decisión.</div>
+            </form>
+          </div>
         </div>
       </div>
     </div>

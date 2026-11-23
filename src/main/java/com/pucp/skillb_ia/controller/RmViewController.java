@@ -1362,6 +1362,10 @@ public class RmViewController {
                 return redirectDetalleAsignacion(asignacion, origen, filtrosBandeja);
             }
             model.addAttribute("asignacion", asignacion);
+            // TASK-057: indicadores de costo con la fórmula única de RmPresupuestoService.
+            model.addAttribute("costo", rmPresupuestoService.calcularCosto(
+                    asignacion.getAsignacion().getProyecto(), asignacion.getAsignacion().getColaborador(),
+                    asignacion.getAsignacion().getHorasSemanales()));
             model.addAttribute("navegacion", navegacionAsignacion(asignacion, origen, filtrosBandeja));
             model.addAttribute("filtrosBandeja", filtrosBandeja);
         } catch (IllegalArgumentException ex) {

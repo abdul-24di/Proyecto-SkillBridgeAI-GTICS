@@ -5,6 +5,8 @@ import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class RmAsignacionView {
@@ -151,6 +153,37 @@ public class RmAsignacionView {
             case RECHAZADA -> "bg-red-lt text-red";
             case FINALIZADA -> "bg-secondary-lt";
             case PENDIENTE -> "bg-yellow-lt";
+        };
+    }
+
+    // TASK-057: días de participación, desde la activación hasta la finalización (o hoy si sigue activa).
+    // Null si la asignación nunca se activó.
+    public Long getDiasEnProyecto() {
+        if (asignacion.getFechaActivacion() == null) return null;
+        LocalDate fin = asignacion.getFechaFinalizacion() != null
+                ? asignacion.getFechaFinalizacion().toLocalDate() : LocalDate.now();
+        return Math.max(ChronoUnit.DAYS.between(asignacion.getFechaActivacion().toLocalDate(), fin), 0);
+    }
+
+    public String getMotivoFinalizacionTexto() {
+        if (asignacion.getMotivoFinalizacion() == null) return null;
+        return switch (asignacion.getMotivoFinalizacion()) {
+            case BAJO_DESEMPENO -> "Bajo desempeño";
+            case PROYECTO_CANCELADO -> "Proyecto cancelado";
+            case PROYECTO_FINALIZADO -> "Proyecto finalizado";
+            case OTRO -> "Otro";
+        };
+    }
+
+    public String getProyectoEstadoTexto() {
+        if (asignacion.getProyecto().getEstado() == null) return "Sin estado";
+        return switch (asignacion.getProyecto().getEstado()) {
+            case EN_REVISION -> "En revisión";
+            case RECHAZADO -> "Rechazado";
+            case ACTIVO -> "Activo";
+            case EN_ESPERA -> "En espera";
+            case CANCELADO -> "Cancelado";
+            case FINALIZADO -> "Finalizado";
         };
     }
 

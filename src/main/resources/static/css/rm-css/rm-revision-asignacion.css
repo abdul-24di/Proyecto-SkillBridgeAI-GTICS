@@ -275,6 +275,138 @@
   min-width: 190px;
 }
 
+/* La cabecera lleva el estado y las acciones (TASK-057). */
+.page-head .decision-actions {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* =========================================================
+   INDICADORES, CARDS Y LÍNEA DE TIEMPO
+   Mismo diseño que el detalle de una asignación (rm-detalle-asignacion-activa.css).
+   ========================================================= */
+
+.summary-card {
+  min-height: 112px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.summary-icon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.summary-label {
+  color: #64748b;
+  font-size: .69rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: .025em;
+  text-transform: uppercase;
+}
+
+.summary-number {
+  margin-top: .1rem;
+  color: #182433;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.summary-hint {
+  margin-top: .2rem;
+  color: #8491a3;
+  font-size: .76rem;
+}
+
+.profile-avatar {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  font-size: 1rem;
+}
+
+.min-width-0 {
+  min-width: 0;
+}
+
+.info-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.assignment-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-step {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: .8rem;
+  padding-bottom: 1.1rem;
+}
+
+.timeline-step:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: 6px;
+  bottom: 0;
+  width: 2px;
+  background: #e3e8ef;
+}
+
+.timeline-dot {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin-top: .2rem;
+  border: 2px solid #c5ced9;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.timeline-step.is-done .timeline-dot {
+  border-color: #2fb344;
+  background: #2fb344;
+}
+
+.timeline-step.is-current .timeline-dot {
+  border-color: #f59f00;
+  background: #fff3d6;
+}
+
+.timeline-title {
+  color: #2f3747;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.timeline-step.is-pending .timeline-title {
+  color: #8491a3;
+}
+
+.timeline-date {
+  color: #64748b;
+  font-size: .8rem;
+}
+
 /* =========================================================
    RESPONSIVE
    ========================================================= */
@@ -321,6 +453,15 @@
 
   .decision-actions {
     flex-direction: column;
+  }
+
+  .page-head .decision-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .info-grid-three {
+    grid-template-columns: 1fr;
   }
 
   .decision-button {

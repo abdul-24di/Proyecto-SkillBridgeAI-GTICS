@@ -275,6 +275,127 @@
 }
 
 /* =========================================================
+   TASK-057: DETALLE (indicadores, cards, línea de tiempo)
+   ========================================================= */
+
+.label-small {
+  margin-bottom: .2rem;
+  color: #8491a3;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.value-strong {
+  color: #2f3747;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.request-message {
+  margin-top: .45rem;
+  padding: .75rem .9rem;
+  border: 1px solid #dce4ed;
+  border-left: 3px solid #2b78c5;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #435065;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.summary-icon {
+  font-weight: 800;
+}
+
+.summary-hint {
+  margin-top: .2rem;
+  color: #8491a3;
+  font-size: .76rem;
+}
+
+.min-width-0 {
+  min-width: 0;
+}
+
+.assignment-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-step {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: .8rem;
+  padding-bottom: 1.1rem;
+}
+
+.timeline-step:last-child {
+  padding-bottom: 0;
+}
+
+/* Línea vertical entre pasos */
+.timeline-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 16px;
+  left: 6px;
+  bottom: 0;
+  width: 2px;
+  background: #e3e8ef;
+}
+
+.timeline-dot {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin-top: .2rem;
+  border: 2px solid #c5ced9;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.timeline-step.is-done .timeline-dot {
+  border-color: #2fb344;
+  background: #2fb344;
+}
+
+.timeline-step.is-current .timeline-dot {
+  border-color: #2b78c5;
+  background: #dbeafe;
+}
+
+.timeline-step.is-finished .timeline-dot {
+  border-color: #667382;
+  background: #667382;
+}
+
+.timeline-step.is-rejected .timeline-dot {
+  border-color: #d63939;
+  background: #d63939;
+}
+
+.timeline-title {
+  color: #2f3747;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.timeline-step.is-pending .timeline-title {
+  color: #8491a3;
+}
+
+.timeline-date {
+  color: #64748b;
+  font-size: .8rem;
+}
+
+/* =========================================================
    RESPONSIVE
    ========================================================= */
 

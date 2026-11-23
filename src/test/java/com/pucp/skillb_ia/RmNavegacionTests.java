@@ -541,6 +541,80 @@ class RmNavegacionTests {
         assertTrue(activaHtml.contains("name=\"grupo\" value=\"active\""));
     }
 
+    @Test
+    void detalleDeAsignacionActivaMuestraIndicadoresCardsYFinalizarEnModal() throws Exception {
+        // TASK-057: sueldo 4800 / 160 = S/ 30.00 por hora; 8 h/sem = S/ 240.00 por semana.
+        activa.setFechaActivacion(java.time.LocalDateTime.now().minusDays(10));
+        asignacionRepository.save(activa);
+
+        String detalle = html("/rm/asignaciones/activa?id=" + activa.getId() + "&origen=colaborador&grupo=active");
+
+        assertTrue(Pattern.compile("id=\"indicadorHoras\">8(\\.0+)? h<").matcher(detalle).find(),
+                "Falta el indicador de horas.");
+        assertTrue(detalle.contains("id=\"indicadorCostoSemanal\">S/ 240.00<"), "Falta el costo semanal.");
+        assertTrue(detalle.contains("S/ 30.00 por hora"));
+        assertTrue(Pattern.compile("id=\"indicadorCostoTotal\">S/ [0-9,]+\\.[0-9]{2}<").matcher(detalle).find());
+        assertTrue(detalle.contains("id=\"indicadorDias\">10<"), "Faltan los días en el proyecto.");
+        assertTrue(detalle.contains("href=\"/rm/colaboradores/perfil?id=" + colaborador.getId() + "\""));
+        assertTrue(detalle.contains("href=\"/rm/proyectos/detalle?id=" + proyecto.getId() + "\""));
+        assertTrue(detalle.contains("Backend Developer"));
+        assertTrue(detalle.contains("En curso"));
+
+        // Finalizar vive en un modal con el mismo POST, el motivo obligatorio y los filtros de la bandeja.
+        assertTrue(detalle.contains("data-bs-target=\"#finalizarAsignacionModal\""));
+        Matcher modal = Pattern.compile("<div class=\"modal modal-blur fade rm-modal\" id=\"finalizarAsignacionModal\".*?</form>",
+                Pattern.DOTALL).matcher(detalle);
+        assertTrue(modal.find(), "Falta el modal de finalizar.");
+        String formulario = modal.group();
+        assertTrue(formulario.contains("action=\"/rm/asignaciones/" + activa.getId() + "/finalizar\""));
+        assertTrue(formulario.contains("name=\"motivo\" class=\"form-select\" required"));
+        assertTrue(formulario.contains("name=\"origen\" value=\"colaborador\""));
+        assertTrue(formulario.contains("name=\"grupo\" value=\"active\""));
+    }
+
+    @Test
+    void revisionDePostulacionUsaElMismoDisenoQueElDetalleDeLaAsignacion() throws Exception {
+        // Postulación y propuesta del PM comparten plantilla: indicadores, cards, línea de tiempo y acciones arriba.
+        for (Asignacion pendiente : List.of(postulacion, revision)) {
+            String html = html(rutaDe(pendiente) + "?id=" + pendiente.getId());
+
+            assertTrue(html.contains("id=\"indicadorCostoSemanal\">S/ 240.00<"), "Falta el costo semanal.");
+            assertTrue(Pattern.compile("id=\"indicadorCostoTotal\">S/ [0-9,]+\\.[0-9]{2}<").matcher(html).find());
+            assertTrue(html.contains("id=\"indicadorDisponibleDespues\""));
+            assertTrue(html.contains("href=\"/rm/colaboradores/perfil?id=" + colaborador.getId() + "\""));
+            assertTrue(html.contains("href=\"/rm/proyectos/detalle?id=" + proyecto.getId() + "\""));
+            assertTrue(html.contains("id=\"lineaTiempo\""));
+            assertTrue(html.contains("Pendiente de tu decisión"));
+
+            // Las acciones quedan en la cabecera, antes de los indicadores, y abren los mismos modales.
+            int cabecera = html.indexOf("data-bs-target=\"#approveAssignmentModal\"");
+            assertTrue(cabecera > 0 && cabecera < html.indexOf("id=\"indicadorHoras\""));
+            assertTrue(html.contains("data-bs-target=\"#rejectAssignmentModal\""));
+            assertTrue(html.contains("action=\"/rm/asignaciones/" + pendiente.getId() + "/aprobar\""));
+            assertTrue(html.contains("action=\"/rm/asignaciones/" + pendiente.getId() + "/rechazar\""));
+        }
+    }
+
+    @Test
+    void detalleDeAsignacionFinalizadaNoOfreceFinalizarYMuestraElMotivoLegible() throws Exception {
+        activa.setEstado(EstadoAsignacion.FINALIZADA);
+        activa.setFechaActivacion(java.time.LocalDateTime.now().minusDays(30));
+        activa.setFechaFinalizacion(java.time.LocalDateTime.now().minusDays(5));
+        activa.setMotivoFinalizacion(com.pucp.skillb_ia.model.enums.MotivoFinalizacion.BAJO_DESEMPENO);
+        asignacionRepository.save(activa);
+
+        String detalle = html("/rm/asignaciones/activa?id=" + activa.getId());
+
+        assertFalse(detalle.contains("finalizarAsignacionModal"), "Una asignación finalizada no se puede finalizar.");
+        assertFalse(detalle.contains("/finalizar\""));
+        assertTrue(detalle.contains("id=\"indicadorDias\">25<"));
+        assertTrue(detalle.contains("Hasta la finalización"));
+        assertTrue(detalle.contains("<div class=\"timeline-title\">Finalizada</div>"));
+        assertFalse(detalle.contains("En curso"));
+        assertTrue(detalle.contains("Bajo desempeño"));
+        assertFalse(detalle.contains("BAJO_DESEMPENO"));
+    }
+
     private String html(String url) throws Exception {
         return mockMvc.perform(get(url))
                 .andExpect(status().isOk())

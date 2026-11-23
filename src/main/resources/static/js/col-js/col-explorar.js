@@ -164,16 +164,29 @@ cursoDetalleModalEl?.addEventListener("show.bs.modal", (event) => {
     const estadoWrap = document.getElementById("cursoDetalleEstadoWrap");
     const estadoBadge = document.getElementById("cursoDetalleEstadoBadge");
 
+    const motivoEl = document.getElementById("cursoDetalleMotivo");
+    const motivo = btn.dataset.courseMotivoBloqueo || "";
+
     if (puedeSolicitar) {
         solicitarWrap.style.display = "";
         submitBtn.style.display = "";
         estadoWrap.style.display = "none";
+        motivoEl.style.display = "none";
+        motivoEl.textContent = "";
         document.getElementById("cursoDetalleForm").reset();
     } else {
         solicitarWrap.style.display = "none";
         submitBtn.style.display = "none";
-        estadoWrap.style.display = "";
-        estadoBadge.textContent = btn.dataset.courseEstadoTexto || "No disponible";
-        estadoBadge.className = "badge " + (btn.dataset.courseEstadoClase || "bg-secondary-lt");
+        const estadoTexto = btn.dataset.courseEstadoTexto || "";
+        // Si hay un motivo general y el curso no tiene estado propio, mostramos solo el motivo.
+        if (estadoTexto || !motivo) {
+            estadoWrap.style.display = "";
+            estadoBadge.textContent = estadoTexto || "No disponible";
+            estadoBadge.className = "badge " + (btn.dataset.courseEstadoClase || "bg-secondary-lt");
+        } else {
+            estadoWrap.style.display = "none";
+        }
+        motivoEl.textContent = motivo;
+        motivoEl.style.display = motivo ? "" : "none";
     }
 });

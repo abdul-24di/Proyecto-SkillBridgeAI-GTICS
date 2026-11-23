@@ -6,11 +6,10 @@ import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.CategoriaNotificacion;
+import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoColaboradorCurso;
 import com.pucp.skillb_ia.model.enums.OrigenCurso;
-import com.pucp.skillb_ia.repository.ColaboradorCursoRepository;
-import com.pucp.skillb_ia.repository.CursoRepository;
-import com.pucp.skillb_ia.repository.NotificacionRepository;
+import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
@@ -34,6 +33,9 @@ public class ColaboradorCursoService {
             List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO,
                     EstadoColaboradorCurso.EVIDENCIA_PENDIENTE, EstadoColaboradorCurso.COMPLETADO);
 
+    private static final String CLAVE_MAX_ASIGNACIONES = "MAX_ASIGNACIONES_POR_COLABORADOR";
+    private static final int MAX_ASIGNACIONES_POR_DEFECTO = 3;
+
     //Para la evidencia de finalización del curso
     private static final Set<String> TIPOS_EVIDENCIA_PERMITIDOS = Set.of("application/pdf", "image/jpeg", "image/png");
     public static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10 MB
@@ -49,6 +51,8 @@ public class ColaboradorCursoService {
     private final ColaboradorActividadService colaboradorActividadService;
     private final NotificacionRepository notificacionRepository;
     private final RmRevisionAsignadorService rmRevisionAsignadorService;
+    private final AsignacionRepository asignacionRepository;
+    private final ConfiguracionSistemaRepository configuracionSistemaRepository;
 
     public ColaboradorCursoService(CursoRepository cursoRepository,
                                    ColaboradorCursoRepository colaboradorCursoRepository,
@@ -59,7 +63,9 @@ public class ColaboradorCursoService {
                                    //@Lazy evita una dependencia circular entre los servicios,
                                    //haciendo que ColaboradorActividadService se inicialice cuando sea necesario.
                                    @Lazy ColaboradorActividadService colaboradorActividadService,
-                                   RmRevisionAsignadorService rmRevisionAsignadorService) {
+                                   RmRevisionAsignadorService rmRevisionAsignadorService,
+                                   AsignacionRepository asignacionRepository,
+                                   ConfiguracionSistemaRepository configuracionSistemaRepository) {
         this.cursoRepository = cursoRepository;
         this.colaboradorCursoRepository = colaboradorCursoRepository;
         this.auditoriaService = auditoriaService;
@@ -68,6 +74,8 @@ public class ColaboradorCursoService {
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
         this.colaboradorActividadService = colaboradorActividadService;
         this.rmRevisionAsignadorService = rmRevisionAsignadorService;
+        this.asignacionRepository = asignacionRepository;
+        this.configuracionSistemaRepository = configuracionSistemaRepository;
     }
 
     // ============================================================
@@ -80,6 +88,7 @@ public class ColaboradorCursoService {
 
         List<ColaboradorCurso> misRegistros = colaboradorCursoRepository.findByColaborador(colaborador);
         List<CursoDisponibleView> resultado = new ArrayList<>();
+        String motivoBloqueoGeneral = motivoBloqueoGeneral(colaborador);
 
         for (Curso curso : cursosActivos) {
             //Buscamos si el colaborador ya solicitó este curso antes, y nos quedamos con el registro más reciente para saber su estado actual.
@@ -102,7 +111,8 @@ public class ColaboradorCursoService {
                 continue;
             }
 
-            boolean puedeSolicitar = true;
+            boolean puedeSolicitar = motivoBloqueoGeneral == null;
+            String motivoBloqueo = motivoBloqueoGeneral;
             String estadoTexto = null;
             String estadoClase = null;
 
@@ -111,10 +121,11 @@ public class ColaboradorCursoService {
                 estadoClase = claseEstado(masReciente.getEstado());
                 if (ESTADOS_QUE_BLOQUEAN.contains(masReciente.getEstado())) {
                     puedeSolicitar = false;
+                    motivoBloqueo = null;
                 }
             }
 
-            resultado.add(new CursoDisponibleView(curso, puedeSolicitar, estadoTexto, estadoClase));
+            resultado.add(new CursoDisponibleView(curso, puedeSolicitar, estadoTexto, estadoClase, motivoBloqueo));
         }
         return resultado;
     }
@@ -172,14 +183,9 @@ public class ColaboradorCursoService {
         if (curso.getFechaFin() != null && curso.getFechaFin().isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("Este curso ya terminó: su fecha de fin ya pasó.");
         }
-
-        //Si ya llegó al tope de horas que cuentan para el bono este mes, un curso más no le
-        //suma nada (esas horas no se pagarían de todas formas), así que no lo dejamos solicitar.
-        ColBonoMensualView resumenBono = colaboradorActividadService.obtenerResumenBonoMensual(colaborador);
-        if (resumenBono.getHorasExtraBonificables().compareTo(resumenBono.getTopeHorasExtra()) >= 0) {
-            throw new IllegalArgumentException(
-                    "No puedes solicitar este curso: ya alcanzaste el máximo de horas que cuentan para tu bono este mes, "
-                            + "así que no te quedan horas disponibles para sumar.");
+        String motivoBloqueo = motivoBloqueoGeneral(colaborador);
+        if (motivoBloqueo != null) {
+            throw new IllegalArgumentException(motivoBloqueo);
         }
 
         boolean yaTieneSolicitud = colaboradorCursoRepository.existsByColaboradorAndCursoAndEstadoIn(
@@ -373,6 +379,43 @@ public class ColaboradorCursoService {
                 colaborador.getNombre() + " " + colaborador.getApellido()
                         + " subió evidencia para el curso \"" + inscripcion.getCurso().getNombre() + "\".",
                 "COLABORADOR_CURSO", inscripcion.getId());
+    }
+
+
+    private static final String MSG_TOPE_ASIGNACIONES =
+            "No puedes solicitar este curso: ya tienes el máximo de asignaciones activas en proyectos permitido por la organización.";
+    private static final String MSG_TOPE_HORAS =
+            "No puedes solicitar este curso: ya alcanzaste el máximo de horas que cuentan para tu bono este mes, "
+                    + "así que no te quedan horas disponibles para sumar.";
+
+
+    private String motivoBloqueoGeneral(Usuario colaborador) {
+        if (alcanzoMaximoAsignaciones(colaborador)) {
+            return MSG_TOPE_ASIGNACIONES;
+        }
+        ColBonoMensualView resumen = colaboradorActividadService.obtenerResumenBonoMensual(colaborador);
+        if (resumen.getHorasExtraBonificables().compareTo(resumen.getTopeHorasExtra()) >= 0) {
+            return MSG_TOPE_HORAS;
+        }
+        return null;
+    }
+
+    private boolean alcanzoMaximoAsignaciones(Usuario colaborador) {
+        long activas = asignacionRepository.countByColaboradorAndEstado(colaborador, EstadoAsignacion.ACTIVA);
+        return activas >= obtenerMaxAsignaciones();
+    }
+
+    private int obtenerMaxAsignaciones() {
+        return configuracionSistemaRepository.findByClave(CLAVE_MAX_ASIGNACIONES)
+                .map(c -> {
+                    try {
+                        int n = Integer.parseInt(c.getValor().trim());
+                        return n > 0 ? n : MAX_ASIGNACIONES_POR_DEFECTO;
+                    } catch (NumberFormatException ex) {
+                        return MAX_ASIGNACIONES_POR_DEFECTO;
+                    }
+                })
+                .orElse(MAX_ASIGNACIONES_POR_DEFECTO);
     }
 
     // ============================================================

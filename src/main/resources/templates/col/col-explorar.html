@@ -440,6 +440,7 @@
                         <p class="text-secondary small" th:text="${v.curso.descripcion != null and !v.curso.descripcion.isBlank()} ? ${v.curso.descripcion} : 'Sin descripción registrada.'">Descripción del curso.</p>
                         <div class="action-bar mt-3 mb-0">
                             <span th:if="${v.estadoTexto != null}" class="badge" th:classappend="${v.estadoClase}" th:text="${v.estadoTexto}">Solicitud pendiente</span>
+                            <span th:if="${v.motivoBloqueo != null}" class="badge bg-orange-lt" title="No puedes solicitar este curso ahora">No disponible por ahora</span>
                             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#cursoDetalleModal"
                                     th:attr="data-course-id=${v.curso.id},
                                              data-course-name=${v.curso.nombre},
@@ -452,6 +453,7 @@
                                              data-course-fecha-fin=${v.curso.fechaFin != null ? #temporals.format(v.curso.fechaFin, 'dd/MM/yyyy') : ''},
                                              data-course-horas=${v.curso.horas},
                                              data-course-puede-solicitar=${v.puedeSolicitar},
+                                             data-course-motivo-bloqueo=${v.motivoBloqueo},
                                              data-course-estado-texto=${v.estadoTexto},
                                              data-course-estado-clase=${v.estadoClase}">Ver curso</button>
                         </div>
@@ -553,6 +555,7 @@
             <div id="cursoDetalleEstadoWrap" class="mb-3" style="display:none">
                 <span class="badge" id="cursoDetalleEstadoBadge">—</span>
             </div>
+            <div id="cursoDetalleMotivo" class="alert alert-warning small mb-3" style="display:none"></div>
 
             <form th:action="@{/colaborador/cursos/solicitar}" method="post" id="cursoDetalleForm">
                 <input type="hidden" name="cursoId" id="cursoDetalleCursoId">

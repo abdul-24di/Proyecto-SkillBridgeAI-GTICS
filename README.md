@@ -213,11 +213,15 @@ contraseña demo en la variable `password`.
 * **Pruebas automatizadas:** 1,157 pruebas en 51 clases (100 % aprobadas).
 * **Cobertura global (JaCoCo):** 78.8 % de líneas cubiertas.
 
-| Módulo | Problema | Corrección |
-| :--- | :--- | :--- |
-| Foros del colaborador | Un error de validación llevaba al detalle de otro foro. | Se valida el formulario y se vuelve al mismo modal. |
-| Reportes del colaborador | La prueba de *Mi desempeño* fallaba por la fecha de creación del usuario. | Se corrigió la prueba para que el colaborador tenga una fecha de creación antigua. |
-| Explorar proyectos | Al intentar postularse con restricciones o datos inválidos, no se mostraba el mensaje de error. | Se corrigió el manejo de mensajes flash para mostrar el aviso de error en pantalla. |
-| Perfil del colaborador | El campo de teléfono permitía ingresar letras o caracteres no numéricos. | Se unificó la regla de validación para aceptar únicamente caracteres numéricos válidos. |
-| Avatar / Foto de perfil | Al seleccionar una nueva foto de perfil no se mostraba vista previa antes de guardarla. | Se implementó la previsualización inmediata en el avatar y se ubicó el botón "Guardar foto" junto al selector. |
+| N° | Módulo | Problema | Corrección |
+| :---: | :--- | :--- | :--- |
+| 1 | Foros (Administrador) | Eliminar un foro con publicaciones mostraba un error de la base de datos. | Ahora elimina el foro con sus publicaciones, respuestas y me gusta. |
+| 2 | API REST | Los errores del chat y de las notificaciones redirigían con código 302. | Responden JSON con el mensaje de error y el código 400 o 409. |
+| 3 | Foros del colaborador | Un error de validación llevaba al detalle de otro foro. | Se valida el formulario y se vuelve al mismo modal. |
+| 4 | Pantallas | Los modales fallaban con el error `bootstrap is not defined`. | Se usa el objeto de Tabler. |
+| 5 | Project Manager | El motivo de cancelación de un proyecto no se enviaba. | Ahora se envía y se muestra. |
+| 6 | Reportes del colaborador | La prueba de *Mi desempeño* fallaba por la fecha de creación del usuario. | Se corrigió la prueba para que el colaborador tenga una fecha de creación antigua. |
+| 7 | Explorar proyectos (Colaborador) | Al intentar postularse con restricciones o datos inválidos, no se mostraba correctamente el mensaje de error en pantalla. | Se corrigió el manejo de mensajes flash para mostrar el aviso de error claro en la vista de Explorar. |
+| 8 | Perfil del colaborador | El campo de teléfono permitía ingresar letras o caracteres no numéricos al actualizar los datos de contacto. | Se unificó la regla de validación para aceptar únicamente caracteres numéricos válidos en el teléfono. |
+| 9 | Avatar / Foto de perfil (4 roles) | Al seleccionar una nueva foto de perfil no se mostraba vista previa antes de guardarla. | Se implementó la previsualización inmediata en el avatar y se ubicó el botón "Guardar foto" junto al selector. |
 

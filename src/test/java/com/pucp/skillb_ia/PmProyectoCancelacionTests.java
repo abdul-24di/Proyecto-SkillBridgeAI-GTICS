@@ -314,11 +314,19 @@ class PmProyectoCancelacionTests {
 
     // El perfil test genera el esquema desde las entidades (sin la restricción): se instala la de
     // skillbridge_db_v4.sql (sin STORED, que H2 no admite) solo durante la prueba.
+    // La base H2 es compartida por todas las clases de prueba: la columna se limita al proyecto de esta
+    // prueba para que filas abiertas duplicadas dejadas por otras clases no impidan crear la restricción.
     private void conRestriccionDeAsignacionAbierta(Runnable prueba) {
         jdbcTemplate.execute("ALTER TABLE asignacion ADD COLUMN estado_abierto VARCHAR(30) GENERATED ALWAYS AS "
-                + "(CASE WHEN estado IN ('PENDIENTE','ACTIVA') THEN estado END)");
-        jdbcTemplate.execute("ALTER TABLE asignacion ADD CONSTRAINT uq_asignacion_abierta "
-                + "UNIQUE (proyecto_id, colaborador_id, estado_abierto)");
+                + "(CASE WHEN estado IN ('PENDIENTE','ACTIVA') AND proyecto_id = " + proyecto.getId()
+                + " THEN estado END)");
+        try {
+            jdbcTemplate.execute("ALTER TABLE asignacion ADD CONSTRAINT uq_asignacion_abierta "
+                    + "UNIQUE (proyecto_id, colaborador_id, estado_abierto)");
+        } catch (RuntimeException e) {
+            jdbcTemplate.execute("ALTER TABLE asignacion DROP COLUMN estado_abierto");
+            throw e;
+        }
         try {
             // Control: la restricción está activa (no admite dos PENDIENTE iguales).
             assertThrows(DataIntegrityViolationException.class,

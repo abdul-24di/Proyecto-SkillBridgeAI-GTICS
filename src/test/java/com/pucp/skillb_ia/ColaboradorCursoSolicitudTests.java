@@ -74,10 +74,12 @@ class ColaboradorCursoSolicitudTests {
         assertEquals(OrigenCurso.SOLICITUD_COLABORADOR, solicitud.getOrigen());
 
         // La solicitud se asigna a un RM activo (el de menos pendientes) y solo él recibe la notificación.
-        Usuario responsable = solicitud.getRmResponsable();
-        assertNotNull(responsable, "La solicitud debe quedar asignada a un RM");
-        assertTrue(responsable.getId().equals(rmUno.getId()) || responsable.getId().equals(rmDos.getId()),
+        assertNotNull(solicitud.getRmResponsable(), "La solicitud debe quedar asignada a un RM");
+        Usuario responsable = usuarioRepository.findById(solicitud.getRmResponsable().getId()).orElseThrow();
+        // La base H2 es compartida entre clases de prueba: puede haber otros RM activos además de rmUno y rmDos.
+        assertTrue(responsable.isActivo() && rmUno.getRol().getId().equals(responsable.getRol().getId()),
                 "El responsable debe ser uno de los RM activos");
+        assertNotEquals(rmInactivo.getId(), responsable.getId());
         assertEquals(1, notificacionRepository.count());
 
         List<Notificacion> propias = notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(responsable);
@@ -88,9 +90,12 @@ class ColaboradorCursoSolicitudTests {
         assertEquals("COLABORADOR_CURSO", notificacion.getEntidad());
         assertEquals(solicitud.getId(), notificacion.getEntidadId());
 
-        Usuario otroRm = responsable.getId().equals(rmUno.getId()) ? rmDos : rmUno;
-        assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(otroRm).isEmpty(),
-                "El RM que no es responsable no recibe la notificación");
+        for (Usuario otroRm : List.of(rmUno, rmDos)) {
+            if (!otroRm.getId().equals(responsable.getId())) {
+                assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(otroRm).isEmpty(),
+                        "El RM que no es responsable no recibe la notificación");
+            }
+        }
         assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(rmInactivo).isEmpty());
         assertTrue(notificacionRepository.findByUsuarioOrderByFechaCreacionDesc(colaborador).isEmpty());
 

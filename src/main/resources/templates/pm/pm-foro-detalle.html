@@ -72,6 +72,11 @@
                 <th:block th:each="pub : ${publicaciones}">
                     <article th:replace="~{fragments/foro-publicacion :: publicacion(${pub}, '/pm/foro', ${foroBase != null ? foroBase.id : null}, ${proyecto != null ? proyecto.proyecto.id : null})}"></article>
 
+
+                    <th:block th:each="resp : ${pub.respuestas}">
+                        <div th:replace="~{fragments/foro-publicacion :: modalEliminarRespuesta(${resp}, '/pm/foro', ${foroBase != null ? foroBase.id : null}, ${proyecto != null ? proyecto.proyecto.id : null}, 'pm-modal')}"></div>
+                    </th:block>
+
                     <!-- MODAL RESPONDER -->
                     <div class="modal modal-blur fade pm-modal" th:id="'replyModal' + ${pub.id}" tabindex="-1">
                         <div class="modal-dialog modal-lg modal-dialog-centered">

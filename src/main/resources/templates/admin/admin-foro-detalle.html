@@ -11,8 +11,7 @@
   <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
 
 <style>
-  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
-  .avatar {
+   {
       object-fit: contain !important;
       object-position: center !important;
       background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
@@ -81,6 +80,11 @@
 
     <th:block th:each="pub : ${publicaciones}">
       <article th:replace="~{fragments/foro-publicacion :: publicacion(${pub}, '/admin/foros', ${foro.id}, null)}"></article>
+
+    
+      <th:block th:each="resp : ${pub.respuestas}">
+        <div th:replace="~{fragments/foro-publicacion :: modalEliminarRespuesta(${resp}, '/admin/foros', ${foro.id}, null, 'admin-modal')}"></div>
+      </th:block>
 
       <!-- Modal eliminar publicación -->
       <div th:if="${pub.puedeEliminar}" class="modal modal-blur fade admin-modal" th:id="'deletePostModal-' + ${pub.id}" tabindex="-1">

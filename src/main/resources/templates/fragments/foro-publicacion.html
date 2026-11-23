@@ -2,15 +2,7 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!--
-  Detalle de foro común a RM, PM, Colaborador y Admin (TASK-046).
-  Requiere /css/foro-detalle.css. Los datos vienen de ForoPublicacionView / ForoRespuestaView.
--->
 
-<!--
-  Selector "Más recientes / Más votadas" (GET).
-  accion: URL del detalle; nombreParam/valorParam: parámetro que identifica el foro (puede ser null).
--->
 <form th:fragment="orden(accion, ordenActual, nombreParam, valorParam)"
       method="get" th:action="@{${accion}}" class="foro-orden d-flex align-items-end gap-2">
   <input th:if="${nombreParam != null}" type="hidden" th:name="${nombreParam}" th:value="${valorParam}">
@@ -104,19 +96,39 @@
                       th:classappend="${resp.solucion} ? 'btn-outline-secondary' : 'btn-outline-success'"
                       th:text="${resp.solucion} ? 'Quitar solución' : 'Marcar como solución'">Marcar como solución</button>
             </form>
-            <form th:if="${base != null and resp.puedeEliminar}" method="post"
-                  th:action="@{|${base}/respuesta/${resp.id}/eliminar|}" class="d-inline"
-                  onsubmit="return confirm('¿Seguro que deseas eliminar esta respuesta? Esta acción no se puede deshacer.');">
-              <input th:if="${foroId != null}" type="hidden" name="foroId" th:value="${foroId}">
-              <input th:if="${proyectoId != null}" type="hidden" name="proyectoId" th:value="${proyectoId}">
-              <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
-            </form>
+            <button th:if="${base != null and resp.puedeEliminar}" type="button" class="btn btn-sm btn-outline-danger"
+                    data-bs-toggle="modal" th:data-bs-target="|#deleteReplyModal-${resp.id}|">Eliminar</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 </article>
+
+<div th:fragment="modalEliminarRespuesta(resp, base, foroId, proyectoId, modalClase)"
+     th:if="${base != null and resp.puedeEliminar}"
+     class="modal modal-blur fade" th:classappend="${modalClase}"
+     th:id="|deleteReplyModal-${resp.id}|" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form method="post" th:action="@{|${base}/respuesta/${resp.id}/eliminar|}">
+      <input th:if="${foroId != null}" type="hidden" name="foroId" th:value="${foroId}">
+      <input th:if="${proyectoId != null}" type="hidden" name="proyectoId" th:value="${proyectoId}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Eliminar respuesta</h5>
+          <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">¿Seguro que deseas eliminar esta respuesta? Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+          <button class="btn btn-danger" type="submit">Sí, eliminar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
 </body>
 </html>

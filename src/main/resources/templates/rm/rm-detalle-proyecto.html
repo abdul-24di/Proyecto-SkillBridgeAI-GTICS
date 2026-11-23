@@ -407,7 +407,7 @@
 </div>
 
 <th:block th:if="${proyectoCerrable}">
-  <div class="modal modal-blur fade" th:each="cierre : ${#strings.listSplit('finalizar,cancelar', ',')}"
+  <div class="modal modal-blur fade rm-modal" th:each="cierre : ${#strings.listSplit('finalizar,cancelar', ',')}"
      th:id="${cierre == 'finalizar'} ? 'finishProjectModal' : 'cancelProjectModal'"
      tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -444,7 +444,7 @@
 </div>
 </th:block>
 
-<div class="modal modal-blur fade" id="budgetChangeModal" tabindex="-1"
+<div class="modal modal-blur fade rm-modal" id="budgetChangeModal" tabindex="-1"
      aria-labelledby="budgetChangeModalTitle" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">

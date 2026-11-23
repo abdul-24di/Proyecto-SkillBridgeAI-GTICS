@@ -73,10 +73,13 @@
         </div>
 
         <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">En curso</h3>
-                <span class="badge bg-green-lt text-green ms-2" th:text="${paginaVigentes.totalElements}">0</span>
-                <span class="text-secondary small ms-2">Cursos cuya fecha de fin aún no pasó (o sin fecha de fin).</span>
+            <div class="card-header section-header">
+                <div>
+                    <h3 class="card-title mb-1">En curso
+                        <span class="badge bg-green-lt text-green ms-2" th:text="${paginaVigentes.totalElements}">0</span>
+                    </h3>
+                    <div class="section-description">Cursos cuya fecha de fin aún no pasó (o sin fecha de fin).</div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table table-hover">
@@ -108,10 +111,13 @@
                 <div th:replace="~{fragments/paginacion :: paginacion(${paginaVigentes}, 'paginacionVigentes', 'curso(s) en curso', 'paginaVigentes')}"></div>
             </th:block>
 
-            <div class="card-header border-top mt-2">
-                <h3 class="card-title">Caducados</h3>
-                <span class="badge bg-secondary-lt ms-2" th:text="${paginaFinalizados.totalElements}">0</span>
-                <span class="text-secondary small ms-2">Cursos cuya fecha de fin ya pasó.</span>
+            <div class="card-header section-header mt-2">
+                <div>
+                    <h3 class="card-title mb-1">Caducados
+                        <span class="badge bg-secondary-lt ms-2" th:text="${paginaFinalizados.totalElements}">0</span>
+                    </h3>
+                    <div class="section-description">Cursos cuya fecha de fin ya pasó.</div>
+                </div>
             </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table table-hover">
@@ -146,7 +152,7 @@
 </div>
 
 <!-- Modal Crear Curso -->
-<div class="modal fade" id="modalCrearCurso" tabindex="-1" aria-hidden="true">
+<div class="modal modal-blur fade admin-modal" id="modalCrearCurso" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form th:action="@{/admin/cursos/crear}" method="post">
@@ -211,7 +217,7 @@
 
 <!-- Modals Editar Cursos -->
 <th:block th:each="curso : ${cursos}">
-    <div class="modal fade" th:id="|modalEditarCurso${curso.id}|" tabindex="-1" aria-hidden="true">
+    <div class="modal modal-blur fade admin-modal" th:id="|modalEditarCurso${curso.id}|" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <form th:action="@{/admin/cursos/editar}" method="post">

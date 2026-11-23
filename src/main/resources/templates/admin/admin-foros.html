@@ -62,11 +62,12 @@
 
     <!-- Lista de Foros -->
     <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Canales activos</h3>
-        <div class="card-options">
-          <span class="badge bg-blue-lt" th:text="${#lists.size(foros)} + ' foros'">0 foros</span>
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Canales activos</h3>
+          <div class="section-description">Foros públicos y privados de la comunidad.</div>
         </div>
+        <span class="badge bg-blue-lt" th:text="${#lists.size(foros)} + ' foros'">0 foros</span>
       </div>
       <div class="table-responsive">
         <table class="table card-table table-vcenter">
@@ -110,20 +111,22 @@
 
     <!-- Modales de confirmación de eliminación -->
     <div th:each="foro : ${foros}">
-      <div class="modal modal-blur fade" th:id="'modalEliminar-' + ${foro.id}" tabindex="-1">
+      <div class="modal modal-blur fade admin-modal" th:id="'modalEliminar-' + ${foro.id}" tabindex="-1">
         <div class="modal-dialog modal-sm modal-dialog-centered">
           <div class="modal-content">
-            <div class="modal-body text-center py-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01"/><path d="M5 19h14a2 2 0 0 0 1.84-2.75l-7.1-12.25a2 2 0 0 0-3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75"/></svg>
-              <h3>¿Eliminar foro?</h3>
-              <div class="text-secondary mb-4">Se eliminará "<strong th:text="${foro.nombre}"></strong>" y todas sus publicaciones. Esta acción no se puede deshacer.</div>
-              <form th:action="@{/admin/foros/{id}/eliminar(id=${foro.id})}" method="POST">
-                <div class="d-flex gap-2 w-100">
-                  <button type="button" class="btn w-50" data-bs-dismiss="modal">Cancelar</button>
-                  <button type="submit" class="btn btn-danger w-50">Eliminar</button>
-                </div>
-              </form>
+            <div class="modal-header">
+              <h5 class="modal-title">¿Eliminar foro?</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+            <form th:action="@{/admin/foros/{id}/eliminar(id=${foro.id})}" method="POST">
+              <div class="modal-body">
+                <div class="text-secondary">Se eliminará "<strong th:text="${foro.nombre}"></strong>" y todas sus publicaciones. Esta acción no se puede deshacer.</div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -132,7 +135,7 @@
 </div>
 
 <!-- Modal Crear Foro -->
-<div class="modal modal-blur fade" id="modalCrearForo" tabindex="-1">
+<div class="modal modal-blur fade admin-modal" id="modalCrearForo" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <form action="/admin/foros/crear" th:action="@{/admin/foros/crear}" method="POST">

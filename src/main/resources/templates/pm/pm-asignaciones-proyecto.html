@@ -154,24 +154,27 @@
               <div class="modal modal-blur fade pm-modal" th:id="'approveModal' + ${pend.asignacion.id}" tabindex="-1" role="dialog">
                 <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
                   <div class="modal-content">
-                    <div class="modal-body">
-                      <div class="modal-title mb-1">¿Aprobar esta asignación?</div>
-                      <div class="text-secondary mb-3">
-                        El colaborador
-                        <strong th:text="${pend.colaboradorNombre}">Colaborador</strong>
-                        quedará asignado activamente al proyecto. Esta acción no se puede deshacer.
-                      </div>
-                      <div class="d-flex gap-2">
-                        <form method="POST" th:action="@{/pm/asignaciones/{id}/aprobar(id=${pend.asignacion.id})}" class="flex-fill" novalidate>
-                          <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
-                          <button type="submit" class="btn btn-success w-100">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
-                            Sí, aprobar
-                          </button>
-                        </form>
-                        <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancelar</button>
-                      </div>
+                    <div class="modal-header">
+                      <h5 class="modal-title">¿Aprobar esta asignación?</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                     </div>
+                    <form method="POST" th:action="@{/pm/asignaciones/{id}/aprobar(id=${pend.asignacion.id})}" novalidate>
+                      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
+                      <div class="modal-body">
+                        <div class="text-secondary">
+                          El colaborador
+                          <strong th:text="${pend.colaboradorNombre}">Colaborador</strong>
+                          quedará asignado activamente al proyecto. Esta acción no se puede deshacer.
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                          Sí, aprobar
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -362,7 +365,7 @@
 
 <!-- Modals Finalizar Asignación -->
 <th:block th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Activa'}">
-    <div class="modal fade" th:id="|modalFinalizarAsig${asig.asignacion.id}|" tabindex="-1" aria-hidden="true">
+    <div class="modal modal-blur fade pm-modal" th:id="|modalFinalizarAsig${asig.asignacion.id}|" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form method="POST" th:action="@{/pm/asignaciones/{id}/finalizar(id=${asig.asignacion.id})}" novalidate>

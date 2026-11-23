@@ -85,6 +85,12 @@
         <div class="tab-content">
             <div class="tab-pane fade" th:classappend="${tab == 'pendientes'} ? 'show active'" id="tab-pendientes">
                 <div class="card">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Pendientes de revisar</h3>
+                            <div class="section-description">CVs subidos en el pre-registro que esperan tu aprobación o rechazo.</div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table table-hover">
                             <thead>
@@ -128,6 +134,12 @@
 
             <div class="tab-pane fade" th:classappend="${tab == 'revisados'} ? 'show active'" id="tab-revisados">
                 <div class="card">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Aprobados</h3>
+                            <div class="section-description">Colaboradores con el registro aprobado; aquí puedes ver o registrar su experiencia.</div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table table-hover">
                             <thead>
@@ -170,6 +182,12 @@
 
             <div class="tab-pane fade" th:classappend="${tab == 'rechazados'} ? 'show active'" id="tab-rechazados">
                 <div class="card">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Rechazados</h3>
+                            <div class="section-description">Registros rechazados con motivo; el colaborador puede corregir y volver a subir su CV.</div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table table-hover">
                             <thead>

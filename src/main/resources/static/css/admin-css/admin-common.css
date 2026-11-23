@@ -261,6 +261,17 @@ body {
   max-width: 560px;
 }
 
+/* Conserva los tamaños modal-sm y modal-lg pese al ancho fijo de arriba. */
+.admin-modal .modal-dialog.modal-sm {
+  max-width: 380px;
+}
+
+@media (min-width: 992px) {
+  .admin-modal .modal-dialog.modal-lg {
+    max-width: 800px;
+  }
+}
+
 .admin-modal .modal-content {
   overflow: hidden;
   border: 1px solid #9eb8d3;

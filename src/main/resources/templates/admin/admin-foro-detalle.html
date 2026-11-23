@@ -83,27 +83,29 @@
       <article th:replace="~{fragments/foro-publicacion :: publicacion(${pub}, '/admin/foros', ${foro.id}, null)}"></article>
 
       <!-- Modal eliminar publicación -->
-      <div th:if="${pub.puedeEliminar}" class="modal modal-blur fade" th:id="'deletePostModal-' + ${pub.id}" tabindex="-1">
+      <div th:if="${pub.puedeEliminar}" class="modal modal-blur fade admin-modal" th:id="'deletePostModal-' + ${pub.id}" tabindex="-1">
         <div class="modal-dialog modal-sm modal-dialog-centered">
           <div class="modal-content">
-            <div class="modal-body text-center py-4">
-              <svg xmlns="http://www.w3.org/2000/svg" class="icon mb-2 text-danger icon-lg" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v2m0 4v.01"/><path d="M5 19h14a2 2 0 0 0 1.84-2.75l-7.1-12.25a2 2 0 0 0-3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75"/></svg>
-              <h3>¿Eliminar publicación?</h3>
-              <div class="text-secondary mb-4">Esta acción no se puede deshacer.</div>
-              <form th:action="@{/admin/foros/publicacion/{id}/eliminar(id=${pub.id})}" method="POST">
-                <input type="hidden" name="foroId" th:value="${foro.id}">
-                <div class="d-flex gap-2 w-100">
-                  <button type="button" class="btn w-50" data-bs-dismiss="modal">Cancelar</button>
-                  <button type="submit" class="btn btn-danger w-50">Eliminar</button>
-                </div>
-              </form>
+            <div class="modal-header">
+              <h5 class="modal-title">¿Eliminar publicación?</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+            <form th:action="@{/admin/foros/publicacion/{id}/eliminar(id=${pub.id})}" method="POST">
+              <input type="hidden" name="foroId" th:value="${foro.id}">
+              <div class="modal-body">
+                <div class="text-secondary">Esta acción no se puede deshacer.</div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
 
       <!-- Modal responder -->
-      <div th:if="${pub.puedeResponder}" class="modal modal-blur fade" th:id="'replyModal' + ${pub.id}" tabindex="-1">
+      <div th:if="${pub.puedeResponder}" class="modal modal-blur fade admin-modal" th:id="'replyModal' + ${pub.id}" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
@@ -129,7 +131,7 @@
 </div>
 
 <!-- Modal Publicar Anuncio -->
-<div class="modal modal-blur fade" id="modalPublicar" tabindex="-1">
+<div class="modal modal-blur fade admin-modal" id="modalPublicar" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <form th:action="@{/admin/foros/{id}/publicar(id=${foro.id})}" method="POST">

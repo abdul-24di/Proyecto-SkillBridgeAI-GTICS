@@ -54,8 +54,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Reportes pedidos por el jefe de práctica: Admin (usuarios y accesos, actividad de auditoría),
-// PM (avance del proyecto) y colaborador (mi desempeño), con descarga en Excel.
+
 @SpringBootTest
 @ActiveProfiles("test")
 class ReportesTests {
@@ -250,7 +249,7 @@ class ReportesTests {
     @Test
     void miDesempenoSumaLasHorasDeLoCompletadoEnElMes() throws Exception {
         Usuario pm = usuario("pm", "PROJECT_MANAGER");
-        Usuario colaborador = usuario("col", "COLABORADOR");
+        Usuario colaborador = usuarioAntiguo("col", "COLABORADOR");
         Proyecto proyecto = proyecto(pm);
         asignar(colaborador, proyecto);
         actividad(proyecto, colaborador, pm, EstadoActividad.COMPLETADA, EstadoEntrega.A_TIEMPO, "5", 0,
@@ -317,6 +316,19 @@ class ReportesTests {
         u.setActivo(true);
         u.setHorasContratadasSemana(new BigDecimal("40.00"));
         u.setHorasDisponibles(new BigDecimal("40.00"));
+        return usuarioRepository.save(u);
+    }
+
+    private Usuario usuarioAntiguo(String prefijo, String nombreRol) {
+        Usuario u = new Usuario();
+        u.setCorreo(prefijo + "." + UUID.randomUUID() + "@test.local");
+        u.setNombre(prefijo);
+        u.setApellido("Prueba");
+        u.setRol(rol(nombreRol));
+        u.setActivo(true);
+        u.setHorasContratadasSemana(new BigDecimal("40.00"));
+        u.setHorasDisponibles(new BigDecimal("40.00"));
+        u.setFechaCreacion(LocalDateTime.now().minusMonths(12));
         return usuarioRepository.save(u);
     }
 

@@ -9,6 +9,7 @@ import com.pucp.skillb_ia.dto.RmProyectoView;
 import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
+import com.pucp.skillb_ia.service.AsistenteSeguridadService;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.DatosBrechas;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.DatosCandidatos;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.HabilidadFaltante;
@@ -471,12 +472,10 @@ public class RmAsistenteContextoService {
 
     // S17: texto escrito por usuarios (nombres de proyecto, PM, colaboradores) marcado como dato para la IA.
     private static String dato(String s) {
-        return "<dato_usuario>" + limpiar(s) + "</dato_usuario>";
+        return AsistenteSeguridadService.envolverDato(s);
     }
 
     private static String limpiar(String s) {
-        if (s == null) return "";
-        return s.replace("[[", "(").replace("]]", ")")
-                .replace("<dato_usuario>", "").replace("</dato_usuario>", "");
+        return AsistenteSeguridadService.sanitizarDato(s);
     }
 }

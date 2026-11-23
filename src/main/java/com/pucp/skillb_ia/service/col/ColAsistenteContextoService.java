@@ -12,6 +12,7 @@ import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.model.enums.TipoPenalizacion;
 import com.pucp.skillb_ia.repository.*;
+import com.pucp.skillb_ia.service.AsistenteSeguridadService;
 import com.pucp.skillb_ia.service.PenalizacionService;
 import org.jsoup.Jsoup;
 import org.springframework.data.domain.PageRequest;
@@ -178,8 +179,8 @@ public class ColAsistenteContextoService {
 
     private void agregarPerfil(StringBuilder t, Usuario col, List<ColaboradorHabilidad> misHabilidades) {
         t.append("## PERFIL DEL COLABORADOR\n");
-        t.append("Nombre: ").append(nz(col.getNombre())).append(' ').append(nz(col.getApellido())).append('\n');
-        t.append("Cargo: ").append(col.getCargo() != null ? col.getCargo().getNombre() : "no registrado").append('\n');
+        t.append("Nombre: ").append(dato(nz(col.getNombre()) + " " + nz(col.getApellido()))).append('\n');
+        t.append("Cargo: ").append(col.getCargo() != null ? dato(col.getCargo().getNombre()) : "no registrado").append('\n');
         t.append("Nivel de experiencia: ")
                 .append(col.getNivelExperiencia() != null ? col.getNivelExperiencia().name() : "no registrado").append('\n');
         t.append("Años de experiencia: ")
@@ -187,7 +188,7 @@ public class ColAsistenteContextoService {
         t.append("Horas disponibles por semana: ")
                 .append(col.getHorasDisponibles() != null ? col.getHorasDisponibles() : "no registrado").append('\n');
         t.append("Sobre mí: ").append(col.getDescripcion() == null || col.getDescripcion().isBlank()
-                ? "no registrado" : limpiar(cortar(col.getDescripcion(), 300))).append('\n');
+                ? "no registrado" : dato(cortar(col.getDescripcion(), 300))).append('\n');
         t.append("Objetivos profesionales registrados: la plataforma aún no guarda objetivos; usa solo los que el colaborador mencione en esta conversación.\n");
         t.append("Perfil completo al ").append(colaboradorPerfilService.calcularPorcentajeCompletado(col)).append("%.\n");
         List<String> pendientes = colaboradorPerfilService.listarPendientesCompletar(col);
@@ -200,8 +201,8 @@ public class ColAsistenteContextoService {
             t.append("No tiene habilidades registradas.\n");
         }
         for (ColaboradorHabilidad ch : misHabilidades) {
-            t.append("- ").append(limpiar(ch.getHabilidad().getNombre()))
-                    .append(" (").append(limpiar(ch.getHabilidad().getCategoria().getNombre())).append(") | ")
+            t.append("- ").append(dato(ch.getHabilidad().getNombre()))
+                    .append(" (").append(dato(ch.getHabilidad().getCategoria().getNombre())).append(") | ")
                     .append(ch.getNivelDominio()).append(" | ").append(ch.getEstadoValidacion()).append('\n');
         }
     }
@@ -214,21 +215,21 @@ public class ColAsistenteContextoService {
             t.append("No tiene experiencia registrada.\n");
         }
         for (ExperienciaProfesional e : experiencia) {
-            t.append("- ").append(limpiar(nz(e.getCargo()))).append(" en ").append(limpiar(nz(e.getEmpresa())))
+            t.append("- ").append(dato(nz(e.getCargo()))).append(" en ").append(dato(nz(e.getEmpresa())))
                     .append(" (").append(e.getFechaInicio() != null ? e.getFechaInicio() : "?").append(" a ")
                     .append(e.isActual() ? "actualidad" : (e.getFechaFin() != null ? e.getFechaFin() : "?"))
-                    .append("): ").append(limpiar(cortar(e.getDescripcion(), 160))).append('\n');
+                    .append("): ").append(dato(cortar(e.getDescripcion(), 160))).append('\n');
         }
 
         t.append("\n## FORMACIÓN ACADÉMICA Y CERTIFICADOS\n");
         List<Educacion> educacion = educacionRepository.findByColaboradorAndActivoTrue(col);
         for (Educacion e : educacion) {
-            t.append("- Formación: ").append(limpiar(e.getTitulo())).append(" - ").append(limpiar(e.getInstitucion()))
+            t.append("- Formación: ").append(dato(e.getTitulo())).append(" - ").append(dato(e.getInstitucion()))
                     .append(" | ").append(e.getEstado()).append('\n');
         }
         List<Certificado> certificados = certificadoRepository.findByColaborador(col);
         for (Certificado c : certificados) {
-            t.append("- Certificado de ").append(limpiar(c.getHabilidad().getNombre())).append(" | ").append(c.getEstado());
+            t.append("- Certificado de ").append(dato(c.getHabilidad().getNombre())).append(" | ").append(c.getEstado());
             if (c.getNivelAprobado() != null) {
                 t.append(" (nivel aprobado ").append(c.getNivelAprobado()).append(')');
             }
@@ -246,7 +247,7 @@ public class ColAsistenteContextoService {
             t.append("No tiene cursos solicitados ni inscritos.\n");
         }
         for (ColaboradorCurso cc : mios) {
-            t.append("- ").append(limpiar(cc.getCurso().getNombre())).append(" | estado: ").append(cc.getEstado()).append('\n');
+            t.append("- ").append(dato(cc.getCurso().getNombre())).append(" | estado: ").append(cc.getEstado()).append('\n');
         }
     }
 
@@ -258,7 +259,7 @@ public class ColAsistenteContextoService {
             if (a.getEstado() == EstadoAsignacion.RECHAZADA || mostradas >= 15) {
                 continue;
             }
-            t.append("- ").append(limpiar(a.getProyecto().getNombre())).append(" | asignación: ").append(a.getEstado())
+            t.append("- ").append(dato(a.getProyecto().getNombre())).append(" | asignación: ").append(a.getEstado())
                     .append(" | ").append(a.getHorasSemanales()).append(" h/semana\n");
             mostradas++;
         }
@@ -273,7 +274,7 @@ public class ColAsistenteContextoService {
             if (n >= 10) {
                 break;
             }
-            t.append("- ").append(limpiar(a.getTitulo())).append(" (").append(limpiar(a.getProyecto().getNombre()))
+            t.append("- ").append(dato(a.getTitulo())).append(" (").append(dato(a.getProyecto().getNombre()))
                     .append(") | límite: ").append(a.getFechaLimite()).append(" | ").append(a.getEstado()).append('\n');
             n++;
         }
@@ -357,7 +358,7 @@ public class ColAsistenteContextoService {
         }
         int limite = Math.min(orden.size(), 5);
         for (int i = 0; i < limite; i++) {
-            t.append("- ").append(limpiar(orden.get(i).getKey())).append(" (pedida en ")
+            t.append("- ").append(dato(orden.get(i).getKey())).append(" (pedida en ")
                     .append(orden.get(i).getValue()).append(" proyecto(s) abierto(s))\n");
             brechas.add(normalizar(orden.get(i).getKey()));
         }
@@ -384,7 +385,7 @@ public class ColAsistenteContextoService {
             if (n >= 15) {
                 break;
             }
-            t.append("- ").append(limpiar(v.getProyecto().getNombre())).append(" | ").append(v.getProyecto().getEstado()).append('\n');
+            t.append("- ").append(dato(v.getProyecto().getNombre())).append(" | ").append(v.getProyecto().getEstado()).append('\n');
             n++;
         }
         if (elegido == null) {
@@ -394,13 +395,13 @@ public class ColAsistenteContextoService {
 
         Proyecto p = elegido.getProyecto();
         proyectos.put(p.getId(), new ProyectoTarjeta(p.getId(), p.getNombre(), p.getEstado().name(), "/colaborador/explorar"));
-        t.append("\n## ANÁLISIS DE BRECHA PARA EL PROYECTO \"").append(limpiar(p.getNombre()))
-                .append("\" [[PROY:").append(p.getId()).append("]] (calculado por el sistema, no lo recalcules)\n");
+        t.append("\n## ANÁLISIS DE BRECHA PARA EL PROYECTO ").append(dato(p.getNombre()))
+                .append(" [[PROY:").append(p.getId()).append("]] (calculado por el sistema, no lo recalcules)\n");
         t.append("Estado del proyecto: ").append(p.getEstado()).append(". Postulaciones abiertas: ")
                 .append(elegido.isPostulacionesAbiertas() ? "sí" : "no").append(". Cupos: ")
                 .append(elegido.getCuposDisponibles()).append(". El colaborador ya tiene solicitud o asignación: ")
                 .append(elegido.isYaTieneSolicitud() ? "sí" : "no").append(".\n");
-        t.append("Descripción: ").append(limpiar(cortar(p.getDescripcion(), 300))).append('\n');
+        t.append("Descripción: ").append(dato(cortar(p.getDescripcion(), 300))).append('\n');
 
         Accion propuesta = null;
         List<ProyectoHabilidadRequerida> requisitos = proyectoHabilidadRequeridaRepository.findByProyecto(p);
@@ -430,7 +431,7 @@ public class ColAsistenteContextoService {
             BigDecimal horasPerfil = r.getHorasSemanales() != null ? r.getHorasSemanales() : p.getHorasSemanalesRequeridas();
             boolean horasOk = col.getHorasDisponibles() != null && horasPerfil != null
                     && col.getHorasDisponibles().compareTo(horasPerfil) >= 0;
-            t.append("- Perfil ").append(limpiar(h.getNombre())).append(" | nivel requerido: ")
+            t.append("- Perfil ").append(dato(h.getNombre())).append(" | nivel requerido: ")
                     .append(r.getNivelRequerido() != null ? r.getNivelRequerido() : "sin mínimo")
                     .append(" | ").append(horasPerfil).append(" h/semana | situación del colaborador: ").append(situacion)
                     .append(" | horas disponibles suficientes: ").append(horasOk ? "sí" : "no").append('\n');
@@ -502,8 +503,8 @@ public class ColAsistenteContextoService {
             cursos.put(c.getId(), new CursoTarjeta(c.getId(), c.getNombre(), c.getCategoria(), modalidad, inicio, fin,
                     c.getHoras() != null ? c.getHoras().toPlainString() : null,
                     cortar(c.getDescripcion(), 240), estado, vista.isPuedeSolicitar()));
-            t.append("- [[CURSO:").append(c.getId()).append("]] \"").append(limpiar(c.getNombre())).append("\"")
-                    .append(" | categoría: ").append(limpiar(nz(c.getCategoria())))
+            t.append("- [[CURSO:").append(c.getId()).append("]] ").append(dato(c.getNombre()))
+                    .append(" | categoría: ").append(dato(nz(c.getCategoria())))
                     .append(" | modalidad: ").append(modalidad != null ? modalidad : "no registrada")
                     .append(" | inicio: ").append(inicio != null ? inicio : "no registrada")
                     .append(" | fin: ").append(fin != null ? fin : "no registrada")
@@ -511,7 +512,7 @@ public class ColAsistenteContextoService {
                     .append(" | horas: ").append(c.getHoras())
                     .append(" | estado del colaborador: ").append(estado)
                     .append(" | puede solicitarlo: ").append(vista.isPuedeSolicitar() ? "sí" : "no")
-                    .append(" | descripción: ").append(limpiar(cortar(c.getDescripcion(), 200))).append('\n');
+                    .append(" | descripción: ").append(dato(cortar(c.getDescripcion(), 200))).append('\n');
             if (vista.isPuedeSolicitar()) {
                 accionesCurso.put(c.getId(), new Accion("SOLICITAR_CURSO", c.getId(), null,
                         "Solicitar inscripción a " + c.getNombre()));
@@ -605,15 +606,13 @@ public class ColAsistenteContextoService {
             String url = "/colaborador/foros/detalle?foroId=" + foro.getId() + "#publicacion-" + p.getId();
             publicaciones.put(p.getId(), new Fuente(p.getId(), p.getTitulo(), foro.getNombre(), url, solucion != null));
 
-            t.append("- [[PUB:").append(p.getId()).append("]] título: \"").append(limpiar(p.getTitulo()))
-                    .append("\" | foro: ").append(limpiar(foro.getNombre()))
+            t.append("- [[PUB:").append(p.getId()).append("]] título: ").append(dato(p.getTitulo()))
+                    .append(" | foro: ").append(dato(foro.getNombre()))
                     .append(" | resuelta: ").append(solucion != null ? "sí" : "no").append('\n');
-            t.append("  <extracto_foro>").append(limpiar(cortar(textoPlano(p.getContenido(), 600), 350)))
-                    .append("</extracto_foro>\n");
+            t.append("  ").append(extractoForo(cortar(textoPlano(p.getContenido(), 600), 350))).append('\n');
             if (respuesta != null) {
-                t.append("  <extracto_foro>Respuesta").append(respuesta.isEsSolucion() ? " (marcada como solución)" : "")
-                        .append(": ").append(limpiar(cortar(textoPlano(respuesta.getContenido(), 600), 300)))
-                        .append("</extracto_foro>\n");
+                t.append("  ").append(extractoForo("Respuesta" + (respuesta.isEsSolucion() ? " (marcada como solución)" : "")
+                        + ": " + cortar(textoPlano(respuesta.getContenido(), 600), 300))).append('\n');
             }
         }
     }
@@ -662,10 +661,15 @@ public class ColAsistenteContextoService {
     }
 
 
+    private String dato(String s) {
+        return AsistenteSeguridadService.envolverDato(s);
+    }
+
+    private String extractoForo(String s) {
+        return AsistenteSeguridadService.envolverExtractoForo(s);
+    }
+
     private String limpiar(String s) {
-        if (s == null) {
-            return "";
-        }
-        return s.replace("[[", "(").replace("]]", ")").replace("<extracto_foro>", "").replace("</extracto_foro>", "");
+        return AsistenteSeguridadService.sanitizarDato(s);
     }
 }

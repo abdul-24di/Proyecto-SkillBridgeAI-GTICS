@@ -142,6 +142,7 @@ public class ColAsistenteIaClient {
         Map<String, Object> cuerpo = new HashMap<>();
         cuerpo.put("model", modelo);
         cuerpo.put("max_tokens", maxTokens);
+        cuerpo.put("temperature", 0.2);
         cuerpo.put("system", system);
         cuerpo.put("messages", mensajes);
 
@@ -205,11 +206,20 @@ public class ColAsistenteIaClient {
 
         Map<String, Object> generacion = new HashMap<>();
         generacion.put("maxOutputTokens", Math.max(maxTokens, 2048));
+        generacion.put("temperature", 0.2);
+
+        List<Map<String, String>> safetySettings = List.of(
+                Map.of("category", "HARM_CATEGORY_HARASSMENT", "threshold", "BLOCK_MEDIUM_AND_ABOVE"),
+                Map.of("category", "HARM_CATEGORY_HATE_SPEECH", "threshold", "BLOCK_MEDIUM_AND_ABOVE"),
+                Map.of("category", "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold", "BLOCK_MEDIUM_AND_ABOVE"),
+                Map.of("category", "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold", "BLOCK_MEDIUM_AND_ABOVE")
+        );
 
         Map<String, Object> cuerpo = new HashMap<>();
         cuerpo.put("systemInstruction", instruccion);
         cuerpo.put("contents", contenidos);
         cuerpo.put("generationConfig", generacion);
+        cuerpo.put("safetySettings", safetySettings);
 
         Map<String, Object> respuesta = restClient().post()
                 .uri(url)

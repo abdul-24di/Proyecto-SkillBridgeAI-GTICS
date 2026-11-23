@@ -12,6 +12,7 @@ import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
 import com.pucp.skillb_ia.model.enums.EstadoEntrega;
 import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.repository.*;
+import com.pucp.skillb_ia.service.AsistenteSeguridadService;
 import com.pucp.skillb_ia.service.PenalizacionService;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService;
 import com.pucp.skillb_ia.service.rm.RmTalentMatchingService.HabilidadFaltante;
@@ -149,14 +150,14 @@ public class PmAsistenteContextoService {
 
         StringBuilder t = new StringBuilder();
         t.append("## RESUMEN DEL PORTAFOLIO DEL PROJECT MANAGER\n");
-        t.append("PM: ").append(pm.getNombre()).append(' ').append(pm.getApellido()).append('\n');
+        t.append("PM: ").append(dato(pm.getNombre() + " " + pm.getApellido())).append('\n');
         t.append("Proyectos a su cargo: ").append(kpis.totalProyectos())
                 .append(" | Colaboradores activos únicos: ").append(kpis.totalColaboradores())
                 .append(" | Vacantes abiertas: ").append(kpis.totalVacantes())
                 .append(" | Pendientes del PM (asignaciones + revisiones): ").append(kpis.totalPendientesPm()).append('\n');
         if (enfocado != null) {
-            t.append("Contexto enfocado en el proyecto: \"").append(limpiar(enfocado.getNombre()))
-                    .append("\" [[PROY:").append(enfocado.getId()).append("]]\n");
+            t.append("Contexto enfocado en el proyecto: ").append(dato(enfocado.getNombre()))
+                    .append(" [[PROY:").append(enfocado.getId()).append("]]\n");
         }
 
         LocalDate hoy = LocalDate.now();
@@ -210,7 +211,7 @@ public class PmAsistenteContextoService {
 
             BigDecimal presupuestoVisible = p.getPresupuesto() != null
                     ? p.getPresupuesto() : p.getPresupuestoSolicitado();
-            t.append("\n### Proyecto [[PROY:").append(p.getId()).append("]] \"").append(limpiar(p.getNombre())).append("\"\n");
+            t.append("\n### Proyecto [[PROY:").append(p.getId()).append("]] ").append(dato(p.getNombre())).append('\n');
             t.append("- Estado: ").append(p.getEstado()).append(" | Prioridad: ").append(p.getPrioridad())
                     .append(" | Fechas: ").append(p.getFechaInicio() != null ? p.getFechaInicio() : "por definir")
                     .append(" a ").append(p.getFechaFinEstimada() != null ? p.getFechaFinEstimada() : "por definir").append('\n');
@@ -227,7 +228,7 @@ public class PmAsistenteContextoService {
             if (!cupos.isEmpty()) {
                 t.append("- Perfiles/habilidades requeridas en el proyecto:\n");
                 for (PmCupoHabilidadView cupo : cupos) {
-                    t.append("  * ").append(limpiar(cupo.getHabilidad())).append(" (").append(cupo.getNivel())
+                    t.append("  * ").append(dato(cupo.getHabilidad())).append(" (").append(cupo.getNivel())
                             .append("): cubiertos ").append(cupo.getOcupados()).append('/').append(cupo.getExigidos())
                             .append(", faltan ").append(cupo.getDisponibles()).append(" cupo(s)\n");
                     if (cupo.getDisponibles() > 0 && (p.getEstado() == EstadoProyecto.ACTIVO
@@ -262,7 +263,12 @@ public class PmAsistenteContextoService {
                             + compCol + "/" + suyas.size() + " tareas completadas, "
                             + vencCol + " vencida(s), " + devCol + " devolución(es), strikes " + strikes + "/3.";
                     lineasEquipo.add(resumenMiembro);
-                    t.append("  * ").append(limpiar(resumenMiembro)).append('\n');
+                    t.append("  * ").append(dato(col.getNombre() + " " + col.getApellido()))
+                            .append(" en ").append(dato(p.getNombre()))
+                            .append(": ").append(a.getHorasSemanales()).append(" h/sem asignadas (").append(disp)
+                            .append(" h/sem libres), ").append(compCol).append('/').append(suyas.size())
+                            .append(" tareas completadas, ").append(vencCol).append(" vencida(s), ")
+                            .append(devCol).append(" devolución(es), strikes ").append(strikes).append("/3.\n");
 
                     if (strikes >= 2) {
                         lineasRiesgos.add("Alerta de strikes en " + p.getNombre() + ": " + col.getNombre() + " "
@@ -282,7 +288,9 @@ public class PmAsistenteContextoService {
                         + col.getNombre() + " " + col.getApellido() + " (" + pend.getHorasSemanales()
                         + " h/sem, origen " + pend.getOrigen() + ").";
                 lineasPendientes.add(lineaPend);
-                t.append("  * PENDIENTE APROBACIÓN PM: ").append(limpiar(lineaPend)).append('\n');
+                t.append("  * PENDIENTE APROBACIÓN PM en ").append(dato(p.getNombre())).append(": ")
+                        .append(dato(col.getNombre() + " " + col.getApellido())).append(" (")
+                        .append(pend.getHorasSemanales()).append(" h/sem, origen ").append(pend.getOrigen()).append(").\n");
             }
             for (Actividad actRev : actividades) {
                 if (actRev.getEstado() == EstadoActividad.EN_REVISION) {
@@ -290,7 +298,10 @@ public class PmAsistenteContextoService {
                             + "\" entregada por " + actRev.getColaborador().getNombre() + " "
                             + actRev.getColaborador().getApellido() + ".";
                     lineasPendientes.add(lineaRev);
-                    t.append("  * ACTIVIDAD EN REVISIÓN: ").append(limpiar(lineaRev)).append('\n');
+                    t.append("  * ACTIVIDAD EN REVISIÓN en ").append(dato(p.getNombre())).append(": ")
+                            .append(dato(actRev.getTitulo())).append(" entregada por ")
+                            .append(dato(actRev.getColaborador().getNombre() + " " + actRev.getColaborador().getApellido()))
+                            .append(".\n");
                 }
             }
 
@@ -386,14 +397,14 @@ public class PmAsistenteContextoService {
                 );
                 String clave = cand.colaboradorId() + ":" + cand.proyectoId();
                 tarjetasCandidatos.put(clave, cand);
-                t.append("- [[CAND:").append(clave).append("]] ").append(limpiar(cand.nombre()))
-                        .append(" | cargo: ").append(limpiar(cand.cargo()))
+                t.append("- [[CAND:").append(clave).append("]] ").append(dato(cand.nombre()))
+                        .append(" | cargo: ").append(dato(cand.cargo()))
                         .append(" | nivel: ").append(cand.nivelExperiencia())
                         .append(" | horas disponibles: ").append(cand.horasDisponibles()).append(" h/sem")
-                        .append(" | habilidades validadas que aplican a \"").append(limpiar(cand.proyectoNombre()))
-                        .append("\": ").append(limpiar(cand.habilidadesMatch()));
+                        .append(" | habilidades validadas que aplican a ").append(dato(cand.proyectoNombre()))
+                        .append(": ").append(dato(cand.habilidadesMatch()));
                 if (!rec.notasNivel().isEmpty()) {
-                    t.append(" | notas de nivel: ").append(limpiar(String.join("; ", rec.notasNivel())));
+                    t.append(" | notas de nivel: ").append(dato(String.join("; ", rec.notasNivel())));
                 }
                 t.append(" | match (mismo cálculo que Talent Matching del RM): ")
                         .append(cand.puntajeAfinidad()).append("%\n");
@@ -434,11 +445,10 @@ public class PmAsistenteContextoService {
             boolean resuelta = solucion != null && solucion.isActivo();
             String url = "/pm/foro/detalle?foroId=" + foro.getId();
             publicaciones.put(p.getId(), new Fuente(p.getId(), p.getTitulo(), foro.getNombre(), url, resuelta));
-            t.append("- [[PUB:").append(p.getId()).append("]] \"").append(limpiar(p.getTitulo()))
-                    .append("\" en ").append(limpiar(foro.getNombre()))
+            t.append("- [[PUB:").append(p.getId()).append("]] ").append(dato(p.getTitulo()))
+                    .append(" en ").append(dato(foro.getNombre()))
                     .append(" (resuelta: ").append(resuelta ? "sí" : "no").append("): ")
-                    .append("<extracto_foro>").append(limpiar(cortar(textoPlano(p.getContenido(), 300), 220)))
-                    .append("</extracto_foro>\n");
+                    .append(extractoForo(cortar(textoPlano(p.getContenido(), 300), 220))).append('\n');
             mostrados++;
         }
         if (mostrados == 0) {
@@ -597,9 +607,15 @@ public class PmAsistenteContextoService {
         return s.length() > maximo ? s.substring(0, maximo) + "..." : s;
     }
 
+    private String dato(String s) {
+        return AsistenteSeguridadService.envolverDato(s);
+    }
+
+    private String extractoForo(String s) {
+        return AsistenteSeguridadService.envolverExtractoForo(s);
+    }
+
     private String limpiar(String s) {
-        if (s == null) return "";
-        return s.replace("[[", "(").replace("]]", ")")
-                .replace("<extracto_foro>", "").replace("</extracto_foro>", "");
+        return AsistenteSeguridadService.sanitizarDato(s);
     }
 }

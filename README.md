@@ -206,3 +206,18 @@ Los 19 endpoints REST (chat del PM, del colaborador y del RM, asistente del cola
 notificaciones), el WebSocket del chat, sus fichas y su seguridad están en [`docs/informe/04-apis-rest.md`](docs/informe/04-apis-rest.md). La colección de
 Postman está en `docs/informe/postman/`. Antes de ejecutarla hay que cambiar `baseUrl` y escribir la
 contraseña demo en la variable `password`.
+
+
+### Resumen de cobertura y bugs corregidos
+
+* **Pruebas automatizadas:** 1,157 pruebas en 51 clases (100 % aprobadas).
+* **Cobertura global (JaCoCo):** 78.8 % de líneas cubiertas.
+
+| Módulo | Problema | Corrección |
+| :--- | :--- | :--- |
+| Foros del colaborador | Un error de validación llevaba al detalle de otro foro. | Se valida el formulario y se vuelve al mismo modal. |
+| Reportes del colaborador | La prueba de *Mi desempeño* fallaba por la fecha de creación del usuario. | Se corrigió la prueba para que el colaborador tenga una fecha de creación antigua. |
+| Explorar proyectos | Al intentar postularse con restricciones o datos inválidos, no se mostraba el mensaje de error. | Se corrigió el manejo de mensajes flash para mostrar el aviso de error en pantalla. |
+| Perfil del colaborador | El campo de teléfono permitía ingresar letras o caracteres no numéricos. | Se unificó la regla de validación para aceptar únicamente caracteres numéricos válidos. |
+| Avatar / Foto de perfil | Al seleccionar una nueva foto de perfil no se mostraba vista previa antes de guardarla. | Se implementó la previsualización inmediata en el avatar y se ubicó el botón "Guardar foto" junto al selector. |
+

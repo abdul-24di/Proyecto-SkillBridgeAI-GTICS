@@ -200,11 +200,15 @@
             </div>
 
             <div data-paso="3" th:if="${esColaborador}">
-                <p class="form-hint">Registra al menos una formación académica. Los certificados son opcionales: puedes agregarlos después desde tu perfil.</p>
+                <p class="form-hint">Registra tu formación académica concluida. Los certificados son opcionales: puedes agregarlos después desde tu perfil.</p>
 
-                <div class="mb-3" data-filas-wrap="estudios" data-filas-minimo="Agrega al menos una formación académica.">
+                <div class="mb-3" data-filas-wrap="estudios" data-filas-minimo='Agrega al menos una formación académica o marca "Aún no tengo estudios concluidos".'>
                     <label class="form-label">Formación académica</label>
-                    <div class="form-hint mb-2">Adjunta tu título o constancia (PDF, JPG o PNG, máx. 10 MB). Si todavía estudias, basta una constancia. El Resource Manager los validará.</div>
+                    <div class="form-hint mb-2">Solo estudios concluidos, con su título o certificado (PDF, JPG o PNG, máx. 10 MB). El Resource Manager los validará. Lo que estudias todavía lo agregas desde tu perfil cuando termines.</div>
+                    <label class="form-check mb-2">
+                        <input type="checkbox" class="form-check-input" id="activationSinEstudios" th:field="*{sinEstudios}" data-sin-filas>
+                        <span class="form-check-label">Aún no tengo estudios concluidos</span>
+                    </label>
                     <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('estudios')}" th:errors="*{estudios}"></div>
 
                     <div class="border rounded p-3 mb-2" data-fila th:each="est, st : *{estudios}">
@@ -230,13 +234,7 @@
                                 <div class="auth-field-error is-visible" th:if="${#fields.hasErrors('estudios[__${st.index}__].fechaFin')}" th:errors="*{estudios[__${st.index}__].fechaFin}"></div>
                             </div>
                             <div class="col-12">
-                                <label class="form-check">
-                                    <input type="checkbox" class="form-check-input" th:field="*{estudios[__${st.index}__].actual}">
-                                    <span class="form-check-label small">Estudio aquí actualmente</span>
-                                </label>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label small">Constancia o título</label>
+                                <label class="form-label small">Título o certificado</label>
                                 <input type="hidden" th:field="*{estudios[__${st.index}__].archivoGuardado}">
                                 <div class="auth-archivo-ok" th:if="${archivosGuardados.get(est.archivoGuardado) != null}" th:with="a=${archivosGuardados.get(est.archivoGuardado)}">
                                     ✓ <strong th:text="${a.nombre()}">constancia.pdf</strong> (<span th:text="${a.tamanoLegible()}">1 MB</span>) ya está adjunto. Elige otro solo si quieres cambiarlo.

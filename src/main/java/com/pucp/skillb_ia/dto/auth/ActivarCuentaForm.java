@@ -50,7 +50,9 @@ public class ActivarCuentaForm {
     private boolean sinExperiencia;
     private List<ExperienciaForm> experiencias = new ArrayList<>();
 
-    // Solo colaboradores: los certificados de habilidades son opcionales; la formación académica, al menos una.
+    // Solo colaboradores: los certificados de habilidades son opcionales; la formación académica, al menos una ya
+    // concluida, salvo que marque que todavía no tiene.
+    private boolean sinEstudios;
     private List<CertificadoPreRegistroForm> certificados = new ArrayList<>();
     private List<EstudioPreRegistroForm> estudios = new ArrayList<>();
 
@@ -84,6 +86,8 @@ public class ActivarCuentaForm {
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
     public boolean isSinExperiencia() { return sinExperiencia; }
     public void setSinExperiencia(boolean sinExperiencia) { this.sinExperiencia = sinExperiencia; }
+    public boolean isSinEstudios() { return sinEstudios; }
+    public void setSinEstudios(boolean sinEstudios) { this.sinEstudios = sinEstudios; }
     public List<ExperienciaForm> getExperiencias() { return experiencias; }
     public void setExperiencias(List<ExperienciaForm> experiencias) { this.experiencias = experiencias; }
     public List<CertificadoPreRegistroForm> getCertificados() { return certificados; }

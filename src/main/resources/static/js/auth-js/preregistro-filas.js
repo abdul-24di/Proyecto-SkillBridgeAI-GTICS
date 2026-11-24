@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function () {
       btnAgregar.disabled = filas().length >= MAX_FILAS;
     }
 
-    // "Trabajo aquí actualmente" / "Estudio aquí actualmente": deshabilita la fecha de fin.
+    // "Trabajo aquí actualmente" (solo experiencia): deshabilita la fecha de fin.
     function sincronizarActual(fila) {
       const actual = fila.querySelector("input[type=checkbox]");
       const fin = fila.querySelector("input[type=date][name$='.fechaFin']");
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", function () {
       reindexar();
     });
 
-    // "No tengo experiencia laboral": oculta las filas y no las envía.
+    // "No tengo experiencia laboral" / "Aún no tengo estudios concluidos": oculta las filas y no las envía.
     const sinFilas = wrap.querySelector("[data-sin-filas]");
     function sincronizarSinFilas() {
       if (!sinFilas) return;

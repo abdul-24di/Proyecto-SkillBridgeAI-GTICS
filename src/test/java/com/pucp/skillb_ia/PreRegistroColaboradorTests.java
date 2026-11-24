@@ -64,6 +64,7 @@ class PreRegistroColaboradorTests {
     @Autowired private ColaboradorPerfilService colaboradorPerfilService;
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private RolRepository rolRepository;
+    @Autowired private com.pucp.skillb_ia.repository.EducacionRepository educacionRepository;
     @Autowired private TokenUsuarioRepository tokenUsuarioRepository;
     @Autowired private HabilidadRepository habilidadRepository;
     @Autowired private CategoriaHabilidadRepository categoriaHabilidadRepository;
@@ -723,7 +724,44 @@ class PreRegistroColaboradorTests {
     }
 
     @Test
-    void quienTodaviaEstudiaSeRegistraSinFechaDeFinYElRmYElAdminLoVen() throws Exception {
+    void quienTodaviaEstudiaMarcaQueNoTieneEstudiosConcluidosYElPerfilNoMuestraNinguno() throws Exception {
+        String correo = correoNuevo();
+        String token = invitar(correo, "COLABORADOR");
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321",
+                        new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF)).peticion()
+                        .param("descripcion", "Practicante").param("sinExperiencia", "true").param("sinEstudios", "true"))
+                .andExpect(redirectedUrl("/login?activado"));
+
+        Usuario u = usuarioRepository.findByCorreo(correo).orElseThrow();
+        assertThat(colaboradorPerfilService.listarEducacion(u)).isEmpty();
+    }
+
+    @Test
+    void marcarSinEstudiosYLlenarUnoEsUnaContradiccion() throws Exception {
+        String token = invitar(correoNuevo(), "COLABORADOR");
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321").peticion()
+                        .param("sinEstudios", "true").param("estudios[0].institucion", "PUCP"))
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "estudios"));
+    }
+
+    @Test
+    void elPreRegistroSoloAceptaEstudiosConcluidos() throws Exception {
+        String token = invitar(correoNuevo(), "COLABORADOR");
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321").peticion()
+                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "Ingeniería")
+                        .param("estudios[0].fechaInicio", "2023-03-01")
+                        .param("estudios[1].institucion", "UNI").param("estudios[1].titulo", "Maestría")
+                        .param("estudios[1].fechaInicio", "2023-03-01")
+                        .param("estudios[1].fechaFin", java.time.LocalDate.now().plusDays(2).toString()))
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm",
+                        "estudios[0].fechaFin", "estudios[1].fechaFin"));
+    }
+
+    @Test
+    void elAdminVeLaFormacionYLosCertificadosAlRevisar() throws Exception {
         String correo = correoNuevo();
         String token = invitar(correo, "COLABORADOR");
         Habilidad java = habilidadDelCatalogo();
@@ -731,53 +769,47 @@ class PreRegistroColaboradorTests {
         mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321",
                         new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF),
                         new MockMultipartFile("certificados[0].archivo", "c.pdf", "application/pdf", PDF),
-                        new MockMultipartFile("estudios[0].archivo", "constancia.pdf", "application/pdf", PDF)).peticion()
-                        .param("descripcion", "Practicante").param("sinExperiencia", "true")
+                        new MockMultipartFile("estudios[0].archivo", "titulo.pdf", "application/pdf", PDF)).peticion()
+                        .param("descripcion", "Backend").param("sinExperiencia", "true")
                         .param("certificados[0].habilidadId", String.valueOf(java.getId()))
                         .param("certificados[0].nivel", "BASICO")
-                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "Telecomunicaciones en curso")
-                        .param("estudios[0].fechaInicio", "2023-03-01").param("estudios[0].actual", "true"))
+                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "Telecomunicaciones")
+                        .param("estudios[0].fechaInicio", "2015-03-01").param("estudios[0].fechaFin", "2020-12-15"))
                 .andExpect(redirectedUrl("/login?activado"));
 
         Usuario u = usuarioRepository.findByCorreo(correo).orElseThrow();
-        var estudio = colaboradorPerfilService.listarEducacion(u).get(0);
-        assertThat(estudio.isActual()).isTrue();
-        assertThat(estudio.getFechaFin()).isNull();
-
-        // El Admin los ve al revisar, sin poder editarlos.
         autenticar(admin);
         mockMvc.perform(get("/admin/experiencia/" + u.getId()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Telecomunicaciones en curso")))
-                .andExpect(content().string(containsString("Actualidad")))
+                .andExpect(content().string(containsString("Telecomunicaciones — PUCP")))
+                .andExpect(content().string(containsString("Ver título o certificado")))
                 .andExpect(content().string(containsString("Java prerregistro")))
-                .andExpect(content().string(containsString("Ver constancia o título")))
                 .andExpect(content().string(containsString("Ver certificado")));
+    }
 
-        // El RM lo tiene en su bandeja: antes una formación sin fecha de fin se mostraba como "null".
-        adminUsuarioService.aprobarRegistro(u.getId(), admin);
+    @Test
+    void unaFormacionSinFechaDeFinSeMuestraComoActualidadEnLaBandejaDelRm() throws Exception {
+        // Los datos demo traen formaciones en curso: antes la bandeja mostraba "null" como fecha de fin.
+        Usuario colaborador = colaboradorPendiente();
+        colaboradorPerfilService.agregarEducacion(colaborador, "PUCP", "Maestría en curso", "2023-03-01", "2024-03-01",
+                new MockMultipartFile("archivo", "c.pdf", "application/pdf", PDF));
+        var estudio = educacionRepository.findById(
+                colaboradorPerfilService.listarEducacion(colaborador).get(0).getId()).orElseThrow();
+        estudio.setActual(true);
+        estudio.setFechaFin(null);
+        educacionRepository.save(estudio);
+        adminUsuarioService.aprobarRegistro(colaborador.getId(), admin);
+
         Usuario rm = estudio.getRmResponsable() != null
                 ? usuarioRepository.findById(estudio.getRmResponsable().getId()).orElseThrow() : nuevoRm();
         rm.setRol(rolRepository.findByNombre("RESOURCE_MANAGER").orElseThrow());
         autenticar(rm);
         mockMvc.perform(get("/rm/colaboradores/educacion/revision").param("id", String.valueOf(estudio.getId())))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Telecomunicaciones en curso")))
                 .andExpect(content().string(containsString("Actualidad")));
         mockMvc.perform(get("/rm/colaboradores/educacion"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("– null"))));
-    }
-
-    @Test
-    void laFormacionActualNoAdmiteUnInicioFuturo() throws Exception {
-        String token = invitar(correoNuevo(), "COLABORADOR");
-
-        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321").peticion()
-                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "X")
-                        .param("estudios[0].fechaInicio", java.time.LocalDate.now().plusDays(2).toString())
-                        .param("estudios[0].actual", "true"))
-                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "estudios[0].fechaInicio"));
     }
 
     // ---------- helpers ----------

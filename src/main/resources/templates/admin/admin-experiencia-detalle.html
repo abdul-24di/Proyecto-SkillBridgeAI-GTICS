@@ -151,7 +151,7 @@
                     </div>
                     <div class="card-body p-0">
                         <div th:if="${#lists.isEmpty(estudios)}" class="empty-state p-4 text-center text-muted">
-                            Este colaborador no registró formación académica.
+                            Este colaborador aún no registra estudios concluidos.
                         </div>
                         <div th:each="est : ${estudios}" class="timeline-entry p-3 border-bottom">
                             <div class="fw-bold" th:text="${est.titulo} + ' — ' + ${est.institucion}">Título — Institución</div>
@@ -160,7 +160,7 @@
                                 –
                                 <span th:text="${est.actual} ? 'Actualidad' : (${est.fechaFin != null} ? ${#temporals.format(est.fechaFin, 'MM/yyyy')} : '¿?')">2022</span>
                             </div>
-                            <a th:if="${!#strings.isEmpty(est.archivoUrl)}" th:href="@{${est.archivoUrl}}" target="_blank" rel="noopener">Ver constancia o título</a>
+                            <a th:if="${!#strings.isEmpty(est.archivoUrl)}" th:href="@{${est.archivoUrl}}" target="_blank" rel="noopener">Ver título o certificado</a>
                         </div>
                     </div>
                 </div>

@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
-    // Secciones con filas que exigen al menos una: experiencia (salvo que marque que no tiene) y formación.
+    // Secciones con filas que exigen al menos una, salvo que marque que no tiene: experiencia y formación.
     seccion.querySelectorAll("[data-filas-minimo]").forEach(function (wrap) {
       const anterior = wrap.querySelector("[data-filas-aviso]");
       if (anterior) anterior.remove();

@@ -71,7 +71,7 @@ public class PreRegistroColaboradorService {
         }
         validarExperiencias(form.getExperiencias(), form.isSinExperiencia(), result);
         validarCertificados(form.getCertificados(), result, session);
-        validarEstudios(form.getEstudios(), result, session);
+        validarEstudios(form.getEstudios(), form.isSinEstudios(), result, session);
     }
 
     // Un archivo válido se guarda de inmediato, aunque otros campos tengan errores: así no hay que volver a
@@ -180,13 +180,21 @@ public class PreRegistroColaboradorService {
         }
     }
 
-    private void validarEstudios(List<EstudioPreRegistroForm> filas, BindingResult result, HttpSession session) {
+    // Solo estudios concluidos, con su título o certificado: lo que se cursa todavía se agrega después desde el perfil.
+    private void validarEstudios(List<EstudioPreRegistroForm> filas, boolean sinEstudios, BindingResult result,
+                                 HttpSession session) {
         long llenos = filas.stream().filter(f -> !f.estaVacia()).count();
         if (excedeMaximo(llenos, "estudios", "estudios", result)) {
             return;
         }
-        if (llenos == 0) {
-            result.rejectValue("estudios", "estudios.faltan", "Agrega al menos una formación académica.");
+        if (sinEstudios && llenos > 0) {
+            result.rejectValue("estudios", "estudios.contradiccion",
+                    "Marcaste que aún no tienes estudios concluidos, pero llenaste uno. Quita la marca o borra la formación.");
+            return;
+        }
+        if (!sinEstudios && llenos == 0) {
+            result.rejectValue("estudios", "estudios.faltan",
+                    "Agrega al menos una formación académica o marca \"Aún no tengo estudios concluidos\".");
             return;
         }
         for (int i = 0; i < filas.size(); i++) {
@@ -212,16 +220,14 @@ public class PreRegistroColaboradorService {
             } else if (f.getFechaInicio().isAfter(LocalDate.now())) {
                 result.rejectValue(campo + "fechaInicio", "est.inicio", "La fecha de inicio no puede ser futura.");
             }
-            if (f.isActual()) {
-                // Todavía estudia: la fecha de fin no aplica.
-            } else if (f.getFechaFin() == null) {
+            if (f.getFechaFin() == null) {
                 if (!result.hasFieldErrors(campo + "fechaFin")) {
-                    result.rejectValue(campo + "fechaFin", "est.fin", "Indica la fecha de fin o marca que estudias ahí actualmente.");
+                    result.rejectValue(campo + "fechaFin", "est.fin", "Indica la fecha de fin.");
                 }
             } else if (f.getFechaInicio() != null && f.getFechaFin().isBefore(f.getFechaInicio())) {
                 result.rejectValue(campo + "fechaFin", "est.fin", "La fecha de fin no puede ser anterior a la de inicio.");
             } else if (f.getFechaFin().isAfter(LocalDate.now())) {
-                result.rejectValue(campo + "fechaFin", "est.fin", "La fecha de fin no puede ser futura. Si todavía estudias, marca que estudias ahí actualmente.");
+                result.rejectValue(campo + "fechaFin", "est.fin", "La fecha de fin no puede ser futura. Si todavía estudias, agrégala desde tu perfil cuando termines.");
             }
             f.setArchivoGuardado(resolverArchivo(f.getArchivo(), f.getArchivoGuardado(),
                     colaboradorPerfilService::validarArchivoCertificado, campo + "archivo", "est.archivo", result, session));
@@ -342,8 +348,7 @@ public class PreRegistroColaboradorService {
             if (f.estaVacia()) continue;
             intentar(noGuardado, usuario, "formación académica", () -> colaboradorPerfilService.agregarEducacion(
                     usuario, f.getInstitucion(), f.getTitulo(), f.getFechaInicio().toString(),
-                    f.isActual() ? null : f.getFechaFin().toString(),
-                    archivosPendientes.abrir(f.getArchivoGuardado(), session), false, f.isActual()));
+                    f.getFechaFin().toString(), archivosPendientes.abrir(f.getArchivoGuardado(), session), false));
         }
 
         archivosPendientes.limpiar(session);

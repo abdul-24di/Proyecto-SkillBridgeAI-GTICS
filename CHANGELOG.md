@@ -4,10 +4,10 @@
 
 - **Activación de cuenta (todos los roles):** "Nombre completo" se separó en **Nombres** y **Apellidos**. Antes se cortaba en el primer espacio y el segundo nombre quedaba como apellido. Las cuentas ya creadas no cambian.
 - **Perfil del Admin, PM y RM:** muestran y permiten editar "Sobre mí", que se pedía al activar la cuenta pero no se veía (`PerfilSobreMiController`, `fragments/sobre-mi-perfil.html`).
-- **Pre-registro del colaborador:** con solo el CV el perfil quedaba vacío. Ahora son obligatorios "Sobre ti", al menos una formación académica y al menos una experiencia, salvo que marque "No tengo experiencia laboral". Los certificados siguen opcionales. Quien todavía estudia marca "Estudio aquí actualmente" (sin fecha de fin, con una constancia).
+- **Pre-registro del colaborador:** con solo el CV el perfil quedaba vacío. Ahora son obligatorios "Sobre ti", al menos una formación académica y al menos una experiencia, salvo que marque "No tengo experiencia laboral". Los certificados siguen opcionales. Solo se registran estudios concluidos, con su título o certificado; quien todavía estudia marca "Aún no tengo estudios concluidos" y los agrega desde su perfil cuando termine.
 - **Revisión del Admin:** muestra la formación académica y los certificados, solo para lectura, para compararlos con el CV. Los sigue validando el RM. "Agregar experiencia" pasó a una ventana opcional: no hace falta llenarla para aprobar.
 - **Bandeja de formaciones del RM:** una formación sin fecha de fin muestra "Actualidad" (antes podía salir "null").
-- **Tests:** 1171 en verde.
+- **Tests:** 1174 en verde.
 
 ---
 

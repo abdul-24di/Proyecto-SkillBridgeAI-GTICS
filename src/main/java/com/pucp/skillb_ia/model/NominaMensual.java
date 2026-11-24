@@ -5,10 +5,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Historia 9.3 — Tier 3, diferida. Snapshot del cálculo de sueldo de un
-// colaborador en un mes: valor_hora = sueldo_base/160, horas_extra pagables
-// topeadas por TOPE_HORAS_EXTRA_BONO (A16), solo horas a tiempo generan bono
-// (C7: visible únicamente para el colaborador y el Administrador).
+
 @Entity
 @Table(name = "nomina_mensual", uniqueConstraints = @UniqueConstraint(columnNames = {"colaborador_id", "anio", "mes"}))
 public class NominaMensual {

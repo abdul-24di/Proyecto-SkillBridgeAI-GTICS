@@ -6,10 +6,7 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Épica 9 — Tier 3, diferida. Bloque B punto 7: si el colaborador es removido
-// a mitad de mes por bajo desempeño se penaliza; si es porque el proyecto se
-// canceló, no. La fórmula exacta del `monto` sigue sin definir
-// (consideraciones_bd_v4.md, Parte 2.C).
+
 @Entity
 @Table(name = "penalizacion")
 public class Penalizacion {

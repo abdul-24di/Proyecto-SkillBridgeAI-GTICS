@@ -5,10 +5,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-/**
- * Requerimiento genérico de personal para un proyecto.
- * No representa una asignación: todavía no existe un colaborador concreto.
- */
+
 @Entity
 @Table(name = "solicitud_personal")
 public class SolicitudPersonal {

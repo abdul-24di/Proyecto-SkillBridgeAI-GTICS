@@ -10,17 +10,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// Tabla única para los 4 roles (se eliminó la tabla `colaborador` separada —
-// ver consideraciones_bd_v4.md Parte 1.1). IMPORTANTE: la BD ya NO puede
-// garantizar que solo un COLABORADOR tenga asignaciones/certificados/etc. —
-// esa validación de rol es responsabilidad exclusiva del service de Java.
-//
-// Los campos de la sección "exclusivos de colaborador" quedan NULL para
-// PM/RM/Admin — es esperado, no un dato faltante (consideraciones_bd_v4.md,
-// Parte 1.2).
+
 @Entity
 @Table(name = "usuario")
-// Serializable: lo exige Spring Session (clase 6.2) para poder guardar el
+// Serializable: lo exige Spring Session para poder guardar el
 // Usuario autenticado dentro de la sesión HTTP persistida en MySQL.
 public class Usuario implements Serializable {
 

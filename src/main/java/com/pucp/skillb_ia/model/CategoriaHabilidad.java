@@ -2,8 +2,6 @@ package com.pucp.skillb_ia.model;
 
 import jakarta.persistence.*;
 
-// Agrupa las habilidades del catálogo (Lenguajes, Cloud, Soft Skills, etc.) —
-// Historia "Catálogo de habilidades por categorías", Épica 5.
 @Entity
 @Table(name = "categoria_habilidad")
 public class CategoriaHabilidad {

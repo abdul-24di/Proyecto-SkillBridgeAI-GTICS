@@ -3,7 +3,6 @@ package com.pucp.skillb_ia.model;
 import com.pucp.skillb_ia.model.enums.TipoVoto;
 import jakarta.persistence.*;
 
-// A8: mismo esquema de votación que VotoPublicacion, pero sobre respuestas.
 @Entity
 @Table(name = "voto_respuesta")
 public class VotoRespuesta {

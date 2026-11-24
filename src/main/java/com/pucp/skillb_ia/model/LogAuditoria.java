@@ -4,13 +4,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Historia de Log de auditoría (Épica 5). Acciones auditadas incluyen las de
-// la lista original (login, logout, CRUD de usuarios/proyectos, cambios de
-// rol/estado) más las agregadas en las actualizaciones: propuesta/
-// aprobación/rechazo de asignaciones (A11), activación de cuenta completada
-// (C3), y cambios en parámetros de configuración (C10).
-// `usuario_id` es NULL para acciones del sistema (p.ej. envío automático del
-// correo de activación).
 @Entity
 @Table(name = "log_auditoria")
 public class LogAuditoria {

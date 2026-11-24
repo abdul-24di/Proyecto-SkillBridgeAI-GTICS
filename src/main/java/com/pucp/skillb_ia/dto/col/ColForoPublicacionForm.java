@@ -6,8 +6,19 @@ import jakarta.validation.constraints.Size;
 
 import java.io.Serializable;
 
-// Nueva publicación del colaborador en un foro. Mismo patrón que PmForoPublicacionForm: si hay errores,
-// el formulario vuelve con el modal abierto y cada mensaje junto a su campo.
+/**
+ * Formulario de una nueva publicación del colaborador en un foro.
+ * <p>
+ * Validaciones: foro obligatorio, título obligatorio (máx. 200 caracteres) y contenido
+ * obligatorio (máx. 10000). Además el controller rechaza el contenido que solo tenga
+ * espacios o etiquetas vacías del editor (por ejemplo {@code <p><br></p>}).
+ * <p>
+ * Si hay errores, el formulario se devuelve con el modal abierto y cada mensaje junto a su
+ * campo. Sigue el mismo patrón que {@code PmForoPublicacionForm}. El campo {@code origen}
+ * indica a dónde volver: {@code "foros"} (listado) o {@code "detalle"} (dentro de un foro).
+ *
+ * @see com.pucp.skillb_ia.controller.ColaboradorViewController#publicarForo
+ */
 public class ColForoPublicacionForm implements Serializable {
 
     @NotNull(message = "Elige el foro donde quieres publicar.")
@@ -23,7 +34,7 @@ public class ColForoPublicacionForm implements Serializable {
 
     private Long etiquetaId;
 
-    // "foros" (listado) o "detalle" (dentro de un foro): a dónde volver si hay errores.
+
     private String origen;
 
     public Long getForoId() { return foroId; }

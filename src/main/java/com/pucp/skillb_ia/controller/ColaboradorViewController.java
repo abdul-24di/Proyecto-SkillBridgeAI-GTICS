@@ -33,6 +33,14 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Controller MVC de todas las pantallas del rol Colaborador (rutas bajo {@code /colaborador}).
+ * <p>
+ * Solo recibe la petición, obtiene el usuario autenticado, delega la lógica a los services
+ * del paquete {@code service.col} y devuelve la vista Thymeleaf (carpeta {@code templates/col})
+ * o una redirección. Pantallas que cubre: dashboard, proyectos y su detalle, foros, chat,
+ * explorar, desempeño (con exportación a Excel y PDF), perfil y asistente.
+ */
 @Controller
 @RequestMapping("/colaborador")
 public class ColaboradorViewController {
@@ -49,6 +57,21 @@ public class ColaboradorViewController {
     private final UsuarioRepository usuarioRepository;
     private final com.pucp.skillb_ia.service.col.ColDesempenoService colDesempenoService;
 
+    /**
+     * Inyecta por constructor todos los services y repositorios que usa el controller.
+     *
+     * @param colaboradorPerfilService perfil: datos, habilidades, certificados, educación
+     * @param colaboradorProyectoService asignaciones y proyectos del colaborador
+     * @param colaboradorExplorarService proyectos disponibles y perfiles de otros colaboradores
+     * @param colaboradorCursoService catálogo, solicitudes y evidencias de cursos
+     * @param colChatService chat del proyecto
+     * @param colaboradorForoService foros, publicaciones y respuestas
+     * @param colaboradorActividadService actividades, horas, bono y penalizaciones
+     * @param colaboradorDocumentoService documentos del proyecto
+     * @param usuarioRepository acceso a la tabla de usuarios
+     * @param evaluacionService evaluaciones del colaborador
+     * @param colDesempenoService datos de la pantalla de desempeño
+     */
     public ColaboradorViewController(ColaboradorPerfilService colaboradorPerfilService,
                                      ColaboradorProyectoService colaboradorProyectoService,
                                      ColaboradorExplorarService colaboradorExplorarService,
@@ -78,6 +101,18 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/dashboard";
     }
 
+    /**
+     * Muestra el dashboard del colaborador ({@code GET /colaborador/dashboard}).
+     * <p>
+     * Calcula y envía a la vista: proyectos activos y finalizados (contados desde sus
+     * asignaciones), actividades pendientes, porcentaje de perfil completado, avance de cada
+     * proyecto activo, resumen de horas del mes, penalizaciones, porcentaje y monto de
+     * descuento del mes, y resumen del bono por horas extra.
+     *
+     * @param principal usuario autenticado; si es {@code null} se redirige al login
+     * @param model modelo donde se cargan los datos para la vista
+     * @return la vista {@code col/col-dashboard} o {@code redirect:/login}
+     */
     @GetMapping({"/dashboard", "/col-dashboard.html"})
     public String dashboard(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         if (principal == null) {
@@ -115,6 +150,20 @@ public class ColaboradorViewController {
         return "col/col-dashboard";
     }
 
+    /**
+     * Lista los proyectos del colaborador con búsqueda, filtro por estado y paginación
+     * ({@code GET /colaborador/proyectos}).
+     * <p>
+     * El filtrado y la paginación se hacen en el servidor, con 6 tarjetas por página.
+     * La búsqueda compara contra nombre y descripción del proyecto.
+     *
+     * @param principal usuario autenticado
+     * @param busqueda texto a buscar (opcional)
+     * @param estado estado de la asignación a filtrar (opcional; vacío equivale a "Todos")
+     * @param pagina número de página (opcional)
+     * @param model modelo para la vista
+     * @return la vista {@code col/col-proyectos} o {@code redirect:/login}
+     */
     @GetMapping({"/proyectos", "/col-proyectos.html"})
     public String projects(@AuthenticationPrincipal UsuarioDetails principal,
                            @RequestParam(required = false) String busqueda,
@@ -132,6 +181,7 @@ public class ColaboradorViewController {
                 .filter(a -> Paginador.contiene(a.getProyecto().getNombre() + " " +
                         (a.getProyecto().getDescripcion() != null ? a.getProyecto().getDescripcion() : ""), busqueda))
                 .toList();
+
         Page<Asignacion> paginaProyectos = Paginador.paginar(filtradas, pagina, 6);
         model.addAttribute("paginaProyectos", paginaProyectos);
         model.addAttribute("misAsignaciones", paginaProyectos.getContent());

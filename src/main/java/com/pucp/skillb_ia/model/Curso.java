@@ -7,8 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-// Catálogo de cursos gestionado por el Admin; el RM los asigna o los
-// colaboradores los solicitan (A25/A26/A27).
+
 @Entity
 @Table(name = "curso")
 public class Curso {

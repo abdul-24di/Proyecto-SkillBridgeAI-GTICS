@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 
 @Entity
 @Table(name = "cargo")
-// Serializable: Usuario.cargo viaja dentro de la sesión HTTP persistida (Spring Session).
+
 public class Cargo implements Serializable {
 
     @Id

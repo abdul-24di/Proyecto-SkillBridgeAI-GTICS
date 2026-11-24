@@ -3,8 +3,7 @@ package com.pucp.skillb_ia.model;
 import com.pucp.skillb_ia.model.enums.TipoVoto;
 import jakarta.persistence.*;
 
-// A7: un voto por usuario por publicación, modificable/retirable (por eso la
-// PK es compuesta usuario+publicación, no un id propio).
+
 @Entity
 @Table(name = "voto_publicacion")
 public class VotoPublicacion {

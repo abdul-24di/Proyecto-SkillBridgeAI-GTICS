@@ -5,9 +5,6 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Unifica activación (A6) y recuperación de contraseña en una sola tabla,
-// distinguidas por `tipo` (consideraciones_bd_v4.md, cambio #2). Un token no
-// puede reutilizarse una vez usado o expirado.
 @Entity
 @Table(name = "token_usuario")
 public class TokenUsuario {

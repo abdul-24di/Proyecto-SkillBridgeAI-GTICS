@@ -37,7 +37,7 @@ public class Certificado {
     @Column(name = "motivo_rechazo", length = 300)
     private String motivoRechazo;
 
-    // Nivel de dominio con el que el RM aprobó el certificado (TASK-042).
+    // Nivel de dominio con el que el RM aprobó el certificado.
     // Nulo en pendientes, rechazados y aprobados antes de registrar este dato.
     @Enumerated(EnumType.STRING)
     @Column(name = "nivel_aprobado", length = 20)

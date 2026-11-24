@@ -3,6 +3,21 @@ package com.pucp.skillb_ia.dto;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+/**
+ * Resumen de horas del colaborador que se muestra en su dashboard.
+ * <p>
+ * Reúne en un solo objeto de solo lectura tres métricas distintas que no deben confundirse:
+ * <ul>
+ *   <li><b>Disponibilidad</b>: horas por semana que el colaborador declara tener libres.</li>
+ *   <li><b>Horas comprometidas</b>: horas contratadas por semana menos las disponibles.</li>
+ *   <li><b>Horas trabajadas del mes</b>: horas de actividades completadas y de cursos
+ *       completados en el mes actual, comparadas contra la meta mensual.</li>
+ * </ul>
+ * Todos los campos son {@code final}: los valores derivados (comprometidas, faltantes y
+ * porcentaje) se calculan una sola vez en el constructor.
+ *
+ * @see com.pucp.skillb_ia.service.col.ColaboradorActividadService#obtenerResumenHoras
+ */
 public class ColHorasResumenView {
 
     private final BigDecimal horasContratadasSemana;
@@ -13,6 +28,19 @@ public class ColHorasResumenView {
     private final BigDecimal horasFaltantesMes;
     private final int porcentajeMeta;
 
+    /**
+     * Construye el resumen y calcula los valores derivados.
+     * <ul>
+     *   <li>{@code horasComprometidas} = contratadas - disponibles (nunca menor a 0).</li>
+     *   <li>{@code horasFaltantesMes} = meta - trabajadas (nunca menor a 0).</li>
+     *   <li>{@code porcentajeMeta} = trabajadas * 100 / meta, redondeado y con tope de 100.</li>
+     * </ul>
+     *
+     * @param horasContratadasSemana horas semanales contratadas; si es {@code null} se toma 0
+     * @param horasDisponibles horas semanales libres declaradas; si es {@code null} se toma 0
+     * @param horasTrabajadasMes horas acumuladas en el mes actual; si es {@code null} se toma 0
+     * @param metaMensual meta de horas del mes (160); no debe ser {@code null}
+     */
     public ColHorasResumenView(BigDecimal horasContratadasSemana, BigDecimal horasDisponibles,
                                BigDecimal horasTrabajadasMes, BigDecimal metaMensual) {
         this.horasContratadasSemana = horasContratadasSemana == null ? BigDecimal.ZERO : horasContratadasSemana;
@@ -39,5 +67,13 @@ public class ColHorasResumenView {
     public BigDecimal getMetaMensual() { return metaMensual; }
     public BigDecimal getHorasFaltantesMes() { return horasFaltantesMes; }
     public int getPorcentajeMeta() { return porcentajeMeta; }
+
+    /**
+     * Indica si el colaborador ya llegó a la meta mensual.
+     *
+     * @return {@code true} si no le faltan horas para la meta del mes
+     */
     public boolean isMetaCumplida() { return horasFaltantesMes.signum() == 0; }
+
+
 }

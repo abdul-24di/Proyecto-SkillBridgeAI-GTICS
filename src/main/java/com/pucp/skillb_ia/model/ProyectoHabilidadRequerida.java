@@ -3,9 +3,7 @@ package com.pucp.skillb_ia.model;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import jakarta.persistence.*;
 
-// Selector múltiple de habilidades requeridas al crear el proyecto (Épica 4,
-// Historia de Gestión de información del proyecto). Alimenta el % de
-// habilidades cubiertas del dashboard del PM (Épica 6) y el AI Talent Matching.
+
 @Entity
 @Table(name = "proyecto_habilidad_requerida")
 public class ProyectoHabilidadRequerida {

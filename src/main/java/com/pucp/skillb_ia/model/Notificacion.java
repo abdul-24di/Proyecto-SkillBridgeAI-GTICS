@@ -5,9 +5,7 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
-// Historia A24 — Tier 3, diferida hasta después del checkpoint del Parcial.
-// `entidad`/`entidad_id` permiten que el clic en la notificación redirija a
-// la sección relevante (p.ej. entidad="ASIGNACION", entidad_id=123).
+
 @Entity
 @Table(name = "notificacion")
 public class Notificacion {

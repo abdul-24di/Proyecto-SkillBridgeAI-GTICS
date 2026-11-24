@@ -228,7 +228,7 @@
                                 </div>
                             </div>
                             <div class="card-body p-0">
-                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada. Sube tu CV para que el Administrador la complete.</div>
+                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada.</div>
                                 <div th:each="exp : ${experienciaProfesional}" class="timeline-entry">
                                     <div class="timeline-entry-title"
                                          th:text="${exp.cargo != null and exp.empresa != null} ? (${exp.cargo} + ' — ' + ${exp.empresa}) : (${exp.cargo != null} ? ${exp.cargo} : ${exp.empresa})">Cargo — Empresa</div>

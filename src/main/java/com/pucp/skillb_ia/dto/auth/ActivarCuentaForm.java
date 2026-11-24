@@ -11,12 +11,21 @@ import java.util.List;
 
 public class ActivarCuentaForm {
 
+    private static final String PATRON_NOMBRE = "^[\\p{L}][\\p{L} .'-]*$";
+
     private String token;
 
-    @NotBlank(message = "Ingresa tu nombre completo.")
-    @Size(min = 3, max = 150, message = "El nombre debe tener entre 3 y 150 caracteres.")
-    @Pattern(regexp = "^[\\p{L}][\\p{L} .'-]*$", message = "El nombre solo puede tener letras, espacios, puntos, apóstrofes y guiones.")
-    private String nombreCompleto;
+    // Nombres y apellidos por separado: antes era un solo campo y se cortaba en el primer espacio, así que el segundo
+    // nombre quedaba como apellido.
+    @NotBlank(message = "Ingresa tus nombres.")
+    @Size(min = 2, max = 150, message = "Los nombres deben tener entre 2 y 150 caracteres.")
+    @Pattern(regexp = PATRON_NOMBRE, message = "Los nombres solo pueden tener letras, espacios, puntos, apóstrofes y guiones.")
+    private String nombres;
+
+    @NotBlank(message = "Ingresa tus apellidos.")
+    @Size(min = 2, max = 150, message = "Los apellidos deben tener entre 2 y 150 caracteres.")
+    @Pattern(regexp = PATRON_NOMBRE, message = "Los apellidos solo pueden tener letras, espacios, puntos, apóstrofes y guiones.")
+    private String apellidos;
 
     @NotBlank(message = "El teléfono es obligatorio.")
     @Pattern(regexp = PoliticaTelefono.REGEX, message = PoliticaTelefono.MENSAJE)
@@ -36,10 +45,12 @@ public class ActivarCuentaForm {
     // Id del CV que ya se recibió en un envío anterior (ver PreRegistroArchivosService).
     private String cvGuardado;
 
-    // Experiencia profesional del pre-registro (solo colaboradores, opcional): las filas vacías se ignoran.
+    // Experiencia profesional del pre-registro (solo colaboradores): al menos una, salvo que marque que no tiene.
+    // Las filas vacías se ignoran.
+    private boolean sinExperiencia;
     private List<ExperienciaForm> experiencias = new ArrayList<>();
 
-    // Certificados de habilidades y formación académica (solo colaboradores, opcionales).
+    // Solo colaboradores: los certificados de habilidades son opcionales; la formación académica, al menos una.
     private List<CertificadoPreRegistroForm> certificados = new ArrayList<>();
     private List<EstudioPreRegistroForm> estudios = new ArrayList<>();
 
@@ -57,14 +68,22 @@ public class ActivarCuentaForm {
 
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
-    public String getNombreCompleto() { return nombreCompleto; }
-    public void setNombreCompleto(String nombreCompleto) { this.nombreCompleto = nombreCompleto; }
+    public String getNombres() { return nombres; }
+    public void setNombres(String nombres) { this.nombres = nombres; }
+    public String getApellidos() { return apellidos; }
+    public void setApellidos(String apellidos) { this.apellidos = apellidos; }
+
+    // Como figura en el DNI, para compararlo con la consulta.
+    public String nombreCompleto() { return nombres + " " + apellidos; }
+
     public String getDni() { return dni; }
     public void setDni(String dni) { this.dni = dni; }
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public boolean isSinExperiencia() { return sinExperiencia; }
+    public void setSinExperiencia(boolean sinExperiencia) { this.sinExperiencia = sinExperiencia; }
     public List<ExperienciaForm> getExperiencias() { return experiencias; }
     public void setExperiencias(List<ExperienciaForm> experiencias) { this.experiencias = experiencias; }
     public List<CertificadoPreRegistroForm> getCertificados() { return certificados; }

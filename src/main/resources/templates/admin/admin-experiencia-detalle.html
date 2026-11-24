@@ -76,7 +76,7 @@
         </div>
 
         <div class="row">
-            <div class="col-lg-7">
+            <div class="col-lg-6">
                 <div class="card mb-3">
                     <div class="card-header">
                         <h3 class="card-title">Datos del pre-registro</h3>
@@ -116,12 +116,13 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Experiencia profesional registrada</h3>
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <h3 class="card-title mb-0">Experiencia profesional registrada</h3>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarExperiencia">+ Agregar experiencia</button>
                     </div>
                     <div class="card-body p-0">
                         <div th:if="${#lists.isEmpty(experiencias)}" class="empty-state p-4 text-center text-muted">
-                            Todavía no se registró experiencia profesional para este colaborador.
+                            Este colaborador no registró experiencia profesional.
                         </div>
                         <div th:each="exp : ${experiencias}" class="timeline-entry p-3 border-bottom">
                             <div class="fw-bold" th:text="${exp.cargo} + ' — ' + ${exp.empresa}">Cargo — Empresa</div>
@@ -140,50 +141,103 @@
                 </div>
             </div>
 
-            <div class="col-lg-5">
+            <div class="col-lg-6 mt-3 mt-lg-0">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Agregar experiencia profesional</h3>
+                        <div>
+                            <h3 class="card-title">Formación académica</h3>
+                            <div class="text-secondary small">Solo lectura: la valida el Resource Manager.</div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <form th:action="@{/admin/experiencia/{id}/agregar(id=${colaborador.id})}" method="post">
-                            <div class="mb-3">
-                                <label class="form-label">Cargo <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="cargo" required maxlength="100">
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(estudios)}" class="empty-state p-4 text-center text-muted">
+                            Este colaborador no registró formación académica.
+                        </div>
+                        <div th:each="est : ${estudios}" class="timeline-entry p-3 border-bottom">
+                            <div class="fw-bold" th:text="${est.titulo} + ' — ' + ${est.institucion}">Título — Institución</div>
+                            <div class="text-secondary small">
+                                <span th:text="${est.fechaInicio != null ? #temporals.format(est.fechaInicio, 'MM/yyyy') : '¿?'}">2018</span>
+                                –
+                                <span th:text="${est.actual} ? 'Actualidad' : (${est.fechaFin != null} ? ${#temporals.format(est.fechaFin, 'MM/yyyy')} : '¿?')">2022</span>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Empresa <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="empresa" required maxlength="150">
+                            <a th:if="${!#strings.isEmpty(est.archivoUrl)}" th:href="@{${est.archivoUrl}}" target="_blank" rel="noopener">Ver constancia o título</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Habilidades y certificados</h3>
+                            <div class="text-secondary small">Solo lectura: los valida el Resource Manager.</div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(habilidades)}" class="empty-state p-4 text-center text-muted">
+                            Este colaborador no registró certificados.
+                        </div>
+                        <div th:each="ch : ${habilidades}" class="timeline-entry p-3 border-bottom">
+                            <span class="fw-bold" th:text="${ch.habilidad.nombre}">Java</span>
+                            <span class="badge bg-blue-lt ms-1" th:text="${ch.nivelDominio.name() == 'AVANZADO' ? 'Avanzado' : (ch.nivelDominio.name() == 'INTERMEDIO' ? 'Intermedio' : 'Básico')}">Avanzado</span>
+                            <div th:if="${certificadosPorHabilidad.get(ch.habilidad.id) != null}">
+                                <a th:href="@{${certificadosPorHabilidad.get(ch.habilidad.id)}}" target="_blank" rel="noopener">Ver certificado</a>
                             </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Fecha inicio</label>
-                                    <input type="date" class="form-control" name="fechaInicio" id="expFechaInicio"
-                                           onchange="document.getElementById('expFechaFin').min = this.value;">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Fecha fin</label>
-                                    <input type="date" class="form-control" name="fechaFin" id="expFechaFin">
-                                </div>
-                            </div>
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" name="actual" id="expActual"
-                                       onchange="document.getElementById('expFechaFin').disabled = this.checked; if(this.checked) document.getElementById('expFechaFin').value = '';">
-                                <label class="form-check-label" for="expActual">Trabaja aquí actualmente</label>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Descripción <span class="text-danger">*</span></label>
-                                <textarea class="form-control" name="descripcion" rows="3" required maxlength="500"></textarea>
-                            </div>
-                            <div class="d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary">Agregar experiencia</button>
-                            </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </main>
+</div>
+<div class="modal modal-blur fade admin-modal" id="modalAgregarExperiencia" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form th:action="@{/admin/experiencia/{id}/agregar(id=${colaborador.id})}" method="post">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">Agregar experiencia profesional</h5>
+                        <div class="text-white-50 small">Opcional: solo si falta algo que sí figura en el CV.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Cargo <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="cargo" required maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Empresa <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="empresa" required maxlength="150">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha inicio</label>
+                            <input type="date" class="form-control" name="fechaInicio" id="expFechaInicio"
+                                   onchange="document.getElementById('expFechaFin').min = this.value;">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha fin</label>
+                            <input type="date" class="form-control" name="fechaFin" id="expFechaFin">
+                        </div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="actual" id="expActual"
+                               onchange="document.getElementById('expFechaFin').disabled = this.checked; if(this.checked) document.getElementById('expFechaFin').value = '';">
+                        <label class="form-check-label" for="expActual">Trabaja aquí actualmente</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="descripcion" rows="3" required maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar experiencia</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 <div class="modal modal-blur fade admin-modal" id="modalRechazar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">

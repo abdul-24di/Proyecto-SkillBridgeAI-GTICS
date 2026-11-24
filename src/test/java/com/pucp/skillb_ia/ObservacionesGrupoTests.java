@@ -212,6 +212,64 @@ class ObservacionesGrupoTests {
         assertThat(ids).contains(activado.getId()).doesNotContain(invitado.getId());
     }
 
+    // ---------- datos personales del pre-registro en el perfil ----------
+
+    @Autowired private com.pucp.skillb_ia.service.AuthService authService;
+    @Autowired private com.pucp.skillb_ia.repository.TokenUsuarioRepository tokenUsuarioRepository;
+
+    @Test
+    void elSegundoNombreNoQuedaComoApellidoAlActivarLaCuenta() {
+        Usuario invitado = new Usuario();
+        invitado.setCorreo("nombres." + UUID.randomUUID() + "@test.local");
+        invitado.setRol(obtenerRol("PROJECT_MANAGER"));
+        invitado.setActivo(true);
+        invitado = usuarioRepository.save(invitado);
+        var token = new com.pucp.skillb_ia.model.TokenUsuario();
+        token.setUsuario(invitado);
+        token.setTipo(com.pucp.skillb_ia.model.enums.TipoToken.ACTIVACION);
+        token.setToken(UUID.randomUUID().toString());
+        token.setFechaExpiracion(java.time.LocalDateTime.now().plusHours(1));
+        tokenUsuarioRepository.save(token);
+
+        authService.activarCuenta(token.getToken(), " Camila Rosa ", " Vargas Luna ", "987654321", null, "Segura#123");
+
+        Usuario activado = usuarioRepository.findById(invitado.getId()).orElseThrow();
+        assertThat(activado.getNombre()).isEqualTo("Camila Rosa");
+        assertThat(activado.getApellido()).isEqualTo("Vargas Luna");
+    }
+
+    @Test
+    void sobreMiSeVeYSeEditaEnElPerfilDelAdminElPmYElRm() throws Exception {
+        MockMvc mvc = MockMvcBuilders.webAppContextSetup(context).build();
+        for (String[] caso : new String[][]{{"admin", "ADMINISTRADOR"}, {"pm", "PROJECT_MANAGER"}, {"rm", "RESOURCE_MANAGER"}}) {
+            Usuario u = usuario("sobremi." + caso[0] + "@test.local", caso[1]);
+            u.setDescripcion("Texto del registro " + caso[0]);
+            u = usuarioRepository.save(u);
+            u.setRol(obtenerRol(caso[1]));
+            UsuarioDetails details = new UsuarioDetails(u);
+            SecurityContextHolder.getContext().setAuthentication(
+                    new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities()));
+            String perfil = "/" + caso[0] + "/perfil";
+
+            mvc.perform(get(perfil)).andExpect(status().isOk())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                            .string(org.hamcrest.Matchers.containsString("Texto del registro " + caso[0])));
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(perfil + "/sobre-mi")
+                            .param("descripcion", "Nuevo <b>texto</b>"))
+                    .andExpect(redirectedUrl(perfil + "#sobre-mi"));
+            mvc.perform(get(perfil)).andExpect(status().isOk())
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+                            .string(org.hamcrest.Matchers.containsString("Nuevo &lt;b&gt;texto&lt;/b&gt;")));
+
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(perfil + "/sobre-mi")
+                            .param("descripcion", "x".repeat(501)))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash()
+                            .attributeExists("sobreMiError"));
+            assertThat(usuarioRepository.findById(u.getId()).orElseThrow().getDescripcion())
+                    .isEqualTo("Nuevo <b>texto</b>");
+        }
+    }
+
     // ---------- datos ----------
 
     private CategoriaHabilidad categoria() {

@@ -903,6 +903,10 @@ public class AdminViewController {
         }
         model.addAttribute("colaborador", colaborador);
         model.addAttribute("experiencias", colaboradorPerfilService.listarExperienciaProfesional(colaborador));
+        // Solo lectura, para compararlos con el CV: los valida el Resource Manager.
+        model.addAttribute("estudios", colaboradorPerfilService.listarEducacion(colaborador));
+        model.addAttribute("habilidades", colaboradorPerfilService.listarHabilidades(colaborador));
+        model.addAttribute("certificadosPorHabilidad", colaboradorPerfilService.mapaCertificadosPorHabilidad(colaborador));
         return "admin/admin-experiencia-detalle";
     }
 

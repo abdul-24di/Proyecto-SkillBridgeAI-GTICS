@@ -49,25 +49,25 @@ class FormulariosAuthValidacionTests {
     void activarCuentaConPasswordDebilYSinPoliticaMuestraErroresPorCampo() throws Exception {
         mockMvc.perform(post("/activar-cuenta").param("dni", DniPrueba.unico())
                         .param("token", tokenVigente())
-                        .param("nombreCompleto", "Ab")
+                        .param("nombres", "A").param("apellidos", "")
                         .param("password", "abcdefgh")
                         .param("confirmarPassword", "abcdefgh"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("auth/activar-cuenta"))
                 .andExpect(model().attributeHasFieldErrors("activarCuentaForm",
-                        "nombreCompleto", "password"));
+                        "nombres", "apellidos", "password"));
     }
 
     @Test
     void activarCuentaSinDniOConDniInvalidoMarcaElErrorEnElCampo() throws Exception {
         mockMvc.perform(post("/activar-cuenta")
                         .param("token", tokenVigente())
-                        .param("nombreCompleto", "Ana Perez"))
+                        .param("nombres", "Ana").param("apellidos", "Perez"))
                 .andExpect(status().isOk())
                 .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "dni"));
         mockMvc.perform(post("/activar-cuenta").param("dni", "1234")
                         .param("token", tokenVigente())
-                        .param("nombreCompleto", "Ana Perez"))
+                        .param("nombres", "Ana").param("apellidos", "Perez"))
                 .andExpect(status().isOk())
                 .andExpect(model().attributeHasFieldErrorCode("activarCuentaForm", "dni", "Pattern"));
     }
@@ -76,7 +76,7 @@ class FormulariosAuthValidacionTests {
     void activarCuentaConPasswordsDistintasMarcaElError() throws Exception {
         mockMvc.perform(post("/activar-cuenta").param("dni", DniPrueba.unico())
                         .param("token", tokenVigente())
-                        .param("nombreCompleto", "Ana Perez")
+                        .param("nombres", "Ana").param("apellidos", "Perez")
                         .param("password", "Segura#123")
                         .param("confirmarPassword", "Segura#124")
                         .param("aceptaPolitica", "true"))

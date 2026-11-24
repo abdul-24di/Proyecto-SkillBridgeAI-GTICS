@@ -64,7 +64,12 @@ public class PreRegistroColaboradorService {
         // El teléfono (regla única de PoliticaTelefono) ya lo validó el formulario.
         form.setCvGuardado(resolverArchivo(form.getCv(), form.getCvGuardado(), colaboradorPerfilService::validarCv,
                 "cv", "cv.invalido", result, session));
-        validarExperiencias(form.getExperiencias(), result);
+        // El perfil del colaborador se llena con lo que escribe aquí (el CV solo lo respalda), así que estas
+        // secciones son obligatorias. Antes se podía enviar solo el CV y el perfil quedaba vacío.
+        if (vacio(form.getDescripcion())) {
+            result.rejectValue("descripcion", "descripcion.obligatoria", "Cuéntanos brevemente sobre tu perfil profesional.");
+        }
+        validarExperiencias(form.getExperiencias(), form.isSinExperiencia(), result);
         validarCertificados(form.getCertificados(), result, session);
         validarEstudios(form.getEstudios(), result, session);
     }
@@ -90,8 +95,19 @@ public class PreRegistroColaboradorService {
         return yaGuardado ? idGuardado : null;
     }
 
-    private void validarExperiencias(List<ExperienciaForm> filas, BindingResult result) {
-        if (excedeMaximo(filas.stream().filter(f -> !f.estaVacia()).count(), "experiencias", "experiencias", result)) {
+    private void validarExperiencias(List<ExperienciaForm> filas, boolean sinExperiencia, BindingResult result) {
+        long llenas = filas.stream().filter(f -> !f.estaVacia()).count();
+        if (excedeMaximo(llenas, "experiencias", "experiencias", result)) {
+            return;
+        }
+        if (sinExperiencia && llenas > 0) {
+            result.rejectValue("experiencias", "experiencias.contradiccion",
+                    "Marcaste que no tienes experiencia laboral, pero llenaste una. Quita la marca o borra la experiencia.");
+            return;
+        }
+        if (!sinExperiencia && llenas == 0) {
+            result.rejectValue("experiencias", "experiencias.faltan",
+                    "Agrega al menos una experiencia o marca \"No tengo experiencia laboral\".");
             return;
         }
         for (int i = 0; i < filas.size(); i++) {
@@ -165,7 +181,12 @@ public class PreRegistroColaboradorService {
     }
 
     private void validarEstudios(List<EstudioPreRegistroForm> filas, BindingResult result, HttpSession session) {
-        if (excedeMaximo(filas.stream().filter(f -> !f.estaVacia()).count(), "estudios", "estudios", result)) {
+        long llenos = filas.stream().filter(f -> !f.estaVacia()).count();
+        if (excedeMaximo(llenos, "estudios", "estudios", result)) {
+            return;
+        }
+        if (llenos == 0) {
+            result.rejectValue("estudios", "estudios.faltan", "Agrega al menos una formación académica.");
             return;
         }
         for (int i = 0; i < filas.size(); i++) {
@@ -188,15 +209,19 @@ public class PreRegistroColaboradorService {
                 }
             } else if (f.getFechaInicio().isBefore(FECHA_MINIMA)) {
                 result.rejectValue(campo + "fechaInicio", "est.inicio", "Revisa el año de la fecha de inicio.");
+            } else if (f.getFechaInicio().isAfter(LocalDate.now())) {
+                result.rejectValue(campo + "fechaInicio", "est.inicio", "La fecha de inicio no puede ser futura.");
             }
-            if (f.getFechaFin() == null) {
+            if (f.isActual()) {
+                // Todavía estudia: la fecha de fin no aplica.
+            } else if (f.getFechaFin() == null) {
                 if (!result.hasFieldErrors(campo + "fechaFin")) {
-                    result.rejectValue(campo + "fechaFin", "est.fin", "Indica la fecha de fin.");
+                    result.rejectValue(campo + "fechaFin", "est.fin", "Indica la fecha de fin o marca que estudias ahí actualmente.");
                 }
             } else if (f.getFechaInicio() != null && f.getFechaFin().isBefore(f.getFechaInicio())) {
                 result.rejectValue(campo + "fechaFin", "est.fin", "La fecha de fin no puede ser anterior a la de inicio.");
             } else if (f.getFechaFin().isAfter(LocalDate.now())) {
-                result.rejectValue(campo + "fechaFin", "est.fin", "La fecha de fin no puede ser futura.");
+                result.rejectValue(campo + "fechaFin", "est.fin", "La fecha de fin no puede ser futura. Si todavía estudias, marca que estudias ahí actualmente.");
             }
             f.setArchivoGuardado(resolverArchivo(f.getArchivo(), f.getArchivoGuardado(),
                     colaboradorPerfilService::validarArchivoCertificado, campo + "archivo", "est.archivo", result, session));
@@ -235,7 +260,7 @@ public class PreRegistroColaboradorService {
     private int pasoDe(String campo) {
         if (campo.equals("cv") || campo.startsWith("experiencias")) return 2;
         if (campo.startsWith("certificados") || campo.startsWith("estudios")) return 3;
-        if (campo.equals("nombreCompleto") || campo.equals("dni") || campo.equals("telefono")
+        if (campo.equals("nombres") || campo.equals("apellidos") || campo.equals("dni") || campo.equals("telefono")
                 || campo.equals("descripcion")) return 1;
         return 4;
     }
@@ -251,7 +276,8 @@ public class PreRegistroColaboradorService {
             return seccion + " " + (Integer.parseInt(fila.group(2)) + 1) + " · " + etiquetaDeColumna(fila.group(3));
         }
         return switch (campo) {
-            case "nombreCompleto" -> "Nombre completo";
+            case "nombres" -> "Nombres";
+            case "apellidos" -> "Apellidos";
             case "dni" -> "DNI";
             case "telefono" -> "Teléfono";
             case "descripcion" -> "Sobre ti";
@@ -316,7 +342,8 @@ public class PreRegistroColaboradorService {
             if (f.estaVacia()) continue;
             intentar(noGuardado, usuario, "formación académica", () -> colaboradorPerfilService.agregarEducacion(
                     usuario, f.getInstitucion(), f.getTitulo(), f.getFechaInicio().toString(),
-                    f.getFechaFin().toString(), archivosPendientes.abrir(f.getArchivoGuardado(), session), false));
+                    f.isActual() ? null : f.getFechaFin().toString(),
+                    archivosPendientes.abrir(f.getArchivoGuardado(), session), false, f.isActual()));
         }
 
         archivosPendientes.limpiar(session);

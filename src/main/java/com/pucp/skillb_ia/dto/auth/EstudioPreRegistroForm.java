@@ -17,13 +17,16 @@ public class EstudioPreRegistroForm {
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate fechaFin;
 
+    // Todavía estudia ahí: no lleva fecha de fin y basta una constancia.
+    private boolean actual;
+
     private MultipartFile archivo;
 
     // Id del archivo que ya se recibió en un envío anterior (ver PreRegistroArchivosService).
     private String archivoGuardado;
 
     public boolean estaVacia() {
-        return esVacio(institucion) && esVacio(titulo) && fechaInicio == null && fechaFin == null
+        return esVacio(institucion) && esVacio(titulo) && fechaInicio == null && fechaFin == null && !actual
                 && (archivo == null || archivo.isEmpty()) && esVacio(archivoGuardado);
     }
 
@@ -39,6 +42,8 @@ public class EstudioPreRegistroForm {
     public void setFechaInicio(LocalDate fechaInicio) { this.fechaInicio = fechaInicio; }
     public LocalDate getFechaFin() { return fechaFin; }
     public void setFechaFin(LocalDate fechaFin) { this.fechaFin = fechaFin; }
+    public boolean isActual() { return actual; }
+    public void setActual(boolean actual) { this.actual = actual; }
     public MultipartFile getArchivo() { return archivo; }
     public void setArchivo(MultipartFile archivo) { this.archivo = archivo; }
     public String getArchivoGuardado() { return archivoGuardado; }

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  "Sobre mí" en el perfil del Administrador, el PM y el RM: lo que escribieron al activar su cuenta, editable.
+  Uso: <div th:replace="~{fragments/sobre-mi-perfil :: sobreMi(${pm}, '/pm/perfil/sobre-mi')}"></div>
+-->
+<div th:fragment="sobreMi(usuario, accion)" class="mb-3" id="sobre-mi">
+  <div class="hr-text mt-4 mb-3">Sobre mí</div>
+  <div class="alert alert-success py-2" th:if="${sobreMiGuardado != null}" th:text="${sobreMiGuardado}">Guardado.</div>
+  <form th:action="@{${accion}}" method="post">
+    <label class="form-label visually-hidden" for="sobreMiPerfil">Sobre mí</label>
+    <textarea id="sobreMiPerfil" name="descripcion" class="form-control" rows="3" maxlength="500"
+              th:classappend="${sobreMiError != null} ? 'is-invalid'"
+              th:text="${sobreMiIngresado != null ? sobreMiIngresado : usuario.descripcion}"
+              placeholder="Cuéntanos brevemente sobre tu perfil profesional"></textarea>
+    <div class="invalid-feedback d-block" th:if="${sobreMiError != null}" th:text="${sobreMiError}"></div>
+    <div class="form-hint" th:if="${sobreMiError == null}">Máximo 500 caracteres.</div>
+    <div class="mt-2 d-flex justify-content-end">
+      <button type="submit" class="btn btn-primary">Guardar descripción</button>
+    </div>
+  </form>
+</div>
+</body>
+</html>

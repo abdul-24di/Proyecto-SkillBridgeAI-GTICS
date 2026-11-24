@@ -754,6 +754,14 @@ public class ColaboradorPerfilService {
     public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
                                  String fechaInicioTexto, String fechaFinTexto,
                                  MultipartFile certificado, boolean notificarRm) {
+        agregarEducacion(colaborador, institucion, titulo, fechaInicioTexto, fechaFinTexto, certificado, notificarRm, false);
+    }
+
+    // "actual": todavía estudia ahí (pre-registro). No lleva fecha de fin.
+    @Transactional
+    public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
+                                 String fechaInicioTexto, String fechaFinTexto,
+                                 MultipartFile certificado, boolean notificarRm, boolean actual) {
         if (institucion == null || institucion.isBlank()) {
             throw new IllegalArgumentException("Indica la institución.");
         }
@@ -769,12 +777,15 @@ public class ColaboradorPerfilService {
         }
 
         LocalDate fechaInicio = parseFechaObligatoria(fechaInicioTexto, "la fecha de inicio");
-        LocalDate fechaFin = parseFechaObligatoria(fechaFinTexto, "la fecha de fin");
+        LocalDate fechaFin = actual ? null : parseFechaObligatoria(fechaFinTexto, "la fecha de fin");
 
-        if (fechaFin.isBefore(fechaInicio)) {
+        if (actual && fechaInicio.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La fecha de inicio no puede ser una fecha futura.");
+        }
+        if (fechaFin != null && fechaFin.isBefore(fechaInicio)) {
             throw new IllegalArgumentException("La fecha de fin no puede ser anterior a la fecha de inicio.");
         }
-        if (fechaFin.isAfter(LocalDate.now())) {
+        if (fechaFin != null && fechaFin.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("La fecha de fin no puede ser una fecha futura.");
         }
 
@@ -787,7 +798,7 @@ public class ColaboradorPerfilService {
         educacion.setTitulo(titulo.trim());
         educacion.setFechaInicio(fechaInicio);
         educacion.setFechaFin(fechaFin);
-        educacion.setActual(false);
+        educacion.setActual(actual);
         educacion.setArchivoUrl(archivoUrl);
         educacion.setRmResponsable(rmRevisionAsignadorService.elegirRm());
         educacionRepository.save(educacion);

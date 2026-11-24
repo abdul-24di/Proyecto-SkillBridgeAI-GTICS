@@ -105,8 +105,12 @@ class PreRegistroColaboradorTests {
 
         mockMvc.perform(multipart("/activar-cuenta").param("dni", dni)
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
-                        .param("token", token).param("nombreCompleto", "Ana Perez")
+                        .file(new MockMultipartFile("estudios[0].archivo", "e.pdf", "application/pdf", PDF))
+                        .param("token", token).param("nombres", "Ana").param("apellidos", "Perez")
                         .param("telefono", "987654321").param("descripcion", "Desarrolladora backend")
+                        .param("sinExperiencia", "true")
+                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "Ingeniería")
+                        .param("estudios[0].fechaInicio", "2015-03-01").param("estudios[0].fechaFin", "2020-12-15")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                         .param("aceptaPolitica", "true"))
                 .andExpect(status().is3xxRedirection());
@@ -129,15 +133,18 @@ class PreRegistroColaboradorTests {
 
         mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
-                        .param("token", token).param("nombreCompleto", "Ana Perez")
+                        .file(new MockMultipartFile("estudios[0].archivo", "e.pdf", "application/pdf", PDF))
+                        .param("token", token).param("nombres", "Ana").param("apellidos", "Perez")
                         .param("telefono", "987654321")
                         .param("experiencias[0].cargo", "Analista").param("experiencias[0].empresa", "Acme")
-                        .param("experiencias[0].descripcion", "Reportes y tableros")
+                        .param("experiencias[0].descripcion", "Reportes y tableros").param("descripcion", "Analista de datos")
                         .param("experiencias[0].fechaInicio", "2021-03-01").param("experiencias[0].fechaFin", "2023-06-30")
                         .param("experiencias[1].cargo", "Desarrolladora").param("experiencias[1].empresa", "Beta")
                         .param("experiencias[1].descripcion", "APIs REST")
                         .param("experiencias[1].fechaInicio", "2023-07-01").param("experiencias[1].actual", "true")
                         .param("experiencias[2].cargo", "")
+                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "Ingeniería")
+                        .param("estudios[0].fechaInicio", "2015-03-01").param("estudios[0].fechaFin", "2020-12-15")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                         .param("aceptaPolitica", "true"))
                 .andExpect(status().is3xxRedirection());
@@ -155,7 +162,7 @@ class PreRegistroColaboradorTests {
 
         mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
-                        .param("token", token).param("nombreCompleto", "Ana Perez")
+                        .param("token", token).param("nombres", "Ana").param("apellidos", "Perez")
                         .param("telefono", "987654321")
                         .param("experiencias[0].cargo", "Analista")
                         .param("experiencias[0].fechaInicio", "2023-06-30").param("experiencias[0].fechaFin", "2021-03-01")
@@ -178,10 +185,10 @@ class PreRegistroColaboradorTests {
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .file(new MockMultipartFile("certificados[0].archivo", "c.pdf", "application/pdf", PDF))
                         .file(new MockMultipartFile("estudios[0].archivo", "e.pdf", "application/pdf", PDF))
-                        .param("token", token).param("nombreCompleto", "Ana " + marca)
+                        .param("token", token).param("nombres", "Ana").param("apellidos", marca)
                         .param("telefono", "987654321")
                         .param("certificados[0].habilidadId", String.valueOf(java.getId()))
-                        .param("certificados[0].nivel", "INTERMEDIO")
+                        .param("certificados[0].nivel", "INTERMEDIO").param("descripcion", "Backend").param("sinExperiencia", "true")
                         .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "Ingeniería Informática")
                         .param("estudios[0].fechaInicio", "2015-03-01").param("estudios[0].fechaFin", "2020-12-15")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
@@ -215,7 +222,7 @@ class PreRegistroColaboradorTests {
         mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
                         .file(new MockMultipartFile("certificados[0].archivo", "c.txt", "text/plain", PDF))
-                        .param("token", token).param("nombreCompleto", "Ana Perez")
+                        .param("token", token).param("nombres", "Ana").param("apellidos", "Perez")
                         .param("telefono", "987654321")
                         .param("certificados[0].habilidadId", String.valueOf(java.getId()))
                         .param("estudios[0].institucion", "PUCP")
@@ -235,7 +242,7 @@ class PreRegistroColaboradorTests {
 
         mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
                         .file(new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF))
-                        .param("token", token).param("nombreCompleto", "Ana Perez")
+                        .param("token", token).param("nombres", "Ana").param("apellidos", "Perez")
                         .param("telefono", "+51 98a7")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                         .param("aceptaPolitica", "true"))
@@ -248,7 +255,7 @@ class PreRegistroColaboradorTests {
         String token = invitar(correoNuevo(), "COLABORADOR");
 
         mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
-                        .param("token", token).param("nombreCompleto", "Ana Perez")
+                        .param("token", token).param("nombres", "Ana").param("apellidos", "Perez")
                         .param("telefono", "12-34")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                         .param("aceptaPolitica", "true"))
@@ -263,7 +270,7 @@ class PreRegistroColaboradorTests {
         String token = invitar(correo, "PROJECT_MANAGER");
 
         mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico())
-                        .param("token", token).param("nombreCompleto", "Pablo Gomez")
+                        .param("token", token).param("nombres", "Pablo").param("apellidos", "Gomez")
                         .param("telefono", "987654321")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                         .param("aceptaPolitica", "true"))
@@ -321,7 +328,7 @@ class PreRegistroColaboradorTests {
     void noSePuedeAprobarSinCv() {
         String correo = correoNuevo();
         String token = invitar(correo, "COLABORADOR");
-        authService.activarCuenta(token, "Sin Cv", "987654321", null, "Segura#123");
+        authService.activarCuenta(token, "Sin", "Cv", "987654321", null, "Segura#123");
         Usuario u = usuarioRepository.findByCorreo(correo).orElseThrow();
 
         assertThatThrownBy(() -> adminUsuarioService.aprobarRegistro(u.getId(), admin))
@@ -346,11 +353,11 @@ class PreRegistroColaboradorTests {
         // El enlace viejo muestra "El enlace ya no es válido" y no permite activar.
         mockMvc.perform(get("/activar-cuenta").param("token", viejo))
                 .andExpect(model().attribute("estado", AuthService.EstadoToken.EXPIRADO));
-        assertThatThrownBy(() -> authService.activarCuenta(viejo, "Vic Viejo", "987654321", null, "Segura#123"))
+        assertThatThrownBy(() -> authService.activarCuenta(viejo, "Vic", "Viejo", "987654321", null, "Segura#123"))
                 .isInstanceOf(IllegalStateException.class);
 
         // Con el enlace nuevo sí se activa.
-        authService.activarCuenta(nuevo, "Nora Nueva", "987654321", null, "Segura#123");
+        authService.activarCuenta(nuevo, "Nora", "Nueva", "987654321", null, "Segura#123");
         assertThat(usuarioRepository.findByCorreo(correo).orElseThrow().getPasswordHash()).isNotBlank();
     }
 
@@ -396,7 +403,7 @@ class PreRegistroColaboradorTests {
     void unaCuentaActivadaSiPuedeRecuperarSuContrasena() {
         String correo = correoNuevo();
         String token = invitar(correo, "PROJECT_MANAGER");
-        Usuario activado = authService.activarCuenta(token, "Pia Activa", "987654321", null, "Segura#123");
+        Usuario activado = authService.activarCuenta(token, "Pia", "Activa", "987654321", null, "Segura#123");
 
         authService.solicitarRecuperacion(correo);
 
@@ -428,7 +435,7 @@ class PreRegistroColaboradorTests {
     void unaCuentaDesactivadaNoRecibeCodigoDeRecuperacion() {
         String correo = correoNuevo();
         String token = invitar(correo, "PROJECT_MANAGER");
-        Usuario usuario = authService.activarCuenta(token, "Dina Desactivada", "987654321", null, "Segura#123");
+        Usuario usuario = authService.activarCuenta(token, "Dina", "Desactivada", "987654321", null, "Segura#123");
         usuario.setActivo(false);
         usuarioRepository.save(usuario);
 
@@ -551,7 +558,7 @@ class PreRegistroColaboradorTests {
     private ActivarEnvio enviarActivacion(String token, MockHttpSession sesion, String telefono, MockMultipartFile... archivos)
             throws Exception {
         var peticion = multipart("/activar-cuenta").param("dni", DniPrueba.unico()).session(sesion)
-                .param("token", token).param("nombreCompleto", "Ana Perez").param("telefono", telefono)
+                .param("token", token).param("nombres", "Ana").param("apellidos", "Perez").param("telefono", telefono)
                 .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                 .param("aceptaPolitica", "true");
         for (MockMultipartFile archivo : archivos) {
@@ -581,7 +588,11 @@ class PreRegistroColaboradorTests {
         assertThat(form.getCvGuardado()).isNotBlank();
 
         // Segundo envío: sin archivo, solo con el id que el formulario guardó en el campo oculto.
-        mockMvc.perform(enviarActivacion(token, sesion, "987654321").peticion().param("cvGuardado", form.getCvGuardado()))
+        mockMvc.perform(enviarActivacion(token, sesion, "987654321",
+                        new MockMultipartFile("estudios[0].archivo", "e.pdf", "application/pdf", PDF)).peticion()
+                        .param("cvGuardado", form.getCvGuardado()).param("descripcion", "Backend").param("sinExperiencia", "true")
+                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "Ingeniería")
+                        .param("estudios[0].fechaInicio", "2015-03-01").param("estudios[0].fechaFin", "2020-12-15"))
                 .andExpect(redirectedUrl("/login?activado"));
 
         Usuario activado = usuarioRepository.findByCorreo(correo).orElseThrow();
@@ -642,11 +653,11 @@ class PreRegistroColaboradorTests {
         String token = invitar(correoNuevo(), "PROJECT_MANAGER");
 
         mockMvc.perform(multipart("/activar-cuenta").param("dni", DniPrueba.unico()).param("token", token)
-                        .param("nombreCompleto", "<script>alert(1)</script>").param("telefono", "987654321")
+                        .param("nombres", "<script>alert(1)</script>").param("apellidos", "Perez").param("telefono", "987654321")
                         .param("password", "Segura#123").param("confirmarPassword", "Segura#123")
                         .param("aceptaPolitica", "true"))
                 .andExpect(view().name("auth/activar-cuenta"))
-                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "nombreCompleto"));
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "nombres"));
     }
 
     @Test
@@ -672,7 +683,7 @@ class PreRegistroColaboradorTests {
     }
 
     private Usuario usuarioActivado(String correo) {
-        return authService.activarCuenta(invitar(correo, "PROJECT_MANAGER"), "Rita Recupera", "987654321", null, "Segura#123");
+        return authService.activarCuenta(invitar(correo, "PROJECT_MANAGER"), "Rita", "Recupera", "987654321", null, "Segura#123");
     }
 
     private Long invitarYDevolverId(String correo) {
@@ -684,6 +695,89 @@ class PreRegistroColaboradorTests {
                 .filter(t -> t.getUsuario().getId().equals(usuario.getId()))
                 .filter(t -> t.getTipo() == TipoToken.RECUPERACION)
                 .toList();
+    }
+
+    // ---------- el perfil no puede quedar vacío: secciones obligatorias del pre-registro ----------
+
+    @Test
+    void conSoloElCvElPreRegistroNoSeEnvia() throws Exception {
+        String correo = correoNuevo();
+        String token = invitar(correo, "COLABORADOR");
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321",
+                        new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF)).peticion())
+                .andExpect(view().name("auth/activar-cuenta"))
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "descripcion", "experiencias", "estudios"))
+                .andExpect(content().string(containsString("No tengo experiencia laboral")));
+
+        assertThat(usuarioRepository.findByCorreo(correo).orElseThrow().getPasswordHash()).isNull();
+    }
+
+    @Test
+    void marcarSinExperienciaYLlenarUnaEsUnaContradiccion() throws Exception {
+        String token = invitar(correoNuevo(), "COLABORADOR");
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321").peticion()
+                        .param("sinExperiencia", "true").param("experiencias[0].cargo", "Analista"))
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "experiencias"));
+    }
+
+    @Test
+    void quienTodaviaEstudiaSeRegistraSinFechaDeFinYElRmYElAdminLoVen() throws Exception {
+        String correo = correoNuevo();
+        String token = invitar(correo, "COLABORADOR");
+        Habilidad java = habilidadDelCatalogo();
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321",
+                        new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF),
+                        new MockMultipartFile("certificados[0].archivo", "c.pdf", "application/pdf", PDF),
+                        new MockMultipartFile("estudios[0].archivo", "constancia.pdf", "application/pdf", PDF)).peticion()
+                        .param("descripcion", "Practicante").param("sinExperiencia", "true")
+                        .param("certificados[0].habilidadId", String.valueOf(java.getId()))
+                        .param("certificados[0].nivel", "BASICO")
+                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "Telecomunicaciones en curso")
+                        .param("estudios[0].fechaInicio", "2023-03-01").param("estudios[0].actual", "true"))
+                .andExpect(redirectedUrl("/login?activado"));
+
+        Usuario u = usuarioRepository.findByCorreo(correo).orElseThrow();
+        var estudio = colaboradorPerfilService.listarEducacion(u).get(0);
+        assertThat(estudio.isActual()).isTrue();
+        assertThat(estudio.getFechaFin()).isNull();
+
+        // El Admin los ve al revisar, sin poder editarlos.
+        autenticar(admin);
+        mockMvc.perform(get("/admin/experiencia/" + u.getId()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Telecomunicaciones en curso")))
+                .andExpect(content().string(containsString("Actualidad")))
+                .andExpect(content().string(containsString("Java prerregistro")))
+                .andExpect(content().string(containsString("Ver constancia o título")))
+                .andExpect(content().string(containsString("Ver certificado")));
+
+        // El RM lo tiene en su bandeja: antes una formación sin fecha de fin se mostraba como "null".
+        adminUsuarioService.aprobarRegistro(u.getId(), admin);
+        Usuario rm = estudio.getRmResponsable() != null
+                ? usuarioRepository.findById(estudio.getRmResponsable().getId()).orElseThrow() : nuevoRm();
+        rm.setRol(rolRepository.findByNombre("RESOURCE_MANAGER").orElseThrow());
+        autenticar(rm);
+        mockMvc.perform(get("/rm/colaboradores/educacion/revision").param("id", String.valueOf(estudio.getId())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Telecomunicaciones en curso")))
+                .andExpect(content().string(containsString("Actualidad")));
+        mockMvc.perform(get("/rm/colaboradores/educacion"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("– null"))));
+    }
+
+    @Test
+    void laFormacionActualNoAdmiteUnInicioFuturo() throws Exception {
+        String token = invitar(correoNuevo(), "COLABORADOR");
+
+        mockMvc.perform(enviarActivacion(token, new MockHttpSession(), "987654321").peticion()
+                        .param("estudios[0].institucion", "PUCP").param("estudios[0].titulo", "X")
+                        .param("estudios[0].fechaInicio", java.time.LocalDate.now().plusDays(2).toString())
+                        .param("estudios[0].actual", "true"))
+                .andExpect(model().attributeHasFieldErrors("activarCuentaForm", "estudios[0].fechaInicio"));
     }
 
     // ---------- helpers ----------
@@ -702,10 +796,20 @@ class PreRegistroColaboradorTests {
         });
     }
 
+    private Usuario nuevoRm() {
+        Usuario rm = new Usuario();
+        rm.setCorreo(correoNuevo());
+        rm.setNombre("Rita");
+        rm.setApellido("Recursos");
+        rm.setActivo(true);
+        rm.setRol(rolRepository.findByNombre("RESOURCE_MANAGER").orElseThrow());
+        return usuarioRepository.save(rm);
+    }
+
     private Usuario colaboradorPendiente() {
         String correo = correoNuevo();
         String token = invitar(correo, "COLABORADOR");
-        Usuario u = authService.activarCuenta(token, "Carla Diaz", "987654321", null, "Segura#123");
+        Usuario u = authService.activarCuenta(token, "Carla", "Diaz", "987654321", null, "Segura#123");
         colaboradorPerfilService.actualizarCv(u, new MockMultipartFile("cv", "cv.pdf", "application/pdf", PDF));
         return usuarioRepository.findByCorreo(correo).orElseThrow();
     }

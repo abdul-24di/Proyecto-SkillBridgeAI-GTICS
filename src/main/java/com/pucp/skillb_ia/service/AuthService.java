@@ -184,7 +184,7 @@ public class AuthService {
     // escribió (nombre, teléfono, descripción), así quedan en "Mi perfil" sin copiarlos después. Un
     // colaborador queda con el registro PENDIENTE hasta que el Admin lo apruebe. Devuelve el usuario
     // para que el controlador pueda subir su CV.
-    public Usuario activarCuenta(String token, String nombreCompleto, String telefono,
+    public Usuario activarCuenta(String token, String nombres, String apellidos, String telefono,
                                  String descripcion, String password) {
         ResultadoToken resultado = validarTokenActivacion(token);
         if (!resultado.esValido()) {
@@ -194,14 +194,8 @@ public class AuthService {
         TokenUsuario tokenUsuario = resultado.token();
         Usuario usuario = tokenUsuario.getUsuario();
 
-        String nombre = nombreCompleto.trim();
-        int espacio = nombre.indexOf(' ');
-        if (espacio > 0) {
-            usuario.setNombre(nombre.substring(0, espacio));
-            usuario.setApellido(nombre.substring(espacio + 1).trim());
-        } else {
-            usuario.setNombre(nombre);
-        }
+        usuario.setNombre(nombres.strip());
+        usuario.setApellido(apellidos.strip());
         usuario.setTelefono(telefono != null ? telefono.strip() : null);
         usuario.setDescripcion(descripcion != null && !descripcion.isBlank() ? descripcion.strip() : null);
         usuario.setPasswordHash(passwordEncoder.encode(password));
@@ -221,7 +215,7 @@ public class AuthService {
         if (!"COLABORADOR".equals(usuario.getRol().getNombre())) {
             notificacionService.crearParaTodosLosAdmins("CUENTA_ACTIVADA", CategoriaNotificacion.SISTEMA,
                     "Cuenta activada",
-                    nombre + " activó su cuenta como " + usuario.getRol().getNombre() + ".",
+                    usuario.getNombre() + " " + usuario.getApellido() + " activó su cuenta como " + usuario.getRol().getNombre() + ".",
                     "USUARIO", usuario.getId());
         }
         return usuario;

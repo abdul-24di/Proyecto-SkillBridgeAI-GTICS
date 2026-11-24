@@ -146,7 +146,7 @@ class AdminPerfilYCatalogosTests {
                 .filter(t -> t.getUsuario().getId().equals(invitado.getId()))
                 .map(TokenUsuario::getToken).findFirst().orElseThrow();
 
-        authService.activarCuenta(token, "Paula Mendez", "987654321", null, "Segura#123");
+        authService.activarCuenta(token, "Paula", "Mendez", "987654321", null, "Segura#123");
 
         assertThat(notificacionService.listar(admin.getId()))
                 .anySatisfy(n -> {
@@ -360,7 +360,7 @@ class AdminPerfilYCatalogosTests {
         assertThat(nuevo.getFechaExpiracion()).isAfter(java.time.LocalDateTime.now().plusHours(47));
 
         // Con el enlace nuevo el usuario completa la activación.
-        authService.activarCuenta(nuevo.getToken(), "Vera Vencida", "987654321", null, "Segura#123");
+        authService.activarCuenta(nuevo.getToken(), "Vera", "Vencida", "987654321", null, "Segura#123");
         assertThat(usuarioRepository.findByCorreo(correo).orElseThrow().getPasswordHash()).isNotBlank();
         assertThat(authService.validarTokenActivacion(nuevo.getToken()).estado())
                 .isEqualTo(AuthService.EstadoToken.USADO);

@@ -80,6 +80,28 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
+    // Secciones con filas que exigen al menos una: experiencia (salvo que marque que no tiene) y formación.
+    seccion.querySelectorAll("[data-filas-minimo]").forEach(function (wrap) {
+      const anterior = wrap.querySelector("[data-filas-aviso]");
+      if (anterior) anterior.remove();
+      const sinFilas = wrap.querySelector("[data-sin-filas]");
+      if (sinFilas && sinFilas.checked) return;
+      const filas = wrap.querySelectorAll("[data-fila]");
+      const hayAlguna = Array.from(filas).some(function (fila) {
+        return Array.from(fila.querySelectorAll("input, select, textarea")).some(function (campo) {
+          if (campo.name.charAt(0) === "_") return false; // marcador oculto de las casillas
+          return campo.type === "checkbox" ? campo.checked : campo.value.trim() !== "";
+        });
+      });
+      if (hayAlguna) return;
+      const aviso = document.createElement("div");
+      aviso.className = "auth-field-error is-visible mb-2";
+      aviso.dataset.filasAviso = "";
+      aviso.textContent = wrap.dataset.filasMinimo;
+      filas[0].before(aviso);
+      primero = primero || filas[0].querySelector("input:not([type=hidden])");
+    });
+
     if (primero) primero.focus();
     return !primero;
   }

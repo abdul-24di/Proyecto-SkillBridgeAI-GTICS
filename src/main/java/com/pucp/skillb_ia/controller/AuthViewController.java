@@ -120,7 +120,7 @@ public class AuthViewController {
             try {
                 dniService.validarFormatoYUnico(form.getDni());
                 if (!result.hasErrors()) {
-                    dniVerificado = dniService.validar(form.getDni(), form.getNombreCompleto());
+                    dniVerificado = dniService.validar(form.getDni(), form.nombreCompleto());
                 }
             } catch (IllegalArgumentException e) {
                 result.rejectValue("dni", "dni.invalido", e.getMessage());
@@ -135,7 +135,7 @@ public class AuthViewController {
             return "auth/activar-cuenta";
         }
         try {
-            Usuario usuario = authService.activarCuenta(form.getToken(), form.getNombreCompleto(),
+            Usuario usuario = authService.activarCuenta(form.getToken(), form.getNombres(), form.getApellidos(),
                     form.getTelefono(), form.getDescripcion(), form.getPassword());
             dniService.registrar(usuario, form.getDni(), dniVerificado);
             if (!dniVerificado) {

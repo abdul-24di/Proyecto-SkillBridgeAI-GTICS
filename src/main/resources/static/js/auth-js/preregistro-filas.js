@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", function () {
       btnAgregar.disabled = filas().length >= MAX_FILAS;
     }
 
-    // "Trabajo aquí actualmente" (solo experiencia): deshabilita la fecha de fin.
+    // "Trabajo aquí actualmente" / "Estudio aquí actualmente": deshabilita la fecha de fin.
     function sincronizarActual(fila) {
       const actual = fila.querySelector("input[type=checkbox]");
       const fin = fila.querySelector("input[type=date][name$='.fechaFin']");
@@ -45,7 +45,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     wrap.addEventListener("change", function (e) {
-      if (e.target.matches("input[type=checkbox]")) sincronizarActual(e.target.closest("[data-fila]"));
+      if (!e.target.matches("input[type=checkbox]")) return;
+      const fila = e.target.closest("[data-fila]");
+      if (fila) sincronizarActual(fila);
+      else sincronizarSinFilas();
     });
 
     wrap.addEventListener("click", function (e) {
@@ -72,7 +75,22 @@ document.addEventListener("DOMContentLoaded", function () {
       reindexar();
     });
 
+    // "No tengo experiencia laboral": oculta las filas y no las envía.
+    const sinFilas = wrap.querySelector("[data-sin-filas]");
+    function sincronizarSinFilas() {
+      if (!sinFilas) return;
+      filas().forEach(function (fila) {
+        fila.hidden = sinFilas.checked;
+        fila.querySelectorAll("input, select, textarea").forEach(function (el) { el.disabled = sinFilas.checked; });
+        if (!sinFilas.checked) sincronizarActual(fila);
+      });
+      btnAgregar.hidden = sinFilas.checked;
+      const aviso = wrap.querySelector("[data-filas-aviso]");
+      if (aviso) aviso.remove();
+    }
+
     filas().forEach(sincronizarActual);
     reindexar();
+    sincronizarSinFilas();
   });
 });

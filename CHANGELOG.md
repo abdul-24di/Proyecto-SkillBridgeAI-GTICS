@@ -1,5 +1,16 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 24 de Noviembre 2026 — Datos personales del registro en el perfil
+
+- **Activación de cuenta (todos los roles):** "Nombre completo" se separó en **Nombres** y **Apellidos**. Antes se cortaba en el primer espacio y el segundo nombre quedaba como apellido. Las cuentas ya creadas no cambian.
+- **Perfil del Admin, PM y RM:** muestran y permiten editar "Sobre mí", que se pedía al activar la cuenta pero no se veía (`PerfilSobreMiController`, `fragments/sobre-mi-perfil.html`).
+- **Pre-registro del colaborador:** con solo el CV el perfil quedaba vacío. Ahora son obligatorios "Sobre ti", al menos una formación académica y al menos una experiencia, salvo que marque "No tengo experiencia laboral". Los certificados siguen opcionales. Quien todavía estudia marca "Estudio aquí actualmente" (sin fecha de fin, con una constancia).
+- **Revisión del Admin:** muestra la formación académica y los certificados, solo para lectura, para compararlos con el CV. Los sigue validando el RM. "Agregar experiencia" pasó a una ventana opcional: no hace falta llenarla para aprobar.
+- **Bandeja de formaciones del RM:** una formación sin fecha de fin muestra "Actualidad" (antes podía salir "null").
+- **Tests:** 1171 en verde.
+
+---
+
 ## Sesión 22 de Noviembre 2026 — Arreglos vistos al armar el manual del Administrador
 
 - **RM sin activar como responsable:** la búsqueda de usuarios activos por rol incluía invitaciones que aún no se activaban, así que un proyecto podía quedar a cargo de un RM sin cuenta y la auditoría mostraba "asignado a null null". Ahora solo cuentan las cuentas activadas (`UsuarioRepository.findActivosByRolNombre`). También dejan de recibir avisos dirigidos a "todos los RM" o "todos los Admin".

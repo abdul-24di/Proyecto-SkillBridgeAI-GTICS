@@ -801,7 +801,7 @@ class PreRegistroColaboradorTests {
 
         Usuario rm = estudio.getRmResponsable() != null
                 ? usuarioRepository.findById(estudio.getRmResponsable().getId()).orElseThrow() : nuevoRm();
-        rm.setRol(rolRepository.findByNombre("RESOURCE_MANAGER").orElseThrow());
+        rm.setRol(obtenerRol("RESOURCE_MANAGER"));
         autenticar(rm);
         mockMvc.perform(get("/rm/colaboradores/educacion/revision").param("id", String.valueOf(estudio.getId())))
                 .andExpect(status().isOk())
@@ -833,7 +833,7 @@ class PreRegistroColaboradorTests {
         rm.setNombre("Rita");
         rm.setApellido("Recursos");
         rm.setActivo(true);
-        rm.setRol(rolRepository.findByNombre("RESOURCE_MANAGER").orElseThrow());
+        rm.setRol(obtenerRol("RESOURCE_MANAGER"));
         return usuarioRepository.save(rm);
     }
 

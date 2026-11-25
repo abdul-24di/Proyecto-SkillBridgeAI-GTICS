@@ -27,6 +27,11 @@ import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Constructor de contexto del Asistente IA del Project Manager: agrega KPIs del portafolio,
+ * avance de proyectos, brechas de habilidades, recomendaciones de talento (sin datos salariales)
+ * y publicaciones relevantes de foros accesibles (comunidad, anuncios y proyectos propios).
+ */
 @Service
 public class PmAsistenteContextoService {
 

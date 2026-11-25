@@ -17,6 +17,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Servicio de mensajería del Project Manager: chat grupal de cada proyecto, chats privados
+ * con el Resource Manager revisor o colaboradores con asignación activa, y conteo de no leídos.
+ */
 @Service
 public class PmChatService {
 

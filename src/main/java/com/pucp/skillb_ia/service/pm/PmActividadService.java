@@ -22,6 +22,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Servicio del ciclo de vida de actividades asignadas por el Project Manager:
+ * listado con detección de vencidas, creación, edición, eliminación lógica, confirmación y devolución con strikes opcionales.
+ */
 @Service
 public class PmActividadService {
 

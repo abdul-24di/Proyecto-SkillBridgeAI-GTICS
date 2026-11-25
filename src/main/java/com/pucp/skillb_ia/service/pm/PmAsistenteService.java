@@ -23,6 +23,11 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Servicio conversacional del Asistente IA para el Project Manager: valida entrada y defensa contra
+ * prompt injection, consulta al modelo con el contexto del portafolio del PM, reemplaza marcadores
+ * internos por tarjetas interactivas y permite confirmar propuestas de candidatos hacia el RM.
+ */
 @Service
 public class PmAsistenteService {
 

@@ -44,6 +44,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 import java.util.Set;
 
+/**
+ * Servicio de foros para el Project Manager: listado de foros propios y de comunidad/anuncios,
+ * publicación, respuestas, reacciones, moderación de soluciones, subida de imágenes y eliminación lógica.
+ */
 @Service
 public class PmForoService {
 

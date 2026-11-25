@@ -42,6 +42,10 @@ import java.util.stream.Collectors;
 
 import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
+/**
+ * Controlador MVC principal del módulo Project Manager ({@code /pm}): gestiona dashboard, proyectos,
+ * actividades, asignaciones, solicitudes de personal, foros, chat, reportes/exportaciones, perfil y Asistente IA.
+ */
 @Controller
 @RequestMapping("/pm")
 public class PmViewController {

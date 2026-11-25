@@ -33,6 +33,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Servicio de administración de proyectos del Project Manager: listado, consulta detallada con métricas,
+ * creación con habilidades requeridas y documento de contexto, y cancelación con cierre transaccional de asignaciones.
+ */
 @Service
 public class PmProyectoService {
 

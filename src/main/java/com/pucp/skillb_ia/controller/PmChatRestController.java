@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 
 
+/**
+ * Controlador REST del chat del Project Manager ({@code /pm/api/chat}): expone contactos del proyecto,
+ * conteo de mensajes no leídos, historial y envío de mensajes grupales y privados.
+ */
 @RestController
 @RequestMapping("/pm/api/chat")
 public class PmChatRestController {

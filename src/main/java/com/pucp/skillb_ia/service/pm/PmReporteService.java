@@ -27,6 +27,10 @@ import java.time.format.TextStyle;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Servicio de reportes analíticos del Project Manager: reporte consolidado multicriterio por rango
+ * de meses con paginación, reporte individual por proyecto, métricas de puntualidad y exportación Excel de avance.
+ */
 @Service
 public class PmReporteService {
 

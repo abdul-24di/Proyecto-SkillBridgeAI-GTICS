@@ -23,6 +23,10 @@ import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 
+/**
+ * Servicio de gestión de asignaciones desde el rol Project Manager: propuesta de colaboradores al RM,
+ * aprobación o rechazo de propuestas recibidas del RM y finalización con evaluación opcional de desempeño.
+ */
 @Service
 public class PmAsignacionService {
 

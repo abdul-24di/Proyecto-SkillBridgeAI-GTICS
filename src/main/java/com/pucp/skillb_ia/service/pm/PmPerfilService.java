@@ -19,6 +19,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Servicio de gestión del perfil del Project Manager (datos personales, foto de perfil y contraseña).
+ * El cargo es de solo lectura desde esta vista (administrado por el Administrador) y cada cambio queda en auditoría.
+ */
 @Service
 public class PmPerfilService {
 

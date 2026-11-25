@@ -31,6 +31,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.IntStream;
 
+/**
+ * Servicio de exportación de reportes del Project Manager en formato Excel (XLSX) y PDF (OpenPDF),
+ * tanto para el consolidado multicriterio (con selección de hojas y columnas) como para el detalle por proyecto.
+ */
 @Service
 public class PmReporteExportService {
 

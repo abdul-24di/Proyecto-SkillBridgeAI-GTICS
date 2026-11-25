@@ -18,6 +18,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Servicio de indicadores y alertas para el dashboard principal del Project Manager:
+ * conteos de proyectos activos, entregas por revisar, equipo asignado y panel de strikes.
+ */
 @Service
 public class PmDashboardService {
 

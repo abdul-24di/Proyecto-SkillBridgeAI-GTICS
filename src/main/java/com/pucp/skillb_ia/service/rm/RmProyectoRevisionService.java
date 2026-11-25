@@ -22,6 +22,11 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * Decisiones del Resource Manager sobre un proyecto: asignar o cambiar el presupuesto, aprobar o
+ * rechazar el proyecto en revisión, cambiar sus fechas y cancelarlo o finalizarlo. Solo actúa el RM
+ * responsable del proyecto y cada cambio se audita y se notifica al PM. Lo usa {@code RmViewController}.
+ */
 @Service
 public class RmProyectoRevisionService {
     private static final String ROL_RM = "RESOURCE_MANAGER";
@@ -38,6 +43,7 @@ public class RmProyectoRevisionService {
     private final RmResponsableService rmResponsableService;
 
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmProyectoRevisionService(ProyectoRepository proyectoRepository,
                                      UsuarioRepository usuarioRepository,
                                      AuditoriaService auditoriaService,
@@ -56,6 +62,19 @@ public class RmProyectoRevisionService {
         this.cierreAsignacionesService = cierreAsignacionesService;
     }
 
+    /**
+     * Registra o actualiza el presupuesto del proyecto. No puede quedar por debajo de lo ya
+     * comprometido y reservado.
+     *
+     * @param proyectoId proyecto EN_REVISION, ACTIVO o EN_ESPERA
+     * @param presupuesto monto mayor que 0, con hasta 2 decimales y dentro del máximo permitido
+     * @param rmId id del RM de la sesión
+     * @return estado del proyecto (no cambia)
+     * @throws IllegalArgumentException si el RM o el proyecto no existen, el monto no es válido o es
+     *         menor que lo comprometido y reservado
+     * @throws IllegalStateException si el estado del proyecto no permite cambiar el presupuesto o el
+     *         RM no es su responsable
+     */
     @Transactional
     public EstadoProyecto asignarPresupuesto(Long proyectoId, BigDecimal presupuesto, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -80,6 +99,15 @@ public class RmProyectoRevisionService {
         return proyecto.getEstado();
     }
 
+    /**
+     * Aprueba un proyecto en revisión: pasa a ACTIVO con el RM como revisor y se notifica al PM.
+     *
+     * @param proyectoId proyecto EN_REVISION
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si el RM o el proyecto no existen, falta un presupuesto
+     *         positivo o faltan las fechas, o la de fin no es posterior a la de inicio
+     * @throws IllegalStateException si el proyecto ya no está en revisión o el RM no es su responsable
+     */
     @Transactional
     public void aprobar(Long proyectoId, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -113,6 +141,15 @@ public class RmProyectoRevisionService {
 
     }
 
+    /**
+     * Rechaza un proyecto en revisión y notifica el motivo al PM.
+     *
+     * @param proyectoId proyecto EN_REVISION
+     * @param motivo motivo obligatorio, hasta 500 caracteres
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si el RM o el proyecto no existen, o el motivo falta o es largo
+     * @throws IllegalStateException si el proyecto ya no está en revisión o el RM no es su responsable
+     */
     @Transactional
     public void rechazar(Long proyectoId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -145,8 +182,18 @@ public class RmProyectoRevisionService {
                 "EN_REVISION", "RECHAZADO", null);
     }
 
-    // TASK-021: solo el RM cambia las fechas. Todas las validaciones van antes de modificar
-    // el proyecto: un cambio inválido no guarda, no audita ni notifica.
+    /**
+     * Cambia las fechas del proyecto (TASK-021: solo el RM). Todas las validaciones van antes de
+     * modificar el proyecto: un cambio inválido no guarda, no audita ni notifica.
+     *
+     * @param proyectoId proyecto EN_REVISION, ACTIVO o EN_ESPERA
+     * @param fechaInicio nueva fecha de inicio; no puede ser pasada salvo que sea la que ya tenía
+     * @param fechaFin nueva fecha de fin, posterior al inicio
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si falta o no es válida alguna fecha, hay actividades que
+     *         vencen fuera del nuevo rango o el costo comprometido y reservado supera el presupuesto
+     * @throws IllegalStateException si el estado no permite cambiar fechas o el RM no es responsable
+     */
     @Transactional
     public void cambiarFechas(Long proyectoId, LocalDate fechaInicio, LocalDate fechaFin, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -205,13 +252,23 @@ public class RmProyectoRevisionService {
                 "PROYECTO", proyecto.getId());
     }
 
-    // Cancelar y finalizar desde el RM: solo en ACTIVO o EN_ESPERA.
+    /**
+     * Cancelar y finalizar desde el RM: solo en ACTIVO o EN_ESPERA.
+     *
+     * @param proyecto proyecto evaluado
+     * @return {@code true} si el RM puede cerrarlo
+     */
     public static boolean esProyectoCerrable(Proyecto proyecto) {
         return proyecto.getEstado() == EstadoProyecto.ACTIVO
                 || proyecto.getEstado() == EstadoProyecto.EN_ESPERA;
     }
 
-    // Actividades que impiden finalizar (todas menos COMPLETADA).
+    /**
+     * Actividades activas que impiden finalizar: PENDIENTE, EN_PROGRESO o EN_REVISION.
+     *
+     * @param proyecto proyecto consultado
+     * @return número de actividades abiertas
+     */
     @Transactional(readOnly = true)
     public long contarActividadesAbiertas(Proyecto proyecto) {
         return actividadRepository.countByProyectoAndEstadoAndActivoTrue(proyecto, EstadoActividad.PENDIENTE)
@@ -219,15 +276,36 @@ public class RmProyectoRevisionService {
                 + actividadRepository.countByProyectoAndEstadoAndActivoTrue(proyecto, EstadoActividad.EN_REVISION);
     }
 
-    // El RM cancela un proyecto ACTIVO o EN_ESPERA. Exige motivo y el nombre exacto del proyecto.
-    // En la misma transacción cierra las asignaciones abiertas (como TASK-041) y notifica al PM.
+    /**
+     * El RM cancela un proyecto ACTIVO o EN_ESPERA. Exige motivo y el nombre exacto del proyecto. En
+     * la misma transacción cierra las asignaciones abiertas (como TASK-041) y notifica al PM.
+     *
+     * @param proyectoId proyecto ACTIVO o EN_ESPERA
+     * @param motivo motivo obligatorio, hasta 500 caracteres
+     * @param confirmacionNombre nombre del proyecto escrito por el RM
+     * @param rmId id del RM de la sesión
+     * @return resumen de las asignaciones cerradas
+     * @throws IllegalArgumentException si el proyecto o el RM no existen, falta el motivo o el nombre no coincide
+     * @throws IllegalStateException si el proyecto no está activo ni en espera
+     */
     @Transactional
     public CierreAsignacionesService.Resultado cancelar(Long proyectoId, String motivo,
                                                          String confirmacionNombre, Long rmId) {
         return cerrar(proyectoId, motivo, confirmacionNombre, rmId, false);
     }
 
-    // El RM finaliza un proyecto ACTIVO o EN_ESPERA sin actividades pendientes, en progreso ni en revisión.
+    /**
+     * El RM finaliza un proyecto ACTIVO o EN_ESPERA sin actividades pendientes, en progreso ni en
+     * revisión. Con las mismas confirmaciones que {@link #cancelar}.
+     *
+     * @param proyectoId proyecto ACTIVO o EN_ESPERA
+     * @param motivo motivo obligatorio, hasta 500 caracteres
+     * @param confirmacionNombre nombre del proyecto escrito por el RM
+     * @param rmId id del RM de la sesión
+     * @return resumen de las asignaciones cerradas
+     * @throws IllegalArgumentException si el proyecto o el RM no existen, falta el motivo o el nombre no coincide
+     * @throws IllegalStateException si el proyecto no está activo ni en espera o tiene actividades abiertas
+     */
     @Transactional
     public CierreAsignacionesService.Resultado finalizar(Long proyectoId, String motivo,
                                                           String confirmacionNombre, Long rmId) {

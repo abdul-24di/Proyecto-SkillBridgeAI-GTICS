@@ -29,16 +29,38 @@ public class RmEducacionService {
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
     private static final int LONGITUD_MAXIMA_MOTIVO = 300;
 
+    /** Formaciones por página de la bandeja y del historial. */
     public static final int TAMANIO_PAGINA = 6;
 
-    /** Filtros GET. {@code estado} y {@code colaboradorId} solo se usan en el historial (TASK-061). */
+    /**
+     * Filtros GET. {@code estado} y {@code colaboradorId} solo se usan en el historial (TASK-061).
+     *
+     * @param busqueda texto buscado; {@code null} es "Todos"
+     * @param institucion institución presente en la lista; {@code null} es "Todas"
+     * @param estado estado de la revisión (historial)
+     * @param colaboradorId colaborador del historial
+     */
     public record FiltrosEducacion(String busqueda, String institucion,
                                    EstadoCertificado estado, Long colaboradorId) {
+        /**
+         * Filtros de la bandeja de pendientes, sin estado ni colaborador.
+         *
+         * @param busqueda texto buscado
+         * @param institucion institución elegida
+         */
         public FiltrosEducacion(String busqueda, String institucion) {
             this(busqueda, institucion, null, null);
         }
     }
 
+    /**
+     * Página de formaciones académicas.
+     *
+     * @param filas formaciones de la página
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros formaciones que cumplen los filtros
+     */
     public record PaginaEducacion(List<RmEducacionView> filas, int paginaActual,
                                   int totalPaginas, long totalRegistros) {
     }
@@ -49,6 +71,7 @@ public class RmEducacionService {
     private final NotificacionService notificacionService;
     private final RmAlcanceService rmAlcanceService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmEducacionService(EducacionRepository educacionRepository,
                               UsuarioRepository usuarioRepository,
                               AuditoriaService auditoriaService,
@@ -61,6 +84,11 @@ public class RmEducacionService {
         this.rmAlcanceService = rmAlcanceService;
     }
 
+    /**
+     * Formaciones activas PENDIENTE que el RM de la sesión puede revisar.
+     *
+     * @return vistas de las pendientes
+     */
     @Transactional(readOnly = true)
     public List<RmEducacionView> listarPendientes() {
         Long rmId = rmAlcanceService.idRmActual();
@@ -86,6 +114,11 @@ public class RmEducacionService {
         return resultado;
     }
 
+    /**
+     * Cuenta las formaciones pendientes que ve el RM de la sesión.
+     *
+     * @return número de pendientes
+     */
     @Transactional(readOnly = true)
     public long contarPendientes() {
         return listarPendientes().size();
@@ -171,6 +204,13 @@ public class RmEducacionService {
         return new PaginaEducacion(filas, paginaActual, totalPaginas, filtrados.size());
     }
 
+    /**
+     * Detalle de una formación, con el número de formaciones ya aprobadas del colaborador.
+     *
+     * @param educacionId id de la formación
+     * @return vista de la formación
+     * @throws IllegalArgumentException si no existe o está fuera del alcance del RM
+     */
     @Transactional(readOnly = true)
     public RmEducacionView obtener(Long educacionId) {
         Educacion educacion = obtenerEntidad(educacionId);
@@ -188,6 +228,14 @@ public class RmEducacionService {
         return educacion.getArchivoUrl();
     }
 
+    /**
+     * Aprueba una formación pendiente y notifica al colaborador. No cambia su nivel ni su sueldo.
+     *
+     * @param educacionId formación PENDIENTE
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si la formación o el RM no existen
+     * @throws IllegalStateException si ya fue revisada o el usuario no es RM
+     */
     @Transactional
     public void aprobar(Long educacionId, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -210,6 +258,15 @@ public class RmEducacionService {
                         + ") de " + nombreCompleto(educacion.getColaborador()) + ".");
     }
 
+    /**
+     * Rechaza una formación pendiente y notifica el motivo al colaborador.
+     *
+     * @param educacionId formación PENDIENTE
+     * @param motivo motivo obligatorio, hasta 300 caracteres
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si la formación o el RM no existen, o el motivo falta o es largo
+     * @throws IllegalStateException si ya fue revisada o el usuario no es RM
+     */
     @Transactional
     public void rechazar(Long educacionId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);

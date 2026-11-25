@@ -17,25 +17,42 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.IntStream;
 
+/**
+ * Exporta los reportes del Resource Manager a Excel (Apache POI) y PDF: el reporte de recursos, con
+ * hojas y columnas elegibles, y el consolidado de horas por colaborador. Las etiquetas públicas se
+ * comparten con la vista para que no se desalineen. Lo usa {@code RmViewController}.
+ */
 @Service
 public class RmReporteExportService {
     // Etiquetas compartidas por la vista y el Excel: un solo lugar para que no se desalineen.
+    /** Título del reporte de recursos. */
     public static final String TITULO = "Reporte de recursos";
+    /** Título de la sección que compara proyectos. */
     public static final String SECCION_PROYECTOS = "Comparación por proyecto";
+    /** Título de la sección de detalle por colaborador. */
     public static final String SECCION_DETALLE = "Detalle por colaborador";
+    /** Etiquetas del encabezado del archivo, en orden. */
     public static final List<String> ETIQUETAS_ENCABEZADO = List.of(
             "Periodo", "Filtros aplicados", "Fecha de generación", "Regla de horas trabajadas");
+    /** Métricas del resumen, en orden. */
     public static final List<String> METRICAS = List.of(
             "Proyectos incluidos", "Presupuesto asignado", "Horas trabajadas", "Colaboradores involucrados");
+    /** Columnas de la hoja de proyectos; los índices los usa {@link OpcionesExcel}. */
     public static final List<String> COLUMNAS_PROYECTO = List.of(
             "Proyecto", "Estado", "Prioridad", "Presupuesto asignado", "Horas trabajadas", "Colaboradores");
+    /** Columnas de la hoja de colaboradores; los índices los usa {@link OpcionesExcel}. */
     public static final List<String> COLUMNAS_DETALLE = List.of(
             "Colaborador", "Cargo", "Proyecto", "Horas trabajadas", "Tareas completadas");
+    /** Texto cuando ningún proyecto cumple los filtros. */
     public static final String SIN_PROYECTOS = "No hay proyectos que coincidan con los filtros.";
+    /** Texto cuando no hay tareas completadas en el periodo. */
     public static final String SIN_DETALLES = "No hay tareas completadas en este periodo.";
+    /** Aclaración que acompaña la columna de presupuesto. */
     public static final String NOTA_PRESUPUESTO = "El presupuesto es información del proyecto. "
             + "El reporte no incluye sueldos, bonos ni pagos mensuales.";
+    /** Valor del parámetro {@code hojas} para la hoja de proyectos. */
     public static final String HOJA_PROYECTOS = "proyectos";
+    /** Valor del parámetro {@code hojas} para la hoja de colaboradores. */
     public static final String HOJA_COLABORADORES = "colaboradores";
 
     // Formato válido para Microsoft Excel (TASK-045): el literal "S/" va entre comillas.
@@ -51,6 +68,11 @@ public class RmReporteExportService {
      */
     public record OpcionesExcel(boolean resumen, boolean hojaProyectos, boolean hojaColaboradores,
                                 List<Integer> columnasProyecto, List<Integer> columnasDetalle) {
+        /**
+         * Opciones que exportan todo: resumen, ambas hojas y todas las columnas.
+         *
+         * @return opciones completas
+         */
         public static OpcionesExcel completo() {
             return new OpcionesExcel(true, true, true, todas(COLUMNAS_PROYECTO), todas(COLUMNAS_DETALLE));
         }
@@ -58,6 +80,14 @@ public class RmReporteExportService {
         /**
          * Sin {@code personalizado} (enlaces antiguos o descarga directa) se exporta todo. Con él, las
          * casillas desmarcadas no llegan: resumen ausente = sin métricas e índices inválidos se ignoran.
+         *
+         * @param personalizado si el usuario abrió las opciones de exportación
+         * @param resumen incluir las métricas de resumen
+         * @param hojas hojas marcadas ({@link #HOJA_PROYECTOS}, {@link #HOJA_COLABORADORES})
+         * @param columnasProyecto índices marcados de {@link #COLUMNAS_PROYECTO}
+         * @param columnasDetalle índices marcados de {@link #COLUMNAS_DETALLE}
+         * @return opciones válidas; la columna 0 de cada hoja siempre se incluye
+         * @throws IllegalArgumentException si es personalizado y no se marcó ninguna hoja
          */
         public static OpcionesExcel normalizar(boolean personalizado, boolean resumen, List<String> hojas,
                                                List<Integer> columnasProyecto, List<Integer> columnasDetalle) {
@@ -99,10 +129,25 @@ public class RmReporteExportService {
         return nombre.toString();
     }
 
+    /**
+     * Crea el Excel completo del reporte de recursos.
+     *
+     * @param reporte reporte ya filtrado
+     * @return contenido del archivo .xlsx
+     * @throws IllegalStateException si no se pudo escribir el libro
+     */
     public byte[] crearExcel(RmReporteView reporte) {
         return crearExcel(reporte, OpcionesExcel.completo());
     }
 
+    /**
+     * Crea el Excel del reporte de recursos con el resumen, las hojas y las columnas elegidas.
+     *
+     * @param reporte reporte ya filtrado
+     * @param opciones qué incluir
+     * @return contenido del archivo .xlsx
+     * @throws IllegalStateException si no se pudo escribir el libro
+     */
     public byte[] crearExcel(RmReporteView reporte, OpcionesExcel opciones) {
         String generado = fechaGeneracion();
         try (Workbook libro = new XSSFWorkbook();
@@ -166,10 +211,24 @@ public class RmReporteExportService {
         }
     }
 
+    /**
+     * Crea el PDF completo del reporte de recursos.
+     *
+     * @param reporte reporte ya filtrado
+     * @return contenido del archivo PDF
+     */
     public byte[] crearPdf(RmReporteView reporte) {
         return crearPdf(reporte, OpcionesExcel.completo());
     }
 
+    /**
+     * Crea el PDF del reporte de recursos con las mismas opciones que el Excel. Si se incluye la
+     * columna de presupuesto, agrega la nota sobre su origen.
+     *
+     * @param reporte reporte ya filtrado
+     * @param opciones qué incluir
+     * @return contenido del archivo PDF
+     */
     public byte[] crearPdf(RmReporteView reporte, OpcionesExcel opciones) {
         Map<String, String> datos = new LinkedHashMap<>();
         List<String> valores = valoresEncabezado(reporte, fechaGeneracion());
@@ -415,18 +474,37 @@ public class RmReporteExportService {
     // HORAS DE COLABORADORES (Excel y PDF con las mismas dos hojas)
     // ============================================================
 
-    // colaboradores: el conjunto completo según los filtros de la pantalla, no solo la página visible.
+    /**
+     * Crea el Excel del consolidado de horas por colaborador.
+     *
+     * @param reporte reporte del periodo
+     * @param colaboradores el conjunto completo según los filtros de la pantalla, no solo la página visible
+     * @return contenido del archivo .xlsx
+     */
     public byte[] crearExcelHoras(RmReporteView reporte, List<RmReporteView.ColaboradorReporte> colaboradores) {
         return ReporteExcel.crear("Horas de colaboradores — " + reporte.getPeriodoTexto(),
                 datosHoras(reporte, colaboradores), hojasHoras(colaboradores));
     }
 
+    /**
+     * Crea el PDF del consolidado de horas, con las mismas hojas que el Excel.
+     *
+     * @param reporte reporte del periodo
+     * @param colaboradores el conjunto completo filtrado
+     * @return contenido del archivo PDF
+     */
     public byte[] crearPdfHoras(RmReporteView reporte, List<RmReporteView.ColaboradorReporte> colaboradores) {
         return ReportePdf.crear("Horas de colaboradores — " + reporte.getPeriodoTexto(),
                 "SkillBridge AI — Reporte del Resource Manager", datosHoras(reporte, colaboradores),
                 hojasHoras(colaboradores));
     }
 
+    /**
+     * Nombre del archivo de horas sin extensión: {@code horas-colaboradores-aaaa-mm}.
+     *
+     * @param reporte reporte del periodo
+     * @return nombre del archivo
+     */
     public String nombreArchivoHoras(RmReporteView reporte) {
         return "horas-colaboradores-" + reporte.getPeriodoValor();
     }

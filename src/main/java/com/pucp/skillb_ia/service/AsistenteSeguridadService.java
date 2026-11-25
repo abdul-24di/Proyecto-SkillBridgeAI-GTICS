@@ -209,14 +209,14 @@ public class AsistenteSeguridadService {
     }
 
     /**
-     * Envuelve un texto de usuario/BD sanitizado en <dato_usuario>...</dato_usuario>.
+     * Envuelve un texto de usuario/BD sanitizado en {@code <dato_usuario>...</dato_usuario>}.
      */
     public static String envolverDato(String texto) {
         return "<dato_usuario>" + sanitizarDato(texto) + "</dato_usuario>";
     }
 
     /**
-     * Envuelve un extracto de foro sanitizado en <extracto_foro>...</extracto_foro>.
+     * Envuelve un extracto de foro sanitizado en {@code <extracto_foro>...</extracto_foro>}.
      */
     public static String envolverExtractoForo(String texto) {
         return "<extracto_foro>" + sanitizarDato(texto) + "</extracto_foro>";

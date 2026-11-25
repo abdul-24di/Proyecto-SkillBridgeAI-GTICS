@@ -4,6 +4,12 @@ import java.math.BigDecimal;
 import java.time.YearMonth;
 import java.util.List;
 
+/**
+ * Reporte de horas y presupuesto del Resource Manager para un mes o un rango de meses.
+ * Lo arma {@code RmReporteService} y lo usan la vista del reporte y el Excel de
+ * {@code RmReporteExportService}. Guarda los filtros aplicados y calcula los totales.
+ * La referencia mensual de un colaborador es de 160 horas.
+ */
 public class RmReporteView {
     /** Regla única de horas: la usan la vista y el Excel. */
     public static final String REGLA_HORAS = "Se suman las horas estimadas de las tareas completadas "
@@ -22,8 +28,11 @@ public class RmReporteView {
     private final List<ProyectoReporte> proyectos;
     private final List<DetalleColaborador> detalles;
     private final List<ColaboradorReporte> colaboradores;
+    /** Suma de los presupuestos de los proyectos del reporte. */
     private final BigDecimal presupuestoTotal;
+    /** Suma de las horas de los proyectos del reporte. */
     private final BigDecimal horasTotales;
+    /** Colaboradores distintos que aparecen en el detalle. */
     private final long colaboradoresInvolucrados;
 
     public RmReporteView(YearMonth periodo, String periodoTexto,
@@ -74,6 +83,7 @@ public class RmReporteView {
     public YearMonth getPeriodoHasta() { return periodoHasta; }
     /** Vacío si el reporte es de un solo mes, así los enlaces no arrastran un "hasta" redundante. */
     public String getPeriodoHastaValor() { return esRango() ? periodoHasta.toString() : ""; }
+    /** @return {@code true} si el reporte abarca más de un mes */
     public boolean esRango() { return !periodoHasta.equals(periodo); }
     public String getPeriodoTexto() { return periodoTexto; }
     public Long getProyectoSeleccionado() { return proyectoSeleccionado; }
@@ -82,6 +92,7 @@ public class RmReporteView {
     }
     public String getEstadoSeleccionado() { return estadoSeleccionado; }
     public String getProyectoSeleccionadoNombre() { return proyectoSeleccionadoNombre; }
+    /** @return "Todos los proyectos", el nombre del proyecto filtrado o "No encontrado (ID n)" si el id no existe */
     public String getProyectoFiltroTexto() {
         if (proyectoSeleccionado == null) return "Todos los proyectos";
         return proyectoSeleccionadoNombre == null
@@ -109,13 +120,16 @@ public class RmReporteView {
     public BigDecimal getPresupuestoTotal() { return presupuestoTotal; }
     public BigDecimal getHorasTotales() { return horasTotales; }
     public long getColaboradoresInvolucrados() { return colaboradoresInvolucrados; }
+    /** @return colaboradores con menos de 160 horas en el periodo */
     public long getColaboradoresDebajoReferencia() {
         return colaboradores.stream().filter(item -> item.getHoras().compareTo(BigDecimal.valueOf(160)) < 0).count();
     }
+    /** @return colaboradores con 160 horas o más en el periodo */
     public long getColaboradoresEnReferencia() {
         return colaboradores.stream().filter(item -> item.getHoras().compareTo(BigDecimal.valueOf(160)) >= 0).count();
     }
 
+    /** Fila de un proyecto: presupuesto, horas del periodo, colaboradores y su parte de las horas totales. */
     public static class ProyectoReporte {
         private final Long id;
         private final String nombre;
@@ -127,6 +141,7 @@ public class RmReporteView {
         private final BigDecimal presupuesto;
         private final BigDecimal horas;
         private final long colaboradores;
+        /** Porcentaje (0-100) de las horas totales del reporte que corresponde al proyecto. */
         private final int porcentajeHoras;
 
         public ProyectoReporte(Long id, String nombre, String estadoCodigo,
@@ -160,6 +175,7 @@ public class RmReporteView {
         public int getPorcentajeHoras() { return porcentajeHoras; }
     }
 
+    /** Horas y tareas completadas de un colaborador en un proyecto durante el periodo. */
     public static class DetalleColaborador {
         private final Long colaboradorId;
         private final String colaborador;
@@ -190,6 +206,7 @@ public class RmReporteView {
         public long getTareas() { return tareas; }
     }
 
+    /** Totales de un colaborador en el periodo con el desglose por proyecto. */
     public static class ColaboradorReporte {
         private final Long id;
         private final String nombre;
@@ -216,9 +233,11 @@ public class RmReporteView {
         public long getTareas() { return tareas; }
         public List<DesgloseProyecto> getProyectos() { return proyectos; }
         public int getCantidadProyectos() { return proyectos.size(); }
+        /** @return {@code true} si sus horas llegan a la referencia de 160 */
         public boolean isAlcanzaReferencia() { return horas.compareTo(BigDecimal.valueOf(160)) >= 0; }
     }
 
+    /** Horas y tareas de un colaborador en uno de sus proyectos. */
     public static class DesgloseProyecto {
         private final Long proyectoId;
         private final String proyecto;
@@ -239,6 +258,7 @@ public class RmReporteView {
         public long getTareas() { return tareas; }
     }
 
+    /** Opción de un desplegable de filtro: valor enviado y texto visible. */
     public static class Opcion {
         private final String valor;
         private final String texto;

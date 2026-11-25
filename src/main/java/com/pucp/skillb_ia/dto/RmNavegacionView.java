@@ -24,11 +24,15 @@ public class RmNavegacionView {
 
     /** Origen cerrado reconocido, o {@code null} cuando se usa la ruta canónica. */
     public String getOrigen() { return origen; }
+    /** @return migas previas a la página actual, en orden */
     public List<Miga> getMigas() { return migas; }
+    /** @return texto de la página actual (última miga, sin enlace) */
     public String getActual() { return actual; }
+    /** @return URL del botón "Volver" */
     public String getVolverUrl() { return volverUrl; }
     public String getVolverTexto() { return volverTexto; }
 
+    /** Paso de la ruta de navegación: texto visible y URL a la que enlaza. */
     public static class Miga {
         private final String texto;
         private final String url;

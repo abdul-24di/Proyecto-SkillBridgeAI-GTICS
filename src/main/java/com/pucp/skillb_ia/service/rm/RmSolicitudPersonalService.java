@@ -20,10 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * Solicitudes de personal que los PM envían al Resource Manager: listado con filtros y contadores,
+ * detalle y el flujo PENDIENTE → EN_ATENCION → ATENDIDA. Solo actúa el RM responsable del proyecto
+ * y cada paso se notifica al PM y se audita. La usa {@code RmViewController}.
+ */
 @Service
 public class RmSolicitudPersonalService {
 
     // Listado de solicitudes de personal (TASK-038): filtros GET y paginación en el servidor.
+    /** Solicitudes por página del listado. */
     public static final int TAMANIO_PAGINA = 6;
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
     // Igual que toLowerCase() del JS anterior: sin mayúsculas, con tildes.
@@ -37,6 +43,15 @@ public class RmSolicitudPersonalService {
     public record ContadoresSolicitudes(long pendientes, long enAtencion, long atendidas, long totalSolicitados) {
     }
 
+    /**
+     * Página del listado de solicitudes.
+     *
+     * @param filas solicitudes de la página
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros solicitudes que cumplen los filtros
+     * @param contadores indicadores de las tarjetas
+     */
     public record PaginaSolicitudes(List<RmSolicitudPersonalView> filas, int paginaActual, int totalPaginas,
                                     long totalRegistros, ContadoresSolicitudes contadores) {
     }
@@ -50,6 +65,7 @@ public class RmSolicitudPersonalService {
     private final RmResponsableService rmResponsableService;
     private final RmAlcanceService rmAlcanceService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmSolicitudPersonalService(
             SolicitudPersonalRepository solicitudRepository,
             ProyectoRepository proyectoRepository,
@@ -81,6 +97,11 @@ public class RmSolicitudPersonalService {
         return propias;
     }
 
+    /**
+     * Solicitudes de los proyectos que ve el RM de la sesión.
+     *
+     * @return vistas de las solicitudes
+     */
     @Transactional(readOnly = true)
     public List<RmSolicitudPersonalView> listar() {
         return solicitudesDelRm().stream()
@@ -143,6 +164,13 @@ public class RmSolicitudPersonalService {
         return new PaginaSolicitudes(filas, paginaActual, totalPaginas, filtradas.size(), contadores);
     }
 
+    /**
+     * Detalle de una solicitud de personal.
+     *
+     * @param id id de la solicitud
+     * @return vista de la solicitud
+     * @throws IllegalArgumentException si no existe o está fuera del alcance del RM
+     */
     @Transactional(readOnly = true)
     public RmSolicitudPersonalView obtener(Long id) {
         return crearVista(obtenerEntidad(id));
@@ -190,6 +218,14 @@ public class RmSolicitudPersonalService {
         return guardada;
     }
 
+    /**
+     * Pasa una solicitud PENDIENTE a EN_ATENCION, con el RM como responsable, y avisa al PM.
+     *
+     * @param id solicitud PENDIENTE
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si la solicitud o el RM no existen
+     * @throws IllegalStateException si la solicitud no está pendiente o el RM no es responsable del proyecto
+     */
     @Transactional
     public void iniciarAtencion(Long id, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -214,6 +250,14 @@ public class RmSolicitudPersonalService {
                         + solicitud.getProyecto().getNombre() + ".");
     }
 
+    /**
+     * Marca como ATENDIDA una solicitud EN_ATENCION y avisa al PM.
+     *
+     * @param id solicitud EN_ATENCION
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si la solicitud o el RM no existen
+     * @throws IllegalStateException si la solicitud no está en atención o el RM no es responsable del proyecto
+     */
     @Transactional
     public void marcarAtendida(Long id, Long rmId) {
         Usuario rm = obtenerRm(rmId);

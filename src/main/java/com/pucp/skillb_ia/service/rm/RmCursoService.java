@@ -29,6 +29,11 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+/**
+ * Cursos del Resource Manager: catálogo, bandeja de solicitudes de inscripción y revisión de
+ * evidencias. El RM asigna cursos directamente, aprueba o rechaza las solicitudes de los
+ * colaboradores y valida la evidencia con la que se completa el curso. Lo usa {@code RmViewController}.
+ */
 @Service
 public class RmCursoService {
     private static final Logger log = LoggerFactory.getLogger(RmCursoService.class);
@@ -38,8 +43,11 @@ public class RmCursoService {
             List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO,
                     EstadoColaboradorCurso.EVIDENCIA_PENDIENTE);
 
+    /** Cursos por página del catálogo. */
     public static final int TAMANIO_PAGINA_CATALOGO = 6;
+    /** Solicitudes por página de la bandeja. */
     public static final int TAMANIO_PAGINA_BANDEJA = 10;
+    /** Valores aceptados por el filtro de duración del catálogo. */
     public static final List<String> OPCIONES_DURACION = List.of("corta", "media", "larga");
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -75,7 +83,9 @@ public class RmCursoService {
             this.clase = clase;
         }
 
+        /** @return texto de la etiqueta en la bandeja */
         public String getTexto() { return texto; }
+        /** @return clases CSS de Tabler para el color de la etiqueta */
         public String getClase() { return clase; }
     }
 
@@ -96,6 +106,12 @@ public class RmCursoService {
             this.situaciones = List.of(situaciones);
         }
 
+        /**
+         * Indica si la situación pertenece a esta opción del filtro.
+         *
+         * @param situacion situación de la inscripción
+         * @return {@code true} si el filtro la incluye
+         */
         public boolean incluye(SituacionInscripcion situacion) {
             return situaciones.contains(situacion);
         }
@@ -112,6 +128,7 @@ public class RmCursoService {
     private final RmAlcanceService rmAlcanceService;
     private final RmColaboradorConsultaService rmColaboradorConsultaService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmCursoService(CursoRepository cursoRepository,
                           ColaboradorCursoRepository colaboradorCursoRepository,
                           UsuarioRepository usuarioRepository,
@@ -337,6 +354,19 @@ public class RmCursoService {
         };
     }
 
+    /**
+     * Inscribe directamente a un colaborador en un curso: la inscripción nace EN_CURSO, con el RM
+     * como responsable, y se notifica al colaborador.
+     *
+     * @param colaboradorId colaborador activo
+     * @param cursoId curso activo cuya fecha de fin no haya pasado
+     * @param motivo motivo obligatorio, hasta 500 caracteres
+     * @param rmId id del RM de la sesión
+     * @return inscripción creada
+     * @throws IllegalArgumentException si el RM, el colaborador o el curso no son válidos, o el motivo falta o es largo
+     * @throws IllegalStateException si el curso ya terminó o el colaborador ya tiene una solicitud
+     *         o inscripción vigente en él
+     */
     @Transactional
     public ColaboradorCurso asignarDirectamente(Long colaboradorId, Long cursoId,
                                                  String motivo, Long rmId) {
@@ -367,6 +397,18 @@ public class RmCursoService {
         return inscripcion;
     }
 
+    /**
+     * Aprueba la solicitud de inscripción de un colaborador: pasa a EN_CURSO, se le notifica con las
+     * fechas y la duración, y se le envía un correo informativo (si el correo falla, la aprobación se conserva).
+     *
+     * @param inscripcionId solicitud SOLICITADO enviada por el colaborador y visible para el RM
+     * @param motivo motivo obligatorio, hasta 500 caracteres
+     * @param rmId id del RM de la sesión
+     * @return inscripción aprobada
+     * @throws IllegalArgumentException si la solicitud, el RM, el colaborador o el curso activo no
+     *         existen, o el motivo falta o es largo
+     * @throws IllegalStateException si la solicitud ya fue gestionada o el colaborador ya cursa ese curso
+     */
     @Transactional
     public ColaboradorCurso aprobar(Long inscripcionId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -401,6 +443,16 @@ public class RmCursoService {
         return inscripcion;
     }
 
+    /**
+     * Rechaza la solicitud de inscripción de un colaborador y le notifica el motivo.
+     *
+     * @param inscripcionId solicitud SOLICITADO enviada por el colaborador y visible para el RM
+     * @param motivo motivo obligatorio, hasta 500 caracteres
+     * @param rmId id del RM de la sesión
+     * @return inscripción rechazada
+     * @throws IllegalArgumentException si la solicitud o el RM no existen, o el motivo falta o es largo
+     * @throws IllegalStateException si la solicitud ya fue gestionada
+     */
     @Transactional
     public ColaboradorCurso rechazar(Long inscripcionId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -417,7 +469,17 @@ public class RmCursoService {
         return inscripcion;
     }
 
-    // TASK-054: el revisor y la fecha se guardan aparte; asignadoPor sigue siendo quien aprobó la inscripción.
+    /**
+     * Valida la evidencia del colaborador: el curso pasa a COMPLETADO, sus horas cuentan en el mes
+     * actual y se audita. El revisor y la fecha se guardan aparte; {@code asignadoPor} sigue siendo
+     * quien aprobó la inscripción (TASK-054).
+     *
+     * @param inscripcionId inscripción EVIDENCIA_PENDIENTE visible para el RM
+     * @param rmId id del RM de la sesión
+     * @return inscripción completada
+     * @throws IllegalArgumentException si la inscripción o el RM no existen
+     * @throws IllegalStateException si no hay evidencia pendiente de revisión
+     */
     @Transactional
     public ColaboradorCurso aprobarEvidencia(Long inscripcionId, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -438,6 +500,17 @@ public class RmCursoService {
         return inscripcion;
     }
 
+    /**
+     * Rechaza la evidencia: la inscripción vuelve a EN_CURSO para que el colaborador suba otra. El
+     * motivo previo de la inscripción se sobrescribe y queda en la auditoría.
+     *
+     * @param inscripcionId inscripción EVIDENCIA_PENDIENTE visible para el RM
+     * @param motivo motivo obligatorio, hasta 500 caracteres
+     * @param rmId id del RM de la sesión
+     * @return inscripción devuelta a EN_CURSO
+     * @throws IllegalArgumentException si la inscripción o el RM no existen, o el motivo falta o es largo
+     * @throws IllegalStateException si no hay evidencia pendiente de revisión
+     */
     @Transactional
     public ColaboradorCurso rechazarEvidencia(Long inscripcionId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);

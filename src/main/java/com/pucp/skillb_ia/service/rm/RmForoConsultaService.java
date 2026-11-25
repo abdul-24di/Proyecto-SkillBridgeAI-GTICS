@@ -15,11 +15,20 @@ import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * Consultas de foros para el Resource Manager: listado con filtros, indicadores y paginación, y
+ * detalle de un foro con sus publicaciones. Los foros de proyecto solo se muestran si el RM de la
+ * sesión ve el proyecto; los foros generales los ve siempre. La usa {@code RmForoController}.
+ */
 @Service
 public class RmForoConsultaService {
+    /** Foros por página del listado. */
     public static final int TAMANIO_PAGINA = 4;
+    /** Valor del filtro de estado para los foros generales (sin proyecto). */
     public static final String ESTADO_GENERAL = "GENERAL";
+    /** Filtro de actividad: foros con actividad reciente. */
     public static final String ACTIVIDAD_RECIENTE = "recent";
+    /** Filtro de actividad: foros sin actividad reciente. */
     public static final String ACTIVIDAD_ANTIGUA = "older";
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
 
@@ -32,6 +41,15 @@ public class RmForoConsultaService {
                                    LocalDateTime ultimaActividad) {
     }
 
+    /**
+     * Página del listado de foros.
+     *
+     * @param foros foros de la página
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros foros que cumplen los filtros
+     * @param indicadores indicadores de las tarjetas
+     */
     public record PaginaForos(List<RmForoView> foros, int paginaActual, int totalPaginas,
                               long totalRegistros, IndicadoresForos indicadores) {
     }
@@ -41,6 +59,7 @@ public class RmForoConsultaService {
     private final RmAlcanceService rmAlcanceService;
     private final ForoDetalleService foroDetalleService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmForoConsultaService(ForoRepository foroRepository,
                                  AsignacionRepository asignacionRepository,
                                  RmAlcanceService rmAlcanceService,
@@ -117,6 +136,14 @@ public class RmForoConsultaService {
         return new PaginaForos(foros, paginaActual, totalPaginas, filtrados.size(), indicadores);
     }
 
+    /**
+     * Detalle de un foro con sus publicaciones.
+     *
+     * @param id id del foro
+     * @param orden orden de las publicaciones pedido por la vista
+     * @return vista del foro
+     * @throws IllegalArgumentException si no existe o es de un proyecto fuera del alcance del RM
+     */
     @Transactional(readOnly = true)
     public RmForoView obtener(Long id, String orden) {
         Foro foro = foroRepository.findByIdConProyectoYPm(id)

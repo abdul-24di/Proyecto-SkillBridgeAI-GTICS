@@ -6,14 +6,23 @@ import com.pucp.skillb_ia.model.enums.NivelDominio;
 
 import java.util.List;
 
+/**
+ * Fila de la bandeja de validación de certificados del Resource Manager y de su detalle.
+ * La arma {@code RmCertificadoService}; envuelve el {@link Certificado} con datos del colaborador
+ * y los textos de estado para la vista.
+ */
 public class RmCertificadoView {
     private final Certificado certificado;
     private final String colaboradorNombre;
     private final String colaboradorIniciales;
     private final String cargo;
+    /** Nivel actual de la habilidad del certificado en el perfil del colaborador. */
     private final String nivelHabilidad;
+    /** Nivel de experiencia general del colaborador. */
     private final String nivelGeneral;
+    /** RM que revisó el certificado, si ya se revisó. */
     private final String revisorNombre;
+    /** Total de certificados aprobados del colaborador. */
     private final long certificadosAprobados;
     private final List<String> habilidades;
 
@@ -42,14 +51,17 @@ public class RmCertificadoView {
     public String getRevisorNombre() { return revisorNombre; }
     public long getCertificadosAprobados() { return certificadosAprobados; }
     public List<String> getHabilidades() { return habilidades; }
+    /** @return código visible del certificado, por ejemplo {@code CERT-007} */
     public String getCodigo() { return String.format("CERT-%03d", certificado.getId()); }
 
+    /** @return nombre del archivo (último tramo de la ruta guardada, con {@code \} o {@code /}) */
     public String getNombreArchivo() {
         String ruta = certificado.getArchivoUrl().replace('\\', '/');
         int indice = ruta.lastIndexOf('/');
         return indice >= 0 ? ruta.substring(indice + 1) : ruta;
     }
 
+    /** @return estado legible del certificado */
     public String getEstadoTexto() {
         return switch (certificado.getEstado()) {
             case PENDIENTE -> "Pendiente";
@@ -58,6 +70,7 @@ public class RmCertificadoView {
         };
     }
 
+    /** @return clase CSS de la insignia del estado */
     public String getEstadoClase() {
         return switch (certificado.getEstado()) {
             case PENDIENTE -> "bg-yellow-lt";
@@ -66,7 +79,11 @@ public class RmCertificadoView {
         };
     }
 
-    /** Nivel guardado en el certificado al aprobarlo; nunca se deduce del nivel actual de la habilidad. */
+    /**
+     * Nivel guardado en el certificado al aprobarlo; nunca se deduce del nivel actual de la habilidad.
+     *
+     * @return el nivel legible; "Sin registro" si está aprobado sin nivel guardado y "—" si no está aprobado
+     */
     public String getNivelAprobadoTexto() {
         NivelDominio nivel = certificado.getNivelAprobado();
         if (nivel == null) {
@@ -81,6 +98,7 @@ public class RmCertificadoView {
 
     public boolean isPendiente() { return certificado.getEstado() == EstadoCertificado.PENDIENTE; }
 
+    /** @return motivo de rechazo si fue rechazado; si no, un texto fijo según esté aprobado o pendiente */
     public String getObservacion() {
         if (certificado.getEstado() == EstadoCertificado.RECHAZADO) {
             return certificado.getMotivoRechazo();
@@ -91,6 +109,7 @@ public class RmCertificadoView {
         return "Pendiente de revisión por el Resource Manager.";
     }
 
+    /** @return texto que usa el buscador de la bandeja: colaborador, cargo, archivo, habilidad y nivel */
     public String getTextoBusqueda() {
         return colaboradorNombre + " " + cargo + " " + getNombreArchivo() + " "
                 + certificado.getHabilidad().getNombre() + " " + nivelHabilidad;

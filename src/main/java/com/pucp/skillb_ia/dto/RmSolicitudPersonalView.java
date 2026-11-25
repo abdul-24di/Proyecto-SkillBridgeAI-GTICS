@@ -5,6 +5,11 @@ import com.pucp.skillb_ia.model.enums.EstadoSolicitudPersonal;
 
 import java.util.List;
 
+/**
+ * Solicitud de personal que el PM envía al Resource Manager, tal como se ve en su bandeja y detalle.
+ * La arma {@code RmSolicitudPersonalService}; reúne la {@link SolicitudPersonal}, el proyecto y los
+ * requisitos de talento, con los textos y clases CSS del estado.
+ */
 public class RmSolicitudPersonalView {
     private final SolicitudPersonal solicitud;
     private final RmProyectoView proyecto;
@@ -27,8 +32,10 @@ public class RmSolicitudPersonalView {
     public String getPmNombre() { return pmNombre; }
     public String getRmNombre() { return rmNombre; }
     public List<RmProyectoView.RequisitoTalento> getRequisitos() { return requisitos; }
+    /** @return código visible de la solicitud, por ejemplo {@code SOL-004} */
     public String getCodigo() { return String.format("SOL-%03d", solicitud.getId()); }
 
+    /** @return estado legible de la solicitud */
     public String getEstadoTexto() {
         return switch (solicitud.getEstado()) {
             case PENDIENTE -> "Pendiente";
@@ -38,6 +45,7 @@ public class RmSolicitudPersonalView {
         };
     }
 
+    /** @return clase CSS de la insignia del estado */
     public String getEstadoClase() {
         return switch (solicitud.getEstado()) {
             case PENDIENTE -> "bg-yellow-lt";
@@ -47,6 +55,7 @@ public class RmSolicitudPersonalView {
         };
     }
 
+    /** @return texto del botón de la fila: "Atender" si está pendiente, "Continuar" en atención y "Ver" si está cerrada */
     public String getAccionTexto() {
         return switch (solicitud.getEstado()) {
             case PENDIENTE -> "Atender";
@@ -57,11 +66,13 @@ public class RmSolicitudPersonalView {
 
     public boolean isPendiente() { return solicitud.getEstado() == EstadoSolicitudPersonal.PENDIENTE; }
     public boolean isEnAtencion() { return solicitud.getEstado() == EstadoSolicitudPersonal.EN_ATENCION; }
+    /** @return {@code true} si la solicitud está atendida o cancelada */
     public boolean isCerrada() {
         return solicitud.getEstado() == EstadoSolicitudPersonal.ATENDIDA
                 || solicitud.getEstado() == EstadoSolicitudPersonal.CANCELADA;
     }
 
+    /** @return texto del buscador: proyecto, PM y habilidades requeridas */
     public String getTextoBusqueda() {
         String habilidades = requisitos.stream()
                 .map(RmProyectoView.RequisitoTalento::getHabilidad)

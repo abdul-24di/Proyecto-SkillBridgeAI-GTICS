@@ -31,6 +31,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.function.Predicate;
 
+/**
+ * Consultas de colaboradores para el Resource Manager: directorio con filtros y contadores, búsqueda
+ * de candidatos para un proyecto (con costo estimado frente al presupuesto) y detalle del perfil.
+ * Solo muestra colaboradores visibles para el RM (no los registros pendientes ni rechazados). La usan
+ * {@code RmViewController} y otros servicios del RM.
+ */
 @Service
 public class RmColaboradorConsultaService {
 
@@ -38,15 +44,17 @@ public class RmColaboradorConsultaService {
     private static final int MAX_ASIGNACIONES_POR_DEFECTO = 3;
 
     // Directorio y búsqueda de candidatos (TASK-029): filtros GET y paginación en el servidor.
+    /** Filas por página del directorio y de la búsqueda de candidatos. */
     public static final int TAMANIO_PAGINA = 6;
-    // Directorio: "0" es "Sin disponibilidad" (0 h); el resto, "N h/sem o más".
+    /** Directorio: "0" es "Sin disponibilidad" (0 h); el resto, "N h/sem o más". */
     public static final List<String> OPCIONES_DISPONIBILIDAD = List.of("24", "16", "8", "0");
-    // Directorio: número exacto de asignaciones activas o "max" (carga máxima).
+    /** Directorio: número exacto de asignaciones activas o "max" (carga máxima). */
     public static final List<String> OPCIONES_CARGA = List.of("0", "1", "2", "max");
+    /** Directorio: niveles de experiencia del filtro. */
     public static final List<String> OPCIONES_NIVEL = List.of("Junior", "Semi Senior", "Senior");
-    // Candidatos: disponibilidad mínima; "0" es "Todas" (horas >= 0).
+    /** Candidatos: disponibilidad mínima; "0" es "Todas" (horas &gt;= 0). */
     public static final List<String> OPCIONES_DISPONIBILIDAD_MINIMA = List.of("0", "8", "16", "24");
-    // Candidatos: "available" = puede recibir otra; "full" = límite alcanzado.
+    /** Candidatos: "available" = puede recibir otra; "full" = límite alcanzado. */
     public static final List<String> OPCIONES_CARGA_CANDIDATO = List.of("available", "full");
     // Umbral de la tarjeta "Disponibles" del directorio.
     private static final BigDecimal HORAS_DISPONIBLE = BigDecimal.valueOf(16);
@@ -66,10 +74,27 @@ public class RmColaboradorConsultaService {
     public record ContadoresColaboradores(long total, long disponibles, long sinAsignaciones, long cargaMaxima) {
     }
 
+    /**
+     * Página del directorio.
+     *
+     * @param filas colaboradores de la página
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros colaboradores que cumplen los filtros
+     * @param contadores contadores de las tarjetas
+     */
     public record PaginaColaboradores(List<RmColaboradorResumen> filas, int paginaActual, int totalPaginas,
                                       long totalRegistros, ContadoresColaboradores contadores) {
     }
 
+    /**
+     * Página de la búsqueda de candidatos.
+     *
+     * @param filas candidatos de la página, con su costo
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros candidatos que cumplen los filtros
+     */
     public record PaginaCandidatos(List<CandidatoConCosto> filas, int paginaActual, int totalPaginas,
                                    long totalRegistros) {
     }
@@ -90,6 +115,7 @@ public class RmColaboradorConsultaService {
     private final RmPresupuestoService presupuestoService;
     private final RmAlcanceService rmAlcanceService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmColaboradorConsultaService(
             UsuarioRepository usuarioRepository,
             ColaboradorHabilidadRepository colaboradorHabilidadRepository,
@@ -111,16 +137,28 @@ public class RmColaboradorConsultaService {
         this.rmAlcanceService = rmAlcanceService;
     }
 
-    // Candidato + costo estimado para un proyecto concreto (sección 11 de la
-    // especificación de presupuesto). Solo se usa en la pantalla de búsqueda
-    // de candidatos del RM — el listado general de colaboradores no expone sueldo.
+    /**
+     * Candidato + costo estimado para un proyecto concreto (sección 11 de la especificación de
+     * presupuesto). Solo se usa en la pantalla de búsqueda de candidatos del RM; el listado general
+     * de colaboradores no expone sueldo.
+     *
+     * @param resumen datos del colaborador
+     * @param sueldoBase sueldo base mensual
+     * @param horasContratadas horas contratadas por semana
+     * @param costoEstimado costo estimado de asignarlo al proyecto
+     * @param cabeEnPresupuesto si el costo cabe en el presupuesto disponible
+     */
     public record CandidatoConCosto(RmColaboradorResumen resumen, java.math.BigDecimal sueldoBase,
                                      java.math.BigDecimal horasContratadas,
                                      RmPresupuestoService.CostoAsignacion costoEstimado, boolean cabeEnPresupuesto) {
     }
 
-    // Usado por la pantalla "Proponer asignación" para calcular el costo en
-    // vivo en el navegador (JS) al elegir colaborador + horas.
+    /**
+     * Usado por la pantalla "Proponer asignación" para calcular el costo en vivo en el navegador (JS)
+     * al elegir colaborador + horas.
+     *
+     * @return mapa id de colaborador → sueldo base (0 si no tiene)
+     */
     @Transactional(readOnly = true)
     public java.util.Map<Long, BigDecimal> mapaSueldosBase() {
         return usuarioRepository.findColaboradoresVisiblesRm().stream()
@@ -212,6 +250,11 @@ public class RmColaboradorConsultaService {
         return new PaginaCandidatos(filas, recorte.paginaActual(), recorte.totalPaginas(), filtrados.size());
     }
 
+    /**
+     * Colaboradores visibles para el RM, con su disponibilidad y carga.
+     *
+     * @return resúmenes de los colaboradores
+     */
     @Transactional(readOnly = true)
     public List<RmColaboradorResumen> listarColaboradoresActivos() {
         int maxAsignaciones = obtenerMaxAsignaciones();
@@ -222,6 +265,14 @@ public class RmColaboradorConsultaService {
                 .toList();
     }
 
+    /**
+     * Perfil del colaborador para el RM: resumen, habilidades, experiencia, educación y los
+     * certificados pendientes que este RM puede revisar.
+     *
+     * @param colaboradorId id del colaborador
+     * @return detalle del colaborador
+     * @throws IllegalArgumentException si no existe o no es visible para el RM (pendiente o rechazado)
+     */
     @Transactional(readOnly = true)
     public RmColaboradorDetalle obtenerDetalle(Long colaboradorId) {
         // Misma regla que el directorio (TASK-053): un registro pendiente o rechazado no se encuentra.

@@ -48,6 +48,19 @@ import java.util.Map;
 import java.util.Set;
 import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
+/**
+ * Vistas y formularios del Resource Manager bajo {@code /rm}: dashboard, revisión y cierre de proyectos,
+ * directorio y perfil de colaboradores, validación de certificados y formación académica, cursos,
+ * bandeja de asignaciones, solicitudes de personal del PM, Talent Matching con su asistente IA, foros
+ * (lectura), reportes y perfil propio. Los foros con escritura están en {@link RmForoController} y el
+ * chat en {@link RmChatViewController}.
+ *
+ * <p>Solo enlaza parámetros, llama a los servicios de {@code service/rm} y elige la vista o el
+ * {@code redirect:}. Los formularios siguen el patrón PRG: las {@link IllegalArgumentException} e
+ * {@link IllegalStateException} de los servicios se muestran como flash {@code mensajeError} y el éxito
+ * como {@code mensajeExito}. Las rutas de vuelta se arman con listas cerradas de orígenes y con datos del
+ * propio registro, nunca con una URL enviada por el navegador.</p>
+ */
 @Controller
 @RequestMapping("/rm")
 public class RmViewController {
@@ -71,6 +84,26 @@ public class RmViewController {
     private final RmAsistenteService rmAsistenteService;
     private final RmAsistenteContextoService rmAsistenteContextoService;
 
+    /**
+     * Crea el controlador sin Talent Matching ni asistente IA (quedan en {@code null}). Lo usan las pruebas
+     * que no necesitan esas pantallas.
+     *
+     * @param rmPerfilService perfil del RM
+     * @param rmColaboradorConsultaService consultas de colaboradores
+     * @param rmProyectoConsultaService consultas de proyectos
+     * @param rmProyectoRevisionService revisión, fechas, presupuesto y cierre de proyectos
+     * @param rmAsignacionService bandeja y decisiones de asignaciones
+     * @param rmSolicitudPersonalService solicitudes de personal del PM
+     * @param rmCertificadoService validación de certificados
+     * @param rmEducacionService validación de formación académica
+     * @param rmForoConsultaService lectura de foros
+     * @param rmReporteService reportes
+     * @param rmReporteExportService exportación de reportes a Excel y PDF
+     * @param rmCursoService cursos y sus solicitudes
+     * @param rmPresupuestoService impacto y costo de asignaciones
+     * @param rmResponsableService RM responsable de cada proyecto
+     * @param evaluacionService evaluaciones de los colaboradores
+     */
     public RmViewController(
             RmPerfilService rmPerfilService,
             RmColaboradorConsultaService rmColaboradorConsultaService,
@@ -95,6 +128,28 @@ public class RmViewController {
                 null, null, null);
     }
 
+    /**
+     * Crea el controlador con todas sus dependencias; es el constructor que usa Spring.
+     *
+     * @param rmPerfilService perfil del RM
+     * @param rmColaboradorConsultaService consultas de colaboradores
+     * @param rmProyectoConsultaService consultas de proyectos
+     * @param rmProyectoRevisionService revisión, fechas, presupuesto y cierre de proyectos
+     * @param rmAsignacionService bandeja y decisiones de asignaciones
+     * @param rmSolicitudPersonalService solicitudes de personal del PM
+     * @param rmCertificadoService validación de certificados
+     * @param rmEducacionService validación de formación académica
+     * @param rmForoConsultaService lectura de foros
+     * @param rmReporteService reportes
+     * @param rmReporteExportService exportación de reportes a Excel y PDF
+     * @param rmCursoService cursos y sus solicitudes
+     * @param rmPresupuestoService impacto y costo de asignaciones
+     * @param rmResponsableService RM responsable de cada proyecto
+     * @param evaluacionService evaluaciones de los colaboradores
+     * @param rmTalentMatchingService recomendaciones de Talent Matching
+     * @param rmAsistenteService conversación con el asistente IA del RM
+     * @param rmAsistenteContextoService indicadores y consultas rápidas del asistente
+     */
     @org.springframework.beans.factory.annotation.Autowired
     public RmViewController(
             RmPerfilService rmPerfilService,
@@ -137,16 +192,37 @@ public class RmViewController {
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
     // Se lee de la BD para que la foto y el nombre no dependan de la copia guardada al iniciar sesión.
+    /**
+     * RM de la barra superior de todas las páginas de este controlador.
+     *
+     * @param principal usuario con la sesión iniciada
+     * @return el RM leído de la BD, o {@code null} si no hay sesión
+     */
     @org.springframework.web.bind.annotation.ModelAttribute("rm")
     public Usuario rm(@AuthenticationPrincipal UsuarioDetails principal) {
         return principal != null ? rmPerfilService.obtenerPerfil(principal.getUsuario().getId()) : null;
     }
 
+    /**
+     * Entrada del módulo.
+     *
+     * @return redirección al dashboard
+     */
     @GetMapping({"", "/"})
     public String index() {
         return "redirect:/rm/dashboard";
     }
 
+    /**
+     * Dashboard del RM. Antes de contar, marca como vencidos los cursos sin evidencia fuera de plazo. Muestra
+     * las decisiones pendientes (del RM o esperando al PM), las solicitudes de personal abiertas, los
+     * pendientes de validación (certificados, formación y cursos) y los proyectos que requieren atención:
+     * en revisión, con vacantes o con pendientes del RM, ordenados por un puntaje que pesa pendientes,
+     * vacantes, revisión y prioridad.
+     *
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-dashboard}
+     */
     @GetMapping({"/dashboard", "/rm-dashboard.html"})
     public String dashboard(Model model) {
         rmCursoService.marcarCursosSinEvidenciaVencidos();
@@ -211,6 +287,19 @@ public class RmViewController {
         };
     }
 
+    /**
+     * Lista paginada de proyectos con filtros normalizados por el servicio y los contadores del encabezado.
+     *
+     * @param noEncontrado {@code true} si se llega desde un detalle cuyo proyecto no existe (muestra un aviso)
+     * @param busqueda texto buscado
+     * @param estado filtro de estado del proyecto
+     * @param prioridad filtro de prioridad
+     * @param vacantes filtro por proyectos con o sin vacantes
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param principal RM con la sesión iniciada; marca los proyectos de los que es responsable
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-proyectos}
+     */
     @GetMapping({"/proyectos", "/rm-proyectos.html"})
     public String projects(
             @RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
@@ -245,6 +334,16 @@ public class RmViewController {
         return "rm/rm-proyectos";
     }
 
+    /**
+     * Detalle de un proyecto: resumen de presupuesto, RM responsable y si el usuario lo es, si el proyecto es
+     * gestionable, motivo de urgencia, foro asociado, si acepta asignaciones y, para la zona de riesgo, si se
+     * puede cancelar o finalizar (solo en {@code ACTIVO} o {@code EN_ESPERA}) y cuántas actividades siguen abiertas.
+     *
+     * @param proyectoId proyecto a mostrar; sin él vuelve a la lista
+     * @param principal RM con la sesión iniciada
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-detalle-proyecto}, o la lista con {@code noEncontrado=true} si no existe
+     */
     @GetMapping({"/proyectos/detalle", "/rm-detalle-proyecto.html"})
     public String projectDetail(
             @RequestParam(name = "id", required = false) Long proyectoId,
@@ -280,6 +379,14 @@ public class RmViewController {
         return "rm/rm-detalle-proyecto";
     }
 
+    /**
+     * Pantalla de revisión de un proyecto enviado por el PM. Solo se abre si el proyecto está {@code EN_REVISION};
+     * en otro estado redirige a su detalle.
+     *
+     * @param proyectoId proyecto a revisar; sin él vuelve a la lista
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-revision-proyecto}, el detalle o la lista con {@code noEncontrado=true}
+     */
     @GetMapping({"/proyectos/revision", "/rm-revision-proyecto.html"})
     public String projectReview(
             @RequestParam(name = "id", required = false) Long proyectoId,
@@ -297,6 +404,20 @@ public class RmViewController {
         return "rm/rm-revision-proyecto";
     }
 
+    /**
+     * Guarda el presupuesto de un proyecto. Las reglas (monto válido, estado y permisos) las aplica
+     * {@link RmProyectoRevisionService#asignarPresupuesto}. Si se envió desde el detalle de una asignación de
+     * ese mismo proyecto, vuelve a ella; si no, a la revisión (proyecto {@code EN_REVISION}) o al detalle.
+     *
+     * @param proyectoId proyecto
+     * @param presupuestoTexto monto escrito; vacío se pasa como {@code null} al servicio
+     * @param asignacionId asignación desde la que se abrió el formulario (opcional)
+     * @param origen origen de navegación de esa asignación, para conservarlo al volver
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la asignación, a la revisión o al detalle del proyecto
+     */
     @PostMapping("/proyectos/{id}/presupuesto")
     public String assignProjectBudget(
             @PathVariable("id") Long proyectoId,
@@ -326,6 +447,20 @@ public class RmViewController {
 
     // TASK-021: el formulario está en el detalle y en la revisión; éxito y errores vuelven a la vista de origen
     // (si el proyecto ya no está en revisión, GET /proyectos/revision redirige al detalle).
+    /**
+     * Cambia las fechas de inicio y fin de un proyecto; las reglas las aplica
+     * {@link RmProyectoRevisionService#cambiarFechas}. Una fecha que no tenga el formato AAAA-MM-DD se rechaza
+     * con un mensaje de error.
+     *
+     * @param proyectoId proyecto
+     * @param fechaInicioTexto fecha de inicio (AAAA-MM-DD)
+     * @param fechaFinTexto fecha de fin (AAAA-MM-DD)
+     * @param origen {@code revision} para volver a la revisión; otro valor vuelve al detalle
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la revisión o al detalle del proyecto
+     */
     @PostMapping("/proyectos/{id}/fechas")
     public String changeProjectDates(
             @PathVariable("id") Long proyectoId,
@@ -403,6 +538,17 @@ public class RmViewController {
                 : "redirect:/rm/proyectos/detalle?id=" + proyectoId;
     }
 
+    /**
+     * Aprueba un proyecto en revisión y lo activa ({@link RmProyectoRevisionService#aprobar}). Un error de datos
+     * ({@link IllegalArgumentException}) vuelve a la revisión; un error de estado
+     * ({@link IllegalStateException}, por ejemplo si ya no está en revisión) vuelve al detalle.
+     *
+     * @param proyectoId proyecto
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al detalle o a la revisión del proyecto
+     */
     @PostMapping("/proyectos/{id}/aprobar")
     public String approveProject(
             @PathVariable("id") Long proyectoId,
@@ -423,6 +569,17 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Rechaza un proyecto en revisión con un motivo ({@link RmProyectoRevisionService#rechazar}). Un error de
+     * datos (por ejemplo, motivo vacío) vuelve a la revisión; un error de estado vuelve al detalle.
+     *
+     * @param proyectoId proyecto
+     * @param motivo motivo del rechazo, que se comunica al PM
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al detalle o a la revisión del proyecto
+     */
     @PostMapping("/proyectos/{id}/rechazar")
     public String rejectProject(
             @PathVariable("id") Long proyectoId,
@@ -445,6 +602,14 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Convierte al RM en el responsable del proyecto ({@link RmResponsableService#tomar}).
+     *
+     * @param proyectoId proyecto
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @return redirección al detalle del proyecto
+     */
     @PostMapping("/proyectos/{id}/tomar")
     public String takeProject(
             @PathVariable("id") Long proyectoId,
@@ -460,6 +625,15 @@ public class RmViewController {
         return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
     }
 
+    /**
+     * Libera un proyecto del que el RM es responsable; vuelve a la bolsa de proyectos sin asignar
+     * ({@link RmResponsableService#liberar}).
+     *
+     * @param proyectoId proyecto
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @return redirección al detalle del proyecto
+     */
     @PostMapping("/proyectos/{id}/liberar")
     public String releaseProject(
             @PathVariable("id") Long proyectoId,
@@ -477,6 +651,19 @@ public class RmViewController {
 
 
     // Zona de riesgo del detalle: éxito y error vuelven al detalle del proyecto.
+    /**
+     * Cancela un proyecto {@code ACTIVO} o {@code EN_ESPERA} y cierra sus asignaciones
+     * ({@link RmProyectoRevisionService#cancelar}). El servicio exige el motivo y que se escriba el nombre del
+     * proyecto como confirmación. El mensaje de éxito resume las asignaciones cerradas.
+     *
+     * @param proyectoId proyecto
+     * @param motivo motivo de la cancelación
+     * @param confirmacionNombre nombre del proyecto escrito por el RM para confirmar
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al detalle del proyecto
+     */
     @PostMapping("/proyectos/{id}/cancelar")
     public String cancelProject(
             @PathVariable("id") Long proyectoId,
@@ -497,6 +684,18 @@ public class RmViewController {
         return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
     }
 
+    /**
+     * Finaliza un proyecto {@code ACTIVO} o {@code EN_ESPERA} y cierra sus asignaciones
+     * ({@link RmProyectoRevisionService#finalizar}), con las mismas exigencias que la cancelación.
+     *
+     * @param proyectoId proyecto
+     * @param motivo motivo de la finalización
+     * @param confirmacionNombre nombre del proyecto escrito por el RM para confirmar
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al detalle del proyecto
+     */
     @PostMapping("/proyectos/{id}/finalizar")
     public String finishProject(
             @PathVariable("id") Long proyectoId,
@@ -517,6 +716,13 @@ public class RmViewController {
         return "redirect:/rm/proyectos/detalle?id=" + proyectoId;
     }
 
+    /**
+     * Proyecto visto desde una solicitud de personal del PM.
+     *
+     * @param solicitudId solicitud de personal; sin ella vuelve a la bandeja de solicitudes
+     * @param model modelo de la vista: la solicitud y su proyecto
+     * @return la vista {@code rm/rm-detalle-proyecto-solicitudes}, o la bandeja con {@code noEncontrada=true}
+     */
     @GetMapping({"/proyectos/detalle-solicitudes", "/rm-detalle-proyecto-solicitudes.html"})
     public String projectDetailWithRequests(
             @RequestParam(name = "solicitudId", required = false) Long solicitudId,
@@ -534,6 +740,21 @@ public class RmViewController {
         return "rm/rm-detalle-proyecto-solicitudes";
     }
 
+    /**
+     * Búsqueda paginada de candidatos para un proyecto. Solo se permite en proyectos asignables (activos o en
+     * espera); en otro estado vuelve al detalle con un mensaje. Marca a los colaboradores que ya tienen una
+     * asignación vigente en el proyecto e incluye los cupos ocupados.
+     *
+     * @param proyectoIdTexto id del proyecto; vacío vuelve a la lista y no numérico la abre con {@code noEncontrado=true}
+     * @param busqueda texto buscado
+     * @param disponibilidad filtro de disponibilidad
+     * @param carga filtro de carga de trabajo
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual (no se usa)
+     * @return la vista {@code rm/rm-buscar-colaboradores-proyecto} o una redirección
+     */
     @GetMapping({"/proyectos/buscar-colaboradores", "/rm-buscar-colaboradores-proyecto.html"})
     public String searchProjectCollaborators(
             @RequestParam(name = "proyectoId", required = false) String proyectoIdTexto,
@@ -580,6 +801,13 @@ public class RmViewController {
     }
 
     // Contenido del modal "Ver perfil" en Buscar colaboradores (se carga por AJAX).
+    /**
+     * Fragmento con el perfil de un colaborador y su sueldo base. Si no existe, el fragmento muestra el error.
+     *
+     * @param colaboradorId colaborador
+     * @param model modelo del fragmento
+     * @return el fragmento {@code fragments/rm-asignacion-modales :: perfilColaborador}
+     */
     @GetMapping("/colaboradores/perfil-modal")
     public String collaboratorProfileModal(@RequestParam(name = "id") Long colaboradorId, Model model) {
         try {
@@ -592,6 +820,29 @@ public class RmViewController {
         return "fragments/rm-asignacion-modales :: perfilColaborador";
     }
 
+    /**
+     * Propone una asignación al PM desde los modales del RM ({@link RmAsignacionService#proponerDesdeRm}). El
+     * servicio valida horas, capacidad del colaborador y cupos; los motivos se piden cuando se supera la
+     * capacidad o el cupo. Vuelve a la pantalla de origen: la misma búsqueda con sus filtros ({@code buscar}),
+     * el perfil del colaborador (solo en error, {@code perfil}), sus asignaciones ({@code colaborador}) o Talent
+     * Matching del proyecto ({@code talent}); sin origen reconocido, a la bandeja.
+     *
+     * @param proyectoId proyecto
+     * @param colaboradorId colaborador propuesto
+     * @param horasSemanalesTexto horas semanales; un valor no numérico se rechaza
+     * @param justificacion justificación de la propuesta
+     * @param motivoCapacidad motivo para superar la capacidad semanal del colaborador
+     * @param justificacionCupo justificación para superar los cupos del proyecto
+     * @param origen pantalla desde la que se abrió el modal
+     * @param busqueda filtro de la búsqueda de candidatos (origen {@code buscar})
+     * @param disponibilidad filtro de disponibilidad de la búsqueda (origen {@code buscar})
+     * @param carga filtro de carga de la búsqueda (origen {@code buscar})
+     * @param pagina página de la búsqueda (origen {@code buscar})
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual (no se usa)
+     * @return redirección a la pantalla de origen
+     */
     @PostMapping("/asignaciones/proponer")
     public String createAssignmentProposal(
             @RequestParam("proyectoId") Long proyectoId,
@@ -688,6 +939,19 @@ public class RmViewController {
                 proyectos.stream().map(RmProyectoView::getProyecto).toList()));
     }
 
+    /**
+     * Directorio paginado de colaboradores con filtros y contadores (total, disponibles, sin asignaciones y
+     * con carga máxima).
+     *
+     * @param noEncontrado {@code true} si se llega desde un perfil inexistente (muestra un aviso)
+     * @param busqueda texto buscado
+     * @param disponibilidad filtro de disponibilidad
+     * @param carga filtro de carga de trabajo
+     * @param nivel filtro de nivel de experiencia
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-colaboradores}
+     */
     @GetMapping({"/colaboradores", "/rm-colaboradores.html"})
     public String collaborators(
             @RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
@@ -719,6 +983,14 @@ public class RmViewController {
         return "rm/rm-colaboradores";
     }
 
+    /**
+     * Perfil de un colaborador con sus evaluaciones y los datos de los modales «Proponer asignación»
+     * (proyectos asignables, proyectos donde ya tiene asignación vigente y sueldo base) y «Asignar curso».
+     *
+     * @param colaboradorId colaborador; sin él vuelve al directorio
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-perfil-colaborador}, o el directorio con {@code noEncontrado=true}
+     */
     @GetMapping({"/colaboradores/perfil", "/rm-perfil-colaborador.html"})
     public String collaboratorProfile(
             @RequestParam(name = "id", required = false) Long colaboradorId,
@@ -748,6 +1020,18 @@ public class RmViewController {
         return "rm/rm-perfil-colaborador";
     }
 
+    /**
+     * Historial paginado de asignaciones de un colaborador, filtrado en el servidor. Las métricas del
+     * encabezado no dependen de los filtros. Incluye los datos del modal «Proponer asignación».
+     *
+     * @param colaboradorId colaborador; sin él vuelve al directorio
+     * @param busqueda texto buscado
+     * @param estado filtro de estado de la asignación
+     * @param anio filtro de año
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-asignaciones-colaborador}, o el directorio con {@code noEncontrado=true}
+     */
     @GetMapping({"/colaboradores/asignaciones", "/rm-asignaciones-colaborador.html"})
     public String collaboratorAssignments(
             @RequestParam(name = "id", required = false) Long colaboradorId,
@@ -786,6 +1070,16 @@ public class RmViewController {
         return "rm/rm-asignaciones-colaborador";
     }
 
+    /**
+     * Bandeja paginada de certificados pendientes de validación, con el pendiente más antiguo y cuántos
+     * superan {@link RmCertificadoService#DIAS_PENDIENTE_ATRASADO} días.
+     *
+     * @param busqueda texto buscado
+     * @param habilidad filtro de habilidad; solo se acepta una de las habilidades presentes
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-certificados-pendientes}
+     */
     @GetMapping({"/colaboradores/certificados", "/rm-certificados-pendientes.html"})
     public String pendingCertificates(
             @RequestParam(required = false) String busqueda,
@@ -806,6 +1100,14 @@ public class RmViewController {
         return "rm/rm-certificados-pendientes";
     }
 
+    /**
+     * Pantalla de revisión de un certificado.
+     *
+     * @param certificadoId certificado; sin él o si no existe vuelve a la bandeja
+     * @param origen {@code perfil} si se abrió desde el perfil del colaborador (al decidir se vuelve a él)
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-revision-certificado} o la bandeja de certificados
+     */
     @GetMapping({"/colaboradores/certificados/revision", "/rm-revision-certificado.html"})
     public String certificateReview(
             @RequestParam(name = "id", required = false) Long certificadoId,
@@ -821,6 +1123,18 @@ public class RmViewController {
         return "rm/rm-revision-certificado";
     }
 
+    /**
+     * Historial paginado de certificados de un colaborador con totales por estado (aprobados, rechazados y
+     * pendientes); los totales no dependen de los filtros.
+     *
+     * @param colaboradorId colaborador; sin él vuelve al directorio
+     * @param busqueda texto buscado
+     * @param estado filtro de estado del certificado
+     * @param habilidad filtro de habilidad
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-historial-validaciones}, o el directorio con {@code noEncontrado=true}
+     */
     @GetMapping({"/colaboradores/historial-validaciones", "/rm-historial-validaciones.html"})
     public String validationHistory(
             @RequestParam(name = "id", required = false) Long colaboradorId,
@@ -864,6 +1178,19 @@ public class RmViewController {
         model.addAttribute("habilidad", filtros.habilidad());
     }
 
+    /**
+     * Aprueba un certificado y actualiza el perfil del colaborador con los niveles elegidos
+     * ({@link RmCertificadoService#aprobar}). Con éxito vuelve a la bandeja o al perfil; con error, a la revisión.
+     *
+     * @param certificadoId certificado
+     * @param nivelHabilidad nivel de dominio de la habilidad certificada
+     * @param nivelGeneral nivel de experiencia general del colaborador
+     * @param origen {@code perfil} para volver al perfil del colaborador
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la bandeja, al perfil o a la revisión
+     */
     @PostMapping("/colaboradores/certificados/{id}/aprobar")
     public String approveCertificate(
             @PathVariable("id") Long certificadoId,
@@ -887,6 +1214,18 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Rechaza un certificado y guarda el motivo ({@link RmCertificadoService#rechazar}). Con éxito vuelve a la
+     * bandeja o al perfil; con error, a la revisión.
+     *
+     * @param certificadoId certificado
+     * @param motivo motivo del rechazo
+     * @param origen {@code perfil} para volver al perfil del colaborador
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la bandeja, al perfil o a la revisión
+     */
     @PostMapping("/colaboradores/certificados/{id}/rechazar")
     public String rejectCertificate(
             @PathVariable("id") Long certificadoId,
@@ -928,6 +1267,15 @@ public class RmViewController {
         return "redirect:" + revision + (desdePerfil ? "&origen=" + ORIGEN_PERFIL : "");
     }
 
+    /**
+     * Bandeja paginada de formaciones académicas pendientes de validación.
+     *
+     * @param busqueda texto buscado
+     * @param institucion filtro de institución; solo se acepta una de las presentes
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-educacion-pendiente}
+     */
     @GetMapping("/colaboradores/educacion")
     public String pendingEducation(
             @RequestParam(required = false) String busqueda,
@@ -953,6 +1301,17 @@ public class RmViewController {
     }
 
     // Historial de formaciones ya revisadas (TASK-061): filtros y paginación en el servidor.
+    /**
+     * Historial paginado de formaciones ya revisadas, con totales de aprobadas y rechazadas.
+     *
+     * @param busqueda texto buscado
+     * @param institucion filtro de institución
+     * @param estado filtro de estado ({@code APROBADO} o {@code RECHAZADO})
+     * @param colaborador id del colaborador para filtrar; se muestra su nombre
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-educacion-historial}
+     */
     @GetMapping("/colaboradores/educacion/historial")
     public String educationHistory(
             @RequestParam(required = false) String busqueda,
@@ -984,6 +1343,16 @@ public class RmViewController {
         return "rm/rm-educacion-historial";
     }
 
+    /**
+     * Pantalla de revisión de una formación académica.
+     *
+     * @param educacionId formación; sin ella vuelve a la bandeja
+     * @param origen {@code perfil} si se abrió desde el perfil del colaborador
+     * @param model modelo de la vista
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual (no se usa)
+     * @return la vista {@code rm/rm-revision-educacion}, o la bandeja con el error si no existe
+     */
     @GetMapping("/colaboradores/educacion/revision")
     public String educationReview(
             @RequestParam(name = "id", required = false) Long educacionId,
@@ -1002,6 +1371,15 @@ public class RmViewController {
     }
 
     // Redirige a la URL que generó ArchivoAlmacenamientoService: /uploads/... en local o la URL pública en S3.
+    /**
+     * Abre el documento adjunto de una formación. Si la formación no existe vuelve a la bandeja; si no tiene
+     * documento ({@link IllegalStateException}), a su revisión.
+     *
+     * @param educacionId formación
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual (no se usa)
+     * @return redirección al documento, a la bandeja o a la revisión
+     */
     @GetMapping("/colaboradores/educacion/{id}/documento")
     public String educationDocument(
             @PathVariable("id") Long educacionId,
@@ -1017,6 +1395,17 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Aprueba una formación académica ({@link RmEducacionService#aprobar}). Con éxito vuelve a la bandeja o al
+     * perfil; con error, a la revisión.
+     *
+     * @param educacionId formación
+     * @param origen {@code perfil} para volver al perfil del colaborador
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la bandeja, al perfil o a la revisión
+     */
     @PostMapping("/colaboradores/educacion/{id}/aprobar")
     public String approveEducation(
             @PathVariable("id") Long educacionId,
@@ -1037,6 +1426,18 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Rechaza una formación académica y guarda el motivo ({@link RmEducacionService#rechazar}). Con éxito vuelve
+     * a la bandeja o al perfil; con error, a la revisión.
+     *
+     * @param educacionId formación
+     * @param motivo motivo del rechazo
+     * @param origen {@code perfil} para volver al perfil del colaborador
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la bandeja, al perfil o a la revisión
+     */
     @PostMapping("/colaboradores/educacion/{id}/rechazar")
     public String rejectEducation(
             @PathVariable("id") Long educacionId,
@@ -1059,6 +1460,18 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Cambia el nivel de experiencia general de un colaborador
+     * ({@link RmCertificadoService#actualizarNivelExperiencia}). Un valor que no sea un
+     * {@link NivelExperiencia} se rechaza.
+     *
+     * @param colaboradorId colaborador
+     * @param nivelTexto nombre del nivel
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al perfil del colaborador
+     */
     @PostMapping("/colaboradores/{id}/nivel-experiencia")
     public String updateCollaboratorExperienceLevel(
             @PathVariable("id") Long colaboradorId,
@@ -1079,6 +1492,16 @@ public class RmViewController {
         return "redirect:/rm/colaboradores/perfil?id=" + colaboradorId;
     }
 
+    /**
+     * Catálogo paginado de cursos con filtros, más los datos del modal «Asignar curso».
+     *
+     * @param busqueda texto buscado
+     * @param categoria filtro de categoría
+     * @param duracion filtro de duración
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-cursos}
+     */
     @GetMapping({"/cursos", "/rm-cursos.html"})
     public String courses(
             @RequestParam(name = "busqueda", required = false) String busqueda,
@@ -1096,6 +1519,18 @@ public class RmViewController {
         return "rm/rm-cursos";
     }
 
+    /**
+     * Bandeja paginada de solicitudes de cursos y evidencias. Antes de listar, marca como vencidos los cursos
+     * sin evidencia fuera de plazo. Sin el parámetro {@code estado} muestra las pendientes; {@code estado=}
+     * vacío muestra todas.
+     *
+     * @param busqueda texto buscado
+     * @param estado filtro de estado de la inscripción
+     * @param origen filtro de origen (solicitada por el colaborador o asignada por el RM)
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-solicitudes-cursos}
+     */
     @GetMapping({"/cursos/solicitudes", "/rm-solicitudes-cursos.html"})
     public String courseRequests(
             @RequestParam(name = "busqueda", required = false) String busqueda,
@@ -1121,6 +1556,20 @@ public class RmViewController {
         model.addAttribute("cursosModal", rmCursoService.listarCursosParaModal());
     }
 
+    /**
+     * Asigna un curso a un colaborador desde el modal «Asignar curso» y lo notifica
+     * ({@link RmCursoService#asignarDirectamente}). Exige colaborador y curso. Vuelve a la vista de origen:
+     * el perfil del colaborador ({@code perfil}), la bandeja ({@code solicitudes}) o el catálogo.
+     *
+     * @param colaboradorId colaborador
+     * @param cursoId curso
+     * @param motivo motivo de la asignación
+     * @param origen vista desde la que se abrió el modal
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la vista de origen
+     */
     @PostMapping("/cursos/asignar")
     public String assignCourseSubmit(
             @RequestParam(name = "colaboradorId", required = false) Long colaboradorId,
@@ -1152,6 +1601,16 @@ public class RmViewController {
         return retorno;
     }
 
+    /**
+     * Aprueba la solicitud de curso de un colaborador y lo notifica ({@link RmCursoService#aprobar}).
+     *
+     * @param inscripcionId inscripción solicitada
+     * @param motivo comentario opcional del RM
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la bandeja de solicitudes de cursos
+     */
     @PostMapping("/cursos/solicitudes/{id}/aprobar")
     public String approveCourseRequest(
             @PathVariable("id") Long inscripcionId,
@@ -1170,6 +1629,17 @@ public class RmViewController {
         return "redirect:/rm/cursos/solicitudes";
     }
 
+    /**
+     * Rechaza la solicitud de curso de un colaborador, registra el motivo y lo notifica
+     * ({@link RmCursoService#rechazar}).
+     *
+     * @param inscripcionId inscripción solicitada
+     * @param motivo motivo del rechazo
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la bandeja de solicitudes de cursos
+     */
     @PostMapping("/cursos/solicitudes/{id}/rechazar")
     public String rejectCourseRequest(
             @PathVariable("id") Long inscripcionId,
@@ -1188,6 +1658,16 @@ public class RmViewController {
         return "redirect:/rm/cursos/solicitudes";
     }
 
+    /**
+     * Valida la evidencia de un curso: queda completado y se notifica al colaborador
+     * ({@link RmCursoService#aprobarEvidencia}).
+     *
+     * @param inscripcionId inscripción con evidencia pendiente
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la bandeja filtrada por {@code EVIDENCIA_PENDIENTE}
+     */
     @PostMapping("/cursos/solicitudes/{id}/evidencia/aprobar")
     public String approveCourseEvidence(
             @PathVariable("id") Long inscripcionId,
@@ -1205,6 +1685,17 @@ public class RmViewController {
         return "redirect:/rm/cursos/solicitudes?estado=EVIDENCIA_PENDIENTE";
     }
 
+    /**
+     * Rechaza la evidencia de un curso; se notifica al colaborador, que puede volver a subirla
+     * ({@link RmCursoService#rechazarEvidencia}).
+     *
+     * @param inscripcionId inscripción con evidencia pendiente
+     * @param motivo motivo del rechazo
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la bandeja filtrada por {@code EVIDENCIA_PENDIENTE}
+     */
     @PostMapping("/cursos/solicitudes/{id}/evidencia/rechazar")
     public String rejectCourseEvidence(
             @PathVariable("id") Long inscripcionId,
@@ -1223,6 +1714,21 @@ public class RmViewController {
         return "redirect:/rm/cursos/solicitudes?estado=EVIDENCIA_PENDIENTE";
     }
 
+    /**
+     * Bandeja paginada de asignaciones por grupo (pendientes del RM, esperando al PM, activas, historial…)
+     * con filtros normalizados, contadores, el número de solicitudes de personal pendientes y los datos del
+     * modal «Proponer asignación». Agrega {@code sufijoBandeja} para que los enlaces a los detalles conserven
+     * los filtros y la página.
+     *
+     * @param grupo grupo de la bandeja
+     * @param busqueda texto buscado
+     * @param origen filtro de origen de la asignación (propuesta del RM, solicitud del PM, postulación…)
+     * @param estado filtro de estado dentro del grupo
+     * @param proyectoId proyecto para filtrar; si es asignable, el modal lista solo ese proyecto
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-asignaciones}
+     */
     @GetMapping({"/asignaciones", "/rm-asignaciones.html"})
     public String assignments(
             @RequestParam(required = false) String grupo,
@@ -1262,6 +1768,20 @@ public class RmViewController {
         return "rm/rm-asignaciones";
     }
 
+    /**
+     * Revisión de una asignación que espera la decisión del RM, con el impacto en el presupuesto del proyecto.
+     * Si la asignación ya no requiere decisión del RM, redirige al detalle que le corresponde.
+     *
+     * @param asignacionId asignación; sin ella vuelve a la bandeja
+     * @param origen vista desde la que se abrió ({@code colaborador}, {@code proyecto} o {@code asignaciones}); otro valor se ignora
+     * @param grupo filtro de grupo de la bandeja (se conserva al volver)
+     * @param busqueda texto buscado en la bandeja (se conserva al volver)
+     * @param origenBandeja filtro «origen» de la bandeja; viaja con otro nombre para no chocar con {@code origen}
+     * @param estado filtro de estado de la bandeja (se conserva al volver)
+     * @param pagina página de la bandeja (se conserva al volver)
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-revision-asignacion} o una redirección
+     */
     @GetMapping({"/asignaciones/revision", "/rm-revision-asignacion.html"})
     public String assignmentReview(
             @RequestParam(name = "id", required = false) Long asignacionId,
@@ -1291,6 +1811,20 @@ public class RmViewController {
         return "rm/rm-revision-asignacion";
     }
 
+    /**
+     * Revisión de una postulación enviada por el colaborador, con el impacto en el presupuesto. Si ya no
+     * requiere decisión del RM, redirige al detalle que le corresponde.
+     *
+     * @param asignacionId asignación; sin ella vuelve a la bandeja
+     * @param origen vista desde la que se abrió ({@code colaborador}, {@code proyecto} o {@code asignaciones}); otro valor se ignora
+     * @param grupo filtro de grupo de la bandeja (se conserva al volver)
+     * @param busqueda texto buscado en la bandeja (se conserva al volver)
+     * @param origenBandeja filtro «origen» de la bandeja; viaja con otro nombre para no chocar con {@code origen}
+     * @param estado filtro de estado de la bandeja (se conserva al volver)
+     * @param pagina página de la bandeja (se conserva al volver)
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-revision-postulacion} o una redirección
+     */
     @GetMapping({"/asignaciones/revision-postulacion", "/rm-revision-postulacion.html"})
     public String applicationReview(
             @RequestParam(name = "id", required = false) Long asignacionId,
@@ -1320,6 +1854,20 @@ public class RmViewController {
         return "rm/rm-revision-postulacion";
     }
 
+    /**
+     * Detalle de solo lectura de una asignación que espera la respuesta del PM. Si ya no está en ese estado,
+     * redirige al detalle que le corresponde.
+     *
+     * @param asignacionId asignación; sin ella vuelve a la bandeja
+     * @param origen vista desde la que se abrió ({@code colaborador}, {@code proyecto} o {@code asignaciones}); otro valor se ignora
+     * @param grupo filtro de grupo de la bandeja (se conserva al volver)
+     * @param busqueda texto buscado en la bandeja (se conserva al volver)
+     * @param origenBandeja filtro «origen» de la bandeja; viaja con otro nombre para no chocar con {@code origen}
+     * @param estado filtro de estado de la bandeja (se conserva al volver)
+     * @param pagina página de la bandeja (se conserva al volver)
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-detalle-asignacion-pendiente-pm} o una redirección
+     */
     @GetMapping({"/asignaciones/pendiente-pm", "/rm-detalle-asignacion-pendiente-pm.html"})
     public String pendingPmAssignment(
             @RequestParam(name = "id", required = false) Long asignacionId,
@@ -1344,6 +1892,20 @@ public class RmViewController {
         return "rm/rm-detalle-asignacion-pendiente-pm";
     }
 
+    /**
+     * Detalle de una asignación activa o cerrada, con sus indicadores de costo. Si aún espera una decisión del
+     * RM o del PM, redirige al detalle que le corresponde.
+     *
+     * @param asignacionId asignación; sin ella vuelve a la bandeja
+     * @param origen vista desde la que se abrió ({@code colaborador}, {@code proyecto} o {@code asignaciones}); otro valor se ignora
+     * @param grupo filtro de grupo de la bandeja (se conserva al volver)
+     * @param busqueda texto buscado en la bandeja (se conserva al volver)
+     * @param origenBandeja filtro «origen» de la bandeja; viaja con otro nombre para no chocar con {@code origen}
+     * @param estado filtro de estado de la bandeja (se conserva al volver)
+     * @param pagina página de la bandeja (se conserva al volver)
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-detalle-asignacion-activa} o una redirección
+     */
     @GetMapping({"/asignaciones/activa", "/rm-detalle-asignacion-activa.html"})
     public String activeAssignment(
             @RequestParam(name = "id", required = false) Long asignacionId,
@@ -1412,6 +1974,23 @@ public class RmViewController {
                 actual, bandeja, "Volver a asignaciones");
     }
 
+    /**
+     * Aprueba una asignación pendiente del RM ({@link RmAsignacionService#aprobar}). Si se supera la capacidad
+     * semanal del colaborador, el servicio exige el motivo. Vuelve a la vista desde la que se abrió.
+     *
+     * @param asignacionId asignación
+     * @param motivoCapacidad motivo para superar la capacidad semanal del colaborador
+     * @param origen vista desde la que se abrió ({@code colaborador}, {@code proyecto} o {@code asignaciones}); otro valor se ignora
+     * @param grupo filtro de grupo de la bandeja (se conserva al volver)
+     * @param busqueda texto buscado en la bandeja (se conserva al volver)
+     * @param origenBandeja filtro «origen» de la bandeja; viaja con otro nombre para no chocar con {@code origen}
+     * @param estado filtro de estado de la bandeja (se conserva al volver)
+     * @param pagina página de la bandeja (se conserva al volver)
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la vista de origen con sus filtros
+     */
     @PostMapping("/asignaciones/{id}/aprobar")
     public String approveAssignment(
             @PathVariable("id") Long asignacionId,
@@ -1436,6 +2015,23 @@ public class RmViewController {
                 asignacionId, origen, filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina));
     }
 
+    /**
+     * Rechaza una asignación pendiente del RM con un motivo ({@link RmAsignacionService#rechazar}). Vuelve a la
+     * vista desde la que se abrió.
+     *
+     * @param asignacionId asignación
+     * @param motivo motivo del rechazo
+     * @param origen vista desde la que se abrió ({@code colaborador}, {@code proyecto} o {@code asignaciones}); otro valor se ignora
+     * @param grupo filtro de grupo de la bandeja (se conserva al volver)
+     * @param busqueda texto buscado en la bandeja (se conserva al volver)
+     * @param origenBandeja filtro «origen» de la bandeja; viaja con otro nombre para no chocar con {@code origen}
+     * @param estado filtro de estado de la bandeja (se conserva al volver)
+     * @param pagina página de la bandeja (se conserva al volver)
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la vista de origen con sus filtros
+     */
     @PostMapping("/asignaciones/{id}/rechazar")
     public String rejectAssignment(
             @PathVariable("id") Long asignacionId,
@@ -1460,6 +2056,27 @@ public class RmViewController {
                 asignacionId, origen, filtrosBandeja(grupo, busqueda, origenBandeja, estado, pagina));
     }
 
+    /**
+     * Finaliza una asignación activa con un motivo y, opcionalmente, una calificación y retroalimentación
+     * ({@link RmAsignacionService#finalizar}). Un motivo que no sea un {@link MotivoFinalizacion} se rechaza.
+     * Vuelve a la vista desde la que se abrió.
+     *
+     * @param asignacionId asignación
+     * @param motivoTexto nombre del motivo de finalización
+     * @param observacion observación del cierre
+     * @param calificacion calificación del colaborador
+     * @param feedback retroalimentación para el colaborador
+     * @param origen vista desde la que se abrió ({@code colaborador}, {@code proyecto} o {@code asignaciones}); otro valor se ignora
+     * @param grupo filtro de grupo de la bandeja (se conserva al volver)
+     * @param busqueda texto buscado en la bandeja (se conserva al volver)
+     * @param origenBandeja filtro «origen» de la bandeja; viaja con otro nombre para no chocar con {@code origen}
+     * @param estado filtro de estado de la bandeja (se conserva al volver)
+     * @param pagina página de la bandeja (se conserva al volver)
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la vista de origen con sus filtros
+     */
     @PostMapping("/asignaciones/{id}/finalizar")
     public String finishAssignment(
             @PathVariable("id") Long asignacionId,
@@ -1575,6 +2192,18 @@ public class RmViewController {
         return url.encode().buildAndExpand(valores).toUriString();
     }
 
+    /**
+     * Bandeja paginada de solicitudes de personal enviadas por los PM, con contadores por estado y el total de
+     * colaboradores solicitados.
+     *
+     * @param noEncontrada {@code true} si se llega desde una solicitud inexistente (muestra un aviso)
+     * @param busqueda texto buscado
+     * @param estado filtro de estado de la solicitud
+     * @param prioridad filtro de prioridad
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-solicitudes-colaboradores}
+     */
     @GetMapping({"/asignaciones/solicitudes-colaboradores", "/rm-solicitudes-colaboradores.html"})
     public String collaboratorRequests(
             @RequestParam(name = "noEncontrada", required = false) Boolean noEncontrada,
@@ -1602,6 +2231,13 @@ public class RmViewController {
         return "rm/rm-solicitudes-colaboradores";
     }
 
+    /**
+     * Detalle de una solicitud de personal del PM.
+     *
+     * @param solicitudId solicitud; sin ella vuelve a la bandeja
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-detalle-solicitud-colaboradores}, o la bandeja con {@code noEncontrada=true}
+     */
     @GetMapping({"/asignaciones/solicitudes-colaboradores/detalle", "/rm-detalle-solicitud-colaboradores.html"})
     public String collaboratorRequestDetail(
             @RequestParam(name = "id", required = false) Long solicitudId,
@@ -1617,6 +2253,16 @@ public class RmViewController {
         return "rm/rm-detalle-solicitud-colaboradores";
     }
 
+    /**
+     * Pasa una solicitud de personal a «En atención» ({@link RmSolicitudPersonalService#iniciarAtencion}) y abre
+     * la búsqueda de candidatos de su proyecto. Con error vuelve al detalle de la solicitud.
+     *
+     * @param solicitudId solicitud
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección a la búsqueda de candidatos o al detalle de la solicitud
+     */
     @PostMapping("/asignaciones/solicitudes-colaboradores/{id}/iniciar")
     public String startCollaboratorRequest(
             @PathVariable("id") Long solicitudId,
@@ -1636,6 +2282,15 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Marca una solicitud de personal como atendida ({@link RmSolicitudPersonalService#marcarAtendida}).
+     *
+     * @param solicitudId solicitud
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al detalle de la solicitud
+     */
     @PostMapping("/asignaciones/solicitudes-colaboradores/{id}/atendida")
     public String finishCollaboratorRequest(
             @PathVariable("id") Long solicitudId,
@@ -1652,6 +2307,16 @@ public class RmViewController {
         return "redirect:/rm/asignaciones/solicitudes-colaboradores/detalle?id=" + solicitudId;
     }
 
+    /**
+     * Talent Matching y asistente IA del RM: proyectos con vacantes, habilidades faltantes, recomendaciones,
+     * indicadores y conversación guardada en la sesión. Un {@code proyectoId} vacío, mal formado o inexistente
+     * se ignora y se muestra la vista general.
+     *
+     * @param proyectoIdTexto proyecto de contexto (opcional)
+     * @param session sesión HTTP donde se guarda la conversación con el asistente
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-talent-matching}
+     */
     @GetMapping({"/talent-matching", "/rm-talent-matching.html", "/asistente"})
     public String talentMatching(
             @RequestParam(name = "proyectoId", required = false) String proyectoIdTexto,
@@ -1671,6 +2336,19 @@ public class RmViewController {
         return "rm/rm-talent-matching";
     }
 
+    /**
+     * Envía una pregunta al asistente IA del RM ({@link RmAsistenteService#responder}); la respuesta se guarda en
+     * la sesión. Con errores de validación vuelve a mostrar la vista sin redirigir; con éxito o error de negocio
+     * redirige a la sección del asistente.
+     *
+     * @param form mensaje y proyecto de contexto
+     * @param result errores de validación del formulario
+     * @param principal RM con la sesión iniciada
+     * @param session sesión HTTP donde se guarda la conversación
+     * @param model modelo de la vista (si hay errores de validación)
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @return la vista {@code rm/rm-talent-matching} o la redirección a la sección del asistente
+     */
     @PostMapping("/talent-matching/asistente/mensaje")
     public String enviarMensajeAsistenteRm(
             @jakarta.validation.Valid @org.springframework.web.bind.annotation.ModelAttribute("rmAsistenteMensajeForm")
@@ -1703,6 +2381,14 @@ public class RmViewController {
                 : "redirect:/rm/talent-matching#rmAsistenteSeccion";
     }
 
+    /**
+     * Borra la conversación con el asistente IA guardada en la sesión.
+     *
+     * @param proyectoId proyecto de contexto al que se vuelve (opcional)
+     * @param session sesión HTTP donde se guarda la conversación
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @return redirección a la sección del asistente
+     */
     @PostMapping("/talent-matching/asistente/limpiar")
     public String limpiarAsistenteRm(
             @RequestParam(name = "proyectoId", required = false) Long proyectoId,
@@ -1715,6 +2401,20 @@ public class RmViewController {
                 : "redirect:/rm/talent-matching#rmAsistenteSeccion";
     }
 
+    /**
+     * Propone al PM un candidato recomendado por Talent Matching
+     * ({@link RmAsistenteService#proponerDesdeTalentMatching}), con las mismas reglas que la propuesta manual.
+     *
+     * @param proyectoId proyecto
+     * @param colaboradorId colaborador propuesto
+     * @param horasSemanalesTexto horas semanales; un valor no numérico se rechaza
+     * @param justificacion justificación de la propuesta
+     * @param motivoCapacidad motivo para superar la capacidad semanal del colaborador
+     * @param justificacionCupo justificación para superar los cupos del proyecto
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @return redirección a Talent Matching del proyecto
+     */
     @PostMapping("/talent-matching/proponer")
     public String proponerDesdeTalentMatching(
             @RequestParam("proyectoId") Long proyectoId,
@@ -1788,6 +2488,17 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Lista paginada de foros con filtros e indicadores (foros, activos, publicaciones y última actividad).
+     *
+     * @param noEncontrado {@code true} si se llega desde un foro inexistente (muestra un aviso)
+     * @param busqueda texto buscado
+     * @param estado filtro de estado del foro
+     * @param actividad filtro de actividad reciente
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-foros}
+     */
     @GetMapping({"/foros", "/rm-foros.html"})
     public String forums(@RequestParam(name = "noEncontrado", required = false) Boolean noEncontrado,
                          @RequestParam(required = false) String busqueda,
@@ -1814,6 +2525,15 @@ public class RmViewController {
         return "rm/rm-foros";
     }
 
+    /**
+     * Detalle de un foro con sus publicaciones; prepara el formulario de nueva publicación que procesa
+     * {@link RmForoController}.
+     *
+     * @param id foro
+     * @param ordenar {@code votos} para ordenar por votos; cualquier otro valor ordena por fecha
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-foro-detalle}, o la lista con {@code noEncontrado=true}
+     */
     @GetMapping({"/foros/detalle", "/rm-foro-detalle.html"})
     public String forumDetail(@RequestParam Long id,
                               @RequestParam(defaultValue = "fecha") String ordenar,
@@ -1830,6 +2550,26 @@ public class RmViewController {
         }
     }
 
+    /**
+     * Reporte de recursos por rango de meses, con tablas paginadas de proyectos y colaboradores y las opciones
+     * del modal de exportación. El rango puede llegar como año y mes por separado (formulario) o como
+     * {@code periodo}/{@code hasta} (enlaces de página); su largo máximo es
+     * {@link RmReporteService#MAXIMO_MESES_RANGO} meses.
+     *
+     * @param periodo mes inicial (AAAA-MM)
+     * @param proyectoTexto proyecto para filtrar; vacío o no numérico equivale a «Todos»
+     * @param estado filtro de estado del proyecto
+     * @param hasta mes final (AAAA-MM)
+     * @param prioridad filtro de prioridad
+     * @param anioDesde año inicial del formulario
+     * @param mesDesde mes inicial del formulario
+     * @param anioHasta año final del formulario
+     * @param mesHasta mes final del formulario
+     * @param paginaProyectos página de la tabla de proyectos
+     * @param paginaColaboradores página de la tabla de colaboradores
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-reporte-recursos}
+     */
     @GetMapping({"/reportes/recursos", "/rm-reporte-recursos.html"})
     public String resourceReport(
             @RequestParam(name = "periodo", required = false) String periodo,
@@ -1866,6 +2606,19 @@ public class RmViewController {
         return "rm/rm-reporte-recursos";
     }
 
+    /**
+     * Reporte de horas por colaborador con su desglose. Los indicadores (total de horas, cuántos están por
+     * debajo o en la referencia) se calculan sobre todo el conjunto filtrado, no sobre la página visible. Si el
+     * colaborador pedido no está en el resultado, se selecciona el primero.
+     *
+     * @param periodo mes del reporte (AAAA-MM)
+     * @param proyectoId proyecto para filtrar
+     * @param busqueda texto buscado
+     * @param colaboradorId colaborador cuyo desglose se muestra
+     * @param pagina número de página; vacío o inválido abre la primera
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-horas-colaboradores}
+     */
     @GetMapping({"/reportes/horas-colaboradores", "/rm-horas-colaboradores.html"})
     public String collaboratorHours(
             @RequestParam(name = "periodo", required = false) String periodo,
@@ -1904,6 +2657,15 @@ public class RmViewController {
     }
 
     // Exporta las horas con los mismos filtros de la pantalla (todas las filas, no solo la página visible).
+    /**
+     * Descarga el reporte de horas con los mismos filtros de la pantalla y todas las filas.
+     *
+     * @param periodo mes del reporte (AAAA-MM)
+     * @param proyectoId proyecto para filtrar
+     * @param busqueda texto buscado
+     * @param formato {@code pdf} para PDF; cualquier otro valor genera Excel (.xlsx)
+     * @return el archivo como adjunto
+     */
     @GetMapping("/reportes/horas-colaboradores/exportar")
     public ResponseEntity<byte[]> exportarHorasColaboradores(
             @RequestParam(name = "periodo", required = false) String periodo,
@@ -1921,6 +2683,23 @@ public class RmViewController {
         return archivo(rmReporteExportService.crearExcelHoras(reporte, paginaHoras.colaboradores()),
                 nombre + ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
+    /**
+     * Descarga el reporte de recursos en Excel o PDF. En modo personalizado se eligen las hojas y columnas;
+     * {@link RmReporteExportService.OpcionesExcel#normalizar} descarta los valores fuera de las listas cerradas.
+     *
+     * @param periodo mes inicial (AAAA-MM)
+     * @param proyectoTexto proyecto para filtrar; vacío o no numérico equivale a «Todos»
+     * @param estado filtro de estado del proyecto
+     * @param hasta mes final (AAAA-MM)
+     * @param prioridad filtro de prioridad
+     * @param personalizado {@code true} para usar las hojas y columnas elegidas
+     * @param resumen {@code true} para exportar solo el resumen
+     * @param formato {@code pdf} para PDF; cualquier otro valor genera Excel (.xlsx)
+     * @param hojas hojas elegidas (modo personalizado)
+     * @param colProyecto índices de columnas de la hoja de proyectos (modo personalizado)
+     * @param colDetalle índices de columnas de la hoja de detalle (modo personalizado)
+     * @return el archivo como adjunto
+     */
     @GetMapping("/reportes/recursos/excel")
     public ResponseEntity<byte[]> exportarReporteExcel(
             @RequestParam(name = "periodo", required = false) String periodo,
@@ -1970,6 +2749,14 @@ public class RmViewController {
         return ResponseEntity.ok().headers(headers).body(contenido);
     }
 
+    /**
+     * Perfil propio del RM. Redirige al login si no hay sesión o si el usuario no tiene el rol
+     * {@code RESOURCE_MANAGER}.
+     *
+     * @param principal usuario con la sesión iniciada
+     * @param model modelo de la vista
+     * @return la vista {@code rm/rm-perfil} o la redirección al login
+     */
     @GetMapping("/perfil")
     public String perfil(
             @AuthenticationPrincipal UsuarioDetails principal,
@@ -1997,6 +2784,16 @@ public class RmViewController {
 
     }
 
+    /**
+     * Actualiza el teléfono del RM ({@link RmPerfilService#actualizarTelefono}). Con error conserva lo escrito
+     * en el flash {@code telefonoIngresado}; el mensaje pasa por {@code mensajeSeguro}.
+     *
+     * @param telefono teléfono nuevo
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al perfil
+     */
     @PostMapping("/perfil/telefono")
     public String actualizarTelefonoRm(@RequestParam(value = "telefono", required = false) String telefono,
                                         @AuthenticationPrincipal UsuarioDetails principal,
@@ -2012,6 +2809,15 @@ public class RmViewController {
         return "redirect:/rm/perfil";
     }
 
+    /**
+     * Cambia la foto de perfil del RM ({@link RmPerfilService#actualizarFoto}).
+     *
+     * @param foto imagen subida
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al perfil
+     */
     @PostMapping("/perfil/foto")
     public String actualizarFotoRm(@RequestParam("foto") org.springframework.web.multipart.MultipartFile foto,
                                     @AuthenticationPrincipal UsuarioDetails principal,
@@ -2026,6 +2832,18 @@ public class RmViewController {
         return "redirect:/rm/perfil";
     }
 
+    /**
+     * Cambia la contraseña del RM ({@link RmPerfilService#actualizarPassword}). Antes comprueba que la nueva y
+     * su confirmación coincidan.
+     *
+     * @param passwordActual contraseña actual
+     * @param passwordNueva contraseña nueva
+     * @param passwordConfirm confirmación de la contraseña nueva
+     * @param principal RM con la sesión iniciada
+     * @param redirectAttributes mensajes flash que se muestran tras redirigir
+     * @param request petición actual; se usa para volver a guardar el contexto de seguridad en la sesión
+     * @return redirección al perfil
+     */
     @PostMapping("/perfil/password")
     public String actualizarPasswordRm(@RequestParam("passwordActual") String passwordActual,
                                         @RequestParam("passwordNueva") String passwordNueva,

@@ -22,11 +22,17 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Consultas de proyectos para el Resource Manager: listado con filtros, contadores y paginación, y
+ * detalle con equipo, vacantes, habilidades requeridas y presupuesto. Solo devuelve los proyectos que
+ * ve el RM de la sesión. La usan {@code RmViewController} y {@link RmTalentMatchingService}.
+ */
 @Service
 public class RmProyectoConsultaService {
     // Listado de proyectos (TASK-028): filtros GET y paginación en el servidor.
+    /** Proyectos por página del listado. */
     public static final int TAMANIO_PAGINA = 6;
-    // "with": vacantes > 0; "full": vacantes == 0 (mismo criterio que usaba rm-proyectos.js).
+    /** Filtro de vacantes: "with" = vacantes &gt; 0; "full" = vacantes == 0 (mismo criterio que usaba rm-proyectos.js). */
     public static final List<String> OPCIONES_VACANTES = List.of("with", "full");
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
     // Igual que toLocaleLowerCase("es") del JS anterior: sin mayúsculas, con tildes.
@@ -40,6 +46,15 @@ public class RmProyectoConsultaService {
     public record ContadoresProyectos(long totalProyectos, long conVacantes, long pendientesRm, long enRevision) {
     }
 
+    /**
+     * Página del listado de proyectos.
+     *
+     * @param filas proyectos de la página
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros proyectos que cumplen los filtros
+     * @param contadores contadores de las tarjetas
+     */
     public record PaginaProyectos(List<RmProyectoView> filas, int paginaActual, int totalPaginas,
                                   long totalRegistros, ContadoresProyectos contadores) {
     }
@@ -50,6 +65,7 @@ public class RmProyectoConsultaService {
     private final RmPresupuestoService presupuestoService;
     private final RmAlcanceService rmAlcanceService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmProyectoConsultaService(ProyectoRepository proyectoRepository,
                                      AsignacionRepository asignacionRepository,
                                      ProyectoHabilidadRequeridaRepository habilidadRequeridaRepository,
@@ -62,7 +78,11 @@ public class RmProyectoConsultaService {
         this.rmAlcanceService = rmAlcanceService;
     }
 
-    // Solo devuelve los proyectos del RM que tiene la sesión iniciada.
+    /**
+     * Proyectos que ve el RM de la sesión, del más reciente al más antiguo (sin propuestas ni participantes).
+     *
+     * @return vistas de los proyectos
+     */
     @Transactional(readOnly = true)
     public List<RmProyectoView> listar() {
         Long rmId = rmAlcanceService.idRmActual();
@@ -156,6 +176,13 @@ public class RmProyectoConsultaService {
         }
     }
 
+    /**
+     * Detalle de un proyecto, con sus propuestas y participantes.
+     *
+     * @param id id del proyecto
+     * @return vista completa del proyecto
+     * @throws IllegalArgumentException si no existe o está fuera del alcance del RM
+     */
     @Transactional(readOnly = true)
     public RmProyectoView obtener(Long id) {
         Proyecto proyecto = proyectoRepository.findById(id)

@@ -12,13 +12,20 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Proyecto tal como lo ve el Resource Manager en la lista, el detalle y la dotación de personal.
+ * Lo arma {@code RmProyectoConsultaService}; envuelve el {@link Proyecto} con su equipo, los
+ * requisitos de talento, el resumen de presupuesto y los textos y clases CSS para la vista.
+ */
 public class RmProyectoView {
     private final Proyecto proyecto;
     private final String pmNombre;
     private final String estadoTexto;
     private final String prioridadTexto;
     private final int integrantesActivos;
+    /** Puestos que aún faltan cubrir. */
     private final int vacantes;
+    /** Asignaciones del proyecto que esperan la decisión del RM. */
     private final int pendientesRm;
     private final List<MiembroEquipo> equipo;
     private final List<RequisitoTalento> requisitos;
@@ -66,6 +73,7 @@ public class RmProyectoView {
                 || proyecto.getEstado() == com.pucp.skillb_ia.model.enums.EstadoProyecto.CANCELADO;
     }
 
+    /** Asignación de un colaborador al proyecto, con sus textos de origen y estado y sus fechas clave. */
     public record AsignacionProyecto(Long asignacionId, Long colaboradorId, String colaboradorNombre,
                                      String iniciales, String cargo, BigDecimal horasSemanales,
                                      String origenTexto, String estadoTexto, String estadoClase,
@@ -84,6 +92,13 @@ public class RmProyectoView {
     public List<MiembroEquipo> getEquipo() { return equipo; }
     public List<RequisitoTalento> getRequisitos() { return requisitos; }
 
+    /**
+     * Requisitos de talento serializados a mano para el JS de la vista: un arreglo de objetos con
+     * {@code habilidad}, {@code nivel}, {@code horas} ({@code null} si no hay) y {@code cantidad}.
+     * Solo escapa las comillas dobles.
+     *
+     * @return el arreglo JSON como texto; {@code "[]"} si no hay requisitos
+     */
     public String getRequisitosJson() {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < requisitos.size(); i++) {
@@ -100,6 +115,7 @@ public class RmProyectoView {
         return sb.toString();
     }
 
+    /** @return clase CSS de la insignia del estado del proyecto */
     public String getEstadoClase() {
         return switch (proyecto.getEstado()) {
             case ACTIVO -> "bg-green-lt";
@@ -111,6 +127,7 @@ public class RmProyectoView {
         };
     }
 
+    /** @return clase CSS de la insignia de la prioridad */
     public String getPrioridadClase() {
         return switch (proyecto.getPrioridad()) {
             case ALTA -> "bg-red-lt text-red";
@@ -119,15 +136,22 @@ public class RmProyectoView {
         };
     }
 
+    /** @return presupuesto asignado si existe; si no, el presupuesto que solicitó el PM */
     public BigDecimal getPresupuestoVisible() {
         return proyecto.getPresupuesto() != null ? proyecto.getPresupuesto() : proyecto.getPresupuestoSolicitado();
     }
 
+    /** @return rótulo que acompaña a {@link #getPresupuestoVisible()} */
     public String getPresupuestoEtiqueta() {
         return proyecto.getPresupuesto() != null ? "Presupuesto asignado" : "Presupuesto solicitado";
     }
 
-    /** Duración entre el inicio y el fin estimado propuestos (TASK-055). */
+    /**
+     * Duración entre el inicio y el fin estimado propuestos (TASK-055). Menos de 14 días se expresa
+     * en días; desde 14, en semanas y días sobrantes.
+     *
+     * @return por ejemplo "10 días" o "3 semanas y 2 días"; "Sin definir" si falta una fecha o el fin es anterior
+     */
     public String getDuracionTexto() {
         LocalDate inicio = proyecto.getFechaInicio();
         LocalDate fin = proyecto.getFechaFinEstimada();
@@ -142,6 +166,9 @@ public class RmProyectoView {
     /**
      * Separa la descripción en las secciones que agrega el PM al crear el proyecto
      * ("Habilidades adicionales sugeridas:" y "Notas para el RM:", ver PmViewController).
+     * El texto anterior al primer marcador va en la sección "Descripción"; las secciones vacías se omiten.
+     *
+     * @return secciones en orden; lista vacía si el proyecto no tiene descripción
      */
     public List<SeccionDescripcion> getDescripcionSecciones() {
         String texto = proyecto.getDescripcion();
@@ -166,8 +193,10 @@ public class RmProyectoView {
         if (!texto.isBlank()) secciones.add(new SeccionDescripcion(titulo, texto.strip()));
     }
 
+    /** Sección de la descripción del proyecto: título y texto sin espacios en los extremos. */
     public record SeccionDescripcion(String titulo, String texto) {}
 
+    /** @return texto del buscador: proyecto, PM y RM revisor ("sin asignar" si no tiene) */
     public String getTextoBusqueda() {
         String rm = proyecto.getRmRevisor() == null
                 ? "sin asignar"
@@ -175,6 +204,12 @@ public class RmProyectoView {
         return proyecto.getNombre() + " " + pmNombre + " " + rm;
     }
 
+    /**
+     * Indica si el proyecto aparece en la dotación de personal: tiene vacantes y está en revisión,
+     * activo o en espera (no rechazado, cancelado ni finalizado).
+     *
+     * @return {@code true} si el RM puede buscar colaboradores para el proyecto
+     */
     public boolean isConVacantesParaDotacion() {
         return vacantes > 0 && switch (proyecto.getEstado()) {
             case EN_REVISION, ACTIVO, EN_ESPERA -> true;
@@ -182,6 +217,7 @@ public class RmProyectoView {
         };
     }
 
+    /** Integrante activo del equipo con sus horas y el costo que representa para el presupuesto. */
     public static class MiembroEquipo {
         private final Long id;
         private final String nombre;
@@ -190,7 +226,9 @@ public class RmProyectoView {
         private final String nivel;
         private final BigDecimal horasSemanales;
         private final BigDecimal costoSemanal;
+        /** Costo durante toda la duración del proyecto. */
         private final BigDecimal costoTotal;
+        /** {@code false} si falta el sueldo del colaborador o las fechas del proyecto y el costo no se pudo calcular. */
         private final boolean costoCalculable;
 
         public MiembroEquipo(Long id, String nombre, String iniciales, String cargo,
@@ -218,6 +256,7 @@ public class RmProyectoView {
         public boolean isCostoCalculable() { return costoCalculable; }
     }
 
+    /** Requisito de talento del proyecto: habilidad, nivel, cuántas personas y cuántas horas semanales. */
     public static class RequisitoTalento {
         private final String habilidad;
         private final String nivel;

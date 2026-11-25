@@ -26,6 +26,11 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
 
+/**
+ * Revisión de certificados de habilidades por el Resource Manager: bandeja de pendientes, historial
+ * por colaborador, aprobación (valida la habilidad y puede subir su nivel y el nivel general) y
+ * rechazo. Solo muestra los certificados que el RM de la sesión puede revisar. Lo usa {@code RmViewController}.
+ */
 @Service
 public class RmCertificadoService {
     private static final String ROL_RM = "RESOURCE_MANAGER";
@@ -35,13 +40,29 @@ public class RmCertificadoService {
     private static final List<NivelExperiencia> ORDEN_NIVELES =
             List.of(NivelExperiencia.JUNIOR, NivelExperiencia.SEMI_SENIOR, NivelExperiencia.SENIOR);
 
+    /** Certificados por página de la bandeja y del historial. */
     public static final int TAMANIO_PAGINA = 6;
     /** Un pendiente con más de estos días de espera cuenta como atrasado en la bandeja (TASK-050). */
     public static final int DIAS_PENDIENTE_ATRASADO = 7;
 
+    /**
+     * Filtros ya validados; {@code null} significa "Todos".
+     *
+     * @param busqueda texto buscado, hasta 100 caracteres
+     * @param habilidad nombre de habilidad presente en la lista
+     * @param estado estado del certificado (solo en el historial)
+     */
     public record FiltrosCertificados(String busqueda, String habilidad, EstadoCertificado estado) {
     }
 
+    /**
+     * Página de certificados.
+     *
+     * @param filas certificados de la página
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros certificados que cumplen los filtros
+     */
     public record PaginaCertificados(List<RmCertificadoView> filas, int paginaActual,
                                      int totalPaginas, long totalRegistros) {
     }
@@ -53,6 +74,7 @@ public class RmCertificadoService {
     private final NotificacionService notificacionService;
     private final RmAlcanceService rmAlcanceService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmCertificadoService(CertificadoRepository certificadoRepository,
                                 ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                 UsuarioRepository usuarioRepository,
@@ -67,6 +89,11 @@ public class RmCertificadoService {
         this.rmAlcanceService = rmAlcanceService;
     }
 
+    /**
+     * Certificados PENDIENTE que el RM de la sesión puede revisar.
+     *
+     * @return vistas de los pendientes
+     */
     @Transactional(readOnly = true)
     public List<RmCertificadoView> listarPendientes() {
         Long rmId = rmAlcanceService.idRmActual();
@@ -79,6 +106,13 @@ public class RmCertificadoService {
         return resultado;
     }
 
+    /**
+     * Todos los certificados de un colaborador que el RM de la sesión puede revisar.
+     *
+     * @param colaboradorId id del colaborador
+     * @return vistas del historial
+     * @throws IllegalArgumentException si el colaborador no existe
+     */
     @Transactional(readOnly = true)
     public List<RmCertificadoView> listarHistorial(Long colaboradorId) {
         obtenerColaborador(colaboradorId);
@@ -137,6 +171,13 @@ public class RmCertificadoService {
                 item -> item.getNombreArchivo() + " " + item.getCertificado().getHabilidad().getNombre());
     }
 
+    /**
+     * Detalle de un certificado que el RM de la sesión puede revisar.
+     *
+     * @param certificadoId id del certificado
+     * @return vista del certificado
+     * @throws IllegalArgumentException si no existe o está fuera del alcance del RM
+     */
     @Transactional(readOnly = true)
     public RmCertificadoView obtener(Long certificadoId) {
         return crearVista(obtenerEntidad(certificadoId));
@@ -162,6 +203,19 @@ public class RmCertificadoService {
                 .count();
     }
 
+    /**
+     * Aprueba un certificado pendiente: la habilidad del perfil queda VALIDADA y activa, con el nivel
+     * elegido (o el vigente si se deja vacío), y se notifica al colaborador. Si se indica un nivel
+     * general, se aplica la regla de mantener o subir (bajar revierte toda la aprobación).
+     *
+     * @param certificadoId certificado PENDIENTE
+     * @param nivelHabilidad nuevo nivel de la habilidad; {@code null} lo mantiene
+     * @param nivelGeneral nuevo nivel general de experiencia; {@code null} lo mantiene
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si el certificado o el RM no existen
+     * @throws IllegalStateException si el certificado ya fue revisado, el usuario no es RM o se
+     *         intenta bajar el nivel general
+     */
     @Transactional
     public void aprobar(Long certificadoId, NivelDominio nivelHabilidad,
                         NivelExperiencia nivelGeneral, Long rmId) {
@@ -196,6 +250,16 @@ public class RmCertificadoService {
                         + " presentado por " + nombreCompleto(certificado.getColaborador()) + ".");
     }
 
+    /**
+     * Rechaza un certificado pendiente y notifica al colaborador. Si no queda ningún certificado
+     * aprobado de esa habilidad, la habilidad del perfil pasa a RECHAZADA.
+     *
+     * @param certificadoId certificado PENDIENTE
+     * @param motivo motivo obligatorio
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si el certificado o el RM no existen, o falta el motivo
+     * @throws IllegalStateException si el certificado ya fue revisado o el usuario no es RM
+     */
     @Transactional
     public void rechazar(Long certificadoId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -225,6 +289,16 @@ public class RmCertificadoService {
                         + ". Motivo: " + motivoLimpio);
     }
 
+    /**
+     * Cambia el nivel general de experiencia desde el perfil del colaborador. Solo se puede mantener
+     * o subir; al subir se recalcula el sueldo según el cargo y se audita.
+     *
+     * @param colaboradorId id del colaborador
+     * @param nivel nuevo nivel, obligatorio
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si el RM o el colaborador no existen, o falta el nivel
+     * @throws IllegalStateException si el usuario no es RM o el nivel es menor que el actual
+     */
     @Transactional
     public void actualizarNivelExperiencia(Long colaboradorId, NivelExperiencia nivel, Long rmId) {
         Usuario rm = obtenerRm(rmId);

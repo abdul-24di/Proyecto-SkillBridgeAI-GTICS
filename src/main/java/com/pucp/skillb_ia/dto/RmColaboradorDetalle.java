@@ -4,6 +4,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Perfil completo de un colaborador que consulta el Resource Manager (ficha y modal "Ver perfil").
+ * Lo arma {@code RmColaboradorConsultaService}; reúne el {@link RmColaboradorResumen} con contacto,
+ * habilidades, asignaciones, experiencia y formación académica.
+ */
 public class RmColaboradorDetalle {
 
     private final RmColaboradorResumen resumen;
@@ -48,7 +53,11 @@ public class RmColaboradorDetalle {
     public LocalDate getFechaContratacion() { return fechaContratacion; }
     public List<HabilidadDetalle> getHabilidades() { return habilidades; }
 
-    // Modal "Ver perfil" de la propuesta: solo las habilidades que cuentan para asignar (TASK-015).
+    /**
+     * Habilidades que cuentan para asignar, usadas en el modal "Ver perfil" de la propuesta (TASK-015).
+     *
+     * @return solo las habilidades con estado {@code VALIDADA}
+     */
     public List<HabilidadDetalle> getHabilidadesValidadas() {
         return habilidades.stream()
                 .filter(habilidad -> "VALIDADA".equals(habilidad.getEstadoCodigo()))
@@ -58,25 +67,38 @@ public class RmColaboradorDetalle {
     public List<ExperienciaDetalle> getExperiencias() { return experiencias; }
     public List<EducacionDetalle> getEducacion() { return educacion; }
 
-    // Accesos generales a las bandejas de pendientes desde el perfil (TASK-053).
+    /**
+     * Muestra el acceso a la bandeja de certificados desde el perfil (TASK-053).
+     *
+     * @return {@code true} si alguna habilidad tiene un certificado pendiente que el RM actual puede revisar
+     */
     public boolean isTieneCertificadosPendientes() {
         return habilidades.stream().anyMatch(habilidad -> habilidad.getCertificadoPendienteId() != null);
     }
 
+    /**
+     * Muestra el acceso a la bandeja de formación académica desde el perfil (TASK-053).
+     *
+     * @return {@code true} si alguna formación está pendiente y el RM actual puede revisarla
+     */
     public boolean isTieneEducacionPendiente() {
         return educacion.stream().anyMatch(estudio -> estudio.getRevisionId() != null);
     }
 
+    /** @return horas contratadas como "40 h / semana", o "Sin registrar" si no hay dato */
     public String getHorasContratadasTexto() {
         return horasContratadasSemana == null
                 ? "Sin registrar"
                 : horasContratadasSemana.stripTrailingZeros().toPlainString() + " h / semana";
     }
 
+    /** Habilidad del colaborador con su nivel y estado de validación. */
     public static class HabilidadDetalle {
         private final String nombre;
         private final String nivel;
+        /** Estado legible de la validación. */
         private final String estadoValidacion;
+        /** Nombre del enum del estado ({@code VALIDADA}, {@code RECHAZADA}, pendiente...). */
         private final String estadoCodigo;
         // Certificado pendiente que el RM actual puede revisar; null si no hay.
         private final Long certificadoPendienteId;
@@ -96,7 +118,11 @@ public class RmColaboradorDetalle {
         public String getEstadoCodigo() { return estadoCodigo; }
         public Long getCertificadoPendienteId() { return certificadoPendienteId; }
 
-        // Insignia distinta por estado: solo las validadas cuentan para asignar.
+        /**
+         * Insignia distinta por estado: solo las validadas cuentan para asignar.
+         *
+         * @return verde si está validada, rojo si fue rechazada y amarillo en otro caso
+         */
         public String getEstadoClase() {
             if ("VALIDADA".equals(estadoCodigo)) return "bg-green-lt";
             if ("RECHAZADA".equals(estadoCodigo)) return "bg-red-lt";
@@ -104,10 +130,12 @@ public class RmColaboradorDetalle {
         }
     }
 
+    /** Asignación del colaborador a un proyecto, tal como se lista en su perfil. */
     public static class AsignacionDetalle {
         private final Long id;
         private final String proyecto;
         private final BigDecimal horasSemanales;
+        /** Estado legible de la asignación. */
         private final String estado;
         private final LocalDate fechaInicio;
         private final LocalDate fechaFin;
@@ -130,12 +158,14 @@ public class RmColaboradorDetalle {
         public LocalDate getFechaFin() { return fechaFin; }
     }
 
+    /** Experiencia laboral declarada por el colaborador. */
     public static class ExperienciaDetalle {
         private final String empresa;
         private final String cargo;
         private final String descripcion;
         private final LocalDate fechaInicio;
         private final LocalDate fechaFin;
+        /** {@code true} si es el trabajo actual (sin fecha de fin). */
         private final boolean actual;
 
         public ExperienciaDetalle(String empresa, String cargo, String descripcion,
@@ -156,13 +186,17 @@ public class RmColaboradorDetalle {
         public boolean isActual() { return actual; }
     }
 
+    /** Formación académica del colaborador con su estado de revisión y documento de respaldo. */
     public static class EducacionDetalle {
         private final String institucion;
         private final String titulo;
         private final LocalDate fechaInicio;
         private final LocalDate fechaFin;
+        /** {@code true} si el estudio sigue en curso. */
         private final boolean actual;
+        /** Estado legible de la revisión. */
         private final String estado;
+        /** Ruta del documento guardado; puede ser {@code null}. */
         private final String archivoUrl;
         // Id de la formación si está pendiente y el RM actual puede revisarla; null en otro caso.
         private final Long revisionId;

@@ -21,8 +21,15 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.*;
 
+/**
+ * Reportes del Resource Manager: el reporte de recursos (proyectos, presupuesto y horas por rango
+ * de meses) y el consolidado de horas por colaborador. Solo considera los proyectos que ve el RM de
+ * la sesión y arma las opciones de los filtros. Lo usan {@code RmViewController} y la exportación
+ * ({@link RmReporteExportService}).
+ */
 @Service
 public class RmReporteService {
+    /** Filas por página de cada tabla de los reportes. */
     public static final int TAMANIO_PAGINA = 10;
     private static final Locale LOCALE_ES = Locale.forLanguageTag("es-PE");
     private static final DateTimeFormatter FORMATO_PERIODO =
@@ -40,6 +47,15 @@ public class RmReporteService {
     public record FiltrosHoras(String periodo, Long proyecto, String busqueda, Long colaborador) {
     }
 
+    /**
+     * Página de una tabla del reporte.
+     *
+     * @param filas filas de la página
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros filas del conjunto filtrado
+     * @param <T> tipo de fila
+     */
     public record PaginaReporte<T>(List<T> filas, int paginaActual, int totalPaginas, long totalRegistros) {
     }
 
@@ -60,6 +76,7 @@ public class RmReporteService {
 
     private final RmAlcanceService rmAlcanceService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmReporteService(ProyectoRepository proyectoRepository,
                             ActividadRepository actividadRepository,
                             RmAlcanceService rmAlcanceService) {
@@ -168,6 +185,16 @@ public class RmReporteService {
                 prioridadValida == null ? null : prioridadValida.name());
     }
 
+    /**
+     * Normaliza los filtros del consolidado de horas: un periodo vacío o inválido pasa al mes actual
+     * y la búsqueda se recorta.
+     *
+     * @param periodo mes como {@code aaaa-mm}
+     * @param proyectoId proyecto elegido o {@code null}
+     * @param busqueda texto sobre nombre y cargo
+     * @param colaboradorId colaborador elegido o {@code null}
+     * @return filtros normalizados
+     */
     public FiltrosHoras normalizarFiltrosHoras(String periodo, Long proyectoId,
                                                String busqueda, Long colaboradorId) {
         return new FiltrosHoras(obtenerPeriodo(periodo).toString(), proyectoId,
@@ -196,6 +223,11 @@ public class RmReporteService {
         return new PaginaHoras(reporte, colaboradores, paginar(colaboradores, pagina));
     }
 
+    /**
+     * Opciones del filtro de proyecto: los proyectos que ve el RM de la sesión.
+     *
+     * @return opciones id → nombre
+     */
     @Transactional(readOnly = true)
     public List<RmReporteView.Opcion> listarProyectos() {
         return proyectosDelRm().stream()
@@ -226,6 +258,11 @@ public class RmReporteService {
         return List.copyOf(anios);
     }
 
+    /**
+     * Opciones del selector de mes, de enero a diciembre, con el nombre en español.
+     *
+     * @return opciones {@code 01} a {@code 12}
+     */
     public List<RmReporteView.Opcion> listarMeses() {
         return Arrays.stream(Month.values())
                 .map(mes -> {
@@ -236,6 +273,12 @@ public class RmReporteService {
                 .toList();
     }
 
+    /**
+     * Opciones de periodo: los últimos 12 meses más el seleccionado, del más reciente al más antiguo.
+     *
+     * @param periodoValor periodo elegido como {@code aaaa-mm}
+     * @return opciones {@code aaaa-mm} → "mes año"
+     */
     public List<RmReporteView.Opcion> listarPeriodos(String periodoValor) {
         YearMonth seleccionado = obtenerPeriodo(periodoValor);
         LinkedHashSet<YearMonth> periodos = new LinkedHashSet<>();
@@ -248,18 +291,35 @@ public class RmReporteService {
                 .toList();
     }
 
+    /**
+     * Opciones del filtro de estado: todos los {@link EstadoProyecto}.
+     *
+     * @return opciones nombre → texto legible
+     */
     public List<RmReporteView.Opcion> listarEstados() {
         return Arrays.stream(EstadoProyecto.values())
                 .map(estado -> new RmReporteView.Opcion(estado.name(), textoEnum(estado.name())))
                 .toList();
     }
 
+    /**
+     * Opciones del filtro de prioridad: todas las {@link Prioridad}.
+     *
+     * @return opciones nombre → texto legible
+     */
     public List<RmReporteView.Opcion> listarPrioridades() {
         return Arrays.stream(Prioridad.values())
                 .map(prioridad -> new RmReporteView.Opcion(prioridad.name(), textoEnum(prioridad.name())))
                 .toList();
     }
 
+    /**
+     * Filtra los colaboradores del reporte por nombre o cargo, sin distinguir tildes ni mayúsculas.
+     *
+     * @param reporte reporte ya generado
+     * @param busqueda texto buscado; vacío devuelve todos
+     * @return colaboradores que coinciden, en el orden del reporte
+     */
     public List<RmReporteView.ColaboradorReporte> filtrarColaboradores(
             RmReporteView reporte, String busqueda) {
         String filtro = normalizar(busqueda);

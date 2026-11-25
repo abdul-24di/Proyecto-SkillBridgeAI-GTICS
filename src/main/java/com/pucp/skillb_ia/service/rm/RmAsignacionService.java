@@ -24,6 +24,12 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Bandeja de asignaciones del Resource Manager: lista las asignaciones de los proyectos que el RM
+ * puede ver, propone colaboradores, aprueba o rechaza solicitudes y finaliza asignaciones activas.
+ * Controla el límite de asignaciones activas por colaborador, los cupos del proyecto, las horas
+ * disponibles y el presupuesto. La usan {@code RmViewController} y los servicios de matching.
+ */
 @Service
 public class RmAsignacionService {
 
@@ -35,6 +41,7 @@ public class RmAsignacionService {
     private final RmResponsableService rmResponsableService;
     private static final int LONGITUD_MAXIMA_BUSQUEDA = 100;
     // Cupos del proyecto (TASK-034): ocupan cupo las asignaciones activas y las pendientes.
+    /** Longitud máxima de la justificación que se pide al proponer con los cupos completos. */
     public static final int MAX_JUSTIFICACION_CUPO = 500;
     private static final Set<EstadoAsignacion> ESTADOS_CON_CUPO =
             EnumSet.of(EstadoAsignacion.ACTIVA, EstadoAsignacion.PENDIENTE);
@@ -43,8 +50,11 @@ public class RmAsignacionService {
             EnumSet.of(EstadoProyecto.ACTIVO, EstadoProyecto.EN_ESPERA, EstadoProyecto.EN_REVISION);
 
     // Bandeja de asignaciones (TASK-027): filtros GET y paginación en el servidor.
+    /** Filas por página de la bandeja y del historial del colaborador. */
     public static final int TAMANIO_PAGINA = 10;
+    /** Pestaña que se muestra cuando el parámetro {@code grupo} falta o no es válido. */
     public static final String GRUPO_POR_DEFECTO = "pending";
+    /** Orígenes aceptados por el filtro de la bandeja. */
     public static final List<String> ORIGENES = List.of("PM", "RM", "Colaborador");
     // Estados que los flujos pueden producir en cada pestaña. No se ofrece "Pendiente" a secas:
     // ninguna propuesta ni postulación queda PENDIENTE sin ser "Pendiente RM", "Pendiente PM" o
@@ -64,6 +74,15 @@ public class RmAsignacionService {
                                          long activas, long historial) {
     }
 
+    /**
+     * Página de la bandeja de asignaciones.
+     *
+     * @param filas asignaciones de la página, con la vista completa
+     * @param paginaActual página mostrada (desde 1)
+     * @param totalPaginas número de páginas, al menos 1
+     * @param totalRegistros asignaciones que cumplen los filtros
+     * @param contadores contadores de tarjetas y pestañas
+     */
     public record PaginaAsignaciones(List<RmAsignacionView> filas, int paginaActual, int totalPaginas,
                                      long totalRegistros, ContadoresAsignaciones contadores) {
     }
@@ -93,6 +112,7 @@ public class RmAsignacionService {
     private final EvaluacionService evaluacionService;
     private final RmAlcanceService rmAlcanceService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmAsignacionService(
             AsignacionRepository asignacionRepository,
             ProyectoRepository proyectoRepository,
@@ -132,6 +152,12 @@ public class RmAsignacionService {
         return propias;
     }
 
+    /**
+     * Lista las asignaciones de los proyectos que ve el RM de la sesión, de la más reciente a la
+     * más antigua (por fecha de solicitud).
+     *
+     * @return vistas completas de las asignaciones
+     */
     @Transactional(readOnly = true)
     public List<RmAsignacionView> listar() {
         int maxAsignaciones = obtenerMaxAsignaciones();
@@ -143,6 +169,8 @@ public class RmAsignacionService {
     /**
      * Conjunto del dashboard (TASK-033): mismo orden que listar(), solo de proyectos ACTIVO,
      * EN_ESPERA o EN_REVISION. EN_REVISION se muestra para seguimiento; sigue sin ser asignable.
+     *
+     * @return vistas de las asignaciones para el dashboard
      */
     @Transactional(readOnly = true)
     public List<RmAsignacionView> listarParaDashboard() {
@@ -153,14 +181,27 @@ public class RmAsignacionService {
                 .toList();
     }
 
-    /** Opciones de estado de la pestaña indicada (grupo ya normalizado). */
+    /**
+     * Opciones de estado de la pestaña indicada (grupo ya normalizado).
+     *
+     * @param grupo pestaña: {@code pending}, {@code active} o {@code history}
+     * @return estados de esa pestaña; los de {@code pending} si el grupo no existe
+     */
     public List<String> estadosDelGrupo(String grupo) {
         return ESTADOS_POR_GRUPO.getOrDefault(grupo, ESTADOS_POR_GRUPO.get(GRUPO_POR_DEFECTO));
     }
 
     /**
      * Normaliza los parámetros GET de la bandeja. Vacíos, "all" o valores desconocidos
-     * vuelven al comportamiento general: pestaña "pending" y sin filtro.
+     * vuelven al comportamiento general: pestaña "pending" y sin filtro. La búsqueda se recorta a
+     * 100 caracteres y un proyecto inexistente se ignora.
+     *
+     * @param grupo pestaña pedida
+     * @param busqueda texto sobre colaborador y proyecto
+     * @param origen origen pedido (PM, RM o Colaborador)
+     * @param estado estado pedido dentro de la pestaña
+     * @param proyectoId id del proyecto como texto
+     * @return filtros válidos; {@code null} en un campo significa "Todos"
      */
     @Transactional(readOnly = true)
     public FiltrosAsignacion normalizarFiltros(String grupo, String busqueda, String origen,
@@ -184,6 +225,11 @@ public class RmAsignacionService {
     /**
      * Filtra, cuenta y pagina la bandeja en orden de fechaSolicitud descendente. Solo las filas
      * de la página se construyen con la vista completa (consultas de capacidad y habilidades).
+     * Una página fuera de rango se ajusta a la primera o la última.
+     *
+     * @param filtros filtros ya normalizados con {@link #normalizarFiltros}
+     * @param pagina número de página como texto
+     * @return página con filas y contadores
      */
     @Transactional(readOnly = true)
     public PaginaAsignaciones listarPagina(FiltrosAsignacion filtros, String pagina) {
@@ -216,6 +262,13 @@ public class RmAsignacionService {
         return new PaginaAsignaciones(filas, paginaActual, totalPaginas, filtrados.size(), contar(conjunto));
     }
 
+    /**
+     * Obtiene el detalle de una asignación de un proyecto que el RM de la sesión puede ver.
+     *
+     * @param asignacionId id de la asignación
+     * @return vista completa de la asignación
+     * @throws IllegalArgumentException si no existe o pertenece a un proyecto fuera del alcance del RM
+     */
     @Transactional(readOnly = true)
     public RmAsignacionView obtener(Long asignacionId) {
         Asignacion asignacion = asignacionRepository.findByIdConDetalle(asignacionId)
@@ -226,6 +279,13 @@ public class RmAsignacionService {
         return crearVista(asignacion, obtenerMaxAsignaciones());
     }
 
+    /**
+     * Lista todas las asignaciones de un colaborador, de la más reciente a la más antigua.
+     *
+     * @param colaboradorId id del colaborador
+     * @return vistas completas de sus asignaciones
+     * @throws IllegalArgumentException si el usuario no existe, está inactivo o no es colaborador
+     */
     @Transactional(readOnly = true)
     public List<RmAsignacionView> listarPorColaborador(Long colaboradorId) {
         Usuario colaborador = obtenerColaborador(colaboradorId);
@@ -238,6 +298,12 @@ public class RmAsignacionService {
     /**
      * Normaliza los parámetros GET de las asignaciones del colaborador. Vacíos, "all" o valores
      * desconocidos equivalen a "Todos"; el año solo vale si está entre los disponibles.
+     *
+     * @param busqueda texto sobre proyecto y PM
+     * @param estado nombre de un {@link EstadoAsignacion}, sin distinguir mayúsculas
+     * @param anio año de inicio del proyecto como texto
+     * @param aniosDisponibles años que aparecen en el historial del colaborador
+     * @return filtros válidos; {@code null} en un campo significa "Todos"
      */
     public FiltrosAsignacionesColaborador normalizarFiltrosColaborador(String busqueda, String estado, String anio,
                                                                        List<Integer> aniosDisponibles) {
@@ -265,6 +331,14 @@ public class RmAsignacionService {
      * Filtra y pagina el historial del colaborador conservando el orden de
      * findByColaboradorIdConDetalle (fechaSolicitud descendente). La búsqueda cubre el nombre
      * del proyecto y el del PM. Solo las filas de la página se construyen con la vista completa.
+     *
+     * @param colaboradorId id del colaborador
+     * @param busqueda texto sobre proyecto y PM
+     * @param estado estado de la asignación
+     * @param anio año de inicio del proyecto
+     * @param pagina número de página como texto
+     * @return página con filas, años disponibles y filtros aplicados
+     * @throws IllegalArgumentException si el usuario no es un colaborador activo
      */
     @Transactional(readOnly = true)
     public PaginaAsignacionesColaborador listarPaginaPorColaborador(Long colaboradorId, String busqueda,
@@ -304,8 +378,13 @@ public class RmAsignacionService {
                 historial.size(), aniosDisponibles, filtros);
     }
 
-    // Ids de colaboradores que ya tienen una asignación pendiente o activa en el
-    // proyecto: no se les puede proponer otra (ver proponerDesdeRm).
+    /**
+     * Ids de colaboradores que ya tienen una asignación pendiente o activa en el proyecto: no se
+     * les puede proponer otra (ver {@link #proponerDesdeRm}).
+     *
+     * @param proyecto proyecto consultado
+     * @return ids de esos colaboradores
+     */
     @Transactional(readOnly = true)
     public Set<Long> colaboradoresConAsignacionVigente(Proyecto proyecto) {
         return asignacionRepository.findByProyecto(proyecto).stream()
@@ -314,7 +393,12 @@ public class RmAsignacionService {
                 .collect(Collectors.toSet());
     }
 
-    // Ids de proyectos donde el colaborador ya tiene una asignación pendiente o activa.
+    /**
+     * Ids de proyectos donde el colaborador ya tiene una asignación pendiente o activa.
+     *
+     * @param colaboradorId id del colaborador
+     * @return ids de esos proyectos
+     */
     @Transactional(readOnly = true)
     public Set<Long> proyectosConAsignacionVigente(Long colaboradorId) {
         return asignacionRepository.findByColaboradorIdConDetalle(colaboradorId).stream()
@@ -323,6 +407,11 @@ public class RmAsignacionService {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Proyectos ACTIVO o EN_ESPERA que ve el RM de la sesión, del más reciente al más antiguo.
+     *
+     * @return proyectos donde se puede proponer una asignación
+     */
     @Transactional(readOnly = true)
     public List<Proyecto> listarProyectosAsignables() {
         Long rmId = rmAlcanceService.idRmActual();
@@ -333,18 +422,47 @@ public class RmAsignacionService {
                 .toList();
     }
 
-    // Cupos ocupados del proyecto: asignaciones ACTIVA + PENDIENTE (no cuentan las cerradas).
+    /**
+     * Cupos ocupados del proyecto: asignaciones ACTIVA + PENDIENTE (no cuentan las cerradas).
+     *
+     * @param proyecto proyecto consultado
+     * @return número de cupos ocupados
+     */
     @Transactional(readOnly = true)
     public long contarCuposOcupados(Proyecto proyecto) {
         return asignacionRepository.countByProyectoAndEstadoIn(proyecto, ESTADOS_CON_CUPO);
     }
 
-    // Cupos ocupados por id de proyecto, para los modales que listan varios proyectos.
+    /**
+     * Cupos ocupados por id de proyecto, para los modales que listan varios proyectos.
+     *
+     * @param proyectos proyectos consultados
+     * @return mapa id de proyecto → cupos ocupados
+     */
     @Transactional(readOnly = true)
     public Map<Long, Long> cuposOcupadosPorProyecto(List<Proyecto> proyectos) {
         return proyectos.stream().collect(Collectors.toMap(Proyecto::getId, this::contarCuposOcupados));
     }
 
+    /**
+     * Propone a un colaborador para un proyecto. La propuesta queda PENDIENTE y ya aprobada por el
+     * RM, por lo que solo falta el PM, a quien se notifica. Si el colaborador alcanzó el límite de
+     * asignaciones activas, se exige un motivo de capacidad; si el proyecto tiene los cupos
+     * completos, se exige una justificación de cupo que se audita aparte.
+     *
+     * @param proyectoId proyecto ACTIVO o EN_ESPERA del que el RM es responsable
+     * @param colaboradorId colaborador visible para el RM
+     * @param horasSemanales horas por semana, mayores que 0, hasta 168 y sin superar las disponibles
+     * @param justificacion mensaje opcional, hasta 500 caracteres en total
+     * @param motivoCapacidad motivo obligatorio si se excede el límite de asignaciones activas (hasta 300)
+     * @param justificacionCupo justificación obligatoria si los cupos están completos (hasta 500)
+     * @param rmId id del RM de la sesión
+     * @return asignación creada
+     * @throws IllegalArgumentException si el RM, el proyecto o el colaborador no son válidos, las horas
+     *         no son válidas o superan la disponibilidad, o falta un motivo o justificación obligatorio
+     * @throws IllegalStateException si el proyecto no es asignable, el RM no es su responsable, falta
+     *         presupuesto o el colaborador ya tiene una asignación pendiente o activa en el proyecto
+     */
     @Transactional
     public Asignacion proponerDesdeRm(
             Long proyectoId,
@@ -418,6 +536,19 @@ public class RmAsignacionService {
         return guardada;
     }
 
+    /**
+     * Registra la aprobación del RM sobre una solicitud pendiente (del PM o del colaborador). Si el
+     * PM ya había aprobado, la asignación pasa a ACTIVA, se recalcula la disponibilidad del
+     * colaborador y se le notifica; en cualquier caso se avisa al PM.
+     *
+     * @param asignacionId asignación PENDIENTE que espera la decisión del RM
+     * @param motivoCapacidad motivo obligatorio si el colaborador alcanzó el límite de asignaciones activas
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si la asignación o el RM no existen, las horas superan la
+     *         disponibilidad o falta el motivo de capacidad
+     * @throws IllegalStateException si ya fue resuelta, no espera al RM, el proyecto no es asignable,
+     *         falta presupuesto o el colaborador ya está activo en el proyecto
+     */
     @Transactional
     public void aprobar(Long asignacionId, String motivoCapacidad, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -475,6 +606,15 @@ public class RmAsignacionService {
                         : "El RM aprobó la asignación; continúa pendiente del PM.");
     }
 
+    /**
+     * Rechaza una solicitud pendiente de decisión del RM y notifica al colaborador y al PM.
+     *
+     * @param asignacionId asignación PENDIENTE que espera la decisión del RM
+     * @param motivo motivo obligatorio, hasta 300 caracteres
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si la asignación o el RM no existen, o el motivo falta o es largo
+     * @throws IllegalStateException si ya fue resuelta, no espera al RM o el RM no es responsable del proyecto
+     */
     @Transactional
     public void rechazar(Long asignacionId, String motivo, Long rmId) {
         Usuario rm = obtenerRm(rmId);
@@ -504,6 +644,19 @@ public class RmAsignacionService {
                 "El RM rechazó la asignación. Motivo: " + motivoLimpio);
     }
 
+    /**
+     * Finaliza (desasigna) una asignación activa, recalcula la disponibilidad del colaborador y le
+     * notifica. Si se envía una calificación, registra además la evaluación de la asignación.
+     *
+     * @param asignacionId asignación ACTIVA
+     * @param motivo motivo de finalización, obligatorio
+     * @param observacion observación opcional; se audita recortada a 220 caracteres
+     * @param calificacion calificación opcional del desempeño
+     * @param feedback comentario de la evaluación
+     * @param rmId id del RM de la sesión
+     * @throws IllegalArgumentException si la asignación o el RM no existen, o falta el motivo
+     * @throws IllegalStateException si la asignación no está activa o el RM no es responsable del proyecto
+     */
     @Transactional
     public void finalizar(
             Long asignacionId,
@@ -648,7 +801,12 @@ public class RmAsignacionService {
         return proyecto;
     }
 
-    // Criterio único para buscar colaboradores y proponer asignaciones: proyecto ACTIVO o EN_ESPERA.
+    /**
+     * Criterio único para buscar colaboradores y proponer asignaciones: proyecto ACTIVO o EN_ESPERA.
+     *
+     * @param proyecto proyecto evaluado; puede ser {@code null}
+     * @return {@code true} si admite asignaciones
+     */
     public boolean esProyectoAsignable(Proyecto proyecto) {
         return proyecto != null
                 && (proyecto.getEstado() == EstadoProyecto.ACTIVO

@@ -8,7 +8,9 @@ public class RmForoView {
     private final Long id;
     private final String nombre;
     private final String tipo;
+    /** En un foro de proyecto: {@code true} si es público y {@code false} si es privado del equipo. */
     private final boolean publico;
+    /** Proyecto del foro; {@code null} en los foros generales (anuncios o comunidad). */
     private final Long proyectoId;
     private final String proyectoNombre;
     private final String proyectoEstado;
@@ -19,6 +21,7 @@ public class RmForoView {
     private final String pmNombre;
     private final int integrantesActivos;
     private final int colaboradoresRequeridos;
+    /** Personas distintas que publicaron o respondieron en el foro. */
     private final int participantes;
     private final LocalDateTime ultimaActividad;
     private final List<ForoPublicacionView> publicaciones;
@@ -62,7 +65,9 @@ public class RmForoView {
     public boolean isAnuncios() { return anuncios; }
     /** El RM puede publicar y responder (foros de comunidad). */
     public boolean isParticipa() { return participa; }
+    /** @return "Público" o "Privado" en foros de proyecto; "Anuncios" o "Comunidad" en los generales */
     public String getTipoForo() { return proyectoId != null ? (publico ? "Público" : "Privado") : (anuncios ? "Anuncios" : "Comunidad"); }
+    /** @return clase CSS de la insignia del tipo: naranja para anuncios, azul si es público y morado en otro caso */
     public String getTipoForoClase() { return anuncios ? "bg-orange-lt" : (publico ? "bg-blue-lt" : "bg-purple-lt"); }
     public String getTipo() { return tipo; }
     public boolean isPublico() { return publico; }
@@ -81,15 +86,19 @@ public class RmForoView {
     public List<ForoPublicacionView> getPublicaciones() { return publicaciones; }
     public List<String> getEtiquetas() { return etiquetas; }
     public int getTotalPublicaciones() { return publicaciones.size(); }
+    /** @return suma de las respuestas de todas las publicaciones */
     public int getTotalRespuestas() {
         return publicaciones.stream().mapToInt(p -> p.getRespuestas().size()).sum();
     }
+    /** @return {@code true} si hubo actividad en los últimos 7 días */
     public boolean isActividadReciente() {
         return ultimaActividad != null && !ultimaActividad.isBefore(LocalDateTime.now().minusDays(7));
     }
+    /** @return título de la primera publicación de la lista, o "Sin publicaciones todavía" */
     public String getTemaReciente() {
         return publicaciones.isEmpty() ? "Sin publicaciones todavía" : publicaciones.get(0).getTitulo();
     }
+    /** @return texto del buscador: foro, proyecto, PM, tema reciente y etiquetas */
     public String getTextoBusqueda() {
         return nombre + " " + proyectoNombre + " " + pmNombre + " " + getTemaReciente()
                 + " " + String.join(" ", etiquetas);

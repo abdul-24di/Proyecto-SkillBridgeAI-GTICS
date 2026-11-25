@@ -349,7 +349,8 @@ public class ColaboradorViewController {
      * Muestra la pantalla del chat ({@code GET /colaborador/chat}).
      * Carga los proyectos activos del colaborador; el proyecto o usuario preseleccionado
      * llega por parámetro (por ejemplo desde un enlace en otra pantalla). Los mensajes en
-     * sí se manejan por WebSocket y por {@code ColChatRestController}.
+     * sí se envían y leen por {@code ColChatRestController}; el WebSocket solo avisa en tiempo
+     * real que hay mensajes nuevos.
      *
      * @param proyectoId proyecto a preseleccionar (opcional)
      * @param usuarioId usuario con quien abrir la conversación (opcional)
@@ -432,8 +433,11 @@ public class ColaboradorViewController {
     /**
      * Muestra un foro con sus publicaciones y respuestas ({@code GET /colaborador/foros/detalle}).
      * <p>
-     * {@code puedeParticipar} indica si el colaborador puede publicar y responder (tiene una
-     * asignación activa en el proyecto del foro). Si no puede, la vista queda en solo lectura.
+     * {@code puedeParticipar} indica si el colaborador puede publicar y responder. En un foro
+     * general público, cualquiera puede; en un foro de proyecto (aunque esté compartido con la
+     * comunidad) solo quien tiene una asignación activa en ese proyecto. Si no puede, la vista
+     * queda en solo lectura. Para leer un foro privado basta con haber tenido una asignación
+     * activa o finalizada.
      * Si el foro no existe o no puede verlo, redirige al listado de foros.
      *
      * @param foroId id del foro
@@ -520,7 +524,8 @@ public class ColaboradorViewController {
 
     /**
      * Elimina una publicación del foro ({@code POST /colaborador/foro/publicacion/{publicacionId}/eliminar}).
-     * Los permisos los valida el service; si lo rechaza, se muestra su mensaje.
+     * Solo puede hacerlo el autor de la publicación o un Administrador; si el service lo
+     * rechaza, se muestra su mensaje. Es un borrado lógico.
      *
      * @param publicacionId id de la publicación
      * @param foroId id del foro (para volver a él)
@@ -657,7 +662,8 @@ public class ColaboradorViewController {
     /**
      * Marca o desmarca una respuesta como solución de la publicación
      * ({@code POST /colaborador/foro/respuesta/{respuestaId}/marcar-solucion}).
-     * Es un interruptor; quién puede hacerlo lo valida el service.
+     * Es un interruptor y solo puede hacerlo el autor de la publicación. Solo puede haber una
+     * solución por publicación: al marcar una nueva se desmarca la anterior.
      *
      * @param respuestaId id de la respuesta
      * @param foroId id del foro (para volver a él)
@@ -1240,7 +1246,7 @@ public class ColaboradorViewController {
      * Agrega una habilidad al perfil ({@code POST /colaborador/perfil/habilidades}).
      * <p>
      * Puede elegir una habilidad existente ({@code habilidadId}) o proponer una nueva
-     * ({@code nuevaHabilidadNombre} con su categoría), indicar su nivel de dominio y adjuntar un
+     * ({@code nuevaHabilidadNombre} con su categoría), indicar su nivel de dominio y debe adjuntar su
      * certificado. La habilidad queda pendiente de revisión del Resource Manager. Los ids llegan
      * como texto y se convierten con {@link #parseIdOpcional} y {@link #parseNivel}.
      *
@@ -1249,7 +1255,8 @@ public class ColaboradorViewController {
      * @param nuevaHabilidadNombre nombre de una habilidad nueva (opcional)
      * @param categoriaId categoría de la habilidad nueva (opcional)
      * @param nivel nivel de dominio (obligatorio)
-     * @param certificado certificado adjunto (opcional)
+     * @param certificado certificado que respalda la habilidad (el controller lo recibe como opcional,
+     * pero el service lo exige y rechaza la solicitud si falta)
      * @param redirectAttributes para mensajes
      * @param request petición HTTP
      * @return redirección a {@code /colaborador/perfil}
@@ -1454,8 +1461,8 @@ public class ColaboradorViewController {
      * Marca una actividad como "lista para revisión" ({@code POST /colaborador/proyectos/actividades/{actividadId}/marcar-listo}).
      * <p>
      * Es el primer paso del flujo de entrega de dos pasos: el colaborador marca y el PM revisa
-     * después (lo confirma o lo devuelve). Exige un comentario (máx. 300 caracteres) y permite
-     * adjuntar evidencia, cuyo tamaño y tipo valida el service. Si hay errores, vuelve a la
+     * después (lo confirma o lo devuelve). Exige un comentario (máx. 300 caracteres) y una
+     * evidencia obligatoria (PDF, JPG o PNG de hasta 10 MB) que valida el service. Si hay errores, vuelve a la
      * pestaña "actividades" con el modal de esa actividad abierto y lo escrito conservado.
      *
      * @param principal usuario autenticado

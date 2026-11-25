@@ -25,16 +25,42 @@ import java.time.YearMonth;
 import java.util.*;
 
 
+/**
+ * Arma el <b>contexto</b> que se le entrega a la IA: un bloque de texto con los datos reales de
+ * SkillBridge relacionados con la consulta del colaborador.
+ * <p>
+ * La IA no ve la base de datos: solo ve este bloque. Por eso aquí se decide qué datos salen y
+ * se aplican las reglas de privacidad:
+ * <ul>
+ *   <li>Solo datos del propio colaborador que consulta, nunca de otras personas.</li>
+ *   <li>No se envía ningún monto en soles ni sueldo; el colaborador los ve en su dashboard.</li>
+ *   <li>Los textos escritos por usuarios se envuelven con {@code AsistenteSeguridadService}
+ *       para que la IA los trate como datos y no como instrucciones.</li>
+ *   <li>En los foros solo se busca en los que el colaborador puede leer.</li>
+ * </ul>
+ * El análisis de brecha de un proyecto lo calcula el sistema; la IA solo lo explica.
+ */
 @Service
 public class ColAsistenteContextoService {
 
+    /** Máximo de cursos que se incluyen en el contexto. */
     private static final int MAX_CURSOS = 10;
+
+
+    /** Máximo de publicaciones de foro que se incluyen en el contexto. */
     private static final int MAX_PUBLICACIONES = 5;
 
-    // TASK-075: reglas de uso de la plataforma, comprobadas en el código (PenalizacionService,
-    // ColaboradorActividadService, ColaboradorProyectoService, ColaboradorCursoService y ColaboradorViewController).
-    // Los números salen de las constantes de esos servicios, así la guía no se desactualiza si cambian;
-    // ColAsistenteContextoTests lo verifica. Si cambia una regla escrita como texto, actualizar también este texto.
+    /**
+     * Guía de uso de la plataforma que se entrega siempre a la IA, para que pueda responder
+     * preguntas como "¿qué es un strike?" o "¿cómo funciona el bono?".
+     * <p>
+     * Las reglas están comprobadas contra el código. Los números (límite de strikes, porcentaje de
+     * descuento, meta de horas, tamaños máximos de archivos) se toman de las <b>constantes</b> de
+     * {@code PenalizacionService}, {@code ColaboradorActividadService}, {@code ColaboradorProyectoService}
+     * y {@code ColaboradorCursoService} con {@code formatted(...)}, así la guía no se desactualiza si
+     * esos valores cambian. {@code ColAsistenteContextoTests} lo verifica. Las reglas escritas
+     * como texto sí deben actualizarse a mano si cambian.
+     */
     public static final String GUIA_PLATAFORMA = """
 
             ## GUÍA DE USO DE SKILLBRIDGE (reglas de la plataforma)
@@ -59,6 +85,10 @@ public class ColAsistenteContextoService {
             ColaboradorActividadService.META_MENSUAL_HORAS,
             ColaboradorCursoService.TAMANO_MAXIMO_EVIDENCIA_BYTES / (1024 * 1024));
 
+    /**
+     * Palabras demasiado comunes ("como", "para", "proyecto", "curso"...) que se descartan al
+     * extraer los términos de búsqueda de la consulta, porque no ayudan a encontrar nada.
+     */
     private static final Set<String> IGNORAR = new HashSet<>(Arrays.asList(
             "como", "para", "que", "con", "los", "las", "una", "uno", "por", "del", "mis", "mas", "muy",
             "puedo", "puede", "quiero", "necesito", "tengo", "sobre", "este", "esta", "esto", "cual",
@@ -67,10 +97,25 @@ public class ColAsistenteContextoService {
             "dime", "explicame", "sus", "son", "ser", "eso", "ese", "algun", "alguna", "debo", "deberia",
             "siguiente", "siguientes", "pasos", "mejor", "tiene", "tienen", "estoy", "quisiera"));
 
+    /**
+     * Fragmentos que indican que el colaborador está pidiendo cursos o recomendaciones de
+     * aprendizaje ("curso", "capacit", "aprender", "mejorar"...). Si aparecen, se incluyen
+     * cursos aunque ninguno coincida con las palabras de la consulta.
+     */
     private static final String[] PALABRAS_DE_CURSO = {
             "curso", "capacit", "aprender", "estudiar", "formacion", "certific", "mejorar",
             "siguiente", "avance", "progreso", "recomiend", "reforzar"};
 
+    /**
+     * Resultado de armar el contexto.
+     *
+     * @param texto bloque de texto que se entrega a la IA
+     * @param cursos tarjetas de los cursos incluidos, por id (los únicos que la IA puede citar)
+     * @param publicaciones publicaciones de foro incluidas, por id
+     * @param proyectos proyectos consultados, por id
+     * @param accionesCurso acciones de solicitar curso disponibles, por id de curso
+     * @param accionesProyecto acciones de solicitar proyecto disponibles, por id de proyecto
+     */
     public record Contexto(String texto,
                            Map<Long, CursoTarjeta> cursos,
                            Map<Long, Fuente> publicaciones,
@@ -78,11 +123,13 @@ public class ColAsistenteContextoService {
                            Map<Long, Accion> accionesCurso,
                            Map<Long, Accion> accionesProyecto) {}
 
+    /** Curso candidato a recomendar, con el puntaje de relevancia que obtuvo para la consulta. */
     private static class Candidato {
         CursoDisponibleView vista;
         int puntaje;
     }
 
+    /** Publicación de foro encontrada, con el puntaje de relevancia que obtuvo para la consulta. */
     private static class Resultado {
         PublicacionForo publicacion;
         int puntaje;
@@ -103,6 +150,24 @@ public class ColAsistenteContextoService {
     private final ColaboradorProyectoService colaboradorProyectoService;
     private final ColaboradorActividadService colaboradorActividadService;
 
+    /**
+     * Inyecta por constructor los repositorios y services que alimentan el contexto.
+     *
+     * @param usuarioRepository acceso a usuarios
+     * @param colaboradorHabilidadRepository habilidades del colaborador
+     * @param experienciaProfesionalRepository experiencia profesional
+     * @param educacionRepository formación académica
+     * @param certificadoRepository certificados
+     * @param colaboradorCursoRepository inscripciones a cursos
+     * @param asignacionRepository asignaciones a proyectos
+     * @param proyectoHabilidadRequeridaRepository habilidades que pide cada proyecto
+     * @param publicacionForoRepository publicaciones de foro
+     * @param respuestaForoRepository respuestas de foro
+     * @param colaboradorPerfilService porcentaje y pendientes del perfil
+     * @param colaboradorCursoService catálogo de cursos para este colaborador
+     * @param colaboradorProyectoService proyectos con sus cupos y banderas
+     * @param colaboradorActividadService actividades, horas, strikes y bono
+     */
     public ColAsistenteContextoService(UsuarioRepository usuarioRepository,
                                        ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                        ExperienciaProfesionalRepository experienciaProfesionalRepository,
@@ -134,6 +199,21 @@ public class ColAsistenteContextoService {
     }
 
 
+    /**
+     * Arma el contexto completo para una consulta.
+     * <p>
+     * Normaliza el mensaje (minúsculas, sin tildes), extrae sus palabras clave y detecta las
+     * <b>brechas</b> del colaborador: habilidades de nivel básico o sin validar. Luego va
+     * agregando secciones al bloque, en este orden: perfil y habilidades, guía de la plataforma,
+     * experiencia y formación, cursos del colaborador, proyectos y actividades (con horas,
+     * strikes y bono), habilidades más pedidas en proyectos abiertos, análisis del proyecto que
+     * nombró, cursos del catálogo y búsqueda en foros.
+     *
+     * @param colaboradorId colaborador que consulta
+     * @param mensaje consulta ya limpiada
+     * @return el bloque de texto y los mapas de lo que la IA puede citar
+     * @throws IllegalArgumentException si no encuentra al usuario
+     */
     @Transactional
     public Contexto construir(Long colaboradorId, String mensaje) {
         Usuario col = usuarioRepository.findById(colaboradorId)
@@ -177,6 +257,14 @@ public class ColAsistenteContextoService {
 
 
 
+    /**
+     * Agrega el perfil (cargo, nivel, años de experiencia, horas disponibles, "sobre mí", porcentaje
+     * completado y pendientes) y la lista de habilidades con su nivel y estado de validación.
+     *
+     * @param t bloque de texto que se va armando
+     * @param col colaborador
+     * @param misHabilidades sus habilidades activas
+     */
     private void agregarPerfil(StringBuilder t, Usuario col, List<ColaboradorHabilidad> misHabilidades) {
         t.append("## PERFIL DEL COLABORADOR\n");
         t.append("Nombre: ").append(dato(nz(col.getNombre()) + " " + nz(col.getApellido()))).append('\n');
@@ -207,6 +295,13 @@ public class ColAsistenteContextoService {
         }
     }
 
+    /**
+     * Agrega la experiencia profesional, la formación académica con su estado y los certificados
+     * con su estado y nivel aprobado.
+     *
+     * @param t bloque de texto que se va armando
+     * @param col colaborador
+     */
     private void agregarExperienciaYFormacion(StringBuilder t, Usuario col) {
         t.append("\n## EXPERIENCIA PROFESIONAL\n");
         List<ExperienciaProfesional> experiencia =
@@ -240,6 +335,12 @@ public class ColAsistenteContextoService {
         }
     }
 
+    /**
+     * Agrega los cursos que el colaborador solicitó o cursa, con el estado de cada uno.
+     *
+     * @param t bloque de texto que se va armando
+     * @param col colaborador
+     */
     private void agregarCursosDelColaborador(StringBuilder t, Usuario col) {
         t.append("\n## CURSOS DEL COLABORADOR (solicitudes e inscripciones)\n");
         List<ColaboradorCurso> mios = colaboradorCursoRepository.findByColaborador(col);
@@ -251,6 +352,14 @@ public class ColAsistenteContextoService {
         }
     }
 
+    /**
+     * Agrega los proyectos del colaborador (hasta 15, sin las asignaciones rechazadas) y sus
+     * actividades pendientes (hasta 10, con proyecto, fecha límite y estado). Termina llamando a
+     * {@link #agregarHorasStrikesYBono}.
+     *
+     * @param t bloque de texto que se va armando
+     * @param col colaborador
+     */
     private void agregarAsignacionesYActividades(StringBuilder t, Usuario col) {
         t.append("\n## PROYECTOS DEL COLABORADOR\n");
         List<Asignacion> asignaciones = asignacionRepository.findByColaboradorIdConDetalle(col.getId());
@@ -284,8 +393,18 @@ public class ColAsistenteContextoService {
         agregarHorasStrikesYBono(t, col, asignaciones);
     }
 
-    // TASK-075: horas, strikes, descuento y bono del mes. Por decisión del usuario no se envía ningún
-    // monto en soles ni dato del sueldo a la IA: el colaborador los ve en su dashboard o en Mi desempeño.
+    /**
+     * Agrega las horas del mes frente a la meta, las horas extra y las que cuentan para el bono
+     * (con el tope), los strikes del mes y por proyecto, el porcentaje de descuento y si el bono
+     * aplica. Todo lo calcula el sistema; la IA no lo recalcula.
+     * <p>
+     * <b>Privacidad:</b> por decisión del equipo no se envía ningún monto en soles ni dato del
+     * sueldo a la IA. El colaborador los ve en su dashboard o en "Mi desempeño".
+     *
+     * @param t bloque de texto que se va armando
+     * @param col colaborador
+     * @param asignaciones sus asignaciones; se usan las activas para los strikes por proyecto
+     */
     private void agregarHorasStrikesYBono(StringBuilder t, Usuario col, List<Asignacion> asignaciones) {
         t.append("\n## HORAS, STRIKES Y BONO DEL MES (calculados por el sistema)\n");
         ColBonoMensualView bono = colaboradorActividadService.obtenerResumenBonoMensual(col);
@@ -333,7 +452,16 @@ public class ColAsistenteContextoService {
 
 
 
-    // Habilidades que piden los proyectos con postulaciones abiertas y que el colaborador aún no tiene validadas.
+    /**
+     * Calcula la <b>demanda interna</b>: cuenta en cuántos proyectos con postulaciones abiertas se
+     * pide cada habilidad que el colaborador aún no tiene validada, y agrega las 5 más pedidas.
+     * Esas habilidades se suman a las brechas usadas para recomendar cursos.
+     *
+     * @param t bloque de texto que se va armando
+     * @param vistas proyectos visibles para el colaborador
+     * @param habilidadPorId habilidades del colaborador, por id de habilidad
+     * @param brechas lista de brechas; se amplía con las habilidades más pedidas
+     */
     private void agregarDemandaInterna(StringBuilder t, List<ColProyectoDisponibleView> vistas,
                                        Map<Long, ColaboradorHabilidad> habilidadPorId, List<String> brechas) {
         Map<String, Integer> demanda = new LinkedHashMap<>();
@@ -364,7 +492,25 @@ public class ColAsistenteContextoService {
         }
     }
 
-    // Si el mensaje nombra un proyecto visible para el colaborador, el SISTEMA calcula la brecha.
+    /**
+     * Si la consulta nombra un proyecto visible para el colaborador (se elige el de nombre más
+     * largo si hay varios), el <b>sistema</b> calcula la brecha y la IA solo la explica.
+     * <p>
+     * Por cada habilidad que pide el proyecto indica la situación: {@code CUMPLE},
+     * {@code NO_LA_TIENE}, pendiente de validación, rechazada o {@code NIVEL_INSUFICIENTE}; y si
+     * sus horas disponibles alcanzan. Solo se ofrece la acción de postular si las postulaciones
+     * están abiertas, no tiene ya una solicitud y cumple al menos un perfil completo (habilidad
+     * validada, nivel suficiente y horas suficientes).
+     *
+     * @param t bloque de texto que se va armando
+     * @param col colaborador
+     * @param mensajeN consulta normalizada
+     * @param vistas proyectos visibles para el colaborador
+     * @param habilidadPorId habilidades del colaborador, por id de habilidad
+     * @param brechas lista de brechas; se amplía con las habilidades que le faltan para ese proyecto
+     * @param proyectos tarjetas de proyectos que la IA podrá citar (se llena aquí)
+     * @param accionesProyecto acciones de postular disponibles (se llena aquí)
+     */
     private void agregarProyectoConsultado(StringBuilder t, Usuario col, String mensajeN,
                                            List<ColProyectoDisponibleView> vistas,
                                            Map<Long, ColaboradorHabilidad> habilidadPorId, List<String> brechas,
@@ -452,6 +598,21 @@ public class ColAsistenteContextoService {
 
 
 
+    /**
+     * Elige los cursos del catálogo a incluir. Puntaje de cada curso: +2 por cada palabra de la
+     * consulta que aparece en su nombre, descripción o categoría, y +1 por cada brecha del
+     * colaborador que menciona. Se ordenan de mayor a menor y se incluyen hasta
+     * {@value #MAX_CURSOS}; los de puntaje 0 solo entran si el colaborador pidió cursos de forma
+     * general. Si puede solicitarlo, se agrega la acción de solicitar.
+     *
+     * @param t bloque de texto que se va armando
+     * @param col colaborador
+     * @param palabras palabras clave de la consulta
+     * @param mensajeN consulta normalizada
+     * @param brechas habilidades que le faltan o que tiene en nivel básico
+     * @param cursos tarjetas de cursos que la IA podrá citar (se llena aquí)
+     * @param accionesCurso acciones de solicitar curso disponibles (se llena aquí)
+     */
     private void agregarCursosCatalogo(StringBuilder t, Usuario col, List<String> palabras, String mensajeN,
                                        List<String> brechas, Map<Long, CursoTarjeta> cursos,
                                        Map<Long, Accion> accionesCurso) {
@@ -527,6 +688,14 @@ public class ColAsistenteContextoService {
 
 
 
+    /**
+     * Indica si el colaborador puede leer un foro: si es público, o si es de un proyecto donde
+     * tiene o tuvo asignación vigente. Evita que el asistente exponga contenido de foros ajenos.
+     *
+     * @param col colaborador
+     * @param foro foro evaluado
+     * @return {@code true} si puede leerlo
+     */
     private boolean puedeLeer(Usuario col, Foro foro) {
         if (foro.isVisibleParaTodos()) {
             return true;
@@ -534,6 +703,20 @@ public class ColAsistenteContextoService {
         return foro.getProyecto() != null && asignacionRepository.tieneAccesoVigente(foro.getProyecto(), col);
     }
 
+    /**
+     * Busca en los foros publicaciones relacionadas con la consulta, solo en foros que el
+     * colaborador puede leer.
+     * <p>
+     * Usa hasta 5 palabras clave (las más largas primero). Para cada una busca hasta 30
+     * publicaciones y 30 respuestas. Puntaje: +3 si la palabra está en el título, +1 si está en el
+     * texto y +2 si alguna respuesta coincide. Incluye las {@value #MAX_PUBLICACIONES} mejores
+     * con un extracto y, si existe, la respuesta marcada como solución.
+     *
+     * @param t bloque de texto que se va armando
+     * @param col colaborador
+     * @param palabras palabras clave de la consulta
+     * @param publicaciones fuentes que la IA podrá citar (se llena aquí)
+     */
     private void agregarForos(StringBuilder t, Usuario col, List<String> palabras, Map<Long, Fuente> publicaciones) {
         t.append("\n## BÚSQUEDA EN LOS FOROS DE SKILLBRIDGE (solo foros a los que el colaborador tiene acceso)\n");
         if (palabras.isEmpty()) {
@@ -619,6 +802,13 @@ public class ColAsistenteContextoService {
 
 
 
+    /**
+     * Normaliza un texto para compararlo: quita tildes, pasa a minúsculas y recorta espacios.
+     * Permite que "Gestión" y "gestion" coincidan.
+     *
+     * @param s texto original
+     * @return el texto normalizado; vacío si es {@code null}
+     */
     public static String normalizar(String s) {
         if (s == null) {
             return "";
@@ -627,6 +817,15 @@ public class ColAsistenteContextoService {
         return sinTildes.toLowerCase(Locale.ROOT).trim();
     }
 
+    /**
+     * Extrae las palabras clave de la consulta: separa por todo lo que no sea letra, número,
+     * {@code +}, {@code #} o {@code .} (así se conservan "c++", "c#" y ".net"), descarta las de
+     * menos de 3 caracteres, las comunes ({@link #IGNORAR}) y las repetidas, y las ordena de la
+     * más larga a la más corta, porque suelen ser más específicas.
+     *
+     * @param mensajeN consulta ya normalizada
+     * @return palabras clave
+     */
     private List<String> extraerPalabras(String mensajeN) {
         String[] partes = mensajeN.split("[^a-z0-9+#.]+");
         List<String> palabras = new ArrayList<>();
@@ -641,6 +840,13 @@ public class ColAsistenteContextoService {
         return palabras;
     }
 
+    /**
+     * Convierte HTML (el del editor de los foros) en texto plano con Jsoup y lo recorta.
+     *
+     * @param html contenido en HTML
+     * @param maximo máximo de caracteres
+     * @return texto plano; vacío si es {@code null}
+     */
     private String textoPlano(String html, int maximo) {
         if (html == null) {
             return "";
@@ -649,6 +855,11 @@ public class ColAsistenteContextoService {
         return texto.length() > maximo ? texto.substring(0, maximo) : texto;
     }
 
+    /**
+     * @param s texto original
+     * @param maximo máximo de caracteres
+     * @return el texto, con "..." al final si se recortó; vacío si es {@code null}
+     */
     private String cortar(String s, int maximo) {
         if (s == null) {
             return "";
@@ -656,19 +867,46 @@ public class ColAsistenteContextoService {
         return s.length() > maximo ? s.substring(0, maximo) + "..." : s;
     }
 
+    /**
+     * @param s texto que puede ser {@code null}
+     * @return el mismo texto, o cadena vacía si es {@code null} (atajo de "null a vacío")
+     */
     private String nz(String s) {
         return s == null ? "" : s;
     }
 
 
+    /**
+     * Envuelve un dato escrito por un usuario (nombre, cargo, título...) con las marcas que la IA
+     * entiende como "dato, no instrucción". Es una defensa contra prompt injection.
+     *
+     * @param s dato original
+     * @return el dato envuelto
+     * @see AsistenteSeguridadService#envolverDato
+     */
     private String dato(String s) {
         return AsistenteSeguridadService.envolverDato(s);
     }
 
+    /**
+     * Envuelve un extracto de foro con las marcas {@code <extracto_foro>}, para que la IA lo trate
+     * como información y no como instrucciones.
+     *
+     * @param s extracto original
+     * @return el extracto envuelto
+     * @see AsistenteSeguridadService#envolverExtractoForo
+     */
     private String extractoForo(String s) {
         return AsistenteSeguridadService.envolverExtractoForo(s);
     }
 
+    /**
+     * Sanitiza un texto que se inserta en el contexto (por ejemplo, un pendiente del perfil).
+     *
+     * @param s texto original
+     * @return el texto sanitizado
+     * @see AsistenteSeguridadService#sanitizarDato
+     */
     private String limpiar(String s) {
         return AsistenteSeguridadService.sanitizarDato(s);
     }

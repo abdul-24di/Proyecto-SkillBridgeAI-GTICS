@@ -20,23 +20,56 @@ import java.util.Map;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-// Único punto que habla con el proveedor de IA. Soporta dos proveedores, elegidos con app.ia.proveedor:
-// ANTHROPIC (Claude, de pago)  |  GEMINI (Google AI Studio, tiene capa gratuita)
+/**
+ * Cliente HTTP del proveedor de IA. Es el <b>único</b> punto del sistema que se comunica con la IA.
+ * <p>
+ * Soporta dos proveedores, elegidos con la propiedad {@code app.ia.proveedor}:
+ * <ul>
+ *   <li>{@code ANTHROPIC} (Claude, de pago), el valor por defecto;</li>
+ *   <li>{@code GEMINI} (Google AI Studio, con capa gratuita).</li>
+ * </ul>
+ * Si no hay clave de API ({@code app.ia.api-key}), {@link #estaConfigurado} es falso y el
+ * asistente funciona en modo sin IA. Ante cualquier falla devuelve {@code null} en vez de
+ * lanzar excepciones, para que el asistente pueda degradarse sin romper la pantalla.
+ */
 @Component
 public class ColAsistenteIaClient {
 
     private static final Logger log = LoggerFactory.getLogger(ColAsistenteIaClient.class);
 
-    // Se crea en la primera llamada: si el JDK no puede abrir su conexión loopback, la app y las pruebas igual arrancan (TASK-073).
+
+    /**
+     * Cliente HTTP que se inicializa únicamente cuando se necesita utilizar.
+     * Esto evita que un problema durante su creación impida que la aplicación
+     * o las pruebas se ejecuten correctamente. */
+
     private volatile RestClient restClient;
     private final boolean esGemini;
     private final String url;
     private final String apiKey;
     private final String modelo;
     private final int maxTokens;
-    // Limita llamadas simultáneas para no agotar el pool de conexiones ni el cupo del proveedor.
+
+    /**
+     * Controla que no se realicen más de 5 peticiones al mismo tiempo.
+     * Las demás esperan hasta que se libere un espacio.
+     */
     private final Semaphore cupo = new Semaphore(5);
 
+
+
+    /**
+     * Configura el cliente desde las propiedades de la aplicación.
+     * <p>
+     * Si no se indica modelo, usa {@code claude-haiku-5-5} (Anthropic) o
+     * {@code gemini-3.5-flash-lite} (Gemini). Si no se indica URL, usa la oficial de cada proveedor.
+     *
+     * @param proveedor {@code ANTHROPIC} (por defecto) o {@code GEMINI}
+     * @param apiKey clave de API; vacía desactiva la IA
+     * @param modelo modelo a usar; vacío usa el predeterminado del proveedor
+     * @param urlManual URL del servicio; vacía usa la oficial
+     * @param maxTokens máximo de tokens de la respuesta (900 por defecto)
+     */
     public ColAsistenteIaClient(@Value("${app.ia.proveedor:ANTHROPIC}") String proveedor,
                                 @Value("${app.ia.api-key:}") String apiKey,
                                 @Value("${app.ia.modelo:}") String modelo,
@@ -67,28 +100,72 @@ public class ColAsistenteIaClient {
 
     }
 
+    /**
+     * Devuelve el cliente HTTP, creándolo la primera vez de forma segura entre hilos (patrón
+     * <i>double-checked locking</i>). Tiene 5 segundos de espera para conectar y 45 para leer la respuesta.
+     *
+     * @return el cliente HTTP compartido
+     */
     private RestClient restClient() {
+
+        // Comprueba si ya existe un cliente HTTP creado anteriormente.
         RestClient cliente = restClient;
+
+        // Si el cliente todavía no existe, es necesario crearlo.
         if (cliente == null) {
+
+            // Evita que varios hilos creen el cliente HTTP al mismo tiempo.
             synchronized (this) {
+
+                // Vuelve a comprobar si otro hilo ya creó el cliente mientras esperábamos.
                 cliente = restClient;
+
+                // Si todavía no existe, comienza su creación.
                 if (cliente == null) {
+
+
+                    // Crea el cliente HTTP de Java y establece 5 segundos como tiempo máximo para conectar.
                     HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+
+                    // Crea una fábrica que permite utilizar el cliente HTTP de Java desde Spring.
                     JdkClientHttpRequestFactory fabrica = new JdkClientHttpRequestFactory(http);
+
+                    // Establece 45 segundos como tiempo máximo de espera para leer la respuesta.
                     fabrica.setReadTimeout(Duration.ofSeconds(45));
+
+                    // Construye el cliente RestClient utilizando la fábrica configurada.
                     cliente = RestClient.builder().requestFactory(fabrica).build();
+
+                    // Guarda el cliente creado para reutilizarlo en futuras llamadas.
                     restClient = cliente;
                 }
             }
         }
+
+        // Devuelve el cliente HTTP para que pueda realizar peticiones a otros
         return cliente;
     }
 
+    /**
+     * @return {@code true} si hay una clave de API configurada; si no, el asistente usa el modo sin IA
+     */
     public boolean estaConfigurado() {
         return !apiKey.isEmpty();
     }
 
 
+    /**
+     * Pide una respuesta a la IA.
+     * <p>
+     * Usa un semáforo de 5 cupos y espera hasta 3 segundos por uno; si no lo consigue, devuelve
+     * {@code null}. Cualquier error (respuesta HTTP de error, falla de red o del cliente) se
+     * registra en el log y también devuelve {@code null}. El cupo siempre se libera al terminar.
+     *
+     * @param system instrucciones de sistema (rol, reglas y datos del colaborador)
+     * @param historial conversación previa; las posiciones pares son del usuario y las impares de la IA
+     * @param mensaje consulta actual, ya encapsulada por seguridad
+     * @return el texto de la IA, o {@code null} si no se pudo obtener
+     */
     public String generar(String system, List<String> historial, String mensaje) {
         boolean adquirido = false;
         try {
@@ -124,8 +201,18 @@ public class ColAsistenteIaClient {
         }
     }
 
-    // ANTHROPIC
 
+
+    /**
+     * Llama a la API de Anthropic ({@code /v1/messages}). Envía el historial como mensajes
+     * alternados {@code user}/{@code assistant}, temperatura 0.2 (respuestas poco variables) y el
+     * límite de tokens configurado. La clave va en el encabezado {@code x-api-key}.
+     *
+     * @param system instrucciones de sistema
+     * @param historial conversación previa
+     * @param mensaje consulta actual
+     * @return el texto de la respuesta, o {@code null} si vino vacía
+     */
     private String llamarAnthropic(String system, List<String> historial, String mensaje) {
         List<Map<String, Object>> mensajes = new ArrayList<>();
         for (int i = 0; i < historial.size(); i++) {
@@ -157,38 +244,79 @@ public class ColAsistenteIaClient {
         return extraerTextoAnthropic(respuesta);
     }
 
+    /**
+     * Extrae el texto de la respuesta de Anthropic, uniendo los bloques de tipo {@code text}.
+     *
+     * @param respuesta cuerpo JSON ya convertido a mapa
+     * @return el texto, o {@code null} si no hay
+     */
     private String extraerTextoAnthropic(Map<String, Object> respuesta) {
         if (respuesta == null) {
             return null;
         }
         StringBuilder texto = new StringBuilder();
+
         Object contenido = respuesta.get("content");
+
         if (contenido instanceof List<?> bloques) {
+
             for (Object bloque : bloques) {
+
                 if (bloque instanceof Map<?, ?> mapa
                         && "text".equals(mapa.get("type"))
                         && mapa.get("text") instanceof String t) {
+
                     texto.append(t);
+
                 }
+
             }
+
         }
+
         return texto.length() == 0 ? null : texto.toString();
+
     }
 
 
-    // GEMINI
 
+    /**
+     * Arma un turno de conversación con el formato de Gemini ({@code role} + {@code parts}).
+     *
+     * @param rol {@code user} o {@code model}
+     * @param texto contenido del turno
+     * @return el turno listo para enviar
+     */
     private Map<String, Object> turnoGemini(String rol, String texto) {
         Map<String, Object> parte = new HashMap<>();
+
         parte.put("text", texto);
+
         List<Object> partes = new ArrayList<>();
+
         partes.add(parte);
+
         Map<String, Object> turno = new HashMap<>();
+
         turno.put("role", rol);
+
         turno.put("parts", partes);
+
         return turno;
     }
 
+    /**
+     * Llama a la API de Gemini ({@code generateContent}). Equivale a {@link #llamarAnthropic}
+     * pero con el formato de Gemini: las instrucciones van en {@code systemInstruction}, los turnos
+     * alternan {@code user}/{@code model}, el máximo de tokens es el mayor entre el configurado y
+     * 2048, la temperatura es 0.2 y se activan filtros de seguridad (acoso, odio, contenido sexual
+     * y peligroso) que bloquean desde nivel medio. La clave va en {@code x-goog-api-key}.
+     *
+     * @param system instrucciones de sistema
+     * @param historial conversación previa
+     * @param mensaje consulta actual
+     * @return el texto de la respuesta, o {@code null} si vino vacía
+     */
     private String llamarGemini(String system, List<String> historial, String mensaje) {
         List<Map<String, Object>> contenidos = new ArrayList<>();
         for (int i = 0; i < historial.size(); i++) {
@@ -231,6 +359,15 @@ public class ColAsistenteIaClient {
         return extraerTextoGemini(respuesta);
     }
 
+
+    /**
+     * Extrae el texto de la respuesta de Gemini: toma el primer candidato y une sus partes de
+     * texto. Si no hay texto (por ejemplo, la respuesta fue bloqueada por los filtros), lo registra
+     * en el log.
+     *
+     * @param respuesta cuerpo JSON ya convertido a mapa
+     * @return el texto, o {@code null} si no hay
+     */
     private String extraerTextoGemini(Map<String, Object> respuesta) {
         if (respuesta == null) {
             return null;

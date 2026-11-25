@@ -25,23 +25,44 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 
+/**
+ * Lógica de los cursos y capacitaciones desde el lado del colaborador.
+ * <p>
+ * Cubre el catálogo de cursos disponibles, la solicitud de inscripción, la subida de la
+ * evidencia de finalización y el control de los cursos que vencen sin evidencia. El Resource
+ * Manager aprueba las solicitudes y revisa las evidencias; este service solo registra lo que
+ * hace el colaborador.
+ * <p>
+ * Ciclo de vida de una inscripción ({@code EstadoColaboradorCurso}):
+ * <pre>
+ * SOLICITADO ──(RM aprueba)──► EN_CURSO ──(sube evidencia)──► EVIDENCIA_PENDIENTE ──(RM aprueba)──► COMPLETADO
+ *     │                           │                                   │
+ *     └─(RM rechaza)─► RECHAZADO  └─(vence sin evidencia)─► NO_COMPLETADO   └─(RM rechaza)─► vuelve a EN_CURSO
+ * </pre>
+ * Solo los cursos {@code COMPLETADO} suman horas a la meta mensual.
+ */
 @Service
 public class ColaboradorCursoService {
 
-    //Mientras el colaborador tenga una solicitud pendiente, una inscripción activa, una
-    //evidencia en revisión, o ya haya completado el curso, no puede volver a solicitarlo.
+    /**
+     * Estados que impiden volver a solicitar el mismo curso: solicitud pendiente, inscripción en
+     * curso, evidencia en revisión o curso ya completado. Con {@code RECHAZADO} o
+     * {@code NO_COMPLETADO} sí puede volver a solicitarlo.
+     */
     private static final List<EstadoColaboradorCurso> ESTADOS_QUE_BLOQUEAN =
             List.of(EstadoColaboradorCurso.SOLICITADO, EstadoColaboradorCurso.EN_CURSO,
                     EstadoColaboradorCurso.EVIDENCIA_PENDIENTE, EstadoColaboradorCurso.COMPLETADO);
 
+    /** Clave del parámetro global con el máximo de asignaciones activas por colaborador. */
     private static final String CLAVE_MAX_ASIGNACIONES = "MAX_ASIGNACIONES_POR_COLABORADOR";
+    /** Máximo de asignaciones activas si el parámetro no existe o no es válido: 3. */
     private static final int MAX_ASIGNACIONES_POR_DEFECTO = 3;
 
-    //Para la evidencia de finalización del curso
+    /** Tipos MIME aceptados para la evidencia de finalización del curso: PDF, JPG y PNG. */
     private static final Set<String> TIPOS_EVIDENCIA_PERMITIDOS = Set.of("application/pdf", "image/jpeg", "image/png");
     public static final long TAMANO_MAXIMO_EVIDENCIA_BYTES = 10L * 1024 * 1024; // 10 MB
 
-    //Días antes de la fecha fin en los que se avisa (una sola vez) al colaborador que aún no sube evidencia.
+    /** Días antes de la fecha fin en los que se avisa, una sola vez, al colaborador que aún no sube evidencia. */
     private static final int DIAS_AVISO_FIN_CURSO = 3;
 
     private final CursoRepository cursoRepository;
@@ -55,6 +76,24 @@ public class ColaboradorCursoService {
     private final AsignacionRepository asignacionRepository;
     private final ConfiguracionSistemaRepository configuracionSistemaRepository;
 
+    /**
+     * Inyecta por constructor las dependencias del service.
+     * <p>
+     * {@code colaboradorActividadService} se inyecta con {@code @Lazy} porque hay una dependencia
+     * circular: ese service usa este para marcar cursos vencidos, y este usa aquel para calcular
+     * el resumen del bono. {@code @Lazy} hace que se cree solo cuando se necesita.
+     *
+     * @param cursoRepository catálogo de cursos
+     * @param colaboradorCursoRepository inscripciones de colaboradores a cursos
+     * @param auditoriaService registro en el log de auditoría
+     * @param notificacionService envío de notificaciones
+     * @param notificacionRepository consulta de notificaciones ya enviadas (para no repetir avisos)
+     * @param archivoAlmacenamientoService guardado de archivos
+     * @param colaboradorActividadService horas y bono del colaborador
+     * @param rmRevisionAsignadorService elige qué RM revisa cada solicitud
+     * @param asignacionRepository acceso a asignaciones
+     * @param configuracionSistemaRepository parámetros globales
+     */
     public ColaboradorCursoService(CursoRepository cursoRepository,
                                    ColaboradorCursoRepository colaboradorCursoRepository,
                                    AuditoriaService auditoriaService,
@@ -82,6 +121,24 @@ public class ColaboradorCursoService {
     // ============================================================
     // CATÁLOGO DE CURSOS DISPONIBLES (activos del Admin)
     // ============================================================
+    /**
+     * Arma el catálogo de cursos con el estado de cada uno para este colaborador.
+     * <p>
+     * Antes de listar, marca como no completados los cursos suyos que vencieron sin evidencia.
+     * Para cada curso activo (orden alfabético) toma la inscripción más reciente del colaborador:
+     * <ul>
+     *   <li>Un curso <b>caducado</b> (fecha de fin pasada) no se ofrece, salvo que el colaborador
+     *       ya tenga algo con él (para ver su estado o subir evidencia).</li>
+     *   <li>{@code puedeSolicitar} es verdadero si no hay un bloqueo general (ver
+     *       {@link #motivoBloqueoGeneral}) y su inscripción más reciente no está en un estado
+     *       que lo impida.</li>
+     *   <li>Si ya tiene una inscripción, se muestra el texto y color de su estado.</li>
+     * </ul>
+     *
+     * @param colaborador colaborador que consulta el catálogo
+     * @return una tarjeta por curso
+     */
+
     @Transactional
     public List<CursoDisponibleView> listarCursosDisponibles(Usuario colaborador) {
         marcarCursosSinEvidenciaVencidos(colaborador);
@@ -134,6 +191,12 @@ public class ColaboradorCursoService {
     // ============================================================
     // CATEGORÍAS DISPONIBLES
     // ============================================================
+    /**
+     * Lista las categorías distintas de los cursos activos, sin repetir y sin contar las vacías.
+     * Alimenta el filtro por categoría de "Explorar". Es una consulta de solo lectura.
+     *
+     * @return nombres de categorías
+     */
     @Transactional(readOnly = true)
     public List<String> listarCategorias() {
         return Paginador.opcionesUnicas(cursoRepository.findByActivoTrueOrderByNombreAsc().stream()
@@ -143,6 +206,15 @@ public class ColaboradorCursoService {
     // ============================================================
     // SOLICITUDES DE CURSO ENVIADAS POR EL COLABORADOR
     // ============================================================
+
+    /**
+     * Lista las solicitudes de curso que el propio colaborador envió (origen
+     * {@code SOLICITUD_COLABORADOR}), de la más reciente a la más antigua. No incluye los cursos
+     * que le inscribió el RM directamente. Es una consulta de solo lectura.
+     *
+     * @param colaborador colaborador consultado
+     * @return sus solicitudes
+     */
     @Transactional(readOnly = true)
     public List<ColaboradorCurso> listarMisSolicitudes(Usuario colaborador) {
         List<ColaboradorCurso> todosMisRegistros = colaboradorCursoRepository.findByColaborador(colaborador);
@@ -162,6 +234,23 @@ public class ColaboradorCursoService {
     // ============================================================
     // COLABORADOR SOLICITA INSCRIPCIÓN A UN CURSO
     // ============================================================
+
+    /**
+     * Registra la solicitud del colaborador para inscribirse a un curso.
+     * <p>
+     * Validaciones, en este orden: el curso existe, está activo y su fecha de fin no pasó; no hay
+     * un bloqueo general (ver {@link #motivoBloqueoGeneral}); no tiene ya una inscripción en un
+     * estado que bloquea; y la justificación, si viene, no supera 500 caracteres.
+     * <p>
+     * Si todo es válido, guarda la inscripción en estado {@code SOLICITADO} con origen
+     * {@code SOLICITUD_COLABORADOR} y un RM responsable asignado, registra auditoría y notifica
+     * a ese RM. El colaborador no puede aprobarla: la decide el RM.
+     *
+     * @param colaborador colaborador que solicita
+     * @param cursoId curso al que quiere inscribirse
+     * @param justificacion motivo de la solicitud (opcional)
+     * @throws IllegalArgumentException si no se cumple alguna validación
+     */
     @Transactional
     public void solicitarInscripcion(Usuario colaborador, Long cursoId, String justificacion) {
         Curso curso = cursoRepository.findById(cursoId)
@@ -208,6 +297,16 @@ public class ColaboradorCursoService {
     // MIS CURSOS (perfil profesional). Listamos los cursos que se están llevando, con evidencia enviada,
     // completados o no completados (vencidos sin evidencia)
     // ============================================================
+
+    /**
+     * Lista los cursos que el colaborador está llevando o ya terminó, para su perfil profesional:
+     * estados {@code EN_CURSO}, {@code EVIDENCIA_PENDIENTE}, {@code COMPLETADO} y
+     * {@code NO_COMPLETADO}, del más reciente al más antiguo. Las solicitudes pendientes o
+     * rechazadas no se incluyen. Antes de listar, marca como no completados los cursos vencidos.
+     *
+     * @param colaborador colaborador consultado
+     * @return sus cursos
+     */
     @Transactional
     public List<ColaboradorCurso> listarMisCursos(Usuario colaborador) {
         marcarCursosSinEvidenciaVencidos(colaborador);
@@ -234,18 +333,43 @@ public class ColaboradorCursoService {
     // VENCIÓ SIN EVIDENCIA. Al cambiar el estado, una segunda ejecución ya no los vuelve a tocar.
     // Si aún no vence pero faltan DIAS_AVISO_FIN_CURSO días o menos, se avisa una sola vez al colaborador.
     // ============================================================
+
+    /**
+     * Revisa los cursos {@code EN_CURSO} del colaborador y marca como {@code NO_COMPLETADO} los
+     * que ya vencieron sin evidencia. Si aún no vencen pero faltan pocos días, le avisa una sola vez.
+     * La regla completa está en {@link #marcarSinEvidenciaVencidos}.
+     *
+     * @param colaborador colaborador cuyos cursos se revisan
+     */
     @Transactional
     public void marcarCursosSinEvidenciaVencidos(Usuario colaborador) {
         marcarSinEvidenciaVencidos(colaboradorCursoRepository.findByColaborador(colaborador));
     }
 
-    //Misma regla para todos los colaboradores: el RM la ejecuta al abrir su dashboard y la bandeja de cursos,
-    //así no ve "En curso" un curso vencido aunque el colaborador no haya entrado.
+    /**
+     * Aplica la misma regla a <b>todos</b> los colaboradores con inscripciones {@code EN_CURSO}.
+     * La ejecuta el RM al abrir su dashboard y la bandeja de cursos, para que no vea "En curso"
+     * un curso ya vencido aunque el colaborador no haya entrado a la plataforma.
+     */
     @Transactional
     public void marcarTodosLosCursosSinEvidenciaVencidos() {
         marcarSinEvidenciaVencidos(colaboradorCursoRepository.findByEstado(EstadoColaboradorCurso.EN_CURSO));
     }
 
+    /**
+     * Regla de vencimiento de cursos. Solo mira inscripciones {@code EN_CURSO}:
+     * <ul>
+     *   <li>Sin fecha de fin: no hay plazo, sigue en curso hasta que suba evidencia.</li>
+     *   <li>Fecha de fin futura: sigue en curso y, si faltan {@code DIAS_AVISO_FIN_CURSO} días o
+     *       menos, se le avisa una sola vez.</li>
+     *   <li>Fecha de fin hoy o pasada y ya subió evidencia: no se toca.</li>
+     *   <li>Fecha de fin hoy o pasada y sin evidencia: pasa a {@code NO_COMPLETADO}, se audita y
+     *       se le notifica. No recibe penalización, pero esas horas no se cuentan.</li>
+     * </ul>
+     * Como el estado cambia, una segunda ejecución ya no vuelve a tocar el mismo curso.
+     *
+     * @param inscripciones inscripciones a revisar
+     */
     private void marcarSinEvidenciaVencidos(List<ColaboradorCurso> inscripciones) {
 
         LocalDate hoy = LocalDate.now();
@@ -289,7 +413,14 @@ public class ColaboradorCursoService {
         }
     }
 
-    //Aviso único por inscripción: solo si falta poco para la fecha fin, no hay evidencia y no se avisó antes.
+    /**
+     * Avisa que el curso está por vencer. Es un aviso único por inscripción: solo se envía si
+     * faltan {@code DIAS_AVISO_FIN_CURSO} días o menos, aún no hay evidencia y no existe ya una
+     * notificación {@code CURSO_POR_VENCER} para esa inscripción.
+     *
+     * @param registro inscripción en curso
+     * @param hoy fecha actual
+     */
     private void avisarCursoPorVencer(ColaboradorCurso registro, LocalDate hoy) {
         Curso curso = registro.getCurso();
 
@@ -315,6 +446,24 @@ public class ColaboradorCursoService {
     // ============================================================
     // COLABORADOR SUBE LA EVIDENCIA DE FINALIZACIÓN DE UN CURSO
     // ============================================================
+
+    /**
+     * Sube la evidencia de finalización de un curso para que el RM la revise.
+     * <p>
+     * Validaciones: la inscripción existe y es del colaborador; está {@code EN_CURSO}; si es el
+     * primer intento, el plazo no venció (la fecha de fin debe ser posterior a hoy); y la
+     * evidencia existe, es PDF/JPG/PNG y pesa como máximo 10 MB.
+     * <p>
+     * Si todo es válido: guarda el archivo, asigna un RM si no tenía, pasa la inscripción a
+     * {@code EVIDENCIA_PENDIENTE} y borra la revisión anterior (queda en la auditoría). Registra
+     * auditoría y notifica al RM. Si el RM la rechazó, la inscripción vuelve a {@code EN_CURSO} y
+     * el colaborador puede reenviar sin que cuente como primer intento, aunque el plazo haya vencido.
+     *
+     * @param colaborador colaborador que sube la evidencia
+     * @param inscripcionId inscripción al curso
+     * @param evidencia archivo de evidencia
+     * @throws IllegalArgumentException si no se cumple alguna validación
+     */
     @Transactional
     public void subirEvidencia(Usuario colaborador, Long inscripcionId, MultipartFile evidencia) {
         ColaboradorCurso inscripcion = colaboradorCursoRepository.findByIdAndColaborador(inscripcionId, colaborador).orElseThrow(() -> new IllegalArgumentException("No se encontró esa inscripción a un curso."));
@@ -372,13 +521,27 @@ public class ColaboradorCursoService {
     }
 
 
+    /** Mensaje cuando no puede solicitar un curso por tener el máximo de asignaciones activas. */
     private static final String MSG_TOPE_ASIGNACIONES =
             "No puedes solicitar este curso: ya tienes el máximo de asignaciones activas en proyectos permitido por la organización.";
+
+    /** Mensaje cuando no puede solicitar un curso por haber llegado al tope de horas extra del bono. */
     private static final String MSG_TOPE_HORAS =
             "No puedes solicitar este curso: ya alcanzaste el máximo de horas que cuentan para tu bono este mes, "
                     + "así que no te quedan horas disponibles para sumar.";
 
 
+    /**
+     * Determina si el colaborador está bloqueado para solicitar cualquier curso. Hay dos motivos:
+     * <ol>
+     *   <li>ya tiene el máximo de asignaciones activas permitido por la organización;</li>
+     *   <li>ya alcanzó el tope de horas extra bonificables del mes, así que las horas de un curso
+     *       ya no le sumarían.</li>
+     * </ol>
+     *
+     * @param colaborador colaborador evaluado
+     * @return el mensaje del bloqueo, o {@code null} si puede solicitar
+     */
     private String motivoBloqueoGeneral(Usuario colaborador) {
         if (alcanzoMaximoAsignaciones(colaborador)) {
             return MSG_TOPE_ASIGNACIONES;
@@ -390,11 +553,21 @@ public class ColaboradorCursoService {
         return null;
     }
 
+    /**
+     * @param colaborador colaborador evaluado
+     * @return {@code true} si sus asignaciones {@code ACTIVAS} igualan o superan el máximo configurado
+     */
     private boolean alcanzoMaximoAsignaciones(Usuario colaborador) {
         long activas = asignacionRepository.countByColaboradorAndEstado(colaborador, EstadoAsignacion.ACTIVA);
         return activas >= obtenerMaxAsignaciones();
     }
 
+    /**
+     * Lee el máximo de asignaciones activas desde la configuración del sistema.
+     *
+     * @return el valor configurado por el Administrador; 3 si el parámetro no existe, no es
+     *         numérico o no es mayor que 0
+     */
     private int obtenerMaxAsignaciones() {
         return configuracionSistemaRepository.findByClave(CLAVE_MAX_ASIGNACIONES)
                 .map(c -> {
@@ -411,6 +584,13 @@ public class ColaboradorCursoService {
     // ============================================================
     // VALIDACIONES
     // ============================================================
+    /**
+     * Valida la justificación de la solicitud. Es opcional.
+     *
+     * @param justificacion texto ingresado
+     * @return el texto recortado, o {@code null} si viene vacío
+     * @throws IllegalArgumentException si supera 500 caracteres
+     */
     private String validarJustificacion(String justificacion) {
         //Colocamos que la justificación sea opcional,
         if (justificacion == null || justificacion.isBlank()) {
@@ -423,6 +603,13 @@ public class ColaboradorCursoService {
         return limpio;
     }
 
+    /**
+     * Traduce un estado de inscripción al texto que ve el colaborador (por ejemplo,
+     * {@code EN_CURSO} se muestra como "Inscrito").
+     *
+     * @param estado estado de la inscripción
+     * @return texto visible; vacío si el estado no tiene texto definido
+     */
     private String textoEstado(EstadoColaboradorCurso estado) {
         if (estado == EstadoColaboradorCurso.SOLICITADO) return "Solicitud pendiente";
         if (estado == EstadoColaboradorCurso.EN_CURSO) return "Inscrito";
@@ -433,6 +620,12 @@ public class ColaboradorCursoService {
         return "";
     }
 
+    /**
+     * Devuelve la clase CSS (de Tabler) con la que se colorea la etiqueta de cada estado.
+     *
+     * @param estado estado de la inscripción
+     * @return clase CSS; gris por defecto
+     */
     private String claseEstado(EstadoColaboradorCurso estado) {
         if (estado == EstadoColaboradorCurso.SOLICITADO) return "bg-yellow-lt";
         if (estado == EstadoColaboradorCurso.EN_CURSO) return "bg-green-lt";

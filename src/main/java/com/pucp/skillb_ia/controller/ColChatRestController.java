@@ -12,17 +12,39 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * API REST del chat del colaborador (rutas bajo {@code /colaborador/api/chat}).
+ * <p>
+ * La pantalla del chat llama a estos endpoints desde JavaScript para listar contactos, leer y
+ * enviar mensajes y consultar no leídos. Los permisos los valida {@link ColChatService}: si el
+ * colaborador no pertenece al proyecto, el service lanza un error que traduce el manejador
+ * global de excepciones.
+ * <p>
+ * Convención común: si no se envía {@code usuarioId}, la operación es sobre el chat
+ * <b>grupal</b>; si se envía, es sobre el chat <b>privado</b> con ese usuario.
+ */
 @RestController
 @RequestMapping("/colaborador/api/chat")
 public class ColChatRestController {
 
     private final ColChatService colChatService;
 
+    /**
+     * @param colChatService service con la lógica y los permisos del chat
+     */
     public ColChatRestController(ColChatService colChatService) {
         this.colChatService = colChatService;
     }
 
-    // Lista de mensajes directos de PM y colaboradores del proyecto
+    /**
+     * Lista las personas con quienes puede chatear en privado ({@code GET /colaborador/api/chat/companeros}):
+     * el PM y los demás colaboradores activos del proyecto.
+     *
+     * @param proyectoId proyecto del chat
+     * @param principal usuario autenticado
+     * @return contactos disponibles
+     * @see ColChatService#listarContactos
+     */
     @GetMapping("/companeros")
     public ResponseEntity<List<ChatContactoView>> getCompaneros(
             @RequestParam(value = "proyectoId", required = false) Long proyectoId,
@@ -31,6 +53,14 @@ public class ColChatRestController {
         return ResponseEntity.ok(colChatService.listarContactos(proyectoId, colaborador));
     }
 
+    /**
+     * Cuenta los mensajes no leídos por chat ({@code GET /colaborador/api/chat/noleidos}).
+     *
+     * @param proyectoId proyecto del chat
+     * @param principal usuario autenticado
+     * @return cantidad de mensajes no leídos por chat
+     * @see ColChatService#obtenerNoLeidos
+     */
     @GetMapping("/noleidos")
     public ResponseEntity<Map<String, Long>> getNoLeidos(
             @RequestParam(value = "proyectoId", required = false) Long proyectoId,
@@ -40,6 +70,18 @@ public class ColChatRestController {
     }
 
 
+    /**
+     * Obtiene los mensajes de un chat ({@code GET /colaborador/api/chat/mensajes}). Sin
+     * {@code usuarioId} devuelve el chat grupal; con {@code usuarioId}, el privado con ese usuario.
+     * Leerlos los marca como leídos.
+     *
+     * @param proyectoId proyecto del chat
+     * @param usuarioId otro participante del chat privado (opcional)
+     * @param principal usuario autenticado
+     * @return mensajes de la conversación
+     * @see ColChatService#obtenerMensajes
+     * @see ColChatService#obtenerMensajesPrivados
+     */
     @GetMapping("/mensajes")
     public ResponseEntity<List<PmMensajeView>> getMensajes(
             @RequestParam(value = "proyectoId", required = false) Long proyectoId,
@@ -59,6 +101,19 @@ public class ColChatRestController {
         return ResponseEntity.ok(mensajes);
     }
 
+    /**
+     * Envía un mensaje ({@code POST /colaborador/api/chat/enviar}). Sin {@code usuarioId} va al chat
+     * grupal; con {@code usuarioId}, al privado con ese usuario. El texto no puede estar vacío ni
+     * superar 1000 caracteres.
+     *
+     * @param proyectoId proyecto del chat
+     * @param usuarioId destinatario del mensaje privado (opcional)
+     * @param contenido texto del mensaje
+     * @param principal usuario autenticado
+     * @return el mensaje guardado
+     * @see ColChatService#enviarMensaje
+     * @see ColChatService#enviarMensajePrivado
+     */
     @PostMapping("/enviar")
     public ResponseEntity<PmMensajeView> enviarMensaje(
             @RequestParam(value = "proyectoId", required = false) Long proyectoId,

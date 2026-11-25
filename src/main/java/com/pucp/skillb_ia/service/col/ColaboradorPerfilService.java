@@ -31,20 +31,50 @@ import java.time.format.DateTimeParseException;
 import java.util.stream.Collectors;
 
 
+/**
+ * Lógica del perfil profesional del colaborador.
+ * <p>
+ * Gestiona sus datos personales (sobre mí, teléfono, foto, CV, contraseña), sus habilidades y
+ * certificados, su educación y su experiencia profesional, además de calcular qué tan
+ * completo está el perfil.
+ * <p>
+ * Muchos datos pasan por revisión: las habilidades y certificados los valida el Resource
+ * Manager, la educación la aprueba el RM y el CV lo revisa el Administrador. Cada cambio
+ * relevante queda en el log de auditoría. Las reglas inválidas se informan con
+ * {@link IllegalArgumentException} y un mensaje apto para el usuario.
+ * <p>
+ * Algunos métodos de validación son públicos porque también los usa el pre-registro, para
+ * que lo que se acepta al registrarse sea lo mismo que acepta el perfil después.
+ */
 @Service
 public class ColaboradorPerfilService {
 
+    /** Tipos MIME aceptados para la foto de perfil: JPG y PNG. */
     private static final Set<String> TIPOS_IMAGEN_PERMITIDOS = Set.of("image/jpeg", "image/png");
+
+    /** Tamaño máximo de la foto de perfil: 2 MB. */
     private static final long TAMANO_MAXIMO_FOTO_BYTES = 2L * 1024 * 1024; // 2MB
+
+    /** Tipos MIME aceptados para certificados: PDF, JPG y PNG. */
     private static final Set<String> TIPOS_CERTIFICADO_PERMITIDOS =
             Set.of("application/pdf", "image/jpeg", "image/png");
+
+    /** Tamaño máximo de un certificado: 10 MB. */
     private static final long TAMANO_MAXIMO_CERTIFICADO_BYTES = 10L * 1024 * 1024;
+
+    /** El CV solo se acepta en PDF. */
     private static final Set<String> TIPOS_CV_PERMITIDOS = Set.of("application/pdf");
+
+    /** Tamaño máximo del CV: 5 MB. */
     private static final long TAMANO_MAXIMO_CV_BYTES = 5L * 1024 * 1024; // 5MB
 
+
     private final UsuarioRepository usuarioRepository;
+
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
+
     private final HabilidadRepository habilidadRepository;
+
     private final CategoriaHabilidadRepository categoriaHabilidadRepository;
 
 
@@ -62,6 +92,23 @@ public class ColaboradorPerfilService {
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
     private final RmRevisionAsignadorService rmRevisionAsignadorService;
 
+    /**
+     * Inyecta por constructor las dependencias del service.
+     *
+     * @param usuarioRepository acceso a usuarios
+     * @param colaboradorHabilidadRepository habilidades de cada colaborador
+     * @param habilidadRepository catálogo de habilidades
+     * @param categoriaHabilidadRepository categorías de habilidades
+     * @param educacionRepository formación académica
+     * @param certificadoRepository certificados de habilidades
+     * @param experienciaProfesionalRepository experiencia profesional
+     * @param passwordEncoder codifica y compara contraseñas
+     * @param auditoriaService registro en el log de auditoría
+     * @param notificacionService envío de notificaciones
+     * @param uploadDir carpeta de subidas, de la propiedad {@code app.upload-dir} (por defecto {@code uploads})
+     * @param archivoAlmacenamientoService guardado de archivos (disco local o S3 según configuración)
+     * @param rmRevisionAsignadorService elige qué RM revisa cada certificado o formación
+     */
     public ColaboradorPerfilService(UsuarioRepository usuarioRepository,
                                     ColaboradorHabilidadRepository colaboradorHabilidadRepository,
                                     HabilidadRepository habilidadRepository,
@@ -90,17 +137,33 @@ public class ColaboradorPerfilService {
         this.rmRevisionAsignadorService = rmRevisionAsignadorService;
     }
 
-    //Listado de categorías activas
+    /**
+     * Lista las categorías de habilidades que están activas.
+     *
+     * @return categorías activas
+     */
     public List<CategoriaHabilidad> listarCategoriasHabilidad() {
         return categoriaHabilidadRepository.findByActivaTrue();
     }
 
-    //Listado de las habilidades activas del colaborador
+    /**
+     * Lista las habilidades del colaborador que no fueron quitadas de su perfil.
+     *
+     * @param colaborador colaborador consultado
+     * @return sus habilidades activas, con su nivel y estado de validación
+     */
     public List<ColaboradorHabilidad> listarHabilidades(Usuario colaborador) {
         return colaboradorHabilidadRepository.findByColaboradorAndActivoTrue(colaborador);
     }
 
 
+    /**
+     * Arma un mapa {@code idHabilidad -> archivo del certificado más reciente}, para mostrar
+     * el último certificado de cada habilidad en el perfil.
+     *
+     * @param colaborador colaborador consultado
+     * @return mapa con el enlace al certificado más reciente de cada habilidad
+     */
     public java.util.Map<Long, String> mapaCertificadosPorHabilidad(Usuario colaborador) {
         List<Certificado> certificados = certificadoRepository.findByColaboradorIdConDetalle(colaborador.getId());
         java.util.Map<Long, String> mapa = new java.util.HashMap<>();
@@ -116,7 +179,14 @@ public class ColaboradorPerfilService {
         return mapa;
     }
 
-    //Motivo del rechazo por habilidad, solo cuando su certificado más reciente fue rechazado.
+    /**
+     * Arma un mapa {@code idHabilidad -> motivo de rechazo}. Solo incluye una habilidad si su
+     * certificado <b>más reciente</b> está {@code RECHAZADO} y tiene motivo; si ya subió uno
+     * nuevo, el rechazo anterior deja de mostrarse.
+     *
+     * @param colaborador colaborador consultado
+     * @return mapa de motivos de rechazo por habilidad
+     */
     public java.util.Map<Long, String> mapaMotivosRechazoPorHabilidad(Usuario colaborador) {
         List<Certificado> certificados = certificadoRepository.findByColaboradorIdConDetalle(colaborador.getId());
         java.util.Map<Long, String> mapa = new java.util.HashMap<>();
@@ -134,7 +204,13 @@ public class ColaboradorPerfilService {
         return mapa;
     }
 
-    //Listado de habilidades con las que no cuenta el colaborador
+    /**
+     * Lista las habilidades activas del catálogo que el colaborador aún no tiene en su perfil
+     * (para el selector de "agregar habilidad").
+     *
+     * @param colaborador colaborador consultado
+     * @return habilidades que puede agregar
+     */
     public List<Habilidad> listarHabilidadesDisponibles(Usuario colaborador) {
         List<ColaboradorHabilidad> misHabilidades = listarHabilidades(colaborador);
 
@@ -155,16 +231,33 @@ public class ColaboradorPerfilService {
         return disponibles;
     }
 
-    // Certificados que el colaborador ha presentado, incluidos los rechazados.
-    // Se conservan para que el motivo y el historial siempre permanezcan visibles.
+    /**
+     * Lista los certificados que el colaborador ha presentado, incluidos los rechazados. Los
+     * rechazados no se eliminan: se conservan para que el motivo y el historial sigan visibles.
+     * Es una consulta de solo lectura.
+     *
+     * @param colaborador colaborador consultado
+     * @return sus certificados, del más reciente al más antiguo
+     */
     @Transactional(readOnly = true)
     public List<Certificado> listarCertificados(Usuario colaborador) {
         return certificadoRepository.findByColaboradorIdConDetalle(colaborador.getId());
     }
 
 
-    //Calculamos el porcentaje que medira si el perfil esta completado del colaborador
-    //Considerando la sección de foto, sobre mí, habilidad y formación academica
+    /**
+     * Calcula qué tan completo está el perfil. Se evalúan 4 criterios, y cada uno vale 25%:
+     * <ol>
+     *   <li>tiene foto de perfil,</li>
+     *   <li>tiene texto en "Sobre mí",</li>
+     *   <li>tiene al menos una habilidad {@code VALIDADA} por el RM,</li>
+     *   <li>tiene al menos una formación académica {@code APROBADA} por el RM.</li>
+     * </ol>
+     * Que la habilidad y la formación estén <i>validadas</i> (no solo agregadas) es lo que las cuenta.
+     *
+     * @param colaborador colaborador evaluado
+     * @return porcentaje de 0 a 100 (0, 25, 50, 75 o 100)
+     */
     public int calcularPorcentajeCompletado(Usuario colaborador) {
         int total = 4;
         int listos = 0;
@@ -175,7 +268,14 @@ public class ColaboradorPerfilService {
         return Math.round((listos * 100f) / total);
     }
 
-    //Implementamos el listado de cosas que le faltan completar en su perfil al colaborador
+    /**
+     * Lista los mensajes de lo que le falta al colaborador para completar su perfil, según los
+     * mismos 4 criterios de {@link #calcularPorcentajeCompletado}. Si ya agregó la habilidad o la
+     * formación pero el RM no la validó, el mensaje le indica que espere la revisión.
+     *
+     * @param colaborador colaborador evaluado
+     * @return mensajes pendientes; vacío si el perfil está completo
+     */
     public List<String> listarPendientesCompletar(Usuario colaborador) {
         List<String> pendientes = new ArrayList<>();
 
@@ -194,7 +294,10 @@ public class ColaboradorPerfilService {
         return pendientes;
     }
 
-    //Evaluamos que el colaborador tenga al menos una habilidad ya validada por el RM.
+    /**
+     * @param colaborador colaborador evaluado
+     * @return {@code true} si tiene al menos una habilidad activa en estado {@code VALIDADA} por el RM
+     */
     private boolean tieneHabilidadValidada(Usuario colaborador) {
         for (ColaboradorHabilidad ch : listarHabilidades(colaborador)) {
             if (ch.getEstadoValidacion() == EstadoValidacion.VALIDADA) {
@@ -204,7 +307,10 @@ public class ColaboradorPerfilService {
         return false;
     }
 
-    //Evaluamos que el colaborador tenga al menos una formación académica ya aprobada por el RM
+    /**
+     * @param colaborador colaborador evaluado
+     * @return {@code true} si tiene al menos una formación académica activa en estado {@code APROBADO} por el RM
+     */
     private boolean tieneEducacionAprobada(Usuario colaborador) {
         for (Educacion edu : listarEducacion(colaborador)) {
             if (edu.getEstado() == EstadoCertificado.APROBADO) {
@@ -221,6 +327,14 @@ public class ColaboradorPerfilService {
     // SOBRE MÍ
     // ============================================================
 
+    /**
+     * Actualiza el texto "Sobre mí". Se recorta el texto, el máximo es de 500 caracteres y un
+     * texto vacío se guarda como {@code null}. Deja registro en auditoría.
+     *
+     * @param colaborador colaborador que edita su perfil
+     * @param descripcion nuevo texto
+     * @throws IllegalArgumentException si supera los 500 caracteres
+     */
     @Transactional
     public void actualizarSobreMi(Usuario colaborador, String descripcion) {
 
@@ -238,8 +352,14 @@ public class ColaboradorPerfilService {
     // ============================================================
     // TELÉFONO
     // ============================================================
-    // Regla del teléfono del colaborador; también la usa el pre-registro para que el número que guarda
-    // sea uno que su propio perfil acepte después. Devuelve el teléfono ya limpio.
+    /**
+     * Valida el teléfono con la política definida en {@code PoliticaTelefono}. También la usa el
+     * pre-registro, para que el número que guarda sea uno que el perfil acepte después.
+     *
+     * @param telefono teléfono ingresado
+     * @return el teléfono sin espacios sobrantes
+     * @throws IllegalArgumentException si está vacío o no cumple el formato
+     */
     public String validarTelefono(String telefono) {
         if (telefono == null || telefono.isBlank()) {
             throw new IllegalArgumentException("Indica tu número de teléfono.");
@@ -252,6 +372,14 @@ public class ColaboradorPerfilService {
         return limpio;
     }
 
+    /**
+     * Actualiza el teléfono del colaborador, tras validarlo con {@link #validarTelefono}, y lo
+     * registra en auditoría. El correo, en cambio, no se edita desde el perfil: solo lo cambia el Administrador.
+     *
+     * @param colaborador colaborador que edita su perfil
+     * @param telefono nuevo teléfono
+     * @throws IllegalArgumentException si el teléfono no es válido
+     */
     @Transactional
     public void actualizarTelefono(Usuario colaborador, String telefono) {
         String limpio = validarTelefono(telefono);
@@ -265,6 +393,16 @@ public class ColaboradorPerfilService {
     // FOTO DE PERFIL
     // ============================================================
 
+    /**
+     * Cambia la foto de perfil. Reglas: debe existir, ser JPG o PNG y pesar como máximo 2 MB.
+     * El archivo se guarda con nombre único ({@code usuario-<id>-<uuid>.<ext>}) en la carpeta
+     * {@code perfil}, en disco local o en S3 según la configuración, y se guarda su URL en el usuario.
+     * El nombre único evita que dos usuarios con el mismo nombre de archivo se reemplacen.
+     *
+     * @param colaborador colaborador que cambia su foto
+     * @param foto imagen nueva
+     * @throws IllegalArgumentException si falta, no es JPG/PNG o supera 2 MB
+     */
     @Transactional
     public void actualizarFoto(Usuario colaborador, MultipartFile foto) {
         if (foto == null || foto.isEmpty()) {
@@ -301,7 +439,14 @@ public class ColaboradorPerfilService {
     // profesional del colaborador basado en lo que diga el documento.
     // ============================================================
 
-    // También la usa el pre-registro (activación de cuenta) para validar antes de crear la cuenta.
+    /**
+     * Valida el archivo del CV: debe existir, ser PDF y pesar como máximo 5 MB, y además se
+     * comprueba que el contenido real del archivo sea un PDF. También la usa el pre-registro,
+     * antes de crear la cuenta.
+     *
+     * @param cv archivo del CV
+     * @throws IllegalArgumentException si no cumple alguna regla
+     */
     public void validarCv(MultipartFile cv) {
         if (cv == null || cv.isEmpty()) {
             throw new IllegalArgumentException("Selecciona un archivo PDF para subir.");
@@ -315,6 +460,21 @@ public class ColaboradorPerfilService {
         archivoAlmacenamientoService.validarContenidoReal(cv);
     }
 
+
+    /**
+     * Sube o reemplaza el CV del colaborador. Lo revisa el Administrador, quien luego completa
+     * la experiencia profesional según lo que diga el documento.
+     * <p>
+     * Tras validar el archivo: lo guarda, deja el CV en estado {@code PENDIENTE} con su fecha de
+     * subida y borra el motivo de rechazo anterior. Si el registro del colaborador estaba
+     * {@code RECHAZADO}, vuelve a {@code PENDIENTE} para una nueva revisión. Registra auditoría
+     * y notifica a todos los administradores.
+     *
+     * @param colaborador colaborador que sube su CV
+     * @param cv archivo PDF
+     * @throws IllegalArgumentException si el archivo no es válido
+     * @see #validarCv
+     */
     @Transactional
     public void actualizarCv(Usuario colaborador, MultipartFile cv) {
         validarCv(cv);
@@ -341,6 +501,14 @@ public class ColaboradorPerfilService {
                 "USUARIO", colaborador.getId());
     }
 
+
+    /**
+     * Quita la foto de perfil. Solo borra la referencia guardada en el usuario; no elimina el
+     * archivo del almacenamiento. Deja registro en auditoría.
+     *
+     * @param colaborador colaborador que quita su foto
+     * @throws IllegalArgumentException si no tiene foto
+     */
     @Transactional
     public void eliminarFoto(Usuario colaborador) {
         if (colaborador.getFotoUrl() == null || colaborador.getFotoUrl().isBlank()) {
@@ -355,6 +523,21 @@ public class ColaboradorPerfilService {
     // ============================================================
     // CAMBIO DE CONTRASEÑA
     // ============================================================
+
+    /**
+     * Cambia la contraseña del colaborador desde Ajustes de Cuenta.
+     * <p>
+     * Orden de validaciones: la contraseña actual coincide con la guardada (comparación del
+     * {@code PasswordEncoder}), la nueva cumple la política de {@link #validarPassword} y la
+     * confirmación es igual a la nueva. La contraseña nueva se guarda codificada, nunca en texto
+     * plano. Deja registro en auditoría.
+     *
+     * @param colaborador colaborador que cambia su contraseña
+     * @param actual contraseña actual
+     * @param nueva contraseña nueva
+     * @param confirmar repetición de la contraseña nueva
+     * @throws IllegalArgumentException si alguna validación falla
+     */
     @Transactional
     public void cambiarPassword(Usuario colaborador, String actual, String nueva, String confirmar) {
         if (actual == null || !passwordEncoder.matches(actual, colaborador.getPasswordHash())) {
@@ -370,7 +553,13 @@ public class ColaboradorPerfilService {
                 "Cambió su contraseña desde Ajustes de Cuenta.");
     }
 
-    //Validamos contraseña
+    /**
+     * Aplica la política de contraseñas: al menos 8 caracteres, una mayúscula, un número y un
+     * símbolo (carácter que no es letra, dígito ni espacio).
+     *
+     * @param password contraseña a validar
+     * @throws IllegalArgumentException con el requisito que falta
+     */
     private void validarPassword(String password) {
         if (password == null || password.length() < 8) {
             throw new IllegalArgumentException("La nueva contraseña debe tener al menos 8 caracteres.");
@@ -405,6 +594,27 @@ public class ColaboradorPerfilService {
     // ============================================================
     // HABILIDADES DEL COLABORADOR
     // ============================================================
+
+    /**
+     * Agrega una habilidad al perfil, con su nivel de dominio y un certificado obligatorio.
+     * <p>
+     * La habilidad puede ser del catálogo ({@code habilidadId}) o nueva
+     * ({@code nuevaHabilidadNombre} + categoría, ver {@link #crearOReutilizarHabilidad}). Si el
+     * colaborador ya la tenía activa, se rechaza. Si la había quitado antes, se <b>reactiva la
+     * misma fila</b> en vez de crear otra.
+     * <p>
+     * La habilidad queda {@code PENDIENTE} de validación y se crea un certificado también
+     * {@code PENDIENTE}, asignado a un RM elegido por {@code RmRevisionAsignadorService}. Deja
+     * registro en auditoría.
+     *
+     * @param colaborador colaborador que agrega la habilidad
+     * @param habilidadId id de una habilidad del catálogo (o {@code null} si propone una nueva)
+     * @param nuevaHabilidadNombre nombre de la habilidad nueva
+     * @param categoriaId categoría de la habilidad nueva
+     * @param nivel nivel de dominio (obligatorio)
+     * @param certificado certificado que la respalda (obligatorio)
+     * @throws IllegalArgumentException si falta el nivel o el certificado, la habilidad no existe o ya la tiene
+     */
     @Transactional
     public void agregarHabilidad(Usuario colaborador, Long habilidadId, String nuevaHabilidadNombre,
                                  Long categoriaId, NivelDominio nivel, MultipartFile certificado) {
@@ -468,7 +678,19 @@ public class ColaboradorPerfilService {
                         + ") a su perfil y envió un certificado a revisión del RM.");
     }
 
-    //En caso de que el colaborador no encuentre una habilidad, tiene la opción de crearla.
+    /**
+     * Crea una habilidad nueva en el catálogo cuando el colaborador no la encuentra. A pesar del
+     * nombre del método, <b>no reutiliza</b> habilidades existentes: si ya existe una con ese
+     * nombre (sin distinguir mayúsculas), lanza un error indicando que la busque en el catálogo.
+     * <p>
+     * Validaciones: nombre no vacío y de máximo 100 caracteres (límite de la columna), categoría
+     * obligatoria y activa.
+     *
+     * @param nombre nombre propuesto
+     * @param categoriaId categoría de la habilidad
+     * @return la habilidad nueva, ya guardada y activa
+     * @throws IllegalArgumentException si falta algún dato o el nombre ya existe
+     */
     private Habilidad crearOReutilizarHabilidad(String nombre, Long categoriaId) {
         if (nombre == null || nombre.isBlank()) {
             throw new IllegalArgumentException("Escribe el nombre de la nueva habilidad.");
@@ -506,8 +728,13 @@ public class ColaboradorPerfilService {
     }
 
 
-    // Reglas de archivo de un certificado (PDF/JPG/PNG, máx. 10 MB). También las usa el pre-registro
-    // para validar antes de crear la cuenta.
+    /**
+     * Valida un certificado: debe existir, ser PDF, JPG o PNG, pesar como máximo 10 MB y su
+     * contenido real debe coincidir con el tipo declarado. También la usa el pre-registro.
+     *
+     * @param archivo certificado a validar
+     * @throws IllegalArgumentException si no cumple alguna regla
+     */
     public void validarArchivoCertificado(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new IllegalArgumentException("Debes adjuntar un certificado.");
@@ -521,12 +748,26 @@ public class ColaboradorPerfilService {
         archivoAlmacenamientoService.validarContenidoReal(archivo);
     }
 
-    // Habilidades del catálogo que un colaborador puede elegir (pre-registro).
+    /**
+     * Lista todas las habilidades activas del catálogo. Se usa en el pre-registro, donde el
+     * colaborador todavía no tiene habilidades.
+     *
+     * @return habilidades activas
+     */
     public List<Habilidad> listarHabilidadesActivas() {
         return habilidadRepository.findByActivaTrue();
     }
 
-    //Guardamos certificado
+    /**
+     * Valida (existencia, tipo y tamaño) y guarda un certificado con nombre único
+     * ({@code <prefijo>-<uuid>.<ext>}) en la carpeta indicada.
+     *
+     * @param archivo certificado a guardar
+     * @param carpeta carpeta de almacenamiento (por ejemplo {@code certificados})
+     * @param prefijoArchivo prefijo del nombre del archivo
+     * @return la ruta o URL donde quedó guardado
+     * @throws IllegalArgumentException si falta, no es PDF/JPG/PNG o supera 10 MB
+     */
     private String guardarCertificado(MultipartFile archivo, String carpeta, String prefijoArchivo) {
         if (archivo == null || archivo.isEmpty()) {
             throw new IllegalArgumentException("Debes adjuntar un certificado.");
@@ -553,7 +794,14 @@ public class ColaboradorPerfilService {
 
 
 
-
+    /**
+     * Quita una habilidad del perfil. Es un borrado lógico: la habilidad pasa a inactiva, no se
+     * borra, así que sus certificados se conservan y se puede reactivar al agregarla de nuevo. Si
+     * el colaborador no tiene esa habilidad, no hace nada. Deja registro en auditoría.
+     *
+     * @param colaborador colaborador dueño del perfil
+     * @param habilidadId id de la habilidad a quitar
+     */
     @Transactional
     public void eliminarHabilidad(Usuario colaborador, Long habilidadId) {
         ColaboradorHabilidadId id = new ColaboradorHabilidadId(colaborador.getId(), habilidadId);
@@ -576,6 +824,30 @@ public class ColaboradorPerfilService {
     // CERTIFICADOS DE HABILIDADES
     // ============================================================
 
+
+    /**
+     * Sube un certificado nuevo para una habilidad que el colaborador ya tiene.
+     * <p>
+     * Validaciones: se eligió habilidad, el archivo existe y es PDF/JPG/PNG de máximo 10 MB, la
+     * habilidad está activa en su perfil y no tiene ya otro certificado {@code PENDIENTE} para ella.
+     * <p>
+     * El certificado se crea {@code PENDIENTE} con un RM responsable. Efecto sobre la habilidad:
+     * <ul>
+     *   <li>si el colaborador indica un <b>nuevo nivel</b>, se actualiza y la habilidad vuelve a
+     *       {@code PENDIENTE} de validación;</li>
+     *   <li>si no cambia el nivel y la habilidad no estaba {@code VALIDADA}, se mantiene
+     *       {@code PENDIENTE};</li>
+     *   <li>si no cambia el nivel y ya estaba {@code VALIDADA}, se conserva así.</li>
+     * </ul>
+     * Registra auditoría y notifica al RM responsable.
+     *
+     * @param colaborador colaborador que sube el certificado
+     * @param habilidadId habilidad que se certifica
+     * @param nuevoNivel nivel que se quiere validar (opcional)
+     * @param archivo archivo del certificado
+     * @return el certificado guardado
+     * @throws IllegalArgumentException si no se cumple alguna validación
+     */
     @Transactional
     public Certificado subirCertificado(Usuario colaborador, Long habilidadId, NivelDominio nuevoNivel,
                                         MultipartFile archivo) {
@@ -654,11 +926,26 @@ public class ColaboradorPerfilService {
     // ============================================================
     // EXPERIENCIA PROFESIONAL
     // ============================================================
+    /**
+     * Lista la experiencia profesional activa del colaborador, de la más reciente a la más antigua
+     * según su fecha de inicio.
+     *
+     * @param colaborador colaborador consultado
+     * @return su experiencia profesional
+     */
     public List<ExperienciaProfesional> listarExperienciaProfesional(Usuario colaborador) {
         return experienciaProfesionalRepository.findByColaboradorAndActivoTrueOrderByFechaInicioDesc(colaborador);
     }
 
-    // Misma regla que el formulario del pre-registro; la usan también el Admin y el propio colaborador.
+    /**
+     * Valida una experiencia profesional. Es la misma regla del formulario del pre-registro.
+     * Cargo (máx. 100), empresa (máx. 150) y descripción (máx. 500) son obligatorios; la fecha de
+     * inicio es obligatoria y no puede ser futura; si no es el trabajo actual, la fecha de fin
+     * es obligatoria.
+     *
+     * @param exp experiencia a validar
+     * @throws IllegalArgumentException con el primer problema encontrado
+     */
     private void validarExperiencia(ExperienciaProfesional exp) {
         if (exp.getCargo() == null || exp.getCargo().isBlank()) {
             throw new IllegalArgumentException("El cargo es obligatorio.");
@@ -689,6 +976,15 @@ public class ColaboradorPerfilService {
         }
     }
 
+    /**
+     * Agrega una experiencia profesional al colaborador. Valida los campos y, si está marcada
+     * como trabajo actual, borra la fecha de fin. Además exige que la fecha de fin no sea
+     * anterior a la de inicio. Deja registro en auditoría.
+     *
+     * @param colaborador colaborador dueño de la experiencia
+     * @param exp experiencia a guardar
+     * @throws IllegalArgumentException si no cumple las validaciones
+     */
     @Transactional
     public void agregarExperiencia(Usuario colaborador, ExperienciaProfesional exp) {
         validarExperiencia(exp);
@@ -711,12 +1007,27 @@ public class ColaboradorPerfilService {
                 "Agregó experiencia profesional en: " + exp.getEmpresa());
     }
 
+    /**
+     * Elimina una experiencia profesional haciendo que el propio colaborador sea quien actúa.
+     *
+     * @param colaborador colaborador dueño de la experiencia
+     * @param id id de la experiencia
+     * @see #eliminarExperiencia(Usuario, Long, Usuario)
+     */
     @Transactional
     public void eliminarExperiencia(Usuario colaborador, Long id) {
         eliminarExperiencia(colaborador, id, colaborador);
     }
 
-    // "actor" es quien la elimina (el propio colaborador o el Admin al revisar su registro).
+    /**
+     * Elimina (borrado lógico) una experiencia profesional. Solo lo hace si la experiencia
+     * pertenece realmente al colaborador indicado; si no existe o es de otro, no hace nada. La
+     * auditoría se registra a nombre del {@code actor}.
+     *
+     * @param colaborador dueño de la experiencia
+     * @param id id de la experiencia
+     * @param actor quien la elimina: el propio colaborador o el Administrador al revisar su registro
+     */
     @Transactional
     public void eliminarExperiencia(Usuario colaborador, Long id, Usuario actor) {
         experienciaProfesionalRepository.findById(id).ifPresent(exp -> {
@@ -735,12 +1046,29 @@ public class ColaboradorPerfilService {
     // EDUCACIÓN
     // ============================================================
 
-    //Listamos la formación académica activa del colaborador
+    /**
+     * Lista la formación académica activa del colaborador (no eliminada), incluida la que está
+     * pendiente de aprobación.
+     *
+     * @param colaborador colaborador consultado
+     * @return su formación académica
+     */
     public List<Educacion> listarEducacion(Usuario colaborador) {
         return educacionRepository.findByColaboradorAndActivoTrue(colaborador);
     }
 
-    //Agregamos educación
+    /**
+     * Agrega una formación académica y avisa al RM. Equivale a llamar a
+     * {@link #agregarEducacion(Usuario, String, String, String, String, MultipartFile, boolean)}
+     * con {@code notificarRm = true}.
+     *
+     * @param colaborador colaborador dueño de la formación
+     * @param institucion institución educativa
+     * @param titulo título o carrera
+     * @param fechaInicioTexto fecha de inicio como texto
+     * @param fechaFinTexto fecha de fin como texto
+     * @param certificado certificado que respalda el estudio
+     */
     @Transactional
     public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
                                  String fechaInicioTexto, String fechaFinTexto,
@@ -748,8 +1076,27 @@ public class ColaboradorPerfilService {
         agregarEducacion(colaborador, institucion, titulo, fechaInicioTexto, fechaFinTexto, certificado, true);
     }
 
-    // "notificarRm" es false en el pre-registro: el RM todavía no ve al colaborador (su bandeja
-    // excluye registros sin aprobar) y se le avisa recién cuando el Admin aprueba el registro.
+    /**
+     * Agrega una formación académica al perfil.
+     * <p>
+     * Validaciones: institución y título obligatorios (máx. 150 caracteres cada uno, por el
+     * tamaño de la columna), ambas fechas obligatorias y con formato válido, fin no anterior a
+     * inicio y fin no futura, y certificado obligatorio. Queda pendiente de aprobación, con un RM
+     * responsable asignado. Se registra auditoría.
+     * <p>
+     * {@code notificarRm} es {@code false} en el pre-registro, porque el RM todavía no ve al
+     * colaborador (su bandeja excluye registros sin aprobar); se le avisa después, cuando el
+     * Administrador aprueba el registro.
+     *
+     * @param colaborador colaborador dueño de la formación
+     * @param institucion institución educativa
+     * @param titulo título o carrera
+     * @param fechaInicioTexto fecha de inicio ({@code yyyy-MM-dd})
+     * @param fechaFinTexto fecha de fin ({@code yyyy-MM-dd})
+     * @param certificado certificado que respalda el estudio (obligatorio)
+     * @param notificarRm si se debe notificar al RM responsable
+     * @throws IllegalArgumentException si no se cumple alguna validación
+     */
     @Transactional
     public void agregarEducacion(Usuario colaborador, String institucion, String titulo,
                                  String fechaInicioTexto, String fechaFinTexto,
@@ -801,6 +1148,11 @@ public class ColaboradorPerfilService {
         }
     }
 
+    /**
+     * Notifica al RM responsable que hay una formación académica pendiente de revisión.
+     *
+     * @param educacion formación recién agregada
+     */
     private void notificarRmEducacionPendiente(Educacion educacion) {
         Usuario colaborador = educacion.getColaborador();
         notificacionService.crearParaRm(educacion.getRmResponsable(), "EDUCACION_PENDIENTE", CategoriaNotificacion.HABILIDAD,
@@ -810,8 +1162,12 @@ public class ColaboradorPerfilService {
                 "EDUCACION", educacion.getId());
     }
 
-    // Se llama cuando el Admin aprueba el pre-registro: desde ese momento el RM ya ve las
-    // formaciones y los certificados que el colaborador cargó, así que se le avisa de las pendientes.
+    /**
+     * Se llama cuando el Administrador aprueba el pre-registro. Desde ese momento el RM ya ve al
+     * colaborador, así que se le notifica cada formación que quedó {@code PENDIENTE}.
+     *
+     * @param colaborador colaborador cuyo registro fue aprobado
+     */
     @Transactional
     public void avisarAlRmDelRegistroAprobado(Usuario colaborador) {
         listarEducacion(colaborador).stream()
@@ -819,7 +1175,14 @@ public class ColaboradorPerfilService {
                 .forEach(this::notificarRmEducacionPendiente);
     }
 
-    //Convertimos el texto del input type="date" a LocalDate, exigiendo que venga lleno y con formato válido
+    /**
+     * Convierte el texto de un campo de fecha del formulario en {@link LocalDate}.
+     *
+     * @param valor texto en formato {@code yyyy-MM-dd}
+     * @param nombreCampo nombre del campo, usado en el mensaje de error
+     * @return la fecha
+     * @throws IllegalArgumentException si viene vacío o con formato inválido
+     */
     private LocalDate parseFechaObligatoria(String valor, String nombreCampo) {
         if (valor == null || valor.isBlank()) {
             throw new IllegalArgumentException("Indica " + nombreCampo + ".");
@@ -831,7 +1194,14 @@ public class ColaboradorPerfilService {
         }
     }
 
-
+    /**
+     * Elimina (borrado lógico) una formación académica. Solo puede hacerlo su dueño o un
+     * Administrador. Si no existe, no hace nada. Deja registro en auditoría a nombre de quien la elimina.
+     *
+     * @param usuarioQueElimina usuario que ejecuta la acción
+     * @param educacionId id de la formación
+     * @throws IllegalArgumentException si no es el dueño ni un Administrador
+     */
     @Transactional
     public void eliminarEducacion(Usuario usuarioQueElimina, Long educacionId) {
         Optional<Educacion> educacionOpt = educacionRepository.findById(educacionId);

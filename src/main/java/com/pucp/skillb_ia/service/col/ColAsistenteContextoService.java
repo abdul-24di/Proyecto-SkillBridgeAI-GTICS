@@ -528,7 +528,7 @@ public class ColAsistenteContextoService {
 
 
     private boolean puedeLeer(Usuario col, Foro foro) {
-        if (foro.isEsPublico()) {
+        if (foro.isVisibleParaTodos()) {
             return true;
         }
         return foro.getProyecto() != null && asignacionRepository.tieneAccesoVigente(foro.getProyecto(), col);

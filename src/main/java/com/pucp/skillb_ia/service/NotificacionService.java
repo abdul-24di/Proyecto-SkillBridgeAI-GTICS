@@ -218,11 +218,15 @@ public class NotificacionService {
             if (foroOpt.isPresent()) {
                 Foro foro = foroOpt.get();
                 if (esPm) {
-                    return foro.getProyecto() != null
+                    // En el foro público de otro PM se entra por el foro: por el proyecto no tendría permiso.
+                    boolean esSuProyecto = foro.getProyecto() != null && foro.getProyecto().getPm() != null
+                            && foro.getProyecto().getPm().getId().equals(item.getUsuario().getId());
+                    return esSuProyecto
                             ? "/pm/foro/detalle?proyectoId=" + foro.getProyecto().getId()
                             : "/pm/foro/detalle?foroId=" + foro.getId();
                 }
                 if (esRm) return "/rm/foros/detalle?id=" + foro.getId();
+                if (rolNombre.equals("ADMINISTRADOR")) return "/admin/foros/" + foro.getId() + "/publicaciones";
                 return "/colaborador/foros/detalle?foroId=" + foro.getId();
             }
         }

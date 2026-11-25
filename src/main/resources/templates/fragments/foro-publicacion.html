@@ -52,7 +52,7 @@
                 th:attr="aria-pressed=${pub.meGusta}">♥ <span th:text="${pub.totalLikes}">0</span></button>
       </form>
       <span th:unless="${base != null and pub.puedeDarLike}" class="foro-like-texto">♥ <span th:text="${pub.totalLikes}">0</span></span>
-      <span class="text-secondary small" th:text="|${pub.totalRespuestas} respuestas|">0 respuestas</span>
+      <span th:unless="${pub.anuncio}" class="text-secondary small" th:text="|${pub.totalRespuestas} respuestas|">0 respuestas</span>
       <button th:if="${base != null and pub.puedeResponder}" type="button" class="btn btn-sm btn-outline-secondary"
               data-bs-toggle="modal" th:data-bs-target="|#replyModal${pub.id}|">Responder</button>
       <button th:if="${base != null and pub.puedeEliminar}" type="button" class="btn btn-sm btn-outline-danger"
@@ -60,7 +60,8 @@
     </div>
   </div>
 
-  <div class="card-footer p-0">
+  <!-- En un foro de anuncios no se responde: solo se muestran las respuestas que ya existieran. -->
+  <div class="card-footer p-0" th:unless="${pub.anuncio and pub.respuestas.isEmpty()}">
     <div class="px-3 py-2 border-bottom fw-semibold">Respuestas</div>
     <div th:if="${pub.respuestas.isEmpty()}" class="text-secondary px-3 py-4 text-center">
       Esta publicación aún no tiene respuestas.

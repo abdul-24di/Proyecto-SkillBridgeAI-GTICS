@@ -37,7 +37,7 @@ Datos de demostración que se usan:
 | Certificados | — | Bandeja y revisión | Aprobar (con nivel) | Rechazar con motivo |
 | Formación académica | — | Bandeja y documento | Aprobar | Rechazar con motivo |
 | Cursos | Asignar curso a colaborador | Catálogo y solicitudes | Aprobar solicitud y evidencia | Rechazar solicitud y evidencia |
-| Foros | — | Solo lectura | — | — |
+| Foros | Publicar y responder en los de comunidad | Todos (los de proyecto y los anuncios, solo lectura) | Me gusta, marcar solución | Eliminar lo propio |
 | Reportes | Exportar Excel / PDF | Recursos y horas | — | — |
 | Mi perfil | — | Datos propios | Teléfono, foto, contraseña | — |
 
@@ -145,7 +145,7 @@ Formato de cada bloque: **⏱ tiempo · Pantalla · Hacer · Decir**.
 ### Bloque 7 — Foros y reportes (R + exportación) · ⏱ 4:20 – 4:45
 
 **Hacer:**
-1. Menú **Foros** → abrir `[DEMO] Foro Migracion Cloud`: publicaciones, respuestas y solución marcada. *"Es de solo lectura para el RM."*
+1. Menú **Foros** → abrir `[DEMO] Foro Migracion Cloud`: publicaciones, respuestas y solución marcada. *"Los foros de proyecto son de solo lectura para el RM; en los de comunidad participa."*
 2. Menú **Reportes** → `/rm/reportes/recursos`: tabla de proyectos y de colaboradores. Botón **"Exportar"** → descargar **Excel** (y mencionar PDF).
 3. Enlace **"Horas por colaborador"** → mostrar la tabla paginada.
 

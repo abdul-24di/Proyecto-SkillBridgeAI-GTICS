@@ -22,11 +22,12 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-// Épica 2, Historia A6 (Activación de cuenta) + Historia de Recuperación de
-// contraseña. Por decisión C1/C2: esta clase es la única dueña de la lógica
-// de tokens (generar, invalidar, reenviar) — la Épica 5 (gestión de usuarios)
-// solo va a llamar a invitarUsuario()/reenviarActivacion() desde su UI, sin
-// reimplementar nada de esto.
+/**
+ * Épica 2, Historia A6 (Activación de cuenta) + Historia de Recuperación de contraseña. Por decisión
+ * C1/C2: esta clase es la única dueña de la lógica de tokens (generar, invalidar, reenviar) — la Épica 5
+ * (gestión de usuarios) solo va a llamar a invitarUsuario()/reenviarActivacion() desde su UI, sin
+ * reimplementar nada de esto.
+ */
 @Service
 public class AuthService {
 
@@ -37,9 +38,17 @@ public class AuthService {
     private static final int ESPERA_ENTRE_CODIGOS_SEGUNDOS = 60;
     private static final BigDecimal JORNADA_SEMANAL_COLABORADOR = BigDecimal.valueOf(40);
 
+    /** Estado de un enlace o código. */
     public enum EstadoToken { VALIDO, EXPIRADO, USADO, INVALIDO }
 
+    /**
+     * Resultado de validar un token; el token es {@code null} si no existe.
+     *
+     * @param estado estado del token
+     * @param token token del enlace de activación
+     */
     public record ResultadoToken(EstadoToken estado, TokenUsuario token) {
+        /** Indica si el enlace o código se puede usar. */
         public boolean esValido() { return estado == EstadoToken.VALIDO; }
     }
 
@@ -54,6 +63,7 @@ public class AuthService {
     // Sesiones guardadas por Spring Session JDBC; se usan para cerrar las de un usuario al cambiar su contraseña.
     private final ObjectProvider<FindByIndexNameSessionRepository<? extends Session>> repositorioSesiones;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public AuthService(UsuarioRepository usuarioRepository, RolRepository rolRepository,
                         TokenUsuarioRepository tokenUsuarioRepository, PasswordEncoder passwordEncoder,
                         EmailService emailService, AuditoriaService auditoriaService,
@@ -77,8 +87,16 @@ public class AuthService {
     private static final java.util.regex.Pattern CORREO_VALIDO =
             java.util.regex.Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*\\.[A-Za-z]{2,}$");
 
-    // El correo es el identificador de acceso y a donde llega la invitación: se limpia (espacios) y
-    // se exige un formato válido antes de crear el usuario (también lo usa la carga masiva).
+    /**
+     * Limpia el correo y comprueba su formato.
+     * <p>
+     * El correo es el identificador de acceso y a donde llega la invitación: se limpia (espacios) y se exige un
+     * formato válido antes de crear el usuario (también lo usa la carga masiva).
+     *
+     * @param correo correo del usuario
+     * @return correo sin espacios
+     * @throws IllegalArgumentException si está vacío, es muy largo o no tiene un formato válido
+     */
     public String validarCorreo(String correo) {
         String limpio = correo == null ? "" : correo.strip();
         if (limpio.isEmpty()) {
@@ -93,13 +111,32 @@ public class AuthService {
         return limpio;
     }
 
-    // A5 solo llama a este método (correo + rol) — el nombre y la contraseña
-    // los define el propio usuario al activar (ver C1).
+    /**
+     * Crea una cuenta por invitación.
+     * <p>
+     * A5 solo llama a este método (correo + rol) — el nombre y la contraseña los define el propio usuario al
+     * activar (ver C1).
+     *
+     * @param correo correo del usuario
+     * @param nombreRol nombre técnico del rol
+     * @param creadoPorAdmin Administrador que invita
+     * @return usuario creado
+     * @throws IllegalArgumentException si el correo o el rol no son válidos
+     */
     @Transactional
     public Usuario invitarUsuario(String correo, String nombreRol, Usuario creadoPorAdmin) {
         return invitar(correo, nombreRol, creadoPorAdmin).usuario();
     }
 
+    /**
+     * Crea una cuenta sin contraseña y envía el correo con el enlace de activación.
+     *
+     * @param correo correo del usuario
+     * @param nombreRol nombre técnico del rol
+     * @param creadoPorAdmin Administrador que invita
+     * @return usuario creado y si el correo se envió
+     * @throws IllegalArgumentException si el correo no es válido o ya existe, o el rol no existe
+     */
     @Transactional
     public Invitacion invitar(String correo, String nombreRol, Usuario creadoPorAdmin) {
         correo = validarCorreo(correo);
@@ -129,14 +166,28 @@ public class AuthService {
         return new Invitacion(usuario, correoEnviado);
     }
 
-    // Usuario creado y si el correo de invitación salió de verdad: si el servidor de correo falla, la
-    // cuenta igual queda creada (el enlace se puede reenviar), pero el Admin tiene que saberlo.
+    /**
+     * Resultado de una invitación.
+     * <p>
+     * Usuario creado y si el correo de invitación salió de verdad: si el servidor de correo falla, la cuenta
+     * igual queda creada (el enlace se puede reenviar), pero el Admin tiene que saberlo.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @param correoEnviado {@code true} si el correo se envió
+     */
     public record Invitacion(Usuario usuario, boolean correoEnviado) {
     }
 
-    // El botón "Reenviar enlace" del panel de Admin llama a esto (C2) —
-    // invalida cualquier token de activación anterior sin usar y genera uno nuevo.
-    // Devuelve si el correo se envió.
+    /**
+     * Genera y envía un nuevo enlace de activación.
+     * <p>
+     * El botón "Reenviar enlace" del panel de Admin llama a esto (C2) — invalida cualquier token de activación
+     * anterior sin usar y genera uno nuevo. Devuelve si el correo se envió.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @param solicitadoPorAdmin Administrador que lo pide; {@code null} si es automático
+     * @return {@code true} si el correo se envió
+     */
     @Transactional
     public boolean reenviarActivacion(Usuario usuario, Usuario solicitadoPorAdmin) {
         boolean enviado = enviarNuevoTokenActivacion(usuario);
@@ -147,6 +198,12 @@ public class AuthService {
         return enviado;
     }
 
+    /**
+     * Anula los enlaces pendientes, crea uno de 48 horas, lo envía y registra el resultado en la auditoría.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @return {@code true} si el correo se envió
+     */
     private boolean enviarNuevoTokenActivacion(Usuario usuario) {
         // Al reenviar, el enlace anterior que no se usó deja de servir.
         anularTokensPendientes(usuario, TipoToken.ACTIVACION);
@@ -174,16 +231,36 @@ public class AuthService {
         return enviado;
     }
 
+    /**
+     * Comprueba un enlace de activación.
+     *
+     * @param token token del enlace de activación
+     * @return estado del enlace y su token
+     */
     public ResultadoToken validarTokenActivacion(String token) {
         return validarToken(token, TipoToken.ACTIVACION);
     }
 
-    // C3: la activación completada queda en el log de auditoría.
+    /**
+     * Activa la cuenta: guarda los datos personales y la contraseña, y marca el enlace como usado. Un colaborador
+     * queda pendiente de aprobación; de los demás roles se avisa a los Administradores. La activación queda en
+     * el log de auditoría (C3).
+     * <p>
+     * Es también el pre-registro: guarda directo en el perfil del usuario los datos personales que escribió
+     * (nombre, teléfono, descripción), así quedan en "Mi perfil" sin copiarlos después. Un colaborador queda
+     * con el registro PENDIENTE hasta que el Admin lo apruebe. Devuelve el usuario para que el controlador pueda
+     * subir su CV.
+     *
+     * @param token token del enlace de activación
+     * @param nombres nombres del usuario
+     * @param apellidos apellidos del usuario
+     * @param telefono teléfono ingresado
+     * @param descripcion descripción; puede ser {@code null} o vacía
+     * @param password contraseña en texto plano; se guarda cifrada con BCrypt
+     * @return usuario activado
+     * @throws IllegalStateException si el enlace no es válido
+     */
     @Transactional
-    // Es también el pre-registro: guarda directo en el perfil del usuario los datos personales que
-    // escribió (nombre, teléfono, descripción), así quedan en "Mi perfil" sin copiarlos después. Un
-    // colaborador queda con el registro PENDIENTE hasta que el Admin lo apruebe. Devuelve el usuario
-    // para que el controlador pueda subir su CV.
     public Usuario activarCuenta(String token, String nombres, String apellidos, String telefono,
                                  String descripcion, String password) {
         ResultadoToken resultado = validarTokenActivacion(token);
@@ -225,8 +302,14 @@ public class AuthService {
     // RECUPERACIÓN DE CONTRASEÑA
     // ============================================================
 
-    // No revela si el correo existe (mismo comportamiento sin importar el resultado) —
-    // ya reflejado en el mensaje de recuperar-contrasena.html.
+    /**
+     * Envía un código de recuperación de 15 minutos si la cuenta existe y puede recuperarse.
+     * <p>
+     * No revela si el correo existe (mismo comportamiento sin importar el resultado) — ya reflejado en el
+     * mensaje de recuperar-contrasena.html.
+     *
+     * @param correo correo del usuario
+     */
     @Transactional
     public void solicitarRecuperacion(String correo) {
         usuarioRepository.findByCorreo(correo).filter(this::puedeRecuperarContrasena).ifPresent(usuario -> {
@@ -249,6 +332,12 @@ public class AuthService {
         });
     }
 
+    /**
+     * Indica si la cuenta pidió un código hace menos de un minuto.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @return {@code true} si debe esperar
+     */
     private boolean pidioCodigoHacePoco(Usuario usuario) {
         LocalDateTime limite = LocalDateTime.now()
                 .plusMinutes(VIGENCIA_RECUPERACION_MINUTOS).minusSeconds(ESPERA_ENTRE_CODIGOS_SEGUNDOS);
@@ -256,9 +345,17 @@ public class AuthService {
                 .anyMatch(t -> t.getFechaExpiracion().isAfter(limite));
     }
 
-    // Se valida contra el correo Y el código a la vez, para que un código no
-    // pueda probarse contra un correo distinto del que lo solicitó. Cada fallo queda en la auditoría y,
-    // al llegar a MAX_INTENTOS_CODIGO, se anulan los códigos pendientes: hay que pedir uno nuevo.
+    /**
+     * Comprueba el código de recuperación de un correo.
+     * <p>
+     * Se valida contra el correo Y el código a la vez, para que un código no pueda probarse contra un correo
+     * distinto del que lo solicitó. Cada fallo queda en la auditoría y, al llegar a MAX_INTENTOS_CODIGO, se
+     * anulan los códigos pendientes: hay que pedir uno nuevo.
+     *
+     * @param correo correo del usuario
+     * @param codigo código de recuperación de seis dígitos
+     * @return el token si el código es válido
+     */
     @Transactional
     public Optional<TokenUsuario> validarCodigoRecuperacion(String correo, String codigo) {
         Optional<Usuario> usuario = usuarioRepository.findByCorreo(correo).filter(this::puedeRecuperarContrasena);
@@ -272,6 +369,13 @@ public class AuthService {
         return token;
     }
 
+    /**
+     * Busca el código sin usar y vigente de un usuario.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @param codigo código de recuperación de seis dígitos
+     * @return el token si existe
+     */
     private Optional<TokenUsuario> codigoVigenteDe(Usuario usuario, String codigo) {
         return tokenUsuarioRepository.findByToken(codigo)
                 .filter(t -> t.getTipo() == TipoToken.RECUPERACION)
@@ -280,6 +384,11 @@ public class AuthService {
                 .filter(t -> t.getUsuario().getId().equals(usuario.getId()));
     }
 
+    /**
+     * Registra el intento fallido y, al quinto, anula los códigos pendientes.
+     *
+     * @param usuario usuario al que corresponde la operación
+     */
     private void registrarCodigoIncorrecto(Usuario usuario) {
         auditoriaService.registrar(usuario, "RECUPERACION_CODIGO_INCORRECTO", "USUARIO", usuario.getId(),
                 "Ingresó un código de recuperación incorrecto.");
@@ -299,15 +408,31 @@ public class AuthService {
                 });
     }
 
-    // Solo una cuenta ya activada (con contraseña) y activa puede recuperar su contraseña. Una cuenta
-    // invitada que nunca se activó debe usar su enlace de activación: si pudiera "recuperar", pondría
-    // una contraseña sin pasar por el pre-registro ni por la aprobación del Administrador.
+    /**
+     * Indica si la cuenta puede recuperar su contraseña.
+     * <p>
+     * Solo una cuenta ya activada (con contraseña) y activa puede recuperar su contraseña. Una cuenta invitada
+     * que nunca se activó debe usar su enlace de activación: si pudiera "recuperar", pondría una contraseña
+     * sin pasar por el pre-registro ni por la aprobación del Administrador.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @return {@code true} si está activa y ya tiene contraseña
+     */
     private boolean puedeRecuperarContrasena(Usuario usuario) {
         return usuario.isActivo() && usuario.getPasswordHash() != null;
     }
 
-    // Recibe el correo y el código que el controlador guardó en la sesión al verificarlos, no un valor
-    // que llegue del formulario: así no se puede saltar el paso de verificación.
+    /**
+     * Cambia la contraseña con un código verificado y cierra las sesiones abiertas de la cuenta.
+     * <p>
+     * Recibe el correo y el código que el controlador guardó en la sesión al verificarlos, no un valor que
+     * llegue del formulario: así no se puede saltar el paso de verificación.
+     *
+     * @param correo correo del usuario
+     * @param codigo código de recuperación de seis dígitos
+     * @param nuevaPassword contraseña nueva en texto plano
+     * @throws IllegalStateException si el código no es válido o venció
+     */
     @Transactional
     public void restablecerContrasena(String correo, String codigo, String nuevaPassword) {
         Usuario usuario = usuarioRepository.findByCorreo(correo).filter(this::puedeRecuperarContrasena)
@@ -329,6 +454,12 @@ public class AuthService {
                         + (cerradas > 0 ? " Sesiones abiertas cerradas: " + cerradas + "." : ""));
     }
 
+    /**
+     * Cierra todas las sesiones guardadas de una cuenta.
+     *
+     * @param correo correo del usuario
+     * @return cantidad de sesiones cerradas
+     */
     public int cerrarSesiones(String correo) {
         FindByIndexNameSessionRepository<? extends Session> sesiones = repositorioSesiones.getIfAvailable();
         if (sesiones == null) {
@@ -339,8 +470,15 @@ public class AuthService {
         return abiertas.size();
     }
 
-    // Un token que no se usó deja de servir: se marca como vencido (no como "usado", porque en la activación
-    // eso mostraría "Esta cuenta ya fue activada" en vez de "El enlace ya no es válido").
+    /**
+     * Anula los tokens sin usar de un usuario.
+     * <p>
+     * Un token que no se usó deja de servir: se marca como vencido (no como "usado", porque en la activación eso
+     * mostraría "Esta cuenta ya fue activada" en vez de "El enlace ya no es válido").
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @param tipo tipo de token
+     */
     private void anularTokensPendientes(Usuario usuario, TipoToken tipo) {
         LocalDateTime ahora = LocalDateTime.now();
         for (TokenUsuario anterior : tokenUsuarioRepository.findByUsuarioAndTipoAndUsadoFalse(usuario, tipo)) {
@@ -355,6 +493,13 @@ public class AuthService {
     // Helpers
     // ============================================================
 
+    /**
+     * Comprueba que el token exista, sea del tipo esperado, no se haya usado y no haya vencido.
+     *
+     * @param valor token recibido
+     * @param tipoEsperado tipo de token que corresponde
+     * @return estado del token
+     */
     private ResultadoToken validarToken(String valor, TipoToken tipoEsperado) {
         Optional<TokenUsuario> opt = tokenUsuarioRepository.findByToken(valor);
         if (opt.isEmpty() || opt.get().getTipo() != tipoEsperado) {
@@ -370,6 +515,12 @@ public class AuthService {
         return new ResultadoToken(EstadoToken.VALIDO, token);
     }
 
+    /**
+     * Genera un token aleatorio que no exista en la base.
+     *
+     * @param bytesLength bytes aleatorios del token
+     * @return token para un enlace
+     */
     private String generarTokenUnico(int bytesLength) {
         byte[] bytes = new byte[bytesLength];
         String token;
@@ -380,6 +531,12 @@ public class AuthService {
         return token;
     }
 
+    /**
+     * Genera un código numérico que no exista en la base.
+     *
+     * @param digitos cantidad de dígitos
+     * @return código con ceros a la izquierda
+     */
     private String generarCodigoNumericoUnico(int digitos) {
         String codigo;
         do {

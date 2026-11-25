@@ -12,18 +12,29 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-// Un usuario con sesión intenta entrar a una zona que no corresponde a su rol (p. ej. un Colaborador a
-// /admin/**). Se registra el intento en la auditoría y se responde 403, que Spring Boot muestra con la
-// página templates/error/403.html. Sin sesión no se llega aquí: Spring Security redirige al login.
+/**
+ * Un usuario con sesión intenta entrar a una zona que no corresponde a su rol (p. ej. un Colaborador a
+ * /admin/**). Se registra el intento en la auditoría y se responde 403, que Spring Boot muestra con la
+ * página templates/error/403.html. Sin sesión no se llega aquí: Spring Security redirige al login.
+ */
 @Component
 public class RegistroAccesoDenegadoHandler implements AccessDeniedHandler {
 
     private final AuditoriaService auditoriaService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RegistroAccesoDenegadoHandler(AuditoriaService auditoriaService) {
         this.auditoriaService = auditoriaService;
     }
 
+    /**
+     * Registra el intento en la auditoría y responde 403.
+     *
+     * @param request petición HTTP
+     * @param response respuesta HTTP
+     * @param accessDeniedException motivo del rechazo
+     * @throws IOException si falla la respuesta
+     */
     @Override
     public void handle(HttpServletRequest request, HttpServletResponse response,
                        AccessDeniedException accessDeniedException) throws IOException {

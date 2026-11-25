@@ -109,7 +109,7 @@ class ObservacionesGrupoTests {
 
     @Test
     void seEliminaUnForoQueYaTienePublicacionesRespuestasYMeGusta() {
-        Foro foro = adminForoService.crearForo("Foro con contenido " + UUID.randomUUID(), true);
+        Foro foro = adminForoService.crearForo("Foro con contenido " + UUID.randomUUID(), true, admin);
         adminForoService.publicar(foro.getId(), "Anuncio", "Contenido del anuncio", admin);
         PublicacionForo pub = publicacionForoRepository.findByForoAndActivoTrueOrderByFechaCreacionDesc(foro).get(0);
         Usuario colaborador = usuario("colab.foro.obs@test.local", "COLABORADOR");
@@ -118,7 +118,7 @@ class ObservacionesGrupoTests {
         RespuestaForo respuesta = respuestaForoRepository.findByPublicacionConAutor(pub).get(0);
         pmForoService.alternarLikeRespuesta(admin, respuesta.getId());
 
-        adminForoService.eliminarForo(foro.getId());
+        adminForoService.eliminarForo(foro.getId(), admin);
 
         assertThat(foroRepository.findById(foro.getId())).isEmpty();
         assertThat(publicacionForoRepository.findById(pub.getId())).isEmpty();
@@ -127,13 +127,13 @@ class ObservacionesGrupoTests {
 
     @Test
     void elAdminRetiraLaRespuestaDeOtroUsuarioEnElForoDeComunidad() {
-        Foro foro = adminForoService.crearForo("Foro moderado " + UUID.randomUUID(), true);
+        Foro foro = adminForoService.crearForo("Foro moderado " + UUID.randomUUID(), true, admin);
         adminForoService.publicar(foro.getId(), "Anuncio", "Contenido", admin);
         PublicacionForo pub = publicacionForoRepository.findByForoAndActivoTrueOrderByFechaCreacionDesc(foro).get(0);
         pmForoService.responder(pub.getId(), "Respuesta de otra persona", usuario("colab.mod.obs@test.local", "COLABORADOR"));
         RespuestaForo respuesta = respuestaForoRepository.findByPublicacionConAutor(pub).get(0);
 
-        adminForoService.eliminarRespuesta(respuesta.getId());
+        adminForoService.eliminarRespuesta(respuesta.getId(), admin);
 
         assertThat(respuestaForoRepository.findById(respuesta.getId()).orElseThrow().isActivo()).isFalse();
     }

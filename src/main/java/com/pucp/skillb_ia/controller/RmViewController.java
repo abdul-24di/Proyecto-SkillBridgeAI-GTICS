@@ -1821,6 +1821,9 @@ public class RmViewController {
         try {
             model.addAttribute("foro", rmForoConsultaService.obtener(id, ordenar));
             model.addAttribute("ordenActual", "votos".equalsIgnoreCase(ordenar) ? "votos" : "fecha");
+            if (!model.containsAttribute("pmForoPublicacionForm")) {
+                model.addAttribute("pmForoPublicacionForm", new com.pucp.skillb_ia.dto.pm.PmForoPublicacionForm());
+            }
             return "rm/rm-foro-detalle";
         } catch (IllegalArgumentException e) {
             return "redirect:/rm/foros?noEncontrado=true";

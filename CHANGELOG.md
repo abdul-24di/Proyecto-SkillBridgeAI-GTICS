@@ -1,5 +1,23 @@
 # CHANGELOG - SkillBridge AI
 
+## Sesión 24 de Noviembre 2026 (2) — Arreglos de la revisión de la aplicación desplegada
+
+- **Zona horaria:** la aplicación fija `America/Lima` al arrancar (`SkillbIaApplication`). El servidor de la nube está en UTC: las notificaciones decían "dentro de 5 horas" y, desde las 7 p. m., las fechas del día ya eran las del siguiente. Los registros guardados antes en la nube conservan la hora adelantada.
+- **Foros del PM:** responder usa la misma regla que publicar (en un foro público participa cualquier PM; en el privado de un proyecto, solo el suyo). "Mis Proyectos" muestra también los proyectos activos que aún no tienen foro. El error de un modal ya no sale dos veces.
+- **Foros del Admin, dos tipos:** *Comunidad*, donde Admin, PM, RM y Colaborador publican, responden y reaccionan; y *Anuncios*, donde solo publica el Admin y los demás leen y reaccionan. Reemplaza a Público/Privado sin cambiar la base (`es_publico = false` en un foro general es Anuncios), así que los foros privados que existían pasan a verlos todos. Las reglas están en `Foro.isAnuncios`, `PmForoService` y `ColaboradorForoService`.
+- **RM en los foros:** participa en los de comunidad (`RmForoController`); los de proyecto los sigue viendo en solo lectura.
+- **Notificaciones de foro:** las del Admin abren su vista y las de un PM en el foro de otro proyecto ya no dan error de permiso.
+- **PM:** `/pm/actividades` sin proyecto vuelve a Mis Proyectos (antes error 400).
+- **Auditoría:** se registran crear y eliminar foro, publicar, responder y eliminar publicaciones y respuestas desde el Admin, y también las respuestas del PM.
+- **Menú de Admin y RM:** los 9 enlaces entran desde 1100 px de ancho (antes "Reportes" quedaba cortado a 1280 px).
+- **Revisión de asignación (RM):** sin sueldo base o sin fechas dice "No se puede calcular" en lugar de "Presupuesto insuficiente".
+- **Categorías de cursos:** el filtro del RM y del colaborador une las que solo difieren en la tilde. El script demo usa "Técnico" y "Certificación" y corrige las bases ya cargadas.
+- **Perfil del colaborador:** la tarjeta de Ajustes de Cuenta muestra la foto.
+- **Documentación:** JavaDoc en las clases del Administrador, autenticación, pre-registro, DNI, seguridad, auditoría y correos (sin cambios en el código), y sección Propósito en el README.
+- **Tests:** 1186 en verde (`RevisionNubeTests`).
+
+---
+
 ## Sesión 24 de Noviembre 2026 — Datos personales del registro en el perfil
 
 - **Activación de cuenta (todos los roles):** "Nombre completo" se separó en **Nombres** y **Apellidos**. Antes se cortaba en el primer espacio y el segundo nombre quedaba como apellido. Las cuentas ya creadas no cambian.

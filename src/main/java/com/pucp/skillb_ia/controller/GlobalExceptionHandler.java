@@ -14,6 +14,7 @@ import java.net.URISyntaxException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/** Errores de las vistas: guarda un mensaje para el usuario y vuelve a la página anterior. */
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -21,6 +22,13 @@ public class GlobalExceptionHandler {
             Pattern.compile("^/colaborador/proyectos/actividades/(\\d+)/marcar-listo$");
     private static final String RUTA_SUBIR_DOCUMENTO = "/colaborador/proyectos/documentos/subir";
 
+    /**
+     * Avisa que el archivo no se pudo recibir y, si se conoce la pantalla, reabre su ventana.
+     *
+     * @param request petición HTTP
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @return redirección a la página anterior
+     */
     @ExceptionHandler(MultipartException.class)
     public String subidaRechazada(HttpServletRequest request, RedirectAttributes redirectAttributes) {
         String mensaje = "No se pudo recibir el archivo: es demasiado grande o no se pudo leer.";
@@ -39,7 +47,16 @@ public class GlobalExceptionHandler {
         return "redirect:" + paginaAnterior(request, "/");
     }
 
-    // Error de negocio: recurso no encontrado o acceso denegado
+    /**
+     * Muestra el mensaje de una regla de negocio.
+     * <p>
+     * Error de negocio: recurso no encontrado o acceso denegado
+     *
+     * @param ex excepción capturada
+     * @param request petición HTTP
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @return redirección a la página anterior
+     */
     @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
     public String errorNegocio(Exception ex, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("error", ex.getMessage());
@@ -47,7 +64,15 @@ public class GlobalExceptionHandler {
         return "redirect:" + paginaAnterior(request, "/");
     }
 
-    // Intento de acceder a un recurso que no le pertenece
+    /**
+     * Avisa que el usuario no tiene permiso sobre el recurso.
+     * <p>
+     * Intento de acceder a un recurso que no le pertenece
+     *
+     * @param request petición HTTP
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @return redirección a la página anterior
+     */
     @ExceptionHandler(SecurityException.class)
     public String errorSeguridad(HttpServletRequest request, RedirectAttributes redirectAttributes) {
         String mensaje = "No tienes permiso para realizar esta acción.";
@@ -56,8 +81,15 @@ public class GlobalExceptionHandler {
         return "redirect:" + paginaAnterior(request, "/");
     }
 
-    // Los mensajes de negocio (IllegalArgumentException / IllegalStateException) están escritos para el
-    // usuario; cualquier otro error (p. ej. de la base de datos) no debe filtrar detalles técnicos.
+    /**
+     * Devuelve el mensaje de la excepción solo si está escrito para el usuario.
+     * <p>
+     * Los mensajes de negocio (IllegalArgumentException / IllegalStateException) están escritos para el usuario;
+     * cualquier otro error (p. ej. de la base de datos) no debe filtrar detalles técnicos.
+     *
+     * @param e excepción capturada
+     * @return mensaje para mostrar
+     */
     public static String mensajeSeguro(Exception e) {
         if (e instanceof IllegalArgumentException || e instanceof IllegalStateException
                 || e instanceof SecurityException) {
@@ -66,8 +98,16 @@ public class GlobalExceptionHandler {
         return "No se pudo completar la operación. Revisa los datos e inténtalo de nuevo.";
     }
 
-    // El Referer lo envía el cliente y puede traer cualquier cosa: solo se usa su ruta, para no redirigir
-    // nunca a otro sitio. Si no se puede leer, se vuelve a la página por defecto.
+    /**
+     * Obtiene la ruta de la página desde la que se envió la petición.
+     * <p>
+     * El Referer lo envía el cliente y puede traer cualquier cosa: solo se usa su ruta, para no redirigir nunca a
+     * otro sitio. Si no se puede leer, se vuelve a la página por defecto.
+     *
+     * @param request petición HTTP
+     * @param porDefecto página a la que se vuelve si no se conoce la anterior
+     * @return ruta interna, o la página por defecto
+     */
     public static String paginaAnterior(HttpServletRequest request, String porDefecto) {
         String referer = request.getHeader("Referer");
         if (referer == null) {

@@ -1055,12 +1055,12 @@ SET @demo_admin_id := (SELECT id FROM usuario WHERE correo = 'demo.admin@skillbr
 
 INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
 SELECT '[DEMO] Spring Boot avanzado', 'Arquitectura, seguridad y persistencia con Spring Boot.',
-       'Tecnico', 20.00, TRUE, @demo_admin_id
+       'Técnico', 20.00, TRUE, @demo_admin_id
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] Spring Boot avanzado');
 
 INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
 SELECT '[DEMO] AWS Cloud Practitioner', 'Fundamentos de servicios, seguridad y arquitectura en AWS.',
-       'Certificacion', 32.00, TRUE, @demo_admin_id
+       'Certificación', 32.00, TRUE, @demo_admin_id
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] AWS Cloud Practitioner');
 
 INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
@@ -1070,13 +1070,17 @@ FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] Comunicac
 
 INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
 SELECT '[DEMO] Kubernetes productivo', 'Despliegue y operacion de cargas en Kubernetes.',
-       'Tecnico', 24.00, TRUE, @demo_admin_id
+       'Técnico', 24.00, TRUE, @demo_admin_id
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] Kubernetes productivo');
 
 INSERT INTO curso (nombre, descripcion, categoria, horas, activo, creado_por)
 SELECT '[DEMO] Curso inactivo', 'Curso desactivado que no debe aparecer en el catalogo del RM.',
-       'Tecnico', 10.00, FALSE, @demo_admin_id
+       'Técnico', 10.00, FALSE, @demo_admin_id
 FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM curso WHERE nombre = '[DEMO] Curso inactivo');
+
+-- Las bases cargadas con una versión anterior de este script tienen estas categorías sin tilde.
+UPDATE curso SET categoria = 'Técnico' WHERE categoria = 'Tecnico';
+UPDATE curso SET categoria = 'Certificación' WHERE categoria = 'Certificacion';
 
 SET @demo_curso_spring_id := (SELECT MIN(id) FROM curso WHERE nombre = '[DEMO] Spring Boot avanzado');
 SET @demo_curso_aws_id := (SELECT MIN(id) FROM curso WHERE nombre = '[DEMO] AWS Cloud Practitioner');

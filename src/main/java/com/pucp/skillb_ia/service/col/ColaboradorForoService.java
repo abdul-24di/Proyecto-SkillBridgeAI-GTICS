@@ -83,7 +83,7 @@ public class ColaboradorForoService {
     // ============================================================
 
     public List<Foro> listarForosComunidad() {
-        return foroRepository.findByEsPublicoTrue();
+        return foroRepository.findVisiblesParaTodos();
     }
 
     //El colaborador solo ve foros de proyecto donde tiene asignación ACTIVA
@@ -121,7 +121,7 @@ public class ColaboradorForoService {
         }
         Foro foro = foroOpt.get();
 
-        if (foro.isEsPublico()) {
+        if (foro.isVisibleParaTodos()) {
             return foro;
         }
 
@@ -149,6 +149,10 @@ public class ColaboradorForoService {
     //Validamos que se pueda leer el foro y luego que pueda participar en él
     private Foro validarAccesoEscritura(Usuario colaborador, Long foroId) {
         Foro foro = validarAccesoLectura(colaborador, foroId);
+        if (foro.isAnuncios()) {
+            throw new IllegalArgumentException(
+                    "Este es un foro de anuncios: solo publica el Administrador y no admite respuestas.");
+        }
         if (!puedeParticipar(colaborador, foro)) {
             throw new IllegalArgumentException(
                     "Este foro es de solo lectura para ti: no tienes una asignación activa en este proyecto.");

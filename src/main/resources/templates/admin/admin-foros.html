@@ -65,7 +65,7 @@
       <div class="card-header section-header">
         <div>
           <h3 class="card-title mb-1">Canales activos</h3>
-          <div class="section-description">Foros públicos y privados de la comunidad.</div>
+          <div class="section-description">Comunidad: todos publican, responden y reaccionan. Anuncios: solo publica el Administrador.</div>
         </div>
         <span class="badge bg-blue-lt" th:text="${#lists.size(foros)} + ' foros'">0 foros</span>
       </div>
@@ -74,7 +74,7 @@
           <thead>
             <tr>
               <th>Nombre del Foro</th>
-              <th>Visibilidad</th>
+              <th>Tipo</th>
               <th>Fecha creación</th>
               <th class="text-end">Acciones</th>
             </tr>
@@ -88,8 +88,8 @@
                 </div>
               </td>
               <td>
-                <span th:if="${foro.esPublico}" class="badge bg-green-lt text-green">Público</span>
-                <span th:unless="${foro.esPublico}" class="badge bg-orange-lt text-orange">Privado</span>
+                <span th:unless="${foro.anuncios}" class="badge bg-green-lt text-green">Comunidad</span>
+                <span th:if="${foro.anuncios}" class="badge bg-orange-lt text-orange">Anuncios</span>
               </td>
               <td class="text-secondary" th:text="${#temporals.format(foro.fechaCreacion, 'dd MMM yyyy')}">Fecha</td>
               <td class="text-end">
@@ -140,7 +140,7 @@
     <div class="modal-content">
       <form action="/admin/foros/crear" th:action="@{/admin/foros/crear}" method="POST">
         <div class="modal-header">
-          <h5 class="modal-title">Crear nuevo foro de comunidad</h5>
+          <h5 class="modal-title">Crear nuevo foro</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -149,15 +149,15 @@
             <input type="text" name="nombre" class="form-control" placeholder="Ej: Anuncios Empresa, Bienvenida, etc." required maxlength="150">
           </div>
           <div class="mb-3">
-            <label class="form-label">Visibilidad</label>
+            <label class="form-label">Tipo de foro</label>
             <div class="form-selectgroup">
               <label class="form-selectgroup-item">
                 <input type="radio" name="esPublico" value="true" class="form-selectgroup-input" checked>
-                <span class="form-selectgroup-label">Público — todos los usuarios pueden ver este foro</span>
+                <span class="form-selectgroup-label">Comunidad — todos publican, responden y reaccionan</span>
               </label>
               <label class="form-selectgroup-item">
                 <input type="radio" name="esPublico" value="false" class="form-selectgroup-input">
-                <span class="form-selectgroup-label">Privado — solo visible para administradores</span>
+                <span class="form-selectgroup-label">Anuncios — solo publica el Administrador; los demás leen y reaccionan</span>
               </label>
             </div>
           </div>

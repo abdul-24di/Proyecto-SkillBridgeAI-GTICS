@@ -12,19 +12,31 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-// Login fallido: si el correo existe, se registra en la auditoría; esos registros son el contador con el
-// que UsuarioDetailsService bloquea la cuenta unos minutos. Así no hizo falta cambiar la base de datos.
+/**
+ * Login fallido: si el correo existe, se registra en la auditoría; esos registros son el contador con el que
+ * UsuarioDetailsService bloquea la cuenta unos minutos. Así no hizo falta cambiar la base de datos.
+ */
 @Component
 public class RegistroLoginFallidoHandler implements AuthenticationFailureHandler {
 
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RegistroLoginFallidoHandler(UsuarioRepository usuarioRepository, AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
     }
 
+    /**
+     * Registra el intento fallido y vuelve al inicio de sesión con el aviso que corresponde: error o cuenta
+     * bloqueada.
+     *
+     * @param request petición HTTP
+     * @param response respuesta HTTP
+     * @param exception excepción capturada
+     * @throws IOException si falla la redirección
+     */
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response,
                                         AuthenticationException exception) throws IOException {

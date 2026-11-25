@@ -152,7 +152,8 @@ public class ForoDetalleService {
                 publicacion.getFechaCreacion(), likes, meGusta, respuestas,
                 usuario != null && permisos.votar(),
                 usuario != null && permisos.participar(),
-                usuario != null && (esAutorPublicacion || permisos.eliminarAjeno()));
+                usuario != null && (esAutorPublicacion || permisos.eliminarAjeno()),
+                publicacion.getForo().isAnuncios());
     }
 
     private ForoRespuestaView crearRespuesta(RespuestaForo respuesta, Usuario usuario,

@@ -473,10 +473,14 @@ public class PmViewController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping({"/actividades", "/pm-actividades.html"})
-    public String actividades(@RequestParam("proyectoId") Long proyectoId,
+    public String actividades(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
                               @RequestParam(required = false) Integer pagina,
                               @AuthenticationPrincipal UsuarioDetails principal,
                               Model model) {
+        // Las actividades son de un proyecto: sin él se vuelve a la lista para elegirlo (antes daba error 400).
+        if (proyectoId == null) {
+            return "redirect:/pm/proyectos";
+        }
         Usuario pm = principal.getUsuario();
         var todas = pmActividadService.listarPorProyecto(proyectoId, pm);
         // Si un modal de editar/detalle volvió con error, se abre la página donde está esa actividad.

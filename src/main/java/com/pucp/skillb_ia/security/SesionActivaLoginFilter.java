@@ -11,13 +11,24 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Set;
 
-// Si ya hay una sesión iniciada, /login (ver el formulario o enviarlo) redirige al panel del rol actual.
-// Así no se puede iniciar sesión con otra cuenta "encima" de la activa: primero hay que cerrar sesión.
-// Va dentro de la cadena de Spring Security (SecurityConfig), antes del filtro que procesa el POST /login.
+/**
+ * Si ya hay una sesión iniciada, /login (ver el formulario o enviarlo) redirige al panel del rol actual. Así
+ * no se puede iniciar sesión con otra cuenta "encima" de la activa: primero hay que cerrar sesión. Va dentro
+ * de la cadena de Spring Security (SecurityConfig), antes del filtro que procesa el POST /login.
+ */
 public class SesionActivaLoginFilter extends OncePerRequestFilter {
 
     private static final Set<String> RUTAS_DE_LOGIN = Set.of("/", "/login", "/login.html");
 
+    /**
+     * Con una sesión iniciada, redirige las rutas de login al panel del rol.
+     *
+     * @param request petición HTTP
+     * @param response respuesta HTTP
+     * @param filterChain cadena de filtros
+     * @throws ServletException si falla la cadena de filtros
+     * @throws IOException si falla la redirección
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {

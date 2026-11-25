@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const fd = new FormData();
         fd.append('image', file);
         
-        fetch('/pm/foro/upload-imagen', {
+        // El RM usa este mismo editor: su vista indica su ruta en <body data-foro-subida="...">.
+        fetch(document.body.dataset.foroSubida || '/pm/foro/upload-imagen', {
             method: 'POST',
             headers: csrfHeaders(),
             body: fd

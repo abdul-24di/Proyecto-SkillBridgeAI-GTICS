@@ -56,7 +56,7 @@
                     Foro del proyecto <strong th:text="${foro.proyecto.nombre}">Proyecto</strong>
                 </div>
                 <div class="text-secondary" th:if="${foro.proyecto == null}">
-                    Foro general de la comunidad.
+                    <th:block th:text="${foro.anuncios} ? 'Anuncios del Administrador.' : 'Foro general de la comunidad.'">Foro general de la comunidad.</th:block>
                 </div>
             </div>
             <button th:if="${puedeParticipar}" class="btn btn-primary" type="button"
@@ -67,7 +67,10 @@
             <div class="d-flex">
                 <div>
                     <h4 class="alert-title">Solo lectura</h4>
-                    <div class="text-secondary">
+                    <div class="text-secondary" th:if="${foro.anuncios}">
+                        Solo publica el Administrador. Puedes leer los anuncios y reaccionar a ellos.
+                    </div>
+                    <div class="text-secondary" th:unless="${foro.anuncios}">
                         Este foro pertenece a un proyecto en el que no tienes una asignación activa,
                         por eso solo puedes leer las publicaciones, no publicar ni responder.
                     </div>
@@ -164,7 +167,7 @@
                     </div>
                     <div class="card-body forum-side-body">
                         <p class="text-secondary mb-0" th:if="${foro.proyecto != null}">Espacio del equipo del proyecto para reportar dudas, compartir ideas y anuncios.</p>
-                        <p class="text-secondary mb-0" th:if="${foro.proyecto == null}">Espacio abierto a toda la comunidad de SkillBridge AI.</p>
+                        <p class="text-secondary mb-0" th:if="${foro.proyecto == null}" th:text="${foro.anuncios} ? 'Anuncios del Administrador para toda la organización.' : 'Espacio abierto a toda la comunidad de SkillBridge AI.'">Espacio abierto a toda la comunidad de SkillBridge AI.</p>
                     </div>
                 </div>
                 <div class="card section-card">

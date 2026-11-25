@@ -35,6 +35,13 @@ public class Foro {
         if (fechaCreacion == null) fechaCreacion = LocalDateTime.now();
     }
 
+    // Los foros que crea el Admin son de dos clases: comunidad (es_publico = true), donde todos participan, y
+    // anuncios (es_publico = false), donde solo publica el Admin y los demás leen y reaccionan.
+    public boolean isAnuncios() { return tipo == TipoForo.GENERAL && !esPublico; }
+
+    // Lo ven todos los usuarios: los foros del Admin y los de proyecto que se hicieron públicos.
+    public boolean isVisibleParaTodos() { return esPublico || tipo == TipoForo.GENERAL; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

@@ -5,11 +5,18 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-// Cliente HTTP para consumir servicios web externos (clase 10.1: consumo con RestTemplate).
-// Lo usa DniService para consultar el DNI en la API de verifica.id.
+/**
+ * Cliente HTTP para consumir servicios web externos (clase 10.1: consumo con RestTemplate). Lo usa DniService
+ * para consultar el DNI en la API de verifica.id.
+ */
 @Configuration
 public class AppConfig {
 
+    /**
+     * Crea el cliente HTTP con tiempos máximos de conexión y lectura.
+     *
+     * @return cliente HTTP
+     */
     @Bean
     public RestTemplate restTemplate() {
         // Tiempos máximos: si la API externa no responde, el registro no se queda esperando.

@@ -20,11 +20,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-// El navegador no puede volver a llenar un <input type="file">, así que si el formulario de activación
-// vuelve con errores el colaborador perdería sus archivos. Por eso cada archivo válido se guarda aquí hasta
-// que el formulario pase: en disco van los bytes y en la sesión HTTP solo sus datos (la sesión vive en MySQL
-// y no debe cargar archivos). El formulario solo envía el id: el archivo se busca en la sesión de quien lo
-// subió, así que no se puede pedir el archivo de otra persona ni una ruta del servidor.
+/**
+ * El navegador no puede volver a llenar un &lt;input type="file"&gt;, así que si el formulario de activación
+ * vuelve con errores el colaborador perdería sus archivos. Por eso cada archivo válido se guarda aquí hasta
+ * que el formulario pase: en disco van los bytes y en la sesión HTTP solo sus datos (la sesión vive en MySQL
+ * y no debe cargar archivos). El formulario solo envía el id: el archivo se busca en la sesión de quien lo
+ * subió, así que no se puede pedir el archivo de otra persona ni una ruta del servidor.
+ */
 @Service
 public class PreRegistroArchivosService {
 
@@ -34,12 +36,27 @@ public class PreRegistroArchivosService {
     private static final int MAX_ARCHIVOS_POR_SESION = 40; // CV + 10 certificados + 10 estudios, con reintentos
     private static final int HORAS_DE_VIDA = 24;
 
+    /**
+     * Devuelve los archivos que la sesión tiene en espera.
+     *
+     * @param session sesión HTTP de quien completa el formulario
+     * @return archivos por id
+     */
     @SuppressWarnings("unchecked")
     public Map<String, ArchivoPendiente> archivos(HttpSession session) {
         Object guardados = session.getAttribute(ATRIBUTO_SESION);
         return guardados == null ? new HashMap<>() : (Map<String, ArchivoPendiente>) guardados;
     }
 
+    /**
+     * Guarda un archivo válido hasta que el formulario se complete.
+     *
+     * @param archivo archivo
+     * @param session sesión HTTP de quien completa el formulario
+     * @return datos del archivo guardado
+     * @throws IOException si no se puede escribir
+     * @throws IllegalArgumentException si la sesión ya subió demasiados
+     */
     public ArchivoPendiente guardar(MultipartFile archivo, HttpSession session) throws IOException {
         Map<String, ArchivoPendiente> guardados = archivos(session);
         if (guardados.size() >= MAX_ARCHIVOS_POR_SESION) {
@@ -60,19 +77,39 @@ public class PreRegistroArchivosService {
         return pendiente;
     }
 
-    // null si el id no pertenece a esta sesión.
+    /**
+     * Abre un archivo guardado por esta misma sesión.
+     * <p>
+     * null si el id no pertenece a esta sesión.
+     *
+     * @param id id del archivo
+     * @param session sesión HTTP de quien completa el formulario
+     * @return el archivo, o {@code null} si no le pertenece
+     */
     public MultipartFile abrir(String id, HttpSession session) {
         ArchivoPendiente pendiente = id == null ? null : archivos(session).get(id);
         return pendiente == null ? null : new ArchivoTemporalMultipart(pendiente, CARPETA.resolve(id));
     }
 
-    // Al terminar el pre-registro: borra los archivos y los quita de la sesión.
+    /**
+     * Borra los archivos en espera de la sesión.
+     * <p>
+     * Al terminar el pre-registro: borra los archivos y los quita de la sesión.
+     *
+     * @param session sesión HTTP de quien completa el formulario
+     */
     public void limpiar(HttpSession session) {
         archivos(session).keySet().forEach(id -> borrar(CARPETA.resolve(id)));
         session.removeAttribute(ATRIBUTO_SESION);
     }
 
-    // Quien cierra el navegador a mitad del formulario deja archivos sin dueño.
+    /**
+     * Borra los archivos con más de 24 horas.
+     * <p>
+     * Quien cierra el navegador a mitad del formulario deja archivos sin dueño.
+     *
+     * @throws IOException si no se puede leer la carpeta
+     */
     private void borrarAbandonados() throws IOException {
         if (!Files.isDirectory(CARPETA)) {
             return;
@@ -87,6 +124,11 @@ public class PreRegistroArchivosService {
         }
     }
 
+    /**
+     * Borra un archivo temporal; si falla, solo lo registra en el log.
+     *
+     * @param archivo archivo
+     */
     private void borrar(Path archivo) {
         try {
             Files.deleteIfExists(archivo);
@@ -95,6 +137,12 @@ public class PreRegistroArchivosService {
         }
     }
 
+    /**
+     * Quita la ruta del nombre y lo recorta a 80 caracteres.
+     *
+     * @param original nombre original del archivo
+     * @return nombre para mostrar
+     */
     private String nombreVisible(String original) {
         if (original == null || original.isBlank()) {
             return "archivo";

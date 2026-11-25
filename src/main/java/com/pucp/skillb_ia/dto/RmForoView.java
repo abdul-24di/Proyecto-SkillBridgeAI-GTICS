@@ -23,6 +23,8 @@ public class RmForoView {
     private final LocalDateTime ultimaActividad;
     private final List<ForoPublicacionView> publicaciones;
     private final List<String> etiquetas;
+    private final boolean anuncios;
+    private final boolean participa;
 
     public RmForoView(Long id, String nombre, String tipo, boolean publico,
                       Long proyectoId, String proyectoNombre, String proyectoEstado,
@@ -30,7 +32,8 @@ public class RmForoView {
                       String proyectoPrioridad, String proyectoPrioridadClase,
                       String pmNombre, int integrantesActivos, int colaboradoresRequeridos,
                       int participantes, LocalDateTime ultimaActividad,
-                      List<ForoPublicacionView> publicaciones, List<String> etiquetas) {
+                      List<ForoPublicacionView> publicaciones, List<String> etiquetas,
+                      boolean anuncios, boolean participa) {
         this.id = id;
         this.nombre = nombre;
         this.tipo = tipo;
@@ -49,10 +52,18 @@ public class RmForoView {
         this.ultimaActividad = ultimaActividad;
         this.publicaciones = List.copyOf(publicaciones);
         this.etiquetas = List.copyOf(etiquetas);
+        this.anuncios = anuncios;
+        this.participa = participa;
     }
 
     public Long getId() { return id; }
     public String getNombre() { return nombre; }
+    /** Foro del Admin donde solo se lee y se reacciona. */
+    public boolean isAnuncios() { return anuncios; }
+    /** El RM puede publicar y responder (foros de comunidad). */
+    public boolean isParticipa() { return participa; }
+    public String getTipoForo() { return proyectoId != null ? (publico ? "Público" : "Privado") : (anuncios ? "Anuncios" : "Comunidad"); }
+    public String getTipoForoClase() { return anuncios ? "bg-orange-lt" : (publico ? "bg-blue-lt" : "bg-purple-lt"); }
     public String getTipo() { return tipo; }
     public boolean isPublico() { return publico; }
     public Long getProyectoId() { return proyectoId; }

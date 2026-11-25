@@ -11,6 +11,7 @@ import com.pucp.skillb_ia.model.PublicacionForo;
 import com.pucp.skillb_ia.model.RespuestaForo;
 import com.pucp.skillb_ia.model.Usuario;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
+import com.pucp.skillb_ia.model.enums.EstadoProyecto;
 import com.pucp.skillb_ia.model.enums.TipoForo;
 import com.pucp.skillb_ia.repository.AsignacionRepository;
 import com.pucp.skillb_ia.repository.ForoRepository;
@@ -106,28 +107,35 @@ public class PmForoService {
         return archivoAlmacenamientoService.guardar(foto, "foro", nombreArchivo);
     }
 
-    /** Lista los foros de todos los proyectos que gestiona el PM. */
+    /**
+     * Lista los foros de todos los proyectos que gestiona el PM. El foro de un proyecto se crea con la primera
+     * publicación, así que los proyectos activos que aún no lo tienen también se muestran, sin temas.
+     */
     @Transactional(readOnly = true)
     public List<PmForoView> listarForosPm(Usuario pm) {
         List<Proyecto> proyectosPm = proyectoRepository.findByPm(pm);
         List<PmForoView> vistas = new ArrayList<>();
 
         for (Proyecto proyecto : proyectosPm) {
-            foroRepository.findByProyecto(proyecto).ifPresent(foro -> {
+            foroRepository.findByProyecto(proyecto).ifPresentOrElse(foro -> {
                 List<PublicacionForo> pubs = publicacionRepository.findByForo(foro);
                 int total = pubs.size();
                 String ultimaTitulo = pubs.isEmpty() ? null : pubs.get(0).getTitulo();
                 var ultimaFecha = pubs.isEmpty() ? null : pubs.get(0).getFechaCreacion();
                 vistas.add(new PmForoView(foro, total, ultimaTitulo, ultimaFecha));
+            }, () -> {
+                if (proyecto.getEstado() == EstadoProyecto.ACTIVO) {
+                    vistas.add(new PmForoView(proyecto));
+                }
             });
         }
         return vistas;
     }
 
-    /** Lista los foros de la comunidad. */
+    /** Lista los foros que ven todos: comunidad, anuncios y proyectos públicos. */
     @Transactional(readOnly = true)
     public List<PmForoView> listarForosComunidad() {
-        List<Foro> forosComunidad = foroRepository.findByEsPublicoTrue();
+        List<Foro> forosComunidad = foroRepository.findVisiblesParaTodos();
         List<PmForoView> vistas = new ArrayList<>();
         
         for (Foro foro : forosComunidad) {
@@ -154,11 +162,7 @@ public class PmForoService {
         Foro foro = foroRepository.findById(foroId)
                 .orElseThrow(() -> new IllegalArgumentException("Foro no encontrado"));
 
-        if (!foro.isEsPublico() && foro.getTipo() == TipoForo.PROYECTO) {
-            if (foro.getProyecto() != null && !foro.getProyecto().getPm().getId().equals(pm.getId())) {
-                throw new SecurityException("No tienes permiso para ver este foro.");
-            }
-        }
+        validarAcceso(foro, pm);
         return foroDetalleService.listar(foro, pm, permisos(foro, pm), orden);
     }
 
@@ -167,7 +171,7 @@ public class PmForoService {
      * proyectos; elimina solo lo propio.
      */
     private PermisosForo permisos(Foro foro, Usuario pm) {
-        return new PermisosForo(true, true, esForoDeSuProyecto(foro, pm), false);
+        return new PermisosForo(true, !foro.isAnuncios(), esForoDeSuProyecto(foro, pm), false);
     }
 
     private boolean esForoDeSuProyecto(Foro foro, Usuario pm) {
@@ -195,11 +199,7 @@ public class PmForoService {
         Foro foro = foroRepository.findById(foroId)
                 .orElseThrow(() -> new IllegalArgumentException("Foro no encontrado"));
                 
-        if (!foro.isEsPublico() && foro.getTipo() == TipoForo.PROYECTO) {
-            if (foro.getProyecto() != null && !foro.getProyecto().getPm().getId().equals(pm.getId())) {
-                throw new SecurityException("No tienes permiso para publicar en este foro.");
-            }
-        }
+        validarParticipacion(foro, pm);
         return publicarInterno(foro, titulo, contenido, pm);
     }
 
@@ -227,7 +227,7 @@ public class PmForoService {
 
         String nombreForo = foro.getProyecto() != null ? foro.getProyecto().getNombre() : foro.getNombre();
         auditoriaService.registrar(pm, "PUBLICAR", "FORO", foro.getId(),
-                "PM publicó en el foro '" + nombreForo + "': " + tituloLimpio);
+                "Publicó en el foro '" + nombreForo + "': " + tituloLimpio);
         return saved;
     }
 
@@ -247,16 +247,16 @@ public class PmForoService {
         PublicacionForo publicacion = publicacionRepository.findById(publicacionId)
                 .orElseThrow(() -> new IllegalArgumentException("Publicación no encontrada."));
 
-        // Verificar que el PM tiene acceso al foro de este proyecto
-        if (publicacion.getForo().getProyecto() != null) {
-            obtenerProyectoDelPm(publicacion.getForo().getProyecto().getId(), pm);
-        }
+        Foro foro = publicacion.getForo();
+        validarParticipacion(foro, pm);
 
         RespuestaForo respuesta = new RespuestaForo();
         respuesta.setPublicacion(publicacion);
         respuesta.setAutor(pm);
         respuesta.setContenido(contenido);
         RespuestaForo guardada = respuestaRepository.save(respuesta);
+        auditoriaService.registrar(pm, "CREAR_RESPUESTA_FORO", "RESPUESTA_FORO", guardada.getId(),
+                "Respondió la publicación \"" + publicacion.getTitulo() + "\" en el foro \"" + foro.getNombre() + "\".");
 
         // Igual que en el foro del colaborador: se avisa al autor, salvo que se responda a sí mismo.
         if (!publicacion.getAutor().getId().equals(pm.getId())) {
@@ -307,6 +307,30 @@ public class PmForoService {
         return foroRepository.save(foro);
     }
 
+    /**
+     * Ver y dar "me gusta": los foros visibles para todos y, si es privado de un proyecto, su PM o el Admin.
+     * El RM usa este servicio solo en los foros del Admin: los de proyecto los lee sin participar.
+     */
+    private void validarAcceso(Foro foro, Usuario usuario) {
+        boolean visible = foro.isVisibleParaTodos() || tieneRol(usuario, "ADMINISTRADOR") || esForoDeSuProyecto(foro, usuario);
+        boolean rmEnForoDeProyecto = tieneRol(usuario, "RESOURCE_MANAGER") && foro.getProyecto() != null;
+        if (!visible || rmEnForoDeProyecto) {
+            throw new SecurityException("No tienes permiso sobre este foro.");
+        }
+    }
+
+    /** Publicar y responder: igual que ver, salvo en los foros de anuncios, donde solo publica el Admin desde su vista. */
+    private void validarParticipacion(Foro foro, Usuario usuario) {
+        validarAcceso(foro, usuario);
+        if (foro.isAnuncios()) {
+            throw new SecurityException("Este es un foro de anuncios: solo publica el Administrador y no admite respuestas.");
+        }
+    }
+
+    private static boolean tieneRol(Usuario usuario, String rol) {
+        return usuario.getRol() != null && rol.equals(usuario.getRol().getNombre());
+    }
+
     private Proyecto obtenerProyectoDelPm(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
@@ -320,6 +344,7 @@ public class PmForoService {
     public void alternarLikePublicacion(Usuario pm, Long publicacionId) {
         PublicacionForo publicacion = publicacionRepository.findById(publicacionId)
                 .orElseThrow(() -> new IllegalArgumentException("Publicación no encontrada."));
+        validarAcceso(publicacion.getForo(), pm);
 
         Optional<VotoPublicacion> votoOpt = votoPublicacionRepository.findByUsuarioAndPublicacion(pm, publicacion);
         if (votoOpt.isPresent()) {
@@ -337,6 +362,7 @@ public class PmForoService {
     public void alternarLikeRespuesta(Usuario pm, Long respuestaId) {
         RespuestaForo respuesta = respuestaRepository.findById(respuestaId)
                 .orElseThrow(() -> new IllegalArgumentException("Respuesta no encontrada."));
+        validarAcceso(respuesta.getPublicacion().getForo(), pm);
 
         Optional<VotoRespuesta> votoOpt = votoRespuestaRepository.findByUsuarioAndRespuesta(pm, respuesta);
         if (votoOpt.isPresent()) {
@@ -360,6 +386,8 @@ public class PmForoService {
         }
         publicacion.setActivo(false);
         publicacionRepository.save(publicacion);
+        auditoriaService.registrar(pm, "ELIMINAR_PUBLICACION_FORO", "PUBLICACION_FORO", publicacionId,
+                "Eliminó la publicación \"" + publicacion.getTitulo() + "\".");
     }
 
     @Transactional
@@ -372,5 +400,6 @@ public class PmForoService {
         }
         respuesta.setActivo(false);
         respuestaRepository.save(respuesta);
+        auditoriaService.registrar(pm, "ELIMINAR_RESPUESTA_FORO", "RESPUESTA_FORO", respuestaId, "Eliminó una respuesta.");
     }
 }

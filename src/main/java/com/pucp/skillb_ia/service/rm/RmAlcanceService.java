@@ -11,18 +11,21 @@ import org.springframework.stereotype.Service;
 @Service
 public class RmAlcanceService {
 
-    // Devuelve el id del RM logueado. Si no hay un RM
-    // devuelve null y entonces no se filtra nada.
-    public Long idRmActual() {
+    // Devuelve el RM logueado o null si la sesión no es de un RM.
+    public Usuario rmActual() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof UsuarioDetails)) {
             return null;
         }
         Usuario usuario = ((UsuarioDetails) auth.getPrincipal()).getUsuario();
-        if (!"RESOURCE_MANAGER".equals(usuario.getRol().getNombre())) {
-            return null;
-        }
-        return usuario.getId();
+        return "RESOURCE_MANAGER".equals(usuario.getRol().getNombre()) ? usuario : null;
+    }
+
+    // Devuelve el id del RM logueado. Si no hay un RM
+    // devuelve null y entonces no se filtra nada.
+    public Long idRmActual() {
+        Usuario rm = rmActual();
+        return rm == null ? null : rm.getId();
     }
 
     // El RM ve los proyectos donde él es el responsable y los que aún no tienen responsable

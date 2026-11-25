@@ -204,9 +204,9 @@ class AdminPerfilYCatalogosTests {
 
     @Test
     void unForoNoSePuedeCrearSinNombre() {
-        assertThatThrownBy(() -> adminForoService.crearForo("   ", true))
+        assertThatThrownBy(() -> adminForoService.crearForo("   ", true, admin))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> adminForoService.crearForo("F".repeat(151), true))
+        assertThatThrownBy(() -> adminForoService.crearForo("F".repeat(151), true, admin))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

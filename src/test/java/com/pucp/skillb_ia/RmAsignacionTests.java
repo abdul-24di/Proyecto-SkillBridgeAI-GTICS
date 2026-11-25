@@ -665,6 +665,20 @@ class RmAsignacionTests {
     }
 
     @Test
+    void sinSueldoBaseDiceQueNoSePuedeCalcularYNoQueElPresupuestoNoAlcanza() throws Exception {
+        Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "12");
+        colaborador.setSueldoBase(null);
+        usuarioRepository.save(colaborador);
+
+        String html = mockMvc.perform(get("/rm/asignaciones/revision").param("id", asignacion.getId().toString()))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertTrue(html.contains("No se puede calcular</div>"));
+        assertFalse(html.contains("Presupuesto insuficiente"));
+    }
+
+    @Test
     void revisionOmiteMensajesVaciosYEscapaElHtml() throws Exception {
         Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "12");
 

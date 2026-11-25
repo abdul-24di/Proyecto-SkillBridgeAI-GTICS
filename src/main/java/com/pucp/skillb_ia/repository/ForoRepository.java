@@ -16,6 +16,10 @@ public interface ForoRepository extends JpaRepository<Foro, Long> {
     // A7/A9: el RM lee todos los foros de la organización sin necesidad de asignación.
     List<Foro> findByEsPublicoTrue();
 
+    // Los que ven todos los usuarios (Foro.isVisibleParaTodos): comunidad, anuncios y proyectos públicos.
+    @Query("select f from Foro f where f.esPublico = true or f.tipo = com.pucp.skillb_ia.model.enums.TipoForo.GENERAL")
+    List<Foro> findVisiblesParaTodos();
+
     @Query("""
             select f from Foro f
             left join fetch f.proyecto p

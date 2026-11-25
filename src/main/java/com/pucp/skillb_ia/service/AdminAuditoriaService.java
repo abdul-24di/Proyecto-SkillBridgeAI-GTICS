@@ -13,8 +13,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-// Épica 5 (Log de auditoría) — pantalla de solo lectura sobre log_auditoria,
-// que ya alimentan AuditoriaService.registrar(...) todos los demás módulos.
+/**
+ * Épica 5 (Log de auditoría) — pantalla de solo lectura sobre log_auditoria, que ya alimentan
+ * AuditoriaService.registrar(...) todos los demás módulos.
+ */
 @Service
 public class AdminAuditoriaService {
 
@@ -147,6 +149,8 @@ public class AdminAuditoriaService {
         ACCION_A_ETIQUETA.put("CIERRE_SOLICITUD_PERSONAL", "Cerró solicitud de personal");
 
         // Foro
+        ACCION_A_ETIQUETA.put("CREAR_FORO", "Creó foro");
+        ACCION_A_ETIQUETA.put("ELIMINAR_FORO", "Eliminó foro");
         ACCION_A_ETIQUETA.put("CREAR_PUBLICACION_FORO", "Creó publicación en foro");
         ACCION_A_ETIQUETA.put("EDITAR_PUBLICACION_FORO", "Editó publicación en foro");
         ACCION_A_ETIQUETA.put("ELIMINAR_PUBLICACION_FORO", "Eliminó publicación en foro");
@@ -181,12 +185,30 @@ public class AdminAuditoriaService {
         ACCION_A_ETIQUETA.put("ASISTENTE_PM_PROPUESTA", "Propuesta desde el asistente IA");
     }
 
-    // Dashboard: acciones auditadas en un día; altura es el % respecto del día con más acciones (para la columna).
-    // fecha sirve para que la columna lleve a la auditoría filtrada por ese día.
+    /**
+     * Acciones auditadas en un día, para el gráfico del dashboard.
+     * <p>
+     * Dashboard: acciones auditadas en un día; altura es el % respecto del día con más acciones (para la
+     * columna). fecha sirve para que la columna lleve a la auditoría filtrada por ese día.
+     *
+     * @param etiqueta texto visible
+     * @param total cantidad de acciones
+     * @param altura alto de la columna, en porcentaje
+     * @param hoy {@code true} si es el día actual
+     * @param fecha fecha de la acción
+     */
     public record DiaActividad(String etiqueta, long total, int altura, boolean hoy, LocalDate fecha) {
     }
 
-    // Últimos `dias` días (hoy incluido), del más antiguo al más reciente, aunque alguno no tenga acciones.
+    /**
+     * Cuenta las acciones de cada uno de los últimos días.
+     * <p>
+     * Últimos `dias` días (hoy incluido), del más antiguo al más reciente, aunque alguno no tenga acciones.
+     *
+     * @param logs acciones a contar
+     * @param dias cantidad de días, incluido hoy
+     * @return un elemento por día
+     */
     public List<DiaActividad> actividadPorDia(List<LogFila> logs, int dias) {
         LocalDate hoy = LocalDate.now();
         Map<LocalDate, Long> porDia = new LinkedHashMap<>();
@@ -202,28 +224,74 @@ public class AdminAuditoriaService {
                 .toList();
     }
 
+    /**
+     * Fila del log de auditoría, lista para la vista.
+     *
+     * @param fecha fecha de la acción
+     * @param fechaSolo día de la acción
+     * @param usuarioNombre nombre del usuario, o "Sistema"
+     * @param usuarioRolNombre nombre técnico del rol
+     * @param rolEtiqueta nombre visible del rol
+     * @param rolBadgeClase clase CSS de la etiqueta del rol
+     * @param entidad entidad afectada
+     * @param accion código de la acción auditada; {@code null} o {@code "all"} para no filtrar
+     * @param accionEtiqueta nombre visible de la acción
+     * @param accionBadgeClase clase CSS de la etiqueta de la acción
+     * @param detalle descripción de lo ocurrido
+     * @param ip dirección IP de la petición
+     */
     public record LogFila(String fecha, LocalDate fechaSolo, String usuarioNombre, String usuarioRolNombre,
                            String rolEtiqueta, String rolBadgeClase, String entidad, String accion,
                            String accionEtiqueta, String accionBadgeClase, String detalle, String ip) {
     }
 
+    /**
+     * Opción del filtro por tipo de acción.
+     *
+     * @param valor valor ingresado
+     * @param etiqueta texto visible
+     */
     public record AccionOpcion(String valor, String etiqueta) {
     }
 
+    /**
+     * Filtros del log de auditoría; los valores nulos no filtran.
+     *
+     * @param texto nombre o correo a buscar; {@code null} para no filtrar
+     * @param rol etiqueta del rol; {@code null} o {@code "all"} para no filtrar
+     * @param accion código de la acción auditada; {@code null} o {@code "all"} para no filtrar
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     */
     public record FiltrosAuditoria(String texto, String rol, String accion, LocalDate desde, LocalDate hasta) {
     }
 
     public static final int TAMANIO_PAGINA = 15;
 
+    /**
+     * Página del log de auditoría.
+     *
+     * @param filas registros de la página
+     * @param paginaActual página mostrada
+     * @param totalPaginas cantidad de páginas
+     * @param totalRegistros cantidad total de registros
+     */
     public record PaginaLogs(List<LogFila> filas, int paginaActual, int totalPaginas, long totalRegistros) {
     }
 
     private final LogAuditoriaRepository logAuditoriaRepository;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public AdminAuditoriaService(LogAuditoriaRepository logAuditoriaRepository) {
         this.logAuditoriaRepository = logAuditoriaRepository;
     }
 
+    /**
+     * Lista todas las acciones que cumplen los filtros, sin paginar.
+     *
+     * @param filtros filtros de la consulta
+     * @return filas del log
+     */
     @Transactional(readOnly = true)
     public List<LogFila> listar(FiltrosAuditoria filtros) {
         String texto = filtros.texto() != null ? filtros.texto().trim().toLowerCase() : "";
@@ -240,10 +308,17 @@ public class AdminAuditoriaService {
                 .toList();
     }
 
-    // El listado completo ya se filtra en memoria (ver comentario en el
-    // repository); aquí solo se le agrega el corte de página encima, sin
-    // tocar los filtros. `listar(filtros)` se mantiene intacto para CSV/Excel,
-    // que sí necesitan exportar todo lo filtrado, no solo la página visible.
+    /**
+     * Devuelve una página del log filtrado, de 15 registros.
+     * <p>
+     * El listado completo ya se filtra en memoria (ver comentario en el repository); aquí solo se le agrega el
+     * corte de página encima, sin tocar los filtros. `listar(filtros)` se mantiene intacto para CSV/Excel, que
+     * sí necesitan exportar todo lo filtrado, no solo la página visible.
+     *
+     * @param filtros filtros de la consulta
+     * @param pagina número de página, desde 1
+     * @return página solicitada
+     */
     @Transactional(readOnly = true)
     public PaginaLogs listarPagina(FiltrosAuditoria filtros, int pagina) {
         List<LogFila> todas = listar(filtros);
@@ -257,6 +332,11 @@ public class AdminAuditoriaService {
         return new PaginaLogs(filas, paginaActual, totalPaginas, todas.size());
     }
 
+    /**
+     * Lista los tipos de acción que existen en el log, para el filtro.
+     *
+     * @return opciones ordenadas por nombre
+     */
     @Transactional(readOnly = true)
     public List<AccionOpcion> tiposDeAccionDisponibles() {
         return logAuditoriaRepository.findAllConUsuario().stream()
@@ -267,6 +347,12 @@ public class AdminAuditoriaService {
                 .toList();
     }
 
+    /**
+     * Convierte un registro en una fila; sin usuario se muestra como "Sistema".
+     *
+     * @param l registro de auditoría
+     * @return fila para la vista
+     */
     private LogFila aFila(LogAuditoria l) {
         Usuario u = l.getUsuario();
         String usuarioNombre;
@@ -297,6 +383,12 @@ public class AdminAuditoriaService {
                 l.getDetalle(), l.getIp() != null ? l.getIp() : "—");
     }
 
+    /**
+     * Devuelve el nombre legible de una acción; si no está en la tabla, lo arma a partir del código.
+     *
+     * @param accion código de la acción auditada; {@code null} o {@code "all"} para no filtrar
+     * @return nombre visible
+     */
     private static String etiquetaAccion(String accion) {
         if (accion == null) return "—";
         if (ACCION_A_ETIQUETA.containsKey(accion)) return ACCION_A_ETIQUETA.get(accion);
@@ -304,6 +396,12 @@ public class AdminAuditoriaService {
         return Character.toUpperCase(texto.charAt(0)) + texto.substring(1);
     }
 
+    /**
+     * Elige el color de la etiqueta según la entidad.
+     *
+     * @param entidad entidad afectada
+     * @return clase CSS
+     */
     private String badgeParaEntidad(String entidad) {
         int indice = Math.floorMod(entidad.hashCode(), PALETA_BADGES.length);
         return PALETA_BADGES[indice];

@@ -786,7 +786,7 @@ public class ColaboradorViewController {
         List<com.pucp.skillb_ia.dto.CursoDisponibleView> cursos = colaboradorCursoService.listarCursosDisponibles(colaborador).stream()
                 .filter(v -> Paginador.contiene(v.getCurso().getNombre() + " " +
                         (v.getCurso().getDescripcion() != null ? v.getCurso().getDescripcion() : ""), busquedaCurso))
-                .filter(v -> Paginador.coincide(v.getCurso().getCategoria(), categoriaCurso))
+                .filter(v -> Paginador.coincideSinTildes(v.getCurso().getCategoria(), categoriaCurso))
                 .toList();
         Page<com.pucp.skillb_ia.dto.CursoDisponibleView> paginaCursos = Paginador.paginar(cursos, paginaCurso, 6);
         model.addAttribute("paginaCursos", paginaCursos);

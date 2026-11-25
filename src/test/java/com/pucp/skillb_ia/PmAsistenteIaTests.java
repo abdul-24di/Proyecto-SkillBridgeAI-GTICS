@@ -1,7 +1,7 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.PmAsistenteRespuesta.CandidatoTarjeta;
 import com.pucp.skillb_ia.model.*;
+import com.pucp.skillb_ia.dto.PmAsistenteRespuesta.CandidatoTarjeta;
 import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.*;
 import com.pucp.skillb_ia.security.UsuarioDetails;

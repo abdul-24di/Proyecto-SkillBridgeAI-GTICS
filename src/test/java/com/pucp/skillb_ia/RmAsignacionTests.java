@@ -1,5 +1,5 @@
 package com.pucp.skillb_ia;
-
+import com.pucp.skillb_ia.dto.*;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
@@ -8,7 +8,6 @@ import com.pucp.skillb_ia.model.Cargo;
 import com.pucp.skillb_ia.model.CategoriaHabilidad;
 import com.pucp.skillb_ia.model.ColaboradorHabilidad;
 import com.pucp.skillb_ia.model.Habilidad;
-import com.pucp.skillb_ia.dto.RmColaboradorResumen;
 import com.pucp.skillb_ia.model.enums.EstadoValidacion;
 import com.pucp.skillb_ia.model.enums.NivelDominio;
 import com.pucp.skillb_ia.repository.CargoRepository;
@@ -45,7 +44,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.pucp.skillb_ia.dto.RmAsignacionView;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;

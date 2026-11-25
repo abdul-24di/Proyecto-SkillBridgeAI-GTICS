@@ -1,6 +1,5 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.NotificacionView;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.Notificacion;
@@ -22,13 +21,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-
+import com.pucp.skillb_ia.dto.*;
 import java.math.BigDecimal;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-// TASK-016: cada nueva solicitud de curso de un colaborador notifica a todos los RM activos.
+
 @SpringBootTest
 @ActiveProfiles("test")
 class ColaboradorCursoSolicitudTests {

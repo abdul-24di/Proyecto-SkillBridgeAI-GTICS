@@ -1,8 +1,5 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.ColHistorialProyectoView;
-import com.pucp.skillb_ia.dto.ColPerfilRequeridoView;
-import com.pucp.skillb_ia.dto.ColProyectoDisponibleView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.*;
@@ -12,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.pucp.skillb_ia.dto.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;

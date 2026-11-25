@@ -1,7 +1,5 @@
 package com.pucp.skillb_ia;
-
-import com.pucp.skillb_ia.dto.RmColaboradorDetalle;
-import com.pucp.skillb_ia.dto.RmColaboradorResumen;
+import com.pucp.skillb_ia.dto.*;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.CategoriaHabilidad;
 import com.pucp.skillb_ia.model.ColaboradorHabilidad;

@@ -1,9 +1,7 @@
 package com.pucp.skillb_ia;
-
+import com.pucp.skillb_ia.dto.*;
 import com.pucp.skillb_ia.model.Cargo;
 import com.pucp.skillb_ia.repository.CargoRepository;
-import com.pucp.skillb_ia.dto.ForoPublicacionView;
-import com.pucp.skillb_ia.dto.RmForoView;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.*;

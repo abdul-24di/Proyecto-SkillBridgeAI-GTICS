@@ -1,7 +1,5 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.ChatContactoView;
-import com.pucp.skillb_ia.dto.PmMensajeView;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.Notificacion;
 import com.pucp.skillb_ia.model.Proyecto;
@@ -21,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-
+import com.pucp.skillb_ia.dto.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;

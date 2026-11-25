@@ -21,9 +21,24 @@ import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.util.*;
 
+/**
+ * Arma los datos que recibe el asistente de IA del RM: KPIs, proyectos visibles, candidatos de Talent
+ * Matching con su impacto presupuestal, asignaciones y solicitudes pendientes y validaciones por revisar.
+ * El texto escrito por usuarios se marca como dato para la IA. Lo usa {@link RmAsistenteService}.
+ */
 @Service
 public class RmAsistenteContextoService {
 
+    /**
+     * Contexto de una consulta al asistente.
+     *
+     * @param textoPrompt bloque DATOS DE SKILLBRIDGE (RM) que se envía al modelo
+     * @param resumenAnaliticoLocal respuesta que se usa cuando la IA no está disponible
+     * @param proyectoEnfocado proyecto enfocado, o {@code null}
+     * @param kpis indicadores del panel del asistente
+     * @param proyectos tarjetas de proyecto por id, para resolver {@code [[PROY:id]]}
+     * @param candidatos tarjetas de candidato por {@code colaboradorId:proyectoId}, para resolver {@code [[CAND:...]]}
+     */
     public record ContextoRm(
             String textoPrompt,
             String resumenAnaliticoLocal,
@@ -44,6 +59,7 @@ public class RmAsistenteContextoService {
     private final RmCertificadoService rmCertificadoService;
     private final RmEducacionService rmEducacionService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmAsistenteContextoService(RmProyectoConsultaService rmProyectoConsultaService,
                                       RmTalentMatchingService rmTalentMatchingService,
                                       RmAsignacionService rmAsignacionService,
@@ -58,6 +74,12 @@ public class RmAsistenteContextoService {
         this.rmEducacionService = rmEducacionService;
     }
 
+    /**
+     * Calcula los KPIs del asistente: proyectos visibles, vacantes de los proyectos con dotación abierta,
+     * asignaciones que esperan decisión del RM y certificados y formaciones pendientes de validar.
+     *
+     * @return los KPIs
+     */
     @Transactional(readOnly = true)
     public KpisAsistenteRm obtenerKpis() {
         return calcularKpis(rmProyectoConsultaService.listar(), rmAsignacionService.listar(),
@@ -76,6 +98,13 @@ public class RmAsistenteContextoService {
         return new KpisAsistenteRm(proyectos.size(), vacantes, asigPendientes, validacionesPendientes);
     }
 
+    /**
+     * Lista los botones de consulta rápida. Con un proyecto válido, las preguntas mencionan ese proyecto;
+     * si no existe o no es visible, se usan las preguntas generales.
+     *
+     * @param proyectoId proyecto enfocado, o {@code null}
+     * @return seis consultas rápidas
+     */
     @Transactional(readOnly = true)
     public List<ConsultaRapidaRm> listarConsultasRapidas(Long proyectoId) {
         RmProyectoView enfocado = null;
@@ -107,6 +136,16 @@ public class RmAsistenteContextoService {
         );
     }
 
+    /**
+     * Construye el contexto de una consulta. El proyecto enfocado sale del id recibido o del nombre
+     * mencionado en el mensaje. Sin enfoque, solo se buscan candidatos para los proyectos con vacantes,
+     * por prioridad y hasta 5 proyectos; el enfocado siempre recibe candidatos, aunque tenga los cupos
+     * completos.
+     *
+     * @param proyectoContextoId proyecto enfocado desde la vista, o {@code null}
+     * @param mensaje consulta ya limpiada
+     * @return el contexto para el prompt y las tarjetas
+     */
     @Transactional(readOnly = true)
     public ContextoRm construir(Long proyectoContextoId, String mensaje) {
         String mensajeN = normalizar(mensaje);

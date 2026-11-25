@@ -13,14 +13,14 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
-// Especificación funcional "presupuesto y costos de asignaciones del RM" que
-// trajo el equipo. Dueño único de todo el cálculo de costos/presupuesto —
-// nadie más debería reimplementar estas fórmulas.
-//
-// Decisión de diseño: "comprometido" y "reservado" NO se guardan como
-// columnas — se recalculan siempre sumando las asignaciones ACTIVA/PENDIENTE
-// del proyecto. Así nunca pueden desincronizarse ni descontarse dos veces
-// (la sección 7.3 de la especificación pide exactamente evitar eso).
+/**
+ * Cálculo de costos de asignación y presupuesto de proyectos, según la especificación
+ * "presupuesto y costos de asignaciones del RM". Es el único dueño de estas fórmulas.
+ *
+ * <p>Decisión de diseño: "comprometido" y "reservado" no se guardan como columnas; se recalculan
+ * siempre sumando las asignaciones ACTIVA y PENDIENTE del proyecto. Así no pueden desincronizarse
+ * ni descontarse dos veces (sección 7.3 de la especificación).</p>
+ */
 @Service
 public class RmPresupuestoService {
 
@@ -30,25 +30,60 @@ public class RmPresupuestoService {
 
     private final AsignacionRepository asignacionRepository;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmPresupuestoService(AsignacionRepository asignacionRepository) {
         this.asignacionRepository = asignacionRepository;
     }
 
+    /**
+     * Costo estimado de una asignación.
+     *
+     * @param valorHora sueldo base / 160
+     * @param duracionSemanas días entre las fechas del proyecto / 7
+     * @param horasTotales horas semanales × duración
+     * @param costoSemanal valor hora × horas semanales
+     * @param costoTotal valor hora × horas totales
+     * @param calculable {@code false} si faltan sueldo, horas o fechas (todos los montos quedan en cero)
+     */
     public record CostoAsignacion(BigDecimal valorHora, BigDecimal duracionSemanas, BigDecimal horasTotales,
                                    BigDecimal costoSemanal, BigDecimal costoTotal, boolean calculable) {
     }
 
+    /**
+     * Estado del presupuesto de un proyecto.
+     *
+     * @param total presupuesto aprobado (cero si no tiene)
+     * @param comprometido suma del costo de las asignaciones ACTIVA
+     * @param reservado suma del costo de las asignaciones PENDIENTE ya aprobadas por el RM
+     * @param disponible total − comprometido − reservado, nunca negativo
+     * @param porcentajeConsumido (comprometido + reservado) / total, de 0 a 100
+     */
     public record ResumenPresupuesto(BigDecimal total, BigDecimal comprometido, BigDecimal reservado,
                                       BigDecimal disponible, int porcentajeConsumido) {
     }
 
+    /**
+     * Efecto de una asignación nueva sobre el presupuesto.
+     *
+     * @param costo costo de la asignación
+     * @param resumen presupuesto antes de la asignación
+     * @param disponibleDespues disponible − costo total, nunca negativo
+     * @param suficiente {@code true} si el costo es calculable y cabe en el disponible
+     * @param deficit monto que falta cuando no es suficiente; cero en otro caso
+     */
     public record ImpactoPresupuesto(CostoAsignacion costo, ResumenPresupuesto resumen,
                                       BigDecimal disponibleDespues, boolean suficiente, BigDecimal deficit) {
     }
 
-    // 4.1-4.4 de la especificación: valor/hora = sueldo/160; duración = fechas
-    // del PROYECTO (no de la asignación, que no tiene fechas propias); costo
-    // semanal/total en base a esa duración.
+    /**
+     * Calcula el costo de asignar un colaborador (secciones 4.1 a 4.4): valor hora = sueldo / 160 y
+     * duración según las fechas del proyecto (la asignación no tiene fechas propias).
+     *
+     * @param proyecto proyecto con fecha de inicio y fin estimada
+     * @param colaborador colaborador con sueldo base
+     * @param horasSemanales horas por semana de la asignación
+     * @return el costo; con {@code calculable = false} y montos en cero si falta algún dato o no es positivo
+     */
     public CostoAsignacion calcularCosto(Proyecto proyecto, Usuario colaborador, BigDecimal horasSemanales) {
         if (colaborador == null || colaborador.getSueldoBase() == null || colaborador.getSueldoBase().signum() <= 0
                 || horasSemanales == null || horasSemanales.signum() <= 0
@@ -69,15 +104,27 @@ public class RmPresupuestoService {
         return new CostoAsignacion(valorHora, duracionSemanas, horasTotales, costoSemanal, costoTotal, true);
     }
 
-    // Sección 6: presupuesto total / comprometido (activas) / reservado
-    // (pendientes ya aprobadas por el RM, esperando al PM) / disponible.
+    /**
+     * Calcula el resumen del presupuesto (sección 6): total, comprometido (asignaciones activas),
+     * reservado (pendientes ya aprobadas por el RM, a la espera del PM) y disponible.
+     *
+     * @param proyecto proyecto a resumir
+     * @return el resumen del presupuesto
+     */
     @Transactional(readOnly = true)
     public ResumenPresupuesto calcularResumen(Proyecto proyecto) {
         return calcularResumen(proyecto, proyecto);
     }
 
-    // TASK-021: el mismo resumen si el proyecto tuviera otras fechas, sin modificar la entidad
-    // (se valida antes de guardar un cambio de fechas).
+    /**
+     * Calcula el mismo resumen como si el proyecto tuviera otras fechas, sin modificar la entidad.
+     * Se usa para validar un cambio de fechas antes de guardarlo (TASK-021).
+     *
+     * @param proyecto proyecto del que salen el presupuesto y las asignaciones
+     * @param fechaInicio fecha de inicio a simular
+     * @param fechaFin fecha de fin a simular
+     * @return el resumen con los costos recalculados para esas fechas
+     */
     @Transactional(readOnly = true)
     public ResumenPresupuesto calcularResumenConFechas(Proyecto proyecto, LocalDate fechaInicio, LocalDate fechaFin) {
         Proyecto conFechas = new Proyecto();
@@ -114,13 +161,28 @@ public class RmPresupuestoService {
         return new ResumenPresupuesto(total, comprometido, reservado, disponible, porcentaje);
     }
 
-    // Sección 8: bloque "Impacto en el presupuesto" (disponible antes - costo = disponible después).
+    /**
+     * Calcula el bloque "Impacto en el presupuesto" (sección 8): disponible antes − costo = disponible después.
+     *
+     * @param proyecto proyecto destino
+     * @param colaborador colaborador a asignar
+     * @param horasSemanales horas por semana propuestas
+     * @return el impacto de la asignación
+     */
     @Transactional(readOnly = true)
     public ImpactoPresupuesto calcularImpacto(Proyecto proyecto, Usuario colaborador, BigDecimal horasSemanales) {
         return calcularImpacto(proyecto, colaborador, horasSemanales, calcularResumen(proyecto));
     }
 
-    // TASK-069: el mismo impacto con un resumen ya calculado, para no recalcularlo por cada candidato del proyecto.
+    /**
+     * Calcula el mismo impacto con un resumen ya calculado, para no recalcularlo por cada candidato (TASK-069).
+     *
+     * @param proyecto proyecto destino
+     * @param colaborador colaborador a asignar
+     * @param horasSemanales horas por semana propuestas
+     * @param resumen resumen actual del presupuesto del proyecto
+     * @return el impacto de la asignación
+     */
     public ImpactoPresupuesto calcularImpacto(Proyecto proyecto, Usuario colaborador, BigDecimal horasSemanales,
                                               ResumenPresupuesto resumen) {
         CostoAsignacion costo = calcularCosto(proyecto, colaborador, horasSemanales);
@@ -130,8 +192,17 @@ public class RmPresupuestoService {
         return new ImpactoPresupuesto(costo, resumen, disponibleDespues.max(BigDecimal.ZERO), suficiente, deficit);
     }
 
-    // Sección 13: validación obligatoria — se llama antes de proponer/aprobar
-    // cualquier asignación. Nunca se permite pasar por excepción (13, último párrafo).
+    /**
+     * Validación obligatoria antes de proponer o aprobar cualquier asignación (sección 13).
+     * No admite excepciones.
+     *
+     * @param proyecto proyecto destino
+     * @param colaborador colaborador a asignar
+     * @param horasSemanales horas por semana propuestas
+     * @throws IllegalArgumentException si el proyecto no tiene presupuesto aprobado o fechas, el colaborador
+     *         no tiene sueldo base válido, las horas no son mayores a cero o el disponible no alcanza
+     *         (el mensaje indica el déficit en soles)
+     */
     @Transactional(readOnly = true)
     public void validarPresupuestoSuficiente(Proyecto proyecto, Usuario colaborador, BigDecimal horasSemanales) {
         if (proyecto.getPresupuesto() == null || proyecto.getPresupuesto().signum() <= 0) {

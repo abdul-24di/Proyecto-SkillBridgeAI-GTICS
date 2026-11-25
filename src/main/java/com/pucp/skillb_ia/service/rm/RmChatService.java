@@ -18,6 +18,11 @@ import java.util.Map;
 import java.util.Set;
 
 
+/**
+ * Chat privado entre el RM y el PM de cada proyecto que el RM tiene a cargo. Lo usan
+ * {@code RmChatViewController} y {@code RmChatRestController}; la persistencia es de {@link ChatBaseService}.
+ * Los proyectos rechazados o cancelados no tienen chat.
+ */
 @Service
 public class RmChatService {
 
@@ -27,11 +32,18 @@ public class RmChatService {
     private final ProyectoRepository proyectoRepository;
     private final ChatBaseService chatBaseService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmChatService(ProyectoRepository proyectoRepository, ChatBaseService chatBaseService) {
         this.proyectoRepository = proyectoRepository;
         this.chatBaseService = chatBaseService;
     }
 
+    /**
+     * Lista los proyectos donde el RM es el responsable, sin los rechazados ni cancelados.
+     *
+     * @param rm RM autenticado
+     * @return proyectos con chat disponible, con su PM cargado
+     */
     @Transactional(readOnly = true)
     public List<Proyecto> listarProyectosDelRm(Usuario rm) {
         List<Proyecto> resultado = new ArrayList<>();
@@ -57,6 +69,15 @@ public class RmChatService {
         return proyecto;
     }
 
+    /**
+     * Devuelve los mensajes del chat con el PM del proyecto y los marca como leídos para el RM.
+     *
+     * @param proyectoId id del proyecto
+     * @param rm RM autenticado
+     * @return mensajes de la conversación; lista vacía si todavía no existe
+     * @throws IllegalArgumentException si no se indica proyecto, no existe, el RM no es su responsable
+     *         o el proyecto está rechazado o cancelado
+     */
     @Transactional
     public List<PmMensajeView> obtenerMensajes(Long proyectoId, Usuario rm) {
         Proyecto proyecto = proyectoDelRm(proyectoId, rm);
@@ -68,6 +89,16 @@ public class RmChatService {
         return chatBaseService.listar(conversacion, rm.getId());
     }
 
+    /**
+     * Envía un mensaje al PM del proyecto; crea la conversación si no existe.
+     *
+     * @param proyectoId id del proyecto
+     * @param contenido texto del mensaje (se guarda sin espacios en los extremos)
+     * @param rm RM autenticado
+     * @return el mensaje guardado
+     * @throws IllegalArgumentException si el texto no pasa {@link ChatBaseService#validarTexto}
+     *         o el RM no tiene acceso al chat del proyecto
+     */
     @Transactional
     public PmMensajeView enviarMensaje(Long proyectoId, String contenido, Usuario rm) {
         chatBaseService.validarTexto(contenido);
@@ -76,6 +107,12 @@ public class RmChatService {
     }
 
 
+    /**
+     * Cuenta los mensajes no leídos del PM en cada proyecto con chat del RM.
+     *
+     * @param rm RM autenticado
+     * @return mapa de id de proyecto (como texto) a cantidad de mensajes no leídos
+     */
     @Transactional(readOnly = true)
     public Map<String, Long> obtenerNoLeidos(Usuario rm) {
         Map<String, Long> resultado = new HashMap<>();

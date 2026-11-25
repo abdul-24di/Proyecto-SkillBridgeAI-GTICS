@@ -18,8 +18,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-// Se encarga de asignar los proyectos a los Resource Managers y controlar
-// cuáles puede gestionar cada uno según su carga de trabajo.
+/**
+ * Reparte los proyectos entre los Resource Managers y controla cuáles gestiona cada uno según su carga.
+ * Lee de la configuración del sistema el tope de proyectos por RM ({@code MAX_PROYECTOS_POR_RM}, 5 por
+ * defecto), los días para considerar urgente un inicio ({@code DIAS_URGENCIA_INICIO}, 7) y los días
+ * máximos sin revisar ({@code DIAS_MAX_SIN_REVISAR}, 2). La usan el registro de proyectos del PM,
+ * las acciones del RM y {@link RmRevisionScheduler}.
+ */
 @Service
 public class RmResponsableService {
 
@@ -45,8 +50,7 @@ public class RmResponsableService {
     private final NotificacionService notificacionService;
     private final AuditoriaService auditoriaService;
 
-    // Recibe los repositorios y servicios necesarios para gestionar las asignaciones,
-    // enviar notificaciones y registrar las acciones realizadas.
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmResponsableService(ProyectoRepository proyectoRepository,
                                 UsuarioRepository usuarioRepository,
                                 ConfiguracionSistemaRepository configuracionRepository,
@@ -75,12 +79,20 @@ public class RmResponsableService {
                 .orElse(porDefecto);
     }
 
-    // Obtiene el máximo de proyectos que puede tener asignado un RM.
+    /**
+     * Obtiene el máximo de proyectos en revisión, activos o en espera que puede tener un RM.
+     *
+     * @return valor configurado, o 5 si no existe o no es un entero positivo
+     */
     public int maxProyectosPorRm() {
         return leerEntero(CLAVE_MAX_PROYECTOS, MAX_PROYECTOS_POR_DEFECTO);
     }
 
-    // Obtiene los días de anticipación que se utilizan para considerar urgente un proyecto.
+    /**
+     * Obtiene los días de anticipación con que un inicio cercano vuelve urgente un proyecto.
+     *
+     * @return valor configurado, o 7 si no existe o no es un entero positivo
+     */
     public int diasUrgenciaInicio() {
         return leerEntero(CLAVE_DIAS_URGENCIA, DIAS_URGENCIA_POR_DEFECTO);
     }
@@ -91,8 +103,13 @@ public class RmResponsableService {
     }
 
 
-    // Revisa si el proyecto tiene prioridad alta o una fecha de inicio cercana.
-    // Devuelve el motivo encontrado o null si no necesita atención urgente.
+    /**
+     * Explica por qué un proyecto es urgente: prioridad alta, o fecha de inicio pasada o dentro de
+     * {@link #diasUrgenciaInicio()} días.
+     *
+     * @param proyecto proyecto a evaluar
+     * @return el motivo para mostrar, o {@code null} si no es urgente
+     */
     public String motivoUrgencia(Proyecto proyecto) {
         if (proyecto.getPrioridad() == Prioridad.ALTA) {
             return "Prioridad alta";
@@ -107,19 +124,34 @@ public class RmResponsableService {
         return null;
     }
 
-    // Indica si el proyecto cumple alguna de las condiciones de urgencia.
+    /**
+     * Indica si el proyecto es urgente según {@link #motivoUrgencia(Proyecto)}.
+     *
+     * @param proyecto proyecto a evaluar
+     * @return {@code true} si es urgente
+     */
     public boolean esUrgente(Proyecto proyecto) {
         return motivoUrgencia(proyecto) != null;
     }
 
-    // Comprueba si el proyecto está en un estado en el que puede tener un RM responsable.
+    /**
+     * Indica si el proyecto está en un estado que admite RM responsable (en revisión, activo o en espera).
+     *
+     * @param proyecto proyecto a evaluar
+     * @return {@code true} si es gestionable
+     */
     public boolean esGestionable(Proyecto proyecto) {
         return ESTADOS_CON_CARGA.contains(proyecto.getEstado());
     }
 
 
 
-    // Cuenta cuántos proyectos tiene actualmente asignados un RM.
+    /**
+     * Cuenta los proyectos en revisión, activos o en espera que tiene a cargo el RM.
+     *
+     * @param rm Resource Manager
+     * @return carga actual del RM
+     */
     public long cargaDe(Usuario rm) {
         return proyectoRepository.countByRmRevisorAndEstadoIn(rm, ESTADOS_CON_CARGA);
     }
@@ -180,9 +212,13 @@ public class RmResponsableService {
                 null, nombreCompleto(rm), null);
     }
 
-    // Al registrar un proyecto, busca un RM que no haya alcanzado su límite.
-    // Si el proyecto es urgente, también permite asignarlo a un RM que ya llegó al tope.
-    // Si no hay revisores disponibles, el proyecto queda sin asignar.
+    /**
+     * Asigna un RM a un proyecto recién registrado: el de menor carga que no llegó al tope (en empate,
+     * el de menos proyectos en revisión). Si el proyecto es urgente puede ignorar el tope. Si no hay
+     * RM disponible, queda sin responsable. Notifica al RM y al PM y lo registra en la auditoría.
+     *
+     * @param proyecto proyecto recién creado
+     */
     @Transactional
     public void asignarAlCrear(Proyecto proyecto) {
         Usuario rm = elegirRm(false);
@@ -196,7 +232,17 @@ public class RmResponsableService {
 
 
 
-    // Busca el proyecto por su ID y solicita que el RM lo tome.
+    /**
+     * El RM toma como responsable un proyecto sin responsable. Si ya es suyo, no hace nada.
+     * Notifica al PM y lo registra en la auditoría.
+     *
+     * @param proyectoId id del proyecto
+     * @param rm RM autenticado
+     * @throws IllegalArgumentException si el proyecto no existe
+     * @throws IllegalStateException si el proyecto no está en revisión, activo o en espera; si ya lo tiene
+     *         otro RM (también si otro lo tomó al mismo tiempo); o si el RM llegó a su tope y el proyecto
+     *         no es urgente
+     */
     @Transactional
     public void tomar(Long proyectoId, Usuario rm) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
@@ -242,8 +288,14 @@ public class RmResponsableService {
                 "El RM tomó el proyecto \"" + proyecto.getNombre() + "\".", null, nombreCompleto(rm), null);
     }
 
-    // Permite que el RM responsable libere el proyecto para que otro revisor pueda tomarlo.
-    // Solo se puede realizar mientras el proyecto todavía está en revisión.
+    /**
+     * El RM responsable libera el proyecto para que otro RM pueda tomarlo. Queda en la auditoría.
+     *
+     * @param proyectoId id del proyecto
+     * @param rm RM autenticado
+     * @throws IllegalArgumentException si el proyecto no existe
+     * @throws IllegalStateException si el RM no es el responsable o el proyecto ya no está en revisión
+     */
     @Transactional
     public void liberar(Long proyectoId, Usuario rm) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
@@ -264,9 +316,16 @@ public class RmResponsableService {
                 "El RM liberó el proyecto \"" + proyecto.getNombre() + "\".", nombreCompleto(rm), null, null);
     }
 
-    // Verifica que el RM que realiza una acción sea el responsable del proyecto.
-    // Si todavía no tiene responsable, el primer RM que lo gestione puede tomarlo.
-    // Los proyectos cerrados sin responsable no necesitan una asignación.
+    /**
+     * Comprueba que el RM sea el responsable antes de gestionar el proyecto. Si el proyecto no tiene
+     * responsable y es gestionable, el RM lo toma con las mismas reglas que {@link #tomar}; si está
+     * cerrado y sin responsable, se permite la acción sin asignarlo.
+     *
+     * @param proyecto proyecto a gestionar
+     * @param rm RM autenticado
+     * @throws IllegalStateException si el proyecto está a cargo de otro RM, o si al tomarlo no se cumplen
+     *         las reglas de {@link #tomar}
+     */
     @Transactional
     public void validarResponsable(Proyecto proyecto, Usuario rm) {
         Usuario responsable = proyecto.getRmRevisor();
@@ -283,8 +342,11 @@ public class RmResponsableService {
     }
 
 
-    // Revisa los proyectos que siguen en revisión y detecta cuáles necesitan atención.
-    // Si no tienen RM, intenta asignarles uno; si ya tienen responsable, le envía un recordatorio.
+    /**
+     * Escala los proyectos en revisión que son urgentes o llevan más de {@code DIAS_MAX_SIN_REVISAR} días
+     * desde su creación: a los que no tienen RM les asigna el de menor carga (si nadie tiene cupo, ignora
+     * el tope); al responsable de los demás le envía un recordatorio. Lo ejecuta {@link RmRevisionScheduler}.
+     */
     @Transactional
     public void escalarProyectosEnRevision() {
         int dias = diasMaxSinRevisar();

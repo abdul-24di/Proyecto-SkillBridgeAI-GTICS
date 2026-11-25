@@ -18,6 +18,13 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Asistente de IA del RM. Valida y limpia la consulta, aplica el límite de ritmo y la detección de
+ * prompt injection, arma el contexto con {@link RmAsistenteContextoService} y llama al modelo. Si la IA
+ * no está configurada o no responde, devuelve el resumen analítico local. Convierte los marcadores
+ * {@code [[PROY:id]]} y {@code [[CAND:colaboradorId:proyectoId]]} en tarjetas y guarda el historial en
+ * la sesión HTTP.
+ */
 @Service
 public class RmAsistenteService {
 
@@ -36,6 +43,7 @@ public class RmAsistenteService {
     private final AsistenteRitmoService asistenteRitmoService;
     private final AsistenteSeguridadService seguridadService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmAsistenteService(RmAsistenteContextoService contextoService,
                               ColAsistenteIaClient iaClient,
                               RmAsignacionService rmAsignacionService,
@@ -48,6 +56,18 @@ public class RmAsistenteService {
         this.seguridadService = seguridadService;
     }
 
+    /**
+     * Responde una consulta del RM. Si se detecta prompt injection o la salida de la IA filtra datos
+     * internos, devuelve el mensaje de bloqueo sin agregarlo al historial del modelo.
+     *
+     * @param rmId id del RM; si no es {@code null}, se aplica el límite de mensajes por minuto
+     * @param proyectoContextoId proyecto enfocado, o {@code null} para todos
+     * @param mensajeCrudo texto escrito por el RM
+     * @param session sesión HTTP donde se guardan el historial (12 mensajes) y los turnos visibles (8)
+     * @return la respuesta con texto, bloques y tarjetas de proyectos y candidatos
+     * @throws IllegalArgumentException si el mensaje queda vacío, supera los 1000 caracteres o se excede
+     *         el límite de mensajes por minuto ({@code LimiteMensajesException})
+     */
     public RmAsistenteRespuesta responder(Long rmId, Long proyectoContextoId, String mensajeCrudo, HttpSession session) {
         String mensaje = seguridadService.limpiarEntradaUsuario(mensajeCrudo);
         if (mensaje.isEmpty()) {
@@ -118,6 +138,12 @@ public class RmAsistenteService {
         session.setAttribute(ATTR_TURNOS, new ArrayList<>(turnos));
     }
 
+    /**
+     * Devuelve los turnos de la conversación guardados en la sesión, para volver a pintarlos.
+     *
+     * @param session sesión HTTP
+     * @return copia de los turnos; lista vacía si no hay
+     */
     @SuppressWarnings("unchecked")
     public List<TurnoConversacionRm> obtenerTurnos(HttpSession session) {
         Object guardado = session.getAttribute(ATTR_TURNOS);
@@ -127,11 +153,32 @@ public class RmAsistenteService {
         return new ArrayList<>();
     }
 
+    /**
+     * Borra de la sesión el historial del modelo y los turnos visibles.
+     *
+     * @param session sesión HTTP
+     */
     public void limpiarHistorial(HttpSession session) {
         session.removeAttribute(ATTR_HISTORIAL);
         session.removeAttribute(ATTR_TURNOS);
     }
 
+    /**
+     * Propone desde una tarjeta del asistente un candidato de Talent Matching. No asigna directamente:
+     * delega en {@link RmAsignacionService#proponerDesdeRm} y la propuesta queda pendiente del PM.
+     *
+     * @param rmId id del RM que propone
+     * @param proyectoId proyecto destino
+     * @param colaboradorId colaborador propuesto
+     * @param horasSemanales horas por semana
+     * @param justificacion motivo de la propuesta
+     * @param motivoCapacidad justificación si el colaborador supera su capacidad
+     * @param justificacionCupo justificación si el proyecto tiene los cupos completos
+     * @return la asignación propuesta
+     * @throws IllegalArgumentException si {@link RmAsignacionService#proponerDesdeRm} rechaza los datos
+     * @throws IllegalStateException si {@link RmAsignacionService#proponerDesdeRm} rechaza la propuesta
+     *         por el estado del proyecto o porque el RM no es su responsable
+     */
     public Asignacion proponerDesdeTalentMatching(Long rmId, Long proyectoId, Long colaboradorId,
                                                   BigDecimal horasSemanales, String justificacion,
                                                   String motivoCapacidad, String justificacionCupo) {

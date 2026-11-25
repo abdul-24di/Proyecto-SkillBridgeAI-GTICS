@@ -7,11 +7,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-// Decide qué proyectos puede ver el RM que tiene la sesión iniciada.
+/**
+ * Decide qué proyectos y revisiones puede ver el Resource Manager que tiene la sesión iniciada.
+ * La usan los servicios de consulta del RM para filtrar listados y validar accesos por id.
+ */
 @Service
 public class RmAlcanceService {
 
-    // Devuelve el RM logueado o null si la sesión no es de un RM.
+    /**
+     * Obtiene el usuario autenticado si su rol es {@code RESOURCE_MANAGER}.
+     *
+     * @return el RM de la sesión, o {@code null} si no hay sesión o el usuario tiene otro rol
+     */
     public Usuario rmActual() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof UsuarioDetails)) {
@@ -21,15 +28,25 @@ public class RmAlcanceService {
         return "RESOURCE_MANAGER".equals(usuario.getRol().getNombre()) ? usuario : null;
     }
 
-    // Devuelve el id del RM logueado. Si no hay un RM
-    // devuelve null y entonces no se filtra nada.
+    /**
+     * Obtiene el id del RM de la sesión. Si no hay un RM (por ejemplo, en un proceso interno),
+     * devuelve {@code null} y los métodos {@code puedeVer*} no filtran nada.
+     *
+     * @return id del RM autenticado o {@code null}
+     */
     public Long idRmActual() {
         Usuario rm = rmActual();
         return rm == null ? null : rm.getId();
     }
 
-    // El RM ve los proyectos donde él es el responsable y los que aún no tienen responsable
-    // (así puede tomarlos; ver RmResponsableService.validarResponsable).
+    /**
+     * Indica si el RM puede ver un proyecto: los que tiene a cargo y los que aún no tienen
+     * responsable, para poder tomarlos (ver {@link RmResponsableService#validarResponsable}).
+     *
+     * @param proyecto proyecto a evaluar
+     * @param rmId id del RM; {@code null} permite ver todo
+     * @return {@code true} si el proyecto es visible para el RM
+     */
     public boolean puedeVer(Proyecto proyecto, Long rmId) {
         if (rmId == null) {
             return true;
@@ -39,9 +56,15 @@ public class RmAlcanceService {
     }
 
 
-    // Para certificados, formaciones y cursos el RM ve lo que se le asignó a él. Lo que no tiene responsable
-    // (datos anteriores al reparto o creados cuando no había un RM activo) lo puede revisar cualquier RM,
-    // para que no quede sin revisión.
+    /**
+     * Indica si el RM puede ver una revisión de certificado, formación o curso. Ve lo que se le asignó;
+     * lo que no tiene responsable (datos anteriores al reparto o creados sin un RM activo) lo puede
+     * revisar cualquier RM, para que no quede sin revisión.
+     *
+     * @param rmResponsable RM asignado a la revisión, o {@code null}
+     * @param rmId id del RM; {@code null} permite ver todo
+     * @return {@code true} si la revisión es visible para el RM
+     */
     public boolean puedeVerRevision(Usuario rmResponsable, Long rmId) {
         if (rmId == null) {
             return true;

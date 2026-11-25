@@ -1,7 +1,8 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
-import com.pucp.skillb_ia.dto.pm.PmSolicitudPersonalForm;
+
+import com.pucp.skillb_ia.dto.*;
+import com.pucp.skillb_ia.dto.pm.*;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.CategoriaHabilidad;
 import com.pucp.skillb_ia.model.Habilidad;
@@ -58,7 +59,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-// TASK-058: el PM solicita personal al RM desde el detalle del proyecto.
+
 @SpringBootTest
 @ActiveProfiles("test")
 class PmSolicitudPersonalTests {

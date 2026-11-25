@@ -1,8 +1,5 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.ColAsistenteRespuesta;
-import com.pucp.skillb_ia.dto.PmAsistenteRespuesta;
-import com.pucp.skillb_ia.dto.RmAsistenteRespuesta;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.*;
 import com.pucp.skillb_ia.repository.*;
@@ -19,7 +16,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.pucp.skillb_ia.dto.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;

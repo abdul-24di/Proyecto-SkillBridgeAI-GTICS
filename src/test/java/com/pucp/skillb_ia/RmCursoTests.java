@@ -1,7 +1,5 @@
 package com.pucp.skillb_ia;
-
-import com.pucp.skillb_ia.dto.NotificacionView;
-import com.pucp.skillb_ia.dto.RmCursoView;
+import com.pucp.skillb_ia.dto.*;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;
 import com.pucp.skillb_ia.model.LogAuditoria;

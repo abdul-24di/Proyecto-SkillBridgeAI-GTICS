@@ -1,6 +1,5 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.RmReporteView;
 import com.pucp.skillb_ia.model.Actividad;
 import com.pucp.skillb_ia.model.Proyecto;
 import com.pucp.skillb_ia.model.Rol;
@@ -39,7 +38,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -49,7 +47,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import com.pucp.skillb_ia.dto.*;
 import static com.pucp.skillb_ia.service.rm.RmReporteExportService.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;

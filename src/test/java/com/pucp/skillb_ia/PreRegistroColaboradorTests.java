@@ -1,6 +1,6 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.auth.ActivarCuentaForm;
+import com.pucp.skillb_ia.dto.auth.*;
 import com.pucp.skillb_ia.model.CategoriaHabilidad;
 import com.pucp.skillb_ia.model.Habilidad;
 import com.pucp.skillb_ia.model.Rol;
@@ -50,8 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
-// Pre-registro por invitación: el colaborador completa sus datos y sube su CV al activar la cuenta,
-// el Admin lo aprueba o rechaza, y mientras tanto el colaborador solo ve "Registro en revisión".
+
 @SpringBootTest
 @ActiveProfiles("test")
 class PreRegistroColaboradorTests {

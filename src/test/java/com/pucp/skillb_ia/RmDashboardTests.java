@@ -1,10 +1,6 @@
 package com.pucp.skillb_ia;
-
+import com.pucp.skillb_ia.dto.*;
 import com.pucp.skillb_ia.controller.RmViewController;
-import com.pucp.skillb_ia.dto.RmAsignacionView;
-import com.pucp.skillb_ia.dto.RmCertificadoView;
-import com.pucp.skillb_ia.dto.RmProyectoView;
-import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
 import com.pucp.skillb_ia.model.Asignacion;
 import com.pucp.skillb_ia.model.ColaboradorCurso;
 import com.pucp.skillb_ia.model.Curso;

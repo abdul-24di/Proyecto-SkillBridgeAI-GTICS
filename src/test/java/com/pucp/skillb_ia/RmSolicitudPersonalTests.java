@@ -1,6 +1,6 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.RmSolicitudPersonalView;
+import com.pucp.skillb_ia.dto.*;
 import com.pucp.skillb_ia.model.CategoriaHabilidad;
 import com.pucp.skillb_ia.model.Habilidad;
 import com.pucp.skillb_ia.model.Proyecto;

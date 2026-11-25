@@ -96,6 +96,11 @@ public class ColaboradorViewController {
         this.usuarioRepository = usuarioRepository;
     }
 
+    /**
+     * Ruta raíz del módulo ({@code GET /colaborador}): redirige al dashboard.
+     *
+     * @return {@code redirect:/colaborador/dashboard}
+     */
     @GetMapping({"", "/"})
     public String index() {
         return "redirect:/colaborador/dashboard";
@@ -193,6 +198,26 @@ public class ColaboradorViewController {
 
 
 
+    /**
+     * Muestra el detalle de un proyecto del colaborador ({@code GET /colaborador/proyectos/detalle}).
+     * <p>
+     * Arma la pantalla con varias pestañas: actividades (de todo el proyecto y las propias,
+     * paginadas), integrantes con su perfil, strikes del colaborador, documentos (con filtro por
+     * categoría y búsqueda) y el foro del proyecto. Si no se indica la asignación o el service
+     * rechaza el acceso, vuelve al listado con un mensaje de error.
+     *
+     * @param principal usuario autenticado
+     * @param asignacionId id de la asignación del colaborador al proyecto (obligatorio en la práctica)
+     * @param categoriaDoc filtro de categoría de documentos (opcional)
+     * @param busquedaDoc texto de búsqueda de documentos (opcional)
+     * @param paginaTodas página de la lista de todas las actividades (opcional)
+     * @param paginaMias página de la lista de mis actividades (opcional)
+     * @param model modelo para la vista
+     * @param redirectAttributes para el mensaje de error al redirigir
+     * @param request petición HTTP
+     * @return la vista {@code col/col-detalle-proyecto} o una redirección
+     * @see ColaboradorProyectoService#obtenerDetalleProyecto
+     */
     @GetMapping({"/proyectos/detalle", "/col-detalle-proyecto.html"})
     public String projectDetail(@AuthenticationPrincipal UsuarioDetails principal,
                                 @RequestParam(required = false) Long asignacionId,
@@ -253,6 +278,23 @@ public class ColaboradorViewController {
         return "col/col-detalle-proyecto";
     }
 
+    /**
+     * Sube un documento al proyecto ({@code POST /colaborador/proyectos/documentos/subir}).
+     * <p>
+     * Primero valida el archivo; si hay error, devuelve el formulario sin el archivo y pide abrir
+     * de nuevo el modal de subida. Si todo está bien, guarda el documento. Siempre regresa a la
+     * pestaña "documentos" del detalle del proyecto.
+     *
+     * @param principal usuario autenticado
+     * @param proyectoId id del proyecto al que se sube el documento
+     * @param asignacionId id de la asignación (para volver al detalle correcto)
+     * @param form formulario con el archivo
+     * @param result resultado de la validación
+     * @param redirectAttributes para mensajes y para reabrir el modal
+     * @param request petición HTTP
+     * @return redirección al detalle del proyecto, pestaña documentos
+     * @see ColaboradorDocumentoService#subirDocumento
+     */
     @PostMapping("/proyectos/documentos/subir")
     public String subirDocumentoProyecto(@AuthenticationPrincipal UsuarioDetails principal,
                                          @RequestParam Long proyectoId,
@@ -303,6 +345,19 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/proyectos/detalle?asignacionId=" + asignacionId + "&tab=documentos";
     }
 
+    /**
+     * Muestra la pantalla del chat ({@code GET /colaborador/chat}).
+     * Carga los proyectos activos del colaborador; el proyecto o usuario preseleccionado
+     * llega por parámetro (por ejemplo desde un enlace en otra pantalla). Los mensajes en
+     * sí se manejan por WebSocket y por {@code ColChatRestController}.
+     *
+     * @param proyectoId proyecto a preseleccionar (opcional)
+     * @param usuarioId usuario con quien abrir la conversación (opcional)
+     * @param principal usuario autenticado
+     * @param model modelo para la vista
+     * @return la vista {@code col/col-chat}
+     * @see ColChatService#listarProyectosActivos
+     */
     @GetMapping({"/chat", "/col-chat.html"})
     public String chat(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
                        @RequestParam(value = "usuarioId", required = false) Long usuarioId,
@@ -320,6 +375,24 @@ public class ColaboradorViewController {
 
 
 
+    /**
+     * Lista los foros ({@code GET /colaborador/foros}) en dos pestañas:
+     * <ul>
+     *   <li><b>Comunidad</b>: foros públicos de la organización.</li>
+     *   <li><b>Mis proyectos</b>: foros de los proyectos del colaborador.</li>
+     * </ul>
+     * La búsqueda (por nombre del foro o del proyecto) y la paginación (6 por página en cada
+     * pestaña) se hacen en el servidor. También entrega los foros donde puede publicar y las
+     * etiquetas para el modal de nueva publicación.
+     *
+     * @param principal usuario autenticado
+     * @param busqueda texto de búsqueda (opcional)
+     * @param tab pestaña activa: {@code "mios"} o, por defecto, {@code "comunidad"}
+     * @param paginaComunidad página de la pestaña Comunidad (opcional)
+     * @param paginaMios página de la pestaña Mis proyectos (opcional)
+     * @param model modelo para la vista
+     * @return la vista {@code col/col-foros} o {@code redirect:/login}
+     */
     @GetMapping({"/foros", "/col-foros.html"})
     public String foros(@AuthenticationPrincipal UsuarioDetails principal,
                         @RequestParam(required = false) String busqueda,
@@ -333,7 +406,7 @@ public class ColaboradorViewController {
         Usuario colaborador = principal.getUsuario();
         model.addAttribute("colaborador", colaborador);
 
-        // Búsqueda y paginación en el servidor (antes en JS), 6 foros por página en cada pestaña.
+        // Búsqueda y paginación en el servidor, 6 foros por página en cada pestaña.
         List<Foro> comunidad = colaboradorForoService.listarForosComunidad().stream()
                 .filter(f -> Paginador.contiene(f.getNombre() + " " + (f.getProyecto() != null ? f.getProyecto().getNombre() : ""), busqueda))
                 .toList();
@@ -356,6 +429,20 @@ public class ColaboradorViewController {
         return "col/col-foros";
     }
 
+    /**
+     * Muestra un foro con sus publicaciones y respuestas ({@code GET /colaborador/foros/detalle}).
+     * <p>
+     * {@code puedeParticipar} indica si el colaborador puede publicar y responder (tiene una
+     * asignación activa en el proyecto del foro). Si no puede, la vista queda en solo lectura.
+     * Si el foro no existe o no puede verlo, redirige al listado de foros.
+     *
+     * @param foroId id del foro
+     * @param ordenar criterio de orden de las publicaciones (por defecto {@code "fecha"})
+     * @param principal usuario autenticado
+     * @param model modelo para la vista
+     * @return la vista {@code col/col-foro-detalle} o una redirección
+     * @see ColaboradorForoService#puedeParticipar
+     */
     @GetMapping({"/foros/detalle", "/col-foro-detalle.html"})
     public String foroDetalle(@RequestParam("foroId") Long foroId,
                               @RequestParam(value = "ordenar", defaultValue = "fecha") String ordenar,
@@ -382,8 +469,22 @@ public class ColaboradorViewController {
         }
     }
 
-    // Si hay errores se vuelve a la página desde donde se publicó (el listado de foros o el detalle del
-    // foro), con el modal abierto y lo escrito conservado; antes iba siempre al detalle del foro elegido.
+    /**
+     * Crea una publicación en un foro ({@code POST /colaborador/foro/publicar}).
+     * <p>
+     * Además de las validaciones del formulario, rechaza contenido vacío en disfraz (solo espacios
+     * o etiquetas del editor). Si el service lanza un error (por ejemplo, un foro donde ya no puede
+     * participar) el mensaje se asocia al campo del foro. Si hay errores, vuelve a la página de
+     * origen ({@code "foros"} o {@code "detalle"}) con el modal abierto y lo escrito conservado.
+     *
+     * @param form formulario validado con {@code @Valid}
+     * @param result resultado de la validación
+     * @param principal usuario autenticado
+     * @param redirectAttributes para mensajes y para conservar el formulario
+     * @param request petición HTTP
+     * @return redirección al foro creado, o a la página de origen si hubo errores
+     * @see ColaboradorForoService#crearPublicacion
+     */
     @PostMapping("/foro/publicar")
     public String publicarForo(@Valid @ModelAttribute("colForoPublicacionForm") ColForoPublicacionForm form,
                                BindingResult result,
@@ -417,6 +518,18 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/foros";
     }
 
+    /**
+     * Elimina una publicación del foro ({@code POST /colaborador/foro/publicacion/{publicacionId}/eliminar}).
+     * Los permisos los valida el service; si lo rechaza, se muestra su mensaje.
+     *
+     * @param publicacionId id de la publicación
+     * @param foroId id del foro (para volver a él)
+     * @param principal usuario autenticado
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     * @see ColaboradorForoService#eliminarPublicacion
+     */
     @PostMapping("/foro/publicacion/{publicacionId}/eliminar")
     public String eliminarPublicacionForo(@PathVariable Long publicacionId,
                                           @RequestParam("foroId") Long foroId,
@@ -433,6 +546,18 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
+    /**
+     * Responde a una publicación ({@code POST /colaborador/foro/responder}).
+     *
+     * @param publicacionId id de la publicación que se responde
+     * @param foroId id del foro (para volver a él)
+     * @param contenido texto de la respuesta
+     * @param principal usuario autenticado
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     * @see ColaboradorForoService#crearRespuesta
+     */
     @PostMapping("/foro/responder")
     public String responderForo(@RequestParam("publicacionId") Long publicacionId,
                                 @RequestParam("foroId") Long foroId,
@@ -450,6 +575,17 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
+    /**
+     * Elimina una respuesta del foro ({@code POST /colaborador/foro/respuesta/{respuestaId}/eliminar}).
+     *
+     * @param respuestaId id de la respuesta
+     * @param foroId id del foro (para volver a él)
+     * @param principal usuario autenticado
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     * @see ColaboradorForoService#eliminarRespuesta
+     */
     @PostMapping("/foro/respuesta/{respuestaId}/eliminar")
     public String eliminarRespuestaForo(@PathVariable Long respuestaId,
                                         @RequestParam("foroId") Long foroId,
@@ -466,6 +602,18 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
+    /**
+     * Da o quita el "me gusta" a una publicación ({@code POST /colaborador/foro/publicacion/{publicacionId}/like}).
+     * Es un interruptor: si el colaborador ya había dado like, lo retira.
+     *
+     * @param publicacionId id de la publicación
+     * @param foroId id del foro (para volver a él)
+     * @param principal usuario autenticado
+     * @param redirectAttributes para mensajes de error
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     * @see ColaboradorForoService#alternarLikePublicacion
+     */
     @PostMapping("/foro/publicacion/{publicacionId}/like")
     public String likePublicacion(@PathVariable Long publicacionId,
                                   @RequestParam("foroId") Long foroId,
@@ -480,6 +628,18 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
+    /**
+     * Da o quita el "me gusta" a una respuesta ({@code POST /colaborador/foro/respuesta/{respuestaId}/like}).
+     * Funciona igual que el like de publicaciones: es un interruptor.
+     *
+     * @param respuestaId id de la respuesta
+     * @param foroId id del foro (para volver a él)
+     * @param principal usuario autenticado
+     * @param redirectAttributes para mensajes de error
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     * @see ColaboradorForoService#alternarLikeRespuesta
+     */
     @PostMapping("/foro/respuesta/{respuestaId}/like")
     public String likeRespuesta(@PathVariable Long respuestaId,
                                 @RequestParam("foroId") Long foroId,
@@ -494,6 +654,19 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
+    /**
+     * Marca o desmarca una respuesta como solución de la publicación
+     * ({@code POST /colaborador/foro/respuesta/{respuestaId}/marcar-solucion}).
+     * Es un interruptor; quién puede hacerlo lo valida el service.
+     *
+     * @param respuestaId id de la respuesta
+     * @param foroId id del foro (para volver a él)
+     * @param principal usuario autenticado
+     * @param redirectAttributes para mensajes de error
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     * @see ColaboradorForoService#alternarSolucion
+     */
     @PostMapping("/foro/respuesta/{respuestaId}/marcar-solucion")
     public String marcarRespuestaComoSolucion(@PathVariable Long respuestaId,
                                               @RequestParam("foroId") Long foroId,
@@ -508,6 +681,15 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/foros/detalle?foroId=" + foroId;
     }
 
+    /**
+     * Sube una imagen para el editor de texto de las publicaciones
+     * ({@code POST /colaborador/foro/upload-imagen}). Es un endpoint que responde JSON, no una vista.
+     *
+     * @param image archivo de imagen enviado por el editor
+     * @return 200 con {@code {"url": ...}}; 400 con {@code {"error": ...}} si el archivo no es válido;
+     *         500 con un mensaje genérico si falla la subida
+     * @see ColaboradorForoService#subirImagenForo
+     */
     @PostMapping("/foro/upload-imagen")
     @org.springframework.web.bind.annotation.ResponseBody
     public org.springframework.http.ResponseEntity<java.util.Map<String, String>> uploadImagenForo(
@@ -524,11 +706,44 @@ public class ColaboradorViewController {
         }
     }
 
+    /**
+     * Muestra la pantalla del asistente de IA ({@code GET /colaborador/asistente}).
+     * La conversación en sí se hace desde el navegador contra {@code ColAsistenteRestController}.
+     *
+     * @return la vista {@code col/col-asistente}
+     */
     @GetMapping({"/asistente", "/col-asistente.html"})
     public String assistant() {
         return "col/col-asistente";
     }
 
+    /**
+     * Pantalla "Explorar" ({@code GET /colaborador/explorar}) con tres paneles:
+     * <ul>
+     *   <li><b>proyectos</b>: todos los proyectos (menos los rechazados), con filtros por texto,
+     *       estado y si las postulaciones están abiertas o cerradas.</li>
+     *   <li><b>cursos</b>: cursos disponibles, con filtro por texto y categoría.</li>
+     *   <li><b>colaboradores</b>: otros colaboradores; la búsqueda mira nombre, cargo y
+     *       habilidades, y se puede filtrar por nivel de experiencia.</li>
+     * </ul>
+     * Filtros y paginación (6 por página en cada panel) se resuelven en el servidor.
+     * Si el panel pedido no es válido, se muestra {@code proyectos}.
+     *
+     * @param principal usuario autenticado
+     * @param panel panel activo: {@code proyectos}, {@code cursos} o {@code colaboradores}
+     * @param busqueda texto de búsqueda de proyectos
+     * @param estadoProyecto filtro de estado del proyecto
+     * @param postulaciones filtro {@code abiertas} o {@code cerradas}
+     * @param pagina página de proyectos
+     * @param busquedaColab texto de búsqueda de colaboradores
+     * @param nivel filtro de nivel de experiencia
+     * @param paginaColab página de colaboradores
+     * @param busquedaCurso texto de búsqueda de cursos
+     * @param categoriaCurso filtro de categoría de curso
+     * @param paginaCurso página de cursos
+     * @param model modelo para la vista
+     * @return la vista {@code col/col-explorar} o {@code redirect:/login}
+     */
     @GetMapping({"/explorar", "/col-explorar.html"})
     public String explore(@AuthenticationPrincipal UsuarioDetails principal,
                           @RequestParam(required = false) String panel,
@@ -547,7 +762,7 @@ public class ColaboradorViewController {
             return "redirect:/login";
         }
         Usuario colaborador = principal.getUsuario();
-        // Pestaña activa y filtros en el servidor (antes los manejaba col-explorar.js); 6 por página.
+        // Pestaña activa y filtros en el servidor; 6 por página.
         String panelActivo = "colaboradores".equals(panel) || "cursos".equals(panel) ? panel : "proyectos";
         model.addAttribute("panel", panelActivo);
 
@@ -601,6 +816,22 @@ public class ColaboradorViewController {
         return "col/col-explorar";
     }
 
+    /**
+     * Solicita incorporarse a un proyecto ({@code POST /colaborador/proyectos/solicitar}).
+     * <p>
+     * Crea una asignación pendiente que requiere la aprobación del PM <b>y</b> del RM. El
+     * colaborador no puede aprobarla ni rechazarla, solo consultarla. Las reglas (cupos, horas
+     * suficientes, no duplicar solicitud) las valida el service.
+     *
+     * @param principal usuario autenticado
+     * @param proyectoId proyecto al que quiere unirse
+     * @param habilidadId perfil (habilidad) al que postula (opcional)
+     * @param mensaje mensaje para los revisores (opcional)
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/explorar}
+     * @see ColaboradorProyectoService#solicitarIncorporacion
+     */
     @PostMapping("/proyectos/solicitar")
     public String solicitarIncorporacion(@AuthenticationPrincipal UsuarioDetails principal,
                                          @RequestParam Long proyectoId,
@@ -619,6 +850,17 @@ public class ColaboradorViewController {
     }
 
 
+    /**
+     * Versión AJAX de {@link #solicitarIncorporacion}: hace lo mismo pero responde texto plano
+     * en vez de redirigir, para que la página no se recargue.
+     *
+     * @param principal usuario autenticado
+     * @param proyectoId proyecto al que quiere unirse
+     * @param habilidadId perfil al que postula (opcional)
+     * @param mensaje mensaje para los revisores (opcional)
+     * @param request petición HTTP
+     * @return 200 con el mensaje de éxito; 400 con el motivo del rechazo; 401 si la sesión expiró
+     */
     @PostMapping(value = "/proyectos/solicitar-ajax", produces = "text/plain;charset=UTF-8")
     @ResponseBody
     public ResponseEntity<String> solicitarIncorporacionAjax(@AuthenticationPrincipal UsuarioDetails principal,

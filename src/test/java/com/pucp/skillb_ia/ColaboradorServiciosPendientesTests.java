@@ -1,8 +1,7 @@
 package com.pucp.skillb_ia;
 
-import com.pucp.skillb_ia.dto.ColProyectoDetalleView;
-import com.pucp.skillb_ia.dto.auth.ArchivoPendiente;
-import com.pucp.skillb_ia.dto.auth.ErrorPreRegistro;
+import com.pucp.skillb_ia.dto.*;
+import com.pucp.skillb_ia.dto.auth.*;
 import com.pucp.skillb_ia.model.*;
 import com.pucp.skillb_ia.model.enums.EstadoActividad;
 import com.pucp.skillb_ia.model.enums.EstadoAsignacion;

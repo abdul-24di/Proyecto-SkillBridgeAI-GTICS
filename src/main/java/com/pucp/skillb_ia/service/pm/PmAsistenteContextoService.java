@@ -430,7 +430,7 @@ public class PmAsistenteContextoService {
             String clave = palabras.get(i);
             for (PublicacionForo p : publicacionForoRepository.buscarPorPalabra(clave, PageRequest.of(0, 20))) {
                 Foro f = p.getForo();
-                boolean acceso = f.isEsPublico()
+                boolean acceso = f.isVisibleParaTodos()
                         || (f.getProyecto() != null && f.getProyecto().getPm().getId().equals(pm.getId()));
                 if (acceso) {
                     candidatas.putIfAbsent(p.getId(), p);

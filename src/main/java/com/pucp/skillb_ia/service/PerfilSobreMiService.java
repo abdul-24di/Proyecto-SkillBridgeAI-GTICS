@@ -5,8 +5,10 @@ import com.pucp.skillb_ia.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// "Sobre mí" del perfil del Administrador, el PM y el RM: lo que escribieron en "Sobre ti" al activar su cuenta.
-// El colaborador lo edita en su propio perfil (ColaboradorPerfilService).
+/**
+ * "Sobre mí" del perfil del Administrador, el PM y el RM: lo que escribieron en "Sobre ti" al activar su
+ * cuenta. El colaborador lo edita en su propio perfil (ColaboradorPerfilService).
+ */
 @Service
 public class PerfilSobreMiService {
 
@@ -15,6 +17,7 @@ public class PerfilSobreMiService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public PerfilSobreMiService(UsuarioRepository usuarioRepository, AuditoriaService auditoriaService) {
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;

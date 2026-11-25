@@ -18,6 +18,9 @@ import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.ForoDetalleService;
 import com.pucp.skillb_ia.service.ForoDetalleService.PermisosForo;
 
+/**
+ * Foros del Administrador: creación, publicación y moderación de los foros de comunidad y de anuncios.
+ */
 @Service
 public class AdminForoService {
 
@@ -27,6 +30,7 @@ public class AdminForoService {
     private final ForoDetalleService foroDetalleService;
     private final AuditoriaService auditoriaService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public AdminForoService(ForoRepository foroRepository,
                             PublicacionForoRepository publicacionForoRepository,
                             RespuestaForoRepository respuestaForoRepository,
@@ -68,6 +72,11 @@ public class AdminForoService {
         foroDetalleService.alternarSolucion(admin, respuesta);
     }
 
+    /**
+     * Lista los foros que crea el Administrador: los de comunidad y los de anuncios.
+     *
+     * @return foros de tipo general
+     */
     @Transactional(readOnly = true)
     public List<Foro> listarForosComunidad() {
         return foroRepository.findAll().stream()
@@ -75,6 +84,15 @@ public class AdminForoService {
                 .toList();
     }
 
+    /**
+     * Crea un foro y lo registra en la auditoría.
+     *
+     * @param nombre nombre ingresado
+     * @param esPublico {@code true} para un foro de comunidad, {@code false} para uno de anuncios
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @return el foro creado
+     * @throws IllegalArgumentException si el nombre está vacío o pasa de 150 caracteres
+     */
     @Transactional
     public Foro crearForo(String nombre, boolean esPublico, Usuario admin) {
         String nombreLimpio = nombre == null ? "" : nombre.strip();
@@ -95,6 +113,13 @@ public class AdminForoService {
         return guardado;
     }
 
+    /**
+     * Elimina un foro del Administrador con sus publicaciones, respuestas y votos.
+     *
+     * @param foroId id del foro
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si no existe o es el foro de un proyecto
+     */
     @Transactional
     public void eliminarForo(Long foroId, Usuario admin) {
         Foro foro = obtenerForo(foroId);
@@ -112,12 +137,28 @@ public class AdminForoService {
                 "Eliminó el foro de " + (foro.isAnuncios() ? "anuncios" : "comunidad") + " \"" + foro.getNombre() + "\" con todo su contenido.");
     }
 
+    /**
+     * Busca un foro por su id.
+     *
+     * @param foroId id del foro
+     * @return el foro
+     * @throws IllegalArgumentException si no existe
+     */
     @Transactional(readOnly = true)
     public Foro obtenerForo(Long foroId) {
         return foroRepository.findById(foroId)
                 .orElseThrow(() -> new IllegalArgumentException("Foro no encontrado: " + foroId));
     }
 
+    /**
+     * Publica en un foro y lo registra en la auditoría.
+     *
+     * @param foroId id del foro
+     * @param titulo título de la publicación
+     * @param contenido contenido escrito por el usuario
+     * @param autor Administrador que publica
+     * @throws IllegalArgumentException si el título o el contenido están vacíos o son muy largos
+     */
     @Transactional
     public void publicar(Long foroId, String titulo, String contenido, Usuario autor) {
         // Mismas reglas que la publicación del PM (PmForoService.publicar). Antes un anuncio vacío se guardaba.
@@ -147,6 +188,12 @@ public class AdminForoService {
                 "Publicó \"" + tituloLimpio + "\" en el foro \"" + foro.getNombre() + "\".");
     }
 
+    /**
+     * Retira una publicación del foro (baja lógica); si no existe no hace nada.
+     *
+     * @param pubId id de la publicación
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     */
     @Transactional
     public void eliminarPublicacion(Long pubId, Usuario admin) {
         publicacionForoRepository.findById(pubId).ifPresent(p -> {
@@ -157,8 +204,16 @@ public class AdminForoService {
         });
     }
 
-    // El Administrador modera el foro de comunidad: puede retirar cualquier respuesta, igual que las publicaciones.
-    // Antes solo podía borrar las suyas.
+    /**
+     * Retira cualquier respuesta del foro (baja lógica).
+     * <p>
+     * El Administrador modera el foro de comunidad: puede retirar cualquier respuesta, igual que las
+     * publicaciones. Antes solo podía borrar las suyas.
+     *
+     * @param respuestaId id de la respuesta
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si no existe
+     */
     @Transactional
     public void eliminarRespuesta(Long respuestaId, Usuario admin) {
         var respuesta = respuestaForoRepository.findById(respuestaId)

@@ -1,6 +1,27 @@
 # Proyecto-SkillBridgeAI-GTICS
 Plataforma de gestión de talento, proyectos y conocimiento con IA — TEL137 GTICS 2026-2, PUCP
 
+## Propósito
+
+En muchas empresas de tecnología el personal se asigna a los proyectos sin una visión clara de las habilidades
+validadas de cada persona, de su disponibilidad real ni de su carga de trabajo, y la información está repartida en
+hojas de cálculo, correos y mensajes.
+
+SkillBridge AI reúne en un solo sistema el ciclo completo de un proyecto: el registro y la aprobación de su
+presupuesto, la búsqueda y asignación de colaboradores según sus habilidades y disponibilidad, y el seguimiento de
+actividades, horas, cursos y reportes. Lo apoyan recomendaciones de talento y asistentes de inteligencia artificial
+que responden con los datos de la propia plataforma.
+
+| Rol | Qué hace en la plataforma |
+| :--- | :--- |
+| Administrador | Crea las cuentas por invitación, aprueba los pre-registros, mantiene los catálogos y los parámetros, modera los foros y consulta la auditoría y los reportes. |
+| Project Manager | Registra proyectos, gestiona sus actividades y su equipo, y solicita o propone personal. |
+| Resource Manager | Aprueba proyectos y presupuestos, asigna colaboradores con Talent Matching y valida certificados, formación y cursos. |
+| Colaborador | Mantiene su perfil profesional, postula a proyectos, entrega actividades, se capacita y consulta su desempeño. |
+
+**Tecnologías:** Java 17, Spring Boot (MVC, Data JPA, Security y Session), Thymeleaf, MySQL, API REST y WebSocket. Se
+despliega en AWS con Docker en EC2, la base en RDS y los archivos en S3.
+
 ## Configuración local
 
 La aplicación no guarda la contraseña de MySQL en el repositorio. Antes de
@@ -184,7 +205,7 @@ base con el `skillbridge_db_v4.sql` actual.
 
 ## Pruebas
 
-Las pruebas activan automáticamente el perfil `test`, que usa una base H2 en
+No se necesita configurar nada para ejecutarlas. Las pruebas activan automáticamente el perfil `test`, que usa una base H2 en
 memoria y no se conecta a MySQL ni modifica la base de desarrollo.
 
 ```powershell

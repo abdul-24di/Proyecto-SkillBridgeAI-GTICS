@@ -12,9 +12,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-// Frena a quien inunda el sitio de peticiones: cuenta por IP lo que hace en cada minuto y, al pasarse del
-// límite, responde 429 sin llegar a la base de datos. Los formularios públicos (login, recuperar contraseña,
-// activar cuenta) tienen un límite más bajo porque cada envío es caro: BCrypt, correos y archivos.
+/**
+ * Frena a quien inunda el sitio de peticiones: cuenta por IP lo que hace en cada minuto y, al pasarse del
+ * límite, responde 429 sin llegar a la base de datos. Los formularios públicos (login, recuperar
+ * contraseña, activar cuenta) tienen un límite más bajo porque cada envío es caro: BCrypt, correos y
+ * archivos.
+ */
 public class LimiteSolicitudesFilter extends OncePerRequestFilter {
 
     private static final long VENTANA_MS = 60_000;
@@ -34,16 +37,32 @@ public class LimiteSolicitudesFilter extends OncePerRequestFilter {
     private final int maxPorMinuto;
     private final int maxFormulariosPorMinuto;
 
+    /** Crea el filtro con los límites por IP y por minuto. */
     public LimiteSolicitudesFilter(int maxPorMinuto, int maxFormulariosPorMinuto) {
         this.maxPorMinuto = maxPorMinuto;
         this.maxFormulariosPorMinuto = maxFormulariosPorMinuto;
     }
 
+    /**
+     * Excluye los archivos estáticos del límite.
+     *
+     * @param request petición HTTP
+     * @return {@code true} si la petición no se cuenta
+     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return ARCHIVOS_ESTATICOS.stream().anyMatch(request.getRequestURI()::startsWith);
     }
 
+    /**
+     * Responde 429 si la IP superó el límite; si no, deja pasar la petición.
+     *
+     * @param request petición HTTP
+     * @param response respuesta HTTP
+     * @param filterChain cadena de filtros
+     * @throws ServletException si falla la cadena de filtros
+     * @throws IOException si falla la respuesta
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
@@ -55,6 +74,12 @@ public class LimiteSolicitudesFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Suma la petición al contador de su IP.
+     *
+     * @param request petición HTTP
+     * @return {@code true} si superó alguno de los límites
+     */
     private boolean superaElLimite(HttpServletRequest request) {
         long ahora = System.currentTimeMillis();
         if (contadores.size() > MAX_IPS_EN_MEMORIA) {

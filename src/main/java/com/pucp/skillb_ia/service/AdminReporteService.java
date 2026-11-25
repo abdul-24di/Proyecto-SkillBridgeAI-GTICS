@@ -20,8 +20,10 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-// Reportes del Administrador: "Usuarios y accesos" (por mes) y "Actividad de auditoría" (por rango de fechas).
-// Se arman con los usuarios y el log de auditoría que ya existen; no necesitan tablas nuevas.
+/**
+ * Reportes del Administrador: "Usuarios y accesos" (por mes) y "Actividad de auditoría" (por rango de
+ * fechas). Se arman con los usuarios y el log de auditoría que ya existen; no necesitan tablas nuevas.
+ */
 @Service
 public class AdminReporteService {
 
@@ -32,13 +34,48 @@ public class AdminReporteService {
 
     // ---------- Usuarios y accesos ----------
 
+    /**
+     * Usuarios de un rol por estado.
+     *
+     * @param rol nombre del rol
+     * @param activos cuentas activas
+     * @param pendientes cuentas sin activar
+     * @param inactivos cuentas desactivadas
+     */
     public record FilaRol(String rol, long activos, long pendientes, long inactivos) {
+        /** Suma los usuarios de los tres estados. */
         public long total() { return activos + pendientes + inactivos; }
     }
 
+    /**
+     * Altas, activaciones e inicios de sesión de un mes.
+     *
+     * @param mes mes del reporte
+     * @param altas usuarios creados
+     * @param activaciones cuentas activadas
+     * @param logins inicios de sesión
+     * @param loginsFallidos inicios de sesión fallidos
+     */
     public record FilaMes(String mes, long altas, long activaciones, long logins, long loginsFallidos) {
     }
 
+    /**
+     * Datos del reporte "Usuarios y accesos".
+     *
+     * @param mes mes del reporte
+     * @param etiquetaMes nombre del mes
+     * @param altas usuarios creados
+     * @param activaciones cuentas activadas
+     * @param logins inicios de sesión
+     * @param loginsFallidos inicios de sesión fallidos
+     * @param accesosDenegados accesos denegados (403)
+     * @param recuperaciones contraseñas recuperadas
+     * @param preRegistrosPendientes pre-registros por revisar, a la fecha
+     * @param preRegistrosAprobados pre-registros aprobados, a la fecha
+     * @param preRegistrosRechazados pre-registros rechazados, a la fecha
+     * @param porRol datos agrupados por rol
+     * @param historial evolución de los últimos meses
+     */
     public record ReporteUsuarios(YearMonth mes, String etiquetaMes,
                                   long altas, long activaciones, long logins, long loginsFallidos,
                                   long accesosDenegados, long recuperaciones,
@@ -48,9 +85,29 @@ public class AdminReporteService {
 
     // ---------- Actividad de auditoría ----------
 
+    /**
+     * Cantidad de acciones de un grupo.
+     *
+     * @param etiqueta valor agrupado
+     * @param total cantidad
+     */
     public record Conteo(String etiqueta, long total) {
     }
 
+    /**
+     * Datos del reporte "Actividad de auditoría".
+     *
+     * @param desde fecha inicial
+     * @param hasta fecha final
+     * @param total cantidad
+     * @param usuariosDistintos usuarios con alguna acción
+     * @param loginsFallidos inicios de sesión fallidos
+     * @param accesosDenegados accesos denegados (403)
+     * @param porAccion acciones agrupadas por tipo
+     * @param porUsuario usuarios con más acciones
+     * @param porRol datos agrupados por rol
+     * @param porDia acciones agrupadas por día
+     */
     public record ReporteAuditoria(LocalDate desde, LocalDate hasta, long total, long usuariosDistintos,
                                    long loginsFallidos, long accesosDenegados,
                                    List<Conteo> porAccion, List<Conteo> porUsuario, List<Conteo> porRol,
@@ -61,6 +118,7 @@ public class AdminReporteService {
     private final AdminUsuarioService adminUsuarioService;
     private final AdminAuditoriaService adminAuditoriaService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public AdminReporteService(UsuarioRepository usuarioRepository, AdminUsuarioService adminUsuarioService,
                                AdminAuditoriaService adminAuditoriaService) {
         this.usuarioRepository = usuarioRepository;
@@ -148,6 +206,12 @@ public class AdminReporteService {
     // ---------- Excel y PDF ----------
     // Las mismas hojas sirven para el Excel y para el PDF.
 
+    /**
+     * Arma las hojas del reporte de usuarios.
+     *
+     * @param r datos del reporte
+     * @return hojas para el Excel o el PDF
+     */
     private List<ReporteExcel.Hoja> hojasUsuarios(ReporteUsuarios r) {
         List<List<Object>> resumen = List.of(
                 List.of("Mes", r.etiquetaMes()),
@@ -171,6 +235,12 @@ public class AdminReporteService {
                         "Inicios de sesión", "Inicios fallidos"), meses));
     }
 
+    /**
+     * Arma las hojas del reporte de auditoría.
+     *
+     * @param r datos del reporte
+     * @return hojas para el Excel o el PDF
+     */
     private List<ReporteExcel.Hoja> hojasAuditoria(ReporteAuditoria r) {
         List<List<Object>> resumen = List.of(
                 List.of("Desde", r.desde().format(DIA)),
@@ -187,18 +257,36 @@ public class AdminReporteService {
                 new ReporteExcel.Hoja("Por día", List.of("Día", "Cantidad"), filas(r.porDia())));
     }
 
+    /**
+     * Genera el Excel del reporte de usuarios.
+     *
+     * @param r datos del reporte
+     * @return contenido del archivo
+     */
     public byte[] excelUsuarios(ReporteUsuarios r) {
         Map<String, String> datos = new LinkedHashMap<>();
         datos.put("Fecha de generación", ReportePdf.ahora());
         return ReporteExcel.crear("Reporte de usuarios y accesos", datos, hojasUsuarios(r));
     }
 
+    /**
+     * Genera el Excel del reporte de auditoría.
+     *
+     * @param r datos del reporte
+     * @return contenido del archivo
+     */
     public byte[] excelAuditoria(ReporteAuditoria r) {
         Map<String, String> datos = new LinkedHashMap<>();
         datos.put("Fecha de generación", ReportePdf.ahora());
         return ReporteExcel.crear("Reporte de actividad de auditoría", datos, hojasAuditoria(r));
     }
 
+    /**
+     * Genera el PDF del reporte de usuarios.
+     *
+     * @param r datos del reporte
+     * @return contenido del archivo
+     */
     public byte[] pdfUsuarios(ReporteUsuarios r) {
         Map<String, String> datos = new LinkedHashMap<>();
         datos.put("Fecha de generación", ReportePdf.ahora());
@@ -206,6 +294,12 @@ public class AdminReporteService {
                 "SkillBridge AI — Panel del Administrador", datos, hojasUsuarios(r));
     }
 
+    /**
+     * Genera el PDF del reporte de auditoría.
+     *
+     * @param r datos del reporte
+     * @return contenido del archivo
+     */
     public byte[] pdfAuditoria(ReporteAuditoria r) {
         Map<String, String> datos = new LinkedHashMap<>();
         datos.put("Fecha de generación", ReportePdf.ahora());
@@ -215,14 +309,37 @@ public class AdminReporteService {
 
     // ---------- Utilidades ----------
 
+    /**
+     * Cuenta los usuarios con un estado de pre-registro.
+     *
+     * @param usuarios usuarios a contar
+     * @param estado estado del pre-registro
+     * @return cantidad de usuarios
+     */
     private long contarRegistro(List<Usuario> usuarios, EstadoRegistro estado) {
         return usuarios.stream().filter(u -> u.getRegistroEstado() == estado).count();
     }
 
+    /**
+     * Cuenta las veces que aparece una acción en un mes.
+     *
+     * @param logs acciones a contar
+     * @param mes mes del reporte
+     * @param accion código de la acción
+     * @return cantidad de acciones
+     */
     private long contar(List<AdminAuditoriaService.LogFila> logs, YearMonth mes, String accion) {
         return logs.stream().filter(l -> accion.equals(l.accion()) && Periodo.contiene(mes, l.fechaSolo())).count();
     }
 
+    /**
+     * Agrupa las acciones y las ordena de mayor a menor.
+     *
+     * @param logs acciones a contar
+     * @param clave función que obtiene el valor por el que se agrupa
+     * @param limite cantidad máxima de grupos
+     * @return conteos por grupo
+     */
     private List<Conteo> agrupar(List<AdminAuditoriaService.LogFila> logs,
                                  Function<AdminAuditoriaService.LogFila, String> clave, int limite) {
         return logs.stream()
@@ -234,6 +351,12 @@ public class AdminReporteService {
                 .toList();
     }
 
+    /**
+     * Convierte los conteos en filas de una hoja.
+     *
+     * @param conteos conteos a convertir
+     * @return filas
+     */
     private List<List<Object>> filas(List<Conteo> conteos) {
         return conteos.stream().map(c -> List.<Object>of(c.etiqueta(), c.total())).toList();
     }

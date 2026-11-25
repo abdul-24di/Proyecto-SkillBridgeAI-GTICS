@@ -16,8 +16,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.Set;
 import java.util.UUID;
 
-// Perfil del Admin: solo foto, teléfono y contraseña — mismo patrón que
-// RmPerfilService/PmPerfilService para que los 4 roles se vean igualitarios.
+/**
+ * Perfil del Admin: solo foto, teléfono y contraseña — mismo patrón que RmPerfilService/PmPerfilService
+ * para que los 4 roles se vean igualitarios.
+ */
 @Service
 public class AdminPerfilService {
 
@@ -30,6 +32,7 @@ public class AdminPerfilService {
     private final AuditoriaService auditoriaService;
     private final ArchivoAlmacenamientoService archivoAlmacenamientoService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public AdminPerfilService(UsuarioRepository usuarioRepository,
                               PasswordEncoder passwordEncoder,
                               AuditoriaService auditoriaService,
@@ -40,6 +43,12 @@ public class AdminPerfilService {
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
+    /**
+     * Guarda el teléfono del Administrador y lo registra en la auditoría.
+     *
+     * @param telefono teléfono ingresado
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     */
     @Transactional
     public void actualizarTelefono(String telefono, Usuario admin) {
         admin.setTelefono(telefono != null ? telefono.strip() : null);
@@ -48,6 +57,13 @@ public class AdminPerfilService {
                 "Administrador actualizó su teléfono.");
     }
 
+    /**
+     * Guarda la foto de perfil (JPEG o PNG de hasta 2 MB).
+     *
+     * @param foto imagen subida
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si la imagen está vacía, no es válida o es muy pesada
+     */
     @Transactional
     public void actualizarFoto(MultipartFile foto, Usuario admin) {
         if (foto == null || foto.isEmpty()) {
@@ -70,6 +86,14 @@ public class AdminPerfilService {
                 "Administrador actualizó su foto de perfil.");
     }
 
+    /**
+     * Cambia la contraseña del Administrador.
+     *
+     * @param passwordActual contraseña vigente
+     * @param passwordNueva contraseña nueva
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si la actual es incorrecta o la nueva no cumple la política
+     */
     @Transactional
     public void actualizarPassword(String passwordActual, String passwordNueva, Usuario admin) {
         if (!passwordEncoder.matches(passwordActual, admin.getPasswordHash())) {

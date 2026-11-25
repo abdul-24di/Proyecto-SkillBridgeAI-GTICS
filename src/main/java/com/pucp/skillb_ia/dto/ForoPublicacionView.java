@@ -23,12 +23,14 @@ public class ForoPublicacionView {
     private final boolean puedeDarLike;
     private final boolean puedeResponder;
     private final boolean puedeEliminar;
+    private final boolean anuncio;
 
     public ForoPublicacionView(Long id, Long autorId, String titulo, String contenido,
                                String autorNombre, String autorIniciales, String autorCargo,
                                String etiqueta, LocalDateTime fechaCreacion, long totalLikes,
                                boolean meGusta, List<ForoRespuestaView> respuestas,
-                               boolean puedeDarLike, boolean puedeResponder, boolean puedeEliminar) {
+                               boolean puedeDarLike, boolean puedeResponder, boolean puedeEliminar,
+                               boolean anuncio) {
         this.id = id;
         this.autorId = autorId;
         this.titulo = titulo;
@@ -44,6 +46,7 @@ public class ForoPublicacionView {
         this.puedeDarLike = puedeDarLike;
         this.puedeResponder = puedeResponder;
         this.puedeEliminar = puedeEliminar;
+        this.anuncio = anuncio;
     }
 
     public Long getId() { return id; }
@@ -64,4 +67,6 @@ public class ForoPublicacionView {
     public boolean isPuedeDarLike() { return puedeDarLike; }
     public boolean isPuedeResponder() { return puedeResponder; }
     public boolean isPuedeEliminar() { return puedeEliminar; }
+    /** Publicación de un foro de anuncios: no tiene respuestas. */
+    public boolean isAnuncio() { return anuncio; }
 }

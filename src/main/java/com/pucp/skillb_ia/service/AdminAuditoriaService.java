@@ -147,6 +147,8 @@ public class AdminAuditoriaService {
         ACCION_A_ETIQUETA.put("CIERRE_SOLICITUD_PERSONAL", "Cerró solicitud de personal");
 
         // Foro
+        ACCION_A_ETIQUETA.put("CREAR_FORO", "Creó foro");
+        ACCION_A_ETIQUETA.put("ELIMINAR_FORO", "Eliminó foro");
         ACCION_A_ETIQUETA.put("CREAR_PUBLICACION_FORO", "Creó publicación en foro");
         ACCION_A_ETIQUETA.put("EDITAR_PUBLICACION_FORO", "Editó publicación en foro");
         ACCION_A_ETIQUETA.put("ELIMINAR_PUBLICACION_FORO", "Eliminó publicación en foro");

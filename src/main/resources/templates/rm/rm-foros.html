@@ -92,10 +92,9 @@
       <div>
         <div class="d-flex align-items-center gap-2 flex-wrap">
           <h1 class="page-title mb-0">Foros de la organización</h1>
-          <span class="badge bg-azure-lt">Solo lectura RM</span>
         </div>
         <div class="text-secondary mt-2">
-          Consulta las discusiones de los proyectos de la organización sin intervenir en ellas.
+          Consulta las discusiones de los proyectos de la organización y participa en los foros de comunidad.
         </div>
       </div>
     </div>
@@ -152,7 +151,7 @@
         <div>
           <h3 class="card-title mb-1">Directorio de foros</h3>
           <div class="section-description">
-            El RM puede consultar todos los foros; no puede crear publicaciones, responder ni acceder al chat.
+            Comunidad: publicas, respondes y reaccionas. Anuncios: lees y reaccionas. Proyectos: solo lectura.
           </div>
         </div>
       </div>
@@ -215,8 +214,7 @@
               <div class="forum-project" th:text="${foro.nombre}">Foro del proyecto</div>
               <span class="badge" th:classappend="${foro.proyectoEstadoClase}"
                     th:text="${foro.proyectoEstado}">Activo</span>
-              <span class="badge" th:classappend="${foro.publico ? 'bg-blue-lt' : 'bg-purple-lt'}"
-                    th:text="${foro.publico ? 'Público' : 'Privado'}">Privado</span>
+              <span class="badge" th:classappend="${foro.tipoForoClase}" th:text="${foro.tipoForo}">Privado</span>
             </div>
             <div class="forum-topic" th:text="${foro.temaReciente}">Tema reciente</div>
             <div class="forum-tags" th:if="${!foro.etiquetas.isEmpty()}">

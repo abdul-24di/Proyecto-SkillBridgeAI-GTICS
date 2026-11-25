@@ -135,9 +135,12 @@ public class RmForoConsultaService {
     }
 
     private RmForoView crearVista(Foro foro, String orden) {
-        // El RM solo consulta: misma vista que los demás roles, sin acciones.
-        List<ForoPublicacionView> publicaciones =
-                foroDetalleService.listar(foro, null, PermisosForo.SOLO_LECTURA, orden);
+        // El RM participa en los foros del Admin (en los de anuncios, solo reacciona); los de proyecto los consulta.
+        Usuario rm = rmAlcanceService.rmActual();
+        boolean reacciona = rm != null && foro.getProyecto() == null;
+        boolean participa = reacciona && !foro.isAnuncios();
+        List<ForoPublicacionView> publicaciones = foroDetalleService.listar(foro, reacciona ? rm : null,
+                reacciona ? new PermisosForo(true, participa, false, false) : PermisosForo.SOLO_LECTURA, orden);
 
         Set<Long> participantes = new HashSet<>();
         publicaciones.forEach(publicacion -> {
@@ -179,7 +182,7 @@ public class RmForoConsultaService {
                 proyecto == null ? "bg-secondary-lt" : clasePrioridad(proyecto),
                 proyecto == null ? "Organización" : nombreCompleto(proyecto.getPm()),
                 integrantes, requeridos, participantes.size(), ultimaActividad,
-                publicaciones, etiquetas);
+                publicaciones, etiquetas, foro.isAnuncios(), participa);
     }
 
     private String opcionValida(String valor, List<String> opciones) {

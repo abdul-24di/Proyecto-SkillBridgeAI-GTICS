@@ -14,6 +14,7 @@ import java.util.List;
 import com.pucp.skillb_ia.dto.ForoPublicacionView;
 import com.pucp.skillb_ia.model.RespuestaForo;
 import com.pucp.skillb_ia.repository.RespuestaForoRepository;
+import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.ForoDetalleService;
 import com.pucp.skillb_ia.service.ForoDetalleService.PermisosForo;
 
@@ -24,25 +25,28 @@ public class AdminForoService {
     private final PublicacionForoRepository publicacionForoRepository;
     private final RespuestaForoRepository respuestaForoRepository;
     private final ForoDetalleService foroDetalleService;
+    private final AuditoriaService auditoriaService;
 
     public AdminForoService(ForoRepository foroRepository,
                             PublicacionForoRepository publicacionForoRepository,
                             RespuestaForoRepository respuestaForoRepository,
-                            ForoDetalleService foroDetalleService) {
+                            ForoDetalleService foroDetalleService,
+                            AuditoriaService auditoriaService) {
         this.foroRepository = foroRepository;
         this.publicacionForoRepository = publicacionForoRepository;
         this.respuestaForoRepository = respuestaForoRepository;
         this.foroDetalleService = foroDetalleService;
+        this.auditoriaService = auditoriaService;
     }
 
     /**
-     * Detalle del foro para el Admin (orden "fecha" o "votos"): vota, responde y elimina cualquier
+     * Detalle del foro para el Admin (orden "fecha" o "votos"): vota, responde (salvo en anuncios) y elimina cualquier
      * publicación o respuesta; modera la solución solo en los foros de comunidad.
      */
     @Transactional(readOnly = true)
     public List<ForoPublicacionView> obtenerDetalle(Long foroId, Usuario admin, String orden) {
         Foro foro = obtenerForo(foroId);
-        PermisosForo permisos = new PermisosForo(true, true, foro.getProyecto() == null, true);
+        PermisosForo permisos = new PermisosForo(true, !foro.isAnuncios(), foro.getProyecto() == null, true);
         return foroDetalleService.listar(foro, admin, permisos, orden);
     }
 
@@ -72,7 +76,7 @@ public class AdminForoService {
     }
 
     @Transactional
-    public Foro crearForo(String nombre, boolean esPublico) {
+    public Foro crearForo(String nombre, boolean esPublico, Usuario admin) {
         String nombreLimpio = nombre == null ? "" : nombre.strip();
         if (nombreLimpio.isEmpty()) {
             throw new IllegalArgumentException("El nombre del foro es obligatorio.");
@@ -85,11 +89,14 @@ public class AdminForoService {
         foro.setTipo(TipoForo.GENERAL);
         foro.setEsPublico(esPublico);
         foro.setProyecto(null);
-        return foroRepository.save(foro);
+        Foro guardado = foroRepository.save(foro);
+        auditoriaService.registrar(admin, "CREAR_FORO", "FORO", guardado.getId(),
+                "Creó el foro de " + (esPublico ? "comunidad" : "anuncios") + " \"" + nombreLimpio + "\".");
+        return guardado;
     }
 
     @Transactional
-    public void eliminarForo(Long foroId) {
+    public void eliminarForo(Long foroId, Usuario admin) {
         Foro foro = obtenerForo(foroId);
         // Desde aquí solo se eliminan foros de comunidad; el foro de un proyecto vive mientras exista el proyecto.
         if (foro.getTipo() != TipoForo.GENERAL) {
@@ -101,6 +108,8 @@ public class AdminForoService {
         foroRepository.borrarVotosDePublicaciones(foroId);
         foroRepository.borrarPublicaciones(foroId);
         foroRepository.delete(foro);
+        auditoriaService.registrar(admin, "ELIMINAR_FORO", "FORO", foroId,
+                "Eliminó el foro de " + (foro.isAnuncios() ? "anuncios" : "comunidad") + " \"" + foro.getNombre() + "\" con todo su contenido.");
     }
 
     @Transactional(readOnly = true)
@@ -133,24 +142,30 @@ public class AdminForoService {
         pub.setTitulo(tituloLimpio);
         pub.setContenido(contenido.trim());
         pub.setActivo(true);
-        publicacionForoRepository.save(pub);
+        PublicacionForo guardada = publicacionForoRepository.save(pub);
+        auditoriaService.registrar(autor, "CREAR_PUBLICACION_FORO", "PUBLICACION_FORO", guardada.getId(),
+                "Publicó \"" + tituloLimpio + "\" en el foro \"" + foro.getNombre() + "\".");
     }
 
     @Transactional
-    public void eliminarPublicacion(Long pubId) {
+    public void eliminarPublicacion(Long pubId, Usuario admin) {
         publicacionForoRepository.findById(pubId).ifPresent(p -> {
             p.setActivo(false);
             publicacionForoRepository.save(p);
+            auditoriaService.registrar(admin, "ELIMINAR_PUBLICACION_FORO", "PUBLICACION_FORO", pubId,
+                    "Eliminó la publicación \"" + p.getTitulo() + "\" del foro \"" + p.getForo().getNombre() + "\".");
         });
     }
 
     // El Administrador modera el foro de comunidad: puede retirar cualquier respuesta, igual que las publicaciones.
     // Antes solo podía borrar las suyas.
     @Transactional
-    public void eliminarRespuesta(Long respuestaId) {
+    public void eliminarRespuesta(Long respuestaId, Usuario admin) {
         var respuesta = respuestaForoRepository.findById(respuestaId)
                 .orElseThrow(() -> new IllegalArgumentException("Respuesta no encontrada."));
         respuesta.setActivo(false);
         respuestaForoRepository.save(respuesta);
+        auditoriaService.registrar(admin, "ELIMINAR_RESPUESTA_FORO", "RESPUESTA_FORO", respuestaId,
+                "Eliminó una respuesta de la publicación \"" + respuesta.getPublicacion().getTitulo() + "\".");
     }
 }

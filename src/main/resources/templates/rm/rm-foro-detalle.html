@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="../../static/css/rm-css/rm-foro-detalle.css" th:href="@{/css/rm-css/rm-foro-detalle.css}">
   <link rel="stylesheet" href="../../static/css/foro-detalle.css" th:href="@{/css/foro-detalle.css}">
   <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+  <link th:if="${foro.participa}" href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
 <style>
   /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
@@ -36,7 +37,7 @@
 </style>
 
 </head>
-<body>
+<body th:attr="data-foro-subida=@{/rm/foros/upload-imagen}">
 <div class="app-shell">
   <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('foros')}"></header>
 
@@ -53,14 +54,24 @@
           <h1 class="page-title mb-0" th:text="${foro.nombre}">Foro del proyecto</h1>
           <span class="badge" th:classappend="${foro.proyectoEstadoClase}"
                 th:text="${foro.proyectoEstado}">Activo</span>
-          <span class="badge bg-azure-lt">Solo lectura RM</span>
+          <span th:if="${foro.proyectoId != null}" class="badge bg-azure-lt">Solo lectura RM</span>
+          <span th:if="${foro.anuncios}" class="badge bg-orange-lt text-orange">Anuncios</span>
         </div>
-        <div class="text-secondary mt-2">
-          Consulta publicaciones y respuestas. El RM no participa en el foro ni tiene acceso al chat.
+        <div class="text-secondary mt-2"
+             th:text="${foro.proyectoId != null} ? 'Consulta publicaciones y respuestas. El RM no participa en los foros de proyecto ni tiene acceso a su chat.' : (${foro.anuncios} ? 'Anuncios del Administrador: puedes leer y reaccionar.' : 'Foro general de la comunidad: puedes publicar, responder y reaccionar.')">
+          Consulta publicaciones y respuestas.
         </div>
       </div>
-      <a class="btn btn-outline-secondary" th:href="@{/rm/foros}">Volver a foros</a>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-outline-secondary" th:href="@{/rm/foros}">Volver a foros</a>
+        <button th:if="${foro.participa}" class="btn btn-primary" type="button"
+                data-bs-toggle="modal" data-bs-target="#newPostModal">+ Nueva publicación</button>
+      </div>
     </div>
+
+    <div th:if="${success != null}" class="alert alert-success" role="alert" th:text="${success}"></div>
+    <div th:if="${error != null and (!foro.participa or (abrirModalResponderId == null and abrirModalNuevaPublicacion == null))}"
+         class="alert alert-danger" role="alert" th:text="${error}"></div>
 
     <div class="card section-card forum-context mb-4">
       <div class="card-body">
@@ -92,22 +103,71 @@
 
     <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap mb-3">
       <div>
-        <h2 class="h3 mb-1">Publicaciones y respuestas</h2>
-        <div class="text-secondary small">La solución marcada aparece primero; luego, las respuestas con más "me gusta".</div>
+        <h2 class="h3 mb-1" th:text="${foro.anuncios} ? 'Anuncios' : 'Publicaciones y respuestas'">Publicaciones y respuestas</h2>
+        <div class="text-secondary small" th:unless="${foro.anuncios}">La solución marcada aparece primero; luego, las respuestas con más "me gusta".</div>
       </div>
       <form th:replace="~{fragments/foro-publicacion :: orden('/rm/foros/detalle', ${ordenActual}, 'id', ${foro.id})}"></form>
     </div>
 
     <div th:if="${foro.publicaciones.isEmpty()}" class="card section-card">
       <div class="card-body text-center text-secondary py-5">
-        Este foro todavía no tiene publicaciones.
+        <th:block th:text="${foro.anuncios} ? 'Todavía no hay anuncios.' : 'Este foro todavía no tiene publicaciones.'">Este foro todavía no tiene publicaciones.</th:block>
       </div>
     </div>
 
     <div class="row row-cards" th:unless="${foro.publicaciones.isEmpty()}">
       <div class="col-lg-8">
         <th:block th:each="publicacion : ${foro.publicaciones}">
-          <article th:replace="~{fragments/foro-publicacion :: publicacion(${publicacion}, null, null, null)}"></article>
+          <article th:replace="~{fragments/foro-publicacion :: publicacion(${publicacion}, ${foro.proyectoId == null ? '/rm/foros' : null}, ${foro.id}, null)}"></article>
+
+          <th:block th:each="resp : ${publicacion.respuestas}" th:if="${foro.proyectoId == null}">
+            <div th:replace="~{fragments/foro-publicacion :: modalEliminarRespuesta(${resp}, '/rm/foros', ${foro.id}, null, 'rm-modal')}"></div>
+          </th:block>
+
+          <!-- MODAL RESPONDER -->
+          <div th:if="${publicacion.puedeResponder}" class="modal modal-blur fade rm-modal" th:id="'replyModal' + ${publicacion.id}" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Responder a: <span th:text="${publicacion.titulo}"></span></h5>
+                  <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form method="post" th:action="@{/rm/foros/responder}" th:id="'form-resp-' + ${publicacion.id}" novalidate>
+                  <input type="hidden" name="foroId" th:value="${foro.id}">
+                  <input type="hidden" name="publicacionId" th:value="${publicacion.id}">
+                  <input type="hidden" name="contenido" th:id="'input-form-resp-' + ${publicacion.id}">
+                  <div class="modal-body">
+                    <div th:if="${abrirModalResponderId == publicacion.id and error != null}" class="alert alert-danger" th:text="${error}"></div>
+                    <div class="editor-respuesta bg-white text-dark" th:data-form-id="'form-resp-' + ${publicacion.id}" style="height: 150px;"></div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Publicar respuesta</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- MODAL ELIMINAR PUBLICACIÓN -->
+          <div th:if="${foro.proyectoId == null and publicacion.puedeEliminar}" class="modal modal-blur fade rm-modal" th:id="'deletePostModal-' + ${publicacion.id}" tabindex="-1">
+            <div class="modal-dialog modal-sm modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">¿Eliminar publicación?</h5>
+                  <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form method="post" th:action="@{/rm/foros/publicacion/{id}/eliminar(id=${publicacion.id})}">
+                  <input type="hidden" name="foroId" th:value="${foro.id}">
+                  <div class="modal-body"><div class="text-secondary">Esta acción no se puede deshacer.</div></div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
         </th:block>
       </div>
 
@@ -125,8 +185,7 @@
                 <div class="info-label">Tipo y visibilidad</div>
                 <div class="mt-1 d-flex gap-2 flex-wrap">
                   <span class="badge bg-azure-lt" th:text="${foro.tipo}">Proyecto</span>
-                  <span class="badge" th:classappend="${foro.publico ? 'bg-blue-lt' : 'bg-purple-lt'}"
-                        th:text="${foro.publico ? 'Público' : 'Privado'}">Privado</span>
+                  <span class="badge" th:classappend="${foro.tipoForoClase}" th:text="${foro.tipoForo}">Privado</span>
                 </div>
               </div>
               <div th:if="${foro.proyectoId != null}">
@@ -164,12 +223,12 @@
                th:href="|#publicacion-${publicacion.id}|">
               <div class="fw-semibold" th:text="${publicacion.titulo}">Título</div>
               <div class="small text-secondary"
-                   th:text="|${publicacion.totalRespuestas} respuestas · ♥ ${publicacion.totalLikes}|">Actividad</div>
+                   th:text="${foro.anuncios} ? |♥ ${publicacion.totalLikes}| : |${publicacion.totalRespuestas} respuestas · ♥ ${publicacion.totalLikes}|">Actividad</div>
             </a>
           </div>
         </div>
 
-        <div class="read-only-note mt-4">
+        <div class="read-only-note mt-4" th:if="${foro.proyectoId != null}">
           <strong>Acceso RM:</strong> esta vista es únicamente de consulta.
           No existen controles para publicar, responder, votar ni abrir el chat.
         </div>
@@ -178,6 +237,56 @@
   </main>
 </div>
 
+<!-- MODAL NUEVA PUBLICACIÓN -->
+<div th:if="${foro.participa}" class="modal modal-blur fade rm-modal" id="newPostModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nueva publicación en <span th:text="${foro.nombre}"></span></h5>
+        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" th:action="@{/rm/foros/publicar}" th:object="${pmForoPublicacionForm}" id="form-nueva-publicacion" novalidate>
+        <input type="hidden" name="foroId" th:value="${foro.id}">
+        <input type="hidden" name="contenido" id="input-nueva-publicacion" th:value="*{contenido}">
+        <div class="modal-body">
+          <div th:if="${abrirModalNuevaPublicacion != null and error != null}" class="alert alert-danger" th:text="${error}"></div>
+          <div class="mb-3">
+            <label class="form-label" for="titulo">Título <span class="text-danger">*</span></label>
+            <input th:field="*{titulo}" class="form-control" maxlength="200" placeholder="Título de la publicación"
+                   th:classappend="${#fields.hasErrors('titulo')} ? 'is-invalid' : ''">
+            <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('titulo')}" th:errors="*{titulo}"></div>
+          </div>
+          <label class="form-label">Contenido <span class="text-danger">*</span></label>
+          <div id="editor-nueva-publicacion" class="bg-white text-dark" style="height: 250px;"></div>
+          <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('contenido')}" th:errors="*{contenido}"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Publicar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<th:block th:if="${foro.participa}">
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script src="../../static/js/pm-js/pm-foro-quill.js" th:src="@{/js/pm-js/pm-foro-quill.js}"></script>
+<script th:if="${abrirModalNuevaPublicacion != null or abrirModalResponderId != null}" th:inline="javascript">
+  // Volvió con errores: se reabre el modal y el editor recupera lo escrito.
+  document.addEventListener("DOMContentLoaded", function () {
+    var respuestaId = /*[[${abrirModalResponderId}]]*/ null;
+    var modalEl = document.getElementById(respuestaId ? "replyModal" + respuestaId : "newPostModal");
+    var editorEl = document.getElementById("editor-nueva-publicacion");
+    var guardado = document.getElementById("input-nueva-publicacion").value;
+    if (!respuestaId && guardado && editorEl) {
+      var editor = Quill.find(editorEl);
+      if (editor) editor.clipboard.dangerouslyPasteHTML(guardado);
+    }
+    if (modalEl) (window.bootstrap || window.tabler).Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+</th:block>
 </body>
 </html>

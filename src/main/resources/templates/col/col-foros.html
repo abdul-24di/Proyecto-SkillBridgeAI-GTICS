@@ -105,12 +105,13 @@
                                         <span class="project-forum-icon avatar bg-blue-lt rounded"
                                               th:text="${foro.nombre != null and foro.nombre.length() >= 2 ? foro.nombre.substring(0,2).toUpperCase() : 'FO'}">FO</span>
                                         <h3 class="card-title m-0 ms-3" th:text="${foro.nombre}">Anuncios generales</h3>
+                                        <span th:if="${foro.anuncios}" class="badge bg-orange-lt text-orange ms-auto">Anuncios</span>
                                     </div>
                                     <div class="project-forum-meta" th:if="${foro.proyecto != null}">
                                         Foro del proyecto <strong th:text="${foro.proyecto.nombre}">Proyecto X</strong> (compartido con la comunidad)
                                     </div>
                                     <div class="project-forum-meta" th:if="${foro.proyecto == null}">
-                                        Foro general, abierto a toda la organización.
+                                        <th:block th:text="${foro.anuncios} ? 'Anuncios del Administrador para toda la organización.' : 'Foro general, abierto a toda la organización.'">Foro general, abierto a toda la organización.</th:block>
                                     </div>
                                     <div class="d-flex justify-content-end mt-3">
                                         <a th:href="@{/colaborador/foros/detalle(foroId=${foro.id})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>

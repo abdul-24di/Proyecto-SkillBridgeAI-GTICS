@@ -985,9 +985,10 @@ public class AdminViewController {
     @PostMapping("/foros/crear")
     public String crearForo(@RequestParam String nombre,
                             @RequestParam(defaultValue = "true") boolean esPublico,
+                            @AuthenticationPrincipal UsuarioDetails principal,
                             RedirectAttributes ra, HttpServletRequest request) {
         try {
-            adminForoService.crearForo(nombre.trim(), esPublico);
+            adminForoService.crearForo(nombre.trim(), esPublico, principal.getUsuario());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Foro \"" + nombre + "\" creado exitosamente.");
         } catch (Exception e) {
@@ -997,9 +998,10 @@ public class AdminViewController {
     }
 
     @PostMapping("/foros/{id}/eliminar")
-    public String eliminarForo(@PathVariable Long id, RedirectAttributes ra, HttpServletRequest request) {
+    public String eliminarForo(@PathVariable Long id, @AuthenticationPrincipal UsuarioDetails principal,
+                               RedirectAttributes ra, HttpServletRequest request) {
         try {
-            adminForoService.eliminarForo(id);
+            adminForoService.eliminarForo(id, principal.getUsuario());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Foro eliminado correctamente.");
         } catch (Exception e) {
@@ -1038,9 +1040,10 @@ public class AdminViewController {
     @PostMapping("/foros/publicacion/{pubId}/eliminar")
     public String eliminarPublicacion(@PathVariable Long pubId,
                                       @RequestParam Long foroId,
+                                      @AuthenticationPrincipal UsuarioDetails principal,
                                       RedirectAttributes ra, HttpServletRequest request) {
         try {
-            adminForoService.eliminarPublicacion(pubId);
+            adminForoService.eliminarPublicacion(pubId, principal.getUsuario());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Publicación eliminada.");
         } catch (Exception e) {
@@ -1110,7 +1113,7 @@ public class AdminViewController {
                                         @AuthenticationPrincipal UsuarioDetails principal,
                                         RedirectAttributes ra, HttpServletRequest request) {
         try {
-            adminForoService.eliminarRespuesta(respuestaId);
+            adminForoService.eliminarRespuesta(respuestaId, principal.getUsuario());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());
             ra.addFlashAttribute("success", "Respuesta eliminada.");
         } catch (IllegalArgumentException e) {

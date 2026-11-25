@@ -32,21 +32,21 @@
 
 <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('foro')}"></header>
 
-<main class="page-wrap">
+<main class="page-wrap" th:with="anuncios=${foroBase != null and foroBase.anuncios}">
     <div class="breadcrumb-wrap">
         <a th:href="@{/pm/foros}" class="breadcrumb-link">Foros</a>
         <span class="breadcrumb-separator">›</span>
         <a th:if="${proyecto != null}" th:href="@{/pm/proyectos/detalle(id=${proyecto.proyecto.id})}" class="breadcrumb-link" th:text="${proyecto.proyecto.nombre}">Proyecto</a>
         <span th:if="${proyecto != null}" class="breadcrumb-separator">›</span>
-        <span class="text-secondary" th:text="${proyecto != null ? 'Foro del proyecto' : 'Foro de Comunidad'}">Foro</span>
+        <span class="text-secondary" th:text="${proyecto != null ? 'Foro del proyecto' : (anuncios ? 'Foro de anuncios' : 'Foro de Comunidad')}">Foro</span>
     </div>
 
     <div class="page-head page-head-stack-mobile page-head-button-mobile">
         <div>
             <h1 class="page-title">Foro: <span th:text="${proyecto != null ? proyecto.proyecto.nombre : foroBase.nombre}"></span></h1>
-            <div class="text-secondary" th:text="${proyecto != null ? 'Discusiones y Q&A del equipo del proyecto activo.' : 'Foro general de la comunidad abierta.'}"></div>
+            <div class="text-secondary" th:text="${proyecto != null ? 'Discusiones y Q&A del equipo del proyecto activo.' : (anuncios ? 'Anuncios del Administrador: puedes leer y reaccionar.' : 'Foro general de la comunidad abierta.')}"></div>
         </div>
-        <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#newPostModal">+ Nueva Publicación</button>
+        <button th:unless="${anuncios}" class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#newPostModal">+ Nueva Publicación</button>
     </div>
 
     <div th:if="${success != null}" class="alert alert-success alert-dismissible" role="alert">
@@ -56,7 +56,8 @@
         <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
     </div>
 
-    <div th:if="${error != null}" class="alert alert-danger alert-dismissible" role="alert">
+    <!-- Si el error es de un modal, se muestra dentro de él (antes salía dos veces). -->
+    <div th:if="${error != null and (anuncios or (abrirModalResponderId == null and abrirModalNuevaPublicacion == null))}" class="alert alert-danger alert-dismissible" role="alert">
         <div class="d-flex">
             <div><h4 class="alert-title">Error</h4><div class="text-secondary" th:text="${error}"></div></div>
         </div>
@@ -78,7 +79,7 @@
                     </th:block>
 
                     <!-- MODAL RESPONDER -->
-                    <div class="modal modal-blur fade pm-modal" th:id="'replyModal' + ${pub.id}" tabindex="-1">
+                    <div th:if="${pub.puedeResponder}" class="modal modal-blur fade pm-modal" th:id="'replyModal' + ${pub.id}" tabindex="-1">
                         <div class="modal-dialog modal-lg modal-dialog-centered">
                             <div class="modal-content">
                                 <div class="modal-header">
@@ -128,7 +129,7 @@
                 </th:block>
 
                 <div th:if="${#lists.isEmpty(publicaciones)}" class="text-center text-secondary py-5 border rounded bg-light">
-                    Aún no hay publicaciones en el foro de este proyecto. ¡Sé el primero en iniciar una discusión!
+                    <th:block th:text="${anuncios} ? 'Todavía no hay anuncios.' : 'Aún no hay publicaciones en este foro. ¡Sé el primero en iniciar una discusión!'"></th:block>
                 </div>
             </div>
         </div>
@@ -139,7 +140,9 @@
                     <div><h3 class="card-title mb-1">Acerca de este foro</h3></div>
                 </div>
                 <div class="card-body forum-side-body">
-                    <p class="text-secondary mb-0">Espacio privado del equipo para reportar bugs, compartir ideas, hacer preguntas y publicar anuncios.</p>
+                    <p th:if="${anuncios}" class="text-secondary mb-0">Solo publica el Administrador. Puedes leer los anuncios y reaccionar a ellos.</p>
+                    <p th:if="${proyecto == null and !anuncios}" class="text-secondary mb-0">Espacio abierto a toda la organización.</p>
+                    <p th:if="${proyecto != null}" class="text-secondary mb-0">Espacio privado del equipo para reportar bugs, compartir ideas, hacer preguntas y publicar anuncios.</p>
                 </div>
             </div>
             <div class="card section-card">
@@ -160,7 +163,7 @@
 </div>
 
 <!-- MODAL NUEVA PUBLICACIÓN -->
-<div class="modal modal-blur fade pm-modal" id="newPostModal" tabindex="-1">
+<div th:unless="${foroBase != null and foroBase.anuncios}" class="modal modal-blur fade pm-modal" id="newPostModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">

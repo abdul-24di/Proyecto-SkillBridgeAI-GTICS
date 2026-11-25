@@ -135,6 +135,42 @@
   color: rgba(255, 255, 255, .68);
 }
 
+/* Con 9 enlaces el menú no entraba en laptops (1280 px) y "Reportes" quedaba cortado. */
+@media (max-width: 1400px) {
+  .topbar .container-xl {
+    gap: .8rem;
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+
+  .main-nav {
+    gap: 0;
+  }
+
+  .main-nav a {
+    padding: 0 .5rem;
+  }
+
+  .user-meta .fw-semibold {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+@media (max-width: 1240px) {
+  .user-meta {
+    display: none;
+  }
+}
+
+@media (max-width: 1140px) {
+  .main-nav a {
+    padding: 0 .35rem;
+    font-size: .8125rem;
+  }
+}
+
 @media (max-width: 991px) {
   .topbar .container-xl {
     gap: .8rem;

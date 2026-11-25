@@ -5,7 +5,10 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.text.Normalizer;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Utilidades para paginar listas en memoria y para aplicar filtros de texto sencillos
@@ -107,5 +110,41 @@ public final class Paginador {
             return true;
         }
         return filtro.equalsIgnoreCase(valor);
+    }
+
+    /**
+     * Igual que {@link #coincide(String, String)}, pero sin distinguir tildes: "Tecnico" coincide con "Técnico".
+     *
+     * @param valor  valor del elemento que se está evaluando; puede ser {@code null}
+     * @param filtro opción elegida en el filtro; puede ser {@code null}
+     * @return {@code true} si no hay filtro efectivo o si ambos textos son iguales sin tildes
+     */
+    public static boolean coincideSinTildes(String valor, String filtro) {
+        return coincide(sinTildes(valor), filtro == null ? null : sinTildes(filtro));
+    }
+
+    /**
+     * Opciones de un desplegable sin repetidos: si la misma aparece con y sin tilde, queda la que lleva tilde.
+     *
+     * @param valores valores tal como están en la base; los nulos y vacíos se descartan
+     * @return las opciones en orden alfabético
+     */
+    public static List<String> opcionesUnicas(List<String> valores) {
+        Map<String, String> opciones = new LinkedHashMap<>();
+        for (String valor : valores) {
+            if (valor == null || valor.isBlank()) {
+                continue;
+            }
+            String clave = sinTildes(valor);
+            boolean llevaTilde = !normalizar(valor).equals(clave);
+            if (llevaTilde || !opciones.containsKey(clave)) {
+                opciones.put(clave, valor.trim());
+            }
+        }
+        return opciones.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(Map.Entry::getValue).toList();
+    }
+
+    private static String sinTildes(String texto) {
+        return Normalizer.normalize(normalizar(texto), Normalizer.Form.NFD).replaceAll("\\p{M}", "");
     }
 }

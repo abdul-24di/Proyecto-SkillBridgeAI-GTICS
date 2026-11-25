@@ -19,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.pucp.skillb_ia.util.Paginador;
+
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.time.LocalDate;
@@ -524,10 +526,7 @@ public class RmCursoService {
     }
 
     private List<String> categoriasDisponibles(List<Curso> cursosActivos) {
-        return cursosActivos.stream()
-                .map(Curso::getCategoria).filter(Objects::nonNull)
-                .filter(item -> !item.isBlank()).distinct()
-                .sorted(String.CASE_INSENSITIVE_ORDER).toList();
+        return Paginador.opcionesUnicas(cursosActivos.stream().map(Curso::getCategoria).toList());
     }
 
     private String busquedaLimpia(String busqueda) {

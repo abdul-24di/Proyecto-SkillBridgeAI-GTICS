@@ -149,8 +149,16 @@ class ForoDetalleUniformeTests {
         RespuestaForo respuesta = respuesta(publicacion, otroColaborador, false);
         String marcar = "/respuesta/" + respuesta.getId() + "/marcar-solucion";
 
-        String rmHtml = html(rm, "/rm/foros/detalle?id=" + comunidad.getId());
-        assertThat(rmHtml.substring(rmHtml.indexOf("</header>"))).doesNotContain("method=\"post\"");
+        // RM en comunidad: participa, pero no marca la solución ni elimina lo ajeno. En el de un proyecto solo lee.
+        assertThat(html(rm, "/rm/foros/detalle?id=" + comunidad.getId()))
+                .contains("/rm/foros/publicacion/" + publicacion.getId() + "/like")
+                .contains("#replyModal" + publicacion.getId())
+                .contains("#newPostModal")
+                .doesNotContain(marcar)
+                .doesNotContain("#deletePostModal-" + publicacion.getId());
+        publicacion(foroProyecto, autor, "Del proyecto", LocalDateTime.now());
+        String rmProyecto = html(rm, "/rm/foros/detalle?id=" + foroProyecto.getId());
+        assertThat(rmProyecto.substring(rmProyecto.indexOf("</header>"))).doesNotContain("method=\"post\"");
 
         // PM ajeno en comunidad: da "me gusta" y responde, pero no marca la solución ni elimina.
         String pmHtml = html(otroPm, "/pm/foro/detalle?foroId=" + comunidad.getId());

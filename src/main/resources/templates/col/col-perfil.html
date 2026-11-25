@@ -456,7 +456,10 @@
                     <div class="col-md-4 col-lg-3 mb-4">
                         <div class="card">
                             <div class="card-body text-center py-5">
-                                <span class="avatar avatar-xl mb-4 rounded" style="font-size: 1.5rem;"
+                                <img th:if="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                     th:src="@{${colaborador.fotoUrl}}" class="avatar avatar-xl mb-4 rounded" alt="Foto de perfil">
+                                <span th:unless="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                      class="avatar avatar-xl mb-4 rounded" style="font-size: 1.5rem;"
                                       th:text="|${#strings.isEmpty(colaborador.nombre) ? '' : #strings.substring(colaborador.nombre,0,1)}${#strings.isEmpty(colaborador.apellido) ? '' : #strings.substring(colaborador.apellido,0,1)}|">PK</span>
                                 <h3 class="m-0 mb-1" th:text="|${colaborador.nombre} ${colaborador.apellido}|">Nombre Apellido</h3>
                                 <div class="text-secondary mb-4" th:text="${colaborador.rol.nombre == 'COLABORADOR' ? 'Colaborador' : colaborador.rol.nombre}">Colaborador</div>

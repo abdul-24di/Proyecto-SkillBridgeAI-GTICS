@@ -69,8 +69,9 @@
                                     <div class="d-flex align-items-center mb-3">
                                         <span class="avatar bg-blue-lt rounded" th:text="${foro.foroNombre != null and foro.foroNombre.length() >= 2 ? foro.foroNombre.substring(0,2).toUpperCase() : 'CO'}">CO</span>
                                         <h3 class="card-title m-0 ms-3" th:text="${foro.foroNombre}">Comunidad</h3>
+                                        <span th:if="${foro.anuncios}" class="badge bg-orange-lt text-orange ms-auto">Anuncios</span>
                                     </div>
-                                    <p class="text-secondary mb-3">Foro abierto a toda la organización.</p>
+                                    <p class="text-secondary mb-3" th:text="${foro.anuncios} ? 'Anuncios del Administrador para toda la organización.' : 'Foro abierto a toda la organización.'">Foro abierto a toda la organización.</p>
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="text-secondary small">
                                             <span th:text="${foro.totalPublicaciones + ' Temas'}"></span>

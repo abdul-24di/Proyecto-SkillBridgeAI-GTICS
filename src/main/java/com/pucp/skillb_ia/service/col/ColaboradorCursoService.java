@@ -14,6 +14,7 @@ import com.pucp.skillb_ia.service.ArchivoAlmacenamientoService;
 import com.pucp.skillb_ia.service.AuditoriaService;
 import com.pucp.skillb_ia.service.NotificacionService;
 import com.pucp.skillb_ia.service.RmRevisionAsignadorService;
+import com.pucp.skillb_ia.util.Paginador;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -135,19 +136,8 @@ public class ColaboradorCursoService {
     // ============================================================
     @Transactional(readOnly = true)
     public List<String> listarCategorias() {
-        List<Curso> cursosActivos = cursoRepository.findByActivoTrueOrderByNombreAsc();
-        List<String> categorias = new ArrayList<>();
-
-        for (Curso curso : cursosActivos) {
-            String categoria = curso.getCategoria();
-            if (categoria == null || categoria.isBlank()) {
-                continue;
-            }
-            if (!categorias.contains(categoria)) {
-                categorias.add(categoria);
-            }
-        }
-        return categorias;
+        return Paginador.opcionesUnicas(cursoRepository.findByActivoTrueOrderByNombreAsc().stream()
+                .map(Curso::getCategoria).toList());
     }
 
     // ============================================================

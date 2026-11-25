@@ -880,6 +880,18 @@ public class ColaboradorViewController {
         }
     }
 
+    /**
+     * Solicita inscribirse a un curso ({@code POST /colaborador/cursos/solicitar}).
+     * La solicitud queda pendiente de aprobación del Resource Manager.
+     *
+     * @param principal usuario autenticado
+     * @param cursoId curso al que quiere inscribirse
+     * @param justificacion motivo de la solicitud (opcional)
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/explorar?panel=cursos}
+     * @see ColaboradorCursoService#solicitarInscripcion
+     */
     @PostMapping("/cursos/solicitar")
     public String solicitarCurso(@AuthenticationPrincipal UsuarioDetails principal,
                                  @RequestParam Long cursoId,
@@ -903,7 +915,15 @@ public class ColaboradorViewController {
     // ============================================================
     // MI DESEMPEÑO (reporte del colaborador, por mes)
     // ============================================================
-    // El mes pedido no puede ser anterior al mes en que se activó el perfil.
+    /**
+     * Convierte el mes recibido por parámetro en un periodo válido.
+     * El mes pedido no puede ser anterior al mes en que se creó el perfil del colaborador:
+     * si lo fuera, se devuelve ese primer mes.
+     *
+     * @param colaborador colaborador consultado
+     * @param mes mes en formato {@code yyyy-MM}; si viene vacío, {@code Periodo.leer} aplica su valor por defecto
+     * @return el periodo a consultar
+     */
     private YearMonth periodoValido(Usuario colaborador, String mes) {
         YearMonth periodo = Periodo.leer(mes);
         YearMonth primerMes = YearMonth.from(colaborador.getFechaCreacion());
@@ -913,6 +933,17 @@ public class ColaboradorViewController {
         return periodo;
     }
 
+    /**
+     * Muestra el reporte de desempeño mensual del colaborador ({@code GET /colaborador/desempeno}).
+     * Envía el mes consultado y los límites del selector de mes (mes de creación del perfil
+     * hasta el mes actual).
+     *
+     * @param principal usuario autenticado
+     * @param mes mes a consultar en formato {@code yyyy-MM} (opcional)
+     * @param model modelo para la vista
+     * @return la vista {@code col/col-desempeno} o {@code redirect:/login}
+     * @see ColDesempenoService#obtener
+     */
     @GetMapping({"/desempeno", "/col-desempeno.html"})
     public String desempeno(@AuthenticationPrincipal UsuarioDetails principal,
                             @RequestParam(required = false) String mes, Model model) {
@@ -929,6 +960,15 @@ public class ColaboradorViewController {
         return "col/col-desempeno";
     }
 
+    /**
+     * Descarga el reporte de desempeño del mes en Excel ({@code GET /colaborador/desempeno/excel}).
+     * El archivo se llama {@code mi-desempeno-yyyy-MM.xlsx}.
+     *
+     * @param principal usuario autenticado
+     * @param mes mes a exportar (opcional)
+     * @return el archivo {@code .xlsx} como descarga
+     * @see ColDesempenoService#excel
+     */
     @GetMapping("/desempeno/excel")
     public org.springframework.http.ResponseEntity<byte[]> desempenoExcel(@AuthenticationPrincipal UsuarioDetails principal,
                                                                           @RequestParam(required = false) String mes) {
@@ -941,6 +981,15 @@ public class ColaboradorViewController {
                 .body(contenido);
     }
 
+    /**
+     * Descarga el reporte de desempeño del mes en PDF ({@code GET /colaborador/desempeno/pdf}).
+     * El archivo se llama {@code mi-desempeno-yyyy-MM.pdf}.
+     *
+     * @param principal usuario autenticado
+     * @param mes mes a exportar (opcional)
+     * @return el archivo {@code .pdf} como descarga
+     * @see ColDesempenoService#pdf
+     */
     @GetMapping("/desempeno/pdf")
     public org.springframework.http.ResponseEntity<byte[]> desempenoPdf(@AuthenticationPrincipal UsuarioDetails principal,
                                                                         @RequestParam(required = false) String mes) {
@@ -953,6 +1002,20 @@ public class ColaboradorViewController {
                 .body(contenido);
     }
 
+    /**
+     * Muestra el perfil profesional del colaborador ({@code GET /colaborador/perfil}).
+     * <p>
+     * Carga sus habilidades (con certificados y motivos de rechazo por habilidad), la lista de
+     * habilidades que aún puede agregar, educación, experiencia profesional, historial de
+     * proyectos finalizados, cursos en curso, evaluaciones, el porcentaje de perfil completado
+     * y los pendientes para completarlo. Vuelve a leer al usuario de la base de datos para
+     * mostrar datos actualizados.
+     *
+     * @param principal usuario autenticado
+     * @param model modelo para la vista
+     * @return la vista {@code col/col-perfil} o {@code redirect:/login}
+     * @see ColaboradorPerfilService
+     */
     @GetMapping({"/perfil", "/col-perfil.html"})
     public String profile(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         if (principal == null) {
@@ -980,6 +1043,20 @@ public class ColaboradorViewController {
 
     }
 
+
+    /**
+     * Sube la evidencia de un curso ({@code POST /colaborador/perfil/cursos/{inscripcionId}/evidencia}).
+     * La evidencia queda pendiente de revisión del Resource Manager; solo después el curso cuenta
+     * como completado y suma horas.
+     *
+     * @param principal usuario autenticado
+     * @param inscripcionId id de la inscripción del colaborador al curso
+     * @param evidencia archivo de evidencia
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil}
+     * @see ColaboradorCursoService#subirEvidencia
+     */
     @PostMapping("/perfil/cursos/{inscripcionId}/evidencia")
     public String subirEvidenciaCurso(@AuthenticationPrincipal UsuarioDetails principal,
                                       @PathVariable Long inscripcionId,
@@ -997,6 +1074,16 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil";
     }
 
+    /**
+     * Actualiza el texto "Sobre mí" del perfil ({@code POST /colaborador/perfil/sobre-mi}).
+     *
+     * @param principal usuario autenticado
+     * @param descripcion nuevo texto
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil}
+     * @see ColaboradorPerfilService#actualizarSobreMi
+     */
     @PostMapping("/perfil/sobre-mi")
     public String actualizarSobreMi(@AuthenticationPrincipal UsuarioDetails principal,
                                     @RequestParam String descripcion,
@@ -1012,6 +1099,17 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil";
     }
 
+    /**
+     * Actualiza el teléfono ({@code POST /colaborador/perfil/telefono}). El formato lo valida el service.
+     * El correo, en cambio, no se puede editar aquí. Solo lo cambia el Administrador.
+     *
+     * @param principal usuario autenticado
+     * @param telefono nuevo teléfono
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil}
+     * @see ColaboradorPerfilService#actualizarTelefono
+     */
     @PostMapping("/perfil/telefono")
     public String actualizarTelefono(@AuthenticationPrincipal UsuarioDetails principal,
                                      @RequestParam String telefono,
@@ -1032,6 +1130,16 @@ public class ColaboradorViewController {
 
     }
 
+    /**
+     * Cambia la foto de perfil ({@code POST /colaborador/perfil/foto}).
+     *
+     * @param principal usuario autenticado
+     * @param foto imagen nueva
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil?tab=cuenta}
+     * @see ColaboradorPerfilService#actualizarFoto
+     */
     @PostMapping("/perfil/foto")
     public String actualizarFoto(@AuthenticationPrincipal UsuarioDetails principal,
                                  @RequestParam("foto") MultipartFile foto,
@@ -1047,6 +1155,17 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil?tab=cuenta";
     }
 
+    /**
+     * Sube o reemplaza el CV ({@code POST /colaborador/perfil/cv}).
+     * El CV queda pendiente de revisión del Administrador.
+     *
+     * @param principal usuario autenticado
+     * @param cv archivo del CV
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil?tab=cuenta}
+     * @see ColaboradorPerfilService#actualizarCv
+     */
     @PostMapping("/perfil/cv")
     public String actualizarCv(@AuthenticationPrincipal UsuarioDetails principal,
                                @RequestParam("cv") MultipartFile cv,
@@ -1063,6 +1182,16 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil?tab=cuenta";
     }
 
+
+    /**
+     * Elimina la foto de perfil ({@code POST /colaborador/perfil/foto/eliminar}).
+     *
+     * @param principal usuario autenticado
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil?tab=cuenta}
+     * @see ColaboradorPerfilService#eliminarFoto
+     */
     @PostMapping("/perfil/foto/eliminar")
     public String eliminarFoto(@AuthenticationPrincipal UsuarioDetails principal,
                                RedirectAttributes redirectAttributes, HttpServletRequest request) {
@@ -1077,6 +1206,19 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil?tab=cuenta";
     }
 
+    /**
+     * Cambia la contraseña ({@code POST /colaborador/perfil/password}).
+     * La contraseña actual y la política de seguridad de la nueva las valida el service.
+     *
+     * @param principal usuario autenticado
+     * @param passwordActual contraseña actual
+     * @param passwordNueva contraseña nueva
+     * @param passwordConfirmar repetición de la nueva contraseña
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil?tab=cuenta}
+     * @see ColaboradorPerfilService#cambiarPassword
+     */
     @PostMapping("/perfil/password")
     public String cambiarPassword(@AuthenticationPrincipal UsuarioDetails principal,
                                   @RequestParam String passwordActual,
@@ -1094,6 +1236,25 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil?tab=cuenta";
     }
 
+    /**
+     * Agrega una habilidad al perfil ({@code POST /colaborador/perfil/habilidades}).
+     * <p>
+     * Puede elegir una habilidad existente ({@code habilidadId}) o proponer una nueva
+     * ({@code nuevaHabilidadNombre} con su categoría), indicar su nivel de dominio y adjuntar un
+     * certificado. La habilidad queda pendiente de revisión del Resource Manager. Los ids llegan
+     * como texto y se convierten con {@link #parseIdOpcional} y {@link #parseNivel}.
+     *
+     * @param principal usuario autenticado
+     * @param habilidadId id de una habilidad existente (opcional)
+     * @param nuevaHabilidadNombre nombre de una habilidad nueva (opcional)
+     * @param categoriaId categoría de la habilidad nueva (opcional)
+     * @param nivel nivel de dominio (obligatorio)
+     * @param certificado certificado adjunto (opcional)
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil}
+     * @see ColaboradorPerfilService#agregarHabilidad
+     */
     @PostMapping("/perfil/habilidades")
     public String agregarHabilidad(@AuthenticationPrincipal UsuarioDetails principal,
                                    @RequestParam(required = false) String habilidadId,
@@ -1121,6 +1282,13 @@ public class ColaboradorViewController {
     }
 
 
+    /**
+     * Convierte un id recibido como texto en {@code Long}.
+     *
+     * @param valor texto con el id; puede ser {@code null} o vacío
+     * @return el id, o {@code null} si el texto viene vacío
+     * @throws IllegalArgumentException si el texto no es un número válido
+     */
     private Long parseIdOpcional(String valor) {
         if (valor == null || valor.isBlank()) {
             return null;
@@ -1132,6 +1300,13 @@ public class ColaboradorViewController {
         }
     }
 
+    /**
+     * Convierte un texto en {@link NivelDominio} exigiendo que venga informado.
+     *
+     * @param valor nombre del nivel
+     * @return el nivel correspondiente
+     * @throws IllegalArgumentException si viene vacío ("Selecciona un nivel.") o no es un nivel válido
+     */
     private NivelDominio parseNivel(String valor) {
         if (valor == null || valor.isBlank()) {
             throw new IllegalArgumentException("Selecciona un nivel.");
@@ -1139,6 +1314,13 @@ public class ColaboradorViewController {
         return parseNivelOpcional(valor);
     }
 
+    /**
+     * Convierte un texto en {@link NivelDominio}, pero acepta que no venga.
+     *
+     * @param valor nombre del nivel; puede ser {@code null} o vacío
+     * @return el nivel, o {@code null} si viene vacío
+     * @throws IllegalArgumentException si el texto no corresponde a un nivel válido
+     */
     private NivelDominio parseNivelOpcional(String valor) {
         if (valor == null || valor.isBlank()) {
             return null;
@@ -1151,6 +1333,18 @@ public class ColaboradorViewController {
     }
 
 
+    /**
+     * Quita una habilidad del perfil ({@code POST /colaborador/perfil/habilidades/{habilidadId}/eliminar}).
+     * Este método no captura excepciones: si el service falla, las atrapa el
+     * {@code GlobalExceptionHandler} y muestra una alerta en la página anterior.
+     *
+     * @param principal usuario autenticado
+     * @param habilidadId id de la habilidad a quitar
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil}
+     * @see ColaboradorPerfilService#eliminarHabilidad
+     */
     @PostMapping("/perfil/habilidades/{habilidadId}/eliminar")
     public String eliminarHabilidad(@AuthenticationPrincipal UsuarioDetails principal,
                                     @PathVariable Long habilidadId,
@@ -1162,6 +1356,20 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil";
     }
 
+    /**
+     * Sube un certificado asociado a una habilidad ({@code POST /colaborador/perfil/certificados}).
+     * El certificado queda pendiente y el Resource Manager lo revisa desde su bandeja
+     * (aprobado o rechazado con motivo).
+     *
+     * @param principal usuario autenticado
+     * @param habilidadId habilidad a la que pertenece el certificado
+     * @param nivel nivel de dominio que se quiere validar (opcional)
+     * @param certificado archivo del certificado
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil}
+     * @see ColaboradorPerfilService#subirCertificado
+     */
     @PostMapping("/perfil/certificados")
     public String subirCertificado(@AuthenticationPrincipal UsuarioDetails principal,
                                    @RequestParam Long habilidadId,
@@ -1182,6 +1390,21 @@ public class ColaboradorViewController {
     }
 
 
+    /**
+     * Agrega un estudio a la formación académica ({@code POST /colaborador/perfil/educacion}).
+     * Exige adjuntar el certificado y queda pendiente de revisión.
+     *
+     * @param principal usuario autenticado
+     * @param institucion institución educativa
+     * @param titulo título o grado obtenido
+     * @param fechaInicio fecha de inicio (opcional, como texto)
+     * @param fechaFin fecha de fin (opcional, como texto)
+     * @param certificado archivo que respalda el estudio
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil}
+     * @see ColaboradorPerfilService#agregarEducacion
+     */
     @PostMapping("/perfil/educacion")
     public String agregarEducacion(@AuthenticationPrincipal UsuarioDetails principal,
                                    @RequestParam String institucion,
@@ -1202,6 +1425,16 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil";
     }
 
+    /**
+     * Elimina un estudio del perfil ({@code POST /colaborador/perfil/educacion/{educacionId}/eliminar}).
+     *
+     * @param principal usuario autenticado
+     * @param educacionId id del estudio
+     * @param redirectAttributes para mensajes
+     * @param request petición HTTP
+     * @return redirección a {@code /colaborador/perfil}
+     * @see ColaboradorPerfilService#eliminarEducacion
+     */
     @PostMapping("/perfil/educacion/{educacionId}/eliminar")
     public String eliminarEducacion(@AuthenticationPrincipal UsuarioDetails principal,
                                     @PathVariable Long educacionId,
@@ -1217,6 +1450,24 @@ public class ColaboradorViewController {
         return "redirect:/colaborador/perfil";
     }
 
+    /**
+     * Marca una actividad como "lista para revisión" ({@code POST /colaborador/proyectos/actividades/{actividadId}/marcar-listo}).
+     * <p>
+     * Es el primer paso del flujo de entrega de dos pasos: el colaborador marca y el PM revisa
+     * después (lo confirma o lo devuelve). Exige un comentario (máx. 300 caracteres) y permite
+     * adjuntar evidencia, cuyo tamaño y tipo valida el service. Si hay errores, vuelve a la
+     * pestaña "actividades" con el modal de esa actividad abierto y lo escrito conservado.
+     *
+     * @param principal usuario autenticado
+     * @param actividadId actividad que se entrega
+     * @param asignacionId asignación (para volver al detalle correcto)
+     * @param form comentario y evidencia
+     * @param result resultado de la validación
+     * @param redirectAttributes para mensajes y para reabrir el modal
+     * @param request petición HTTP
+     * @return redirección al detalle del proyecto, pestaña actividades
+     * @see ColaboradorProyectoService#marcarActividadListaParaRevision
+     */
     @PostMapping("/proyectos/actividades/{actividadId}/marcar-listo")
     public String marcarActividadListaParaRevision(@AuthenticationPrincipal UsuarioDetails principal,
                                                    @PathVariable Long actividadId,

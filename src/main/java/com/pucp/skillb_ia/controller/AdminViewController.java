@@ -39,6 +39,11 @@ import java.time.LocalDate;
 import java.util.List;
 import static com.pucp.skillb_ia.controller.GlobalExceptionHandler.mensajeSeguro;
 
+/**
+ * Vistas y formularios del Administrador ({@code /admin/**}): dashboard, usuarios, catálogos, configuración,
+ * auditoría, reportes, perfil, cursos, revisión de pre-registros y foros. Las reglas de negocio están en
+ * los servicios; aquí se arma el modelo, se muestran los mensajes y se redirige.
+ */
 @Controller
 @RequestMapping("/admin")
 public class AdminViewController {
@@ -59,6 +64,7 @@ public class AdminViewController {
     private final com.pucp.skillb_ia.service.pm.PmForoService pmForoService;
     private final com.pucp.skillb_ia.service.DniVerificacionService dniVerificacionService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public AdminViewController(AdminUsuarioService adminUsuarioService, AdminHabilidadService adminHabilidadService,
                                 AdminConfiguracionService adminConfiguracionService,
                                 AdminAuditoriaService adminAuditoriaService,
@@ -84,17 +90,37 @@ public class AdminViewController {
         this.pmForoService = pmForoService;
     }
 
-    // Disponible en el modelo de todas las páginas de este controlador (topbar).
+    /**
+     * Deja al Administrador de la sesión en el modelo.
+     * <p>
+     * Disponible en el modelo de todas las páginas de este controlador (topbar).
+     *
+     * @param principal usuario con la sesión iniciada
+     * @return el Administrador o {@code null} si no hay sesión
+     */
     @org.springframework.web.bind.annotation.ModelAttribute("admin")
     public com.pucp.skillb_ia.model.Usuario admin(@AuthenticationPrincipal UsuarioDetails principal) {
         return principal != null ? principal.getUsuario() : null;
     }
 
+    /**
+     * Redirige la raíz del área al dashboard.
+     *
+     * @return redirección a {@code /admin/dashboard}
+     */
     @GetMapping({"", "/"})
     public String index() {
         return "redirect:/admin/dashboard";
     }
 
+    /**
+     * Muestra el dashboard: resumen de usuarios y habilidades, cinco cuentas pendientes de activar, las cuatro
+     * últimas acciones de auditoría, usuarios por rol, actividad de los últimos siete días y pre-registros por
+     * revisar.
+     *
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-dashboard}
+     */
     @GetMapping({"/dashboard", "/admin-dashboard.html"})
     public String dashboard(Model model) {
         // Fecha de hoy para el enlace "Acciones auditadas hoy" → auditoría filtrada por hoy.
@@ -126,6 +152,16 @@ public class AdminViewController {
     // USUARIOS (Épica 5)
     // ============================================================
 
+    /**
+     * Muestra el directorio de usuarios, filtrado y paginado.
+     *
+     * @param busqueda texto a buscar; {@code null} o vacío para no filtrar
+     * @param rol etiqueta del rol; en los listados, {@code null} para no filtrar
+     * @param estado estado por el que se filtra; {@code null} para no filtrar
+     * @param pagina número de página, desde 1
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-usuarios}
+     */
     @GetMapping({"/usuarios", "/admin-usuarios.html"})
     public String users(@RequestParam(required = false) String busqueda,
                         @RequestParam(required = false) String rol,
@@ -145,6 +181,16 @@ public class AdminViewController {
         return "admin/admin-usuarios";
     }
 
+    /**
+     * Asigna un cargo a un colaborador; su sueldo base se recalcula con la tarifa del cargo.
+     *
+     * @param usuarioId id del usuario
+     * @param cargoId id del cargo
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al directorio de usuarios
+     */
     @PostMapping("/usuarios/cargo")
     public String asignarCargoUsuario(@RequestParam Long usuarioId, @RequestParam Long cargoId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
@@ -161,6 +207,17 @@ public class AdminViewController {
     private static final String MENSAJE_CORREO_NO_ENVIADO = "%s no se pudo enviar el correo de invitación. "
             + "Revisa la configuración del correo del servidor (MAIL_USERNAME y MAIL_PASSWORD) y usa \"Reenviar enlace\".";
 
+    /**
+     * Crea una cuenta por invitación. Si el correo no se pudo enviar, la cuenta queda creada y se avisa en
+     * pantalla.
+     *
+     * @param correo correo del usuario
+     * @param rol etiqueta del rol; en los listados, {@code null} para no filtrar
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al directorio de usuarios
+     */
     @PostMapping("/usuarios")
     public String crearUsuario(@RequestParam String correo, @RequestParam String rol,
                                 @AuthenticationPrincipal UsuarioDetails principal,
@@ -178,6 +235,16 @@ public class AdminViewController {
         return "redirect:/admin/usuarios";
     }
 
+    /**
+     * Crea cuentas desde un archivo CSV o Excel. Con un solo error no se crea ninguna y se listan las filas por
+     * corregir.
+     *
+     * @param archivo archivo subido
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al directorio de usuarios
+     */
     @PostMapping("/usuarios/carga-masiva")
     public String cargaMasivaUsuarios(@RequestParam("archivo") MultipartFile archivo,
                                        @AuthenticationPrincipal UsuarioDetails principal,
@@ -204,6 +271,16 @@ public class AdminViewController {
         return "redirect:/admin/usuarios";
     }
 
+    /**
+     * Cambia el rol de un usuario.
+     *
+     * @param usuarioId id del usuario
+     * @param rol etiqueta del rol; en los listados, {@code null} para no filtrar
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al directorio de usuarios
+     */
     @PostMapping("/usuarios/cambiar-rol")
     public String cambiarRolUsuario(@RequestParam Long usuarioId, @RequestParam String rol,
                                      @AuthenticationPrincipal UsuarioDetails principal,
@@ -217,6 +294,15 @@ public class AdminViewController {
         return "redirect:/admin/usuarios";
     }
 
+    /**
+     * Desactiva una cuenta: el usuario pierde el acceso y se cierran sus sesiones.
+     *
+     * @param usuarioId id del usuario
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al directorio de usuarios
+     */
     @PostMapping("/usuarios/desactivar")
     public String desactivarUsuario(@RequestParam Long usuarioId,
                                      @AuthenticationPrincipal UsuarioDetails principal,
@@ -230,6 +316,15 @@ public class AdminViewController {
         return "redirect:/admin/usuarios";
     }
 
+    /**
+     * Reactiva una cuenta desactivada.
+     *
+     * @param usuarioId id del usuario
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al directorio de usuarios
+     */
     @PostMapping("/usuarios/reactivar")
     public String reactivarUsuario(@RequestParam Long usuarioId,
                                     @AuthenticationPrincipal UsuarioDetails principal,
@@ -243,6 +338,15 @@ public class AdminViewController {
         return "redirect:/admin/usuarios";
     }
 
+    /**
+     * Genera y envía un nuevo enlace de activación; el anterior deja de servir.
+     *
+     * @param usuarioId id del usuario
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al directorio de usuarios
+     */
     @PostMapping("/usuarios/reenviar")
     public String reenviarActivacion(@RequestParam Long usuarioId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
@@ -264,6 +368,17 @@ public class AdminViewController {
     // HABILIDADES (Épica 5)
     // ============================================================
 
+    /**
+     * Muestra el catálogo de habilidades y categorías y la matriz salarial de los cargos.
+     *
+     * @param busqueda texto a buscar; {@code null} o vacío para no filtrar
+     * @param categoria categoría por la que se filtra; {@code null} para no filtrar
+     * @param estado estado por el que se filtra; {@code null} para no filtrar
+     * @param pagina número de página, desde 1
+     * @param paginaCategorias página de la tabla de categorías
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-habilidades}
+     */
     @GetMapping({"/habilidades", "/admin-habilidades.html"})
     public String skills(@RequestParam(required = false) String busqueda,
                          @RequestParam(required = false) String categoria,
@@ -286,6 +401,16 @@ public class AdminViewController {
         return "admin/admin-habilidades";
     }
 
+    /**
+     * Crea una categoría de habilidades.
+     *
+     * @param nombre nombre ingresado
+     * @param descripcion descripción; puede ser {@code null} o vacía
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo
+     */
     @PostMapping("/habilidades/categorias")
     public String crearCategoria(@RequestParam String nombre,
                                   @RequestParam(required = false) String descripcion,
@@ -300,6 +425,17 @@ public class AdminViewController {
         return "redirect:/admin/habilidades";
     }
 
+    /**
+     * Cambia el nombre o la descripción de una categoría.
+     *
+     * @param categoriaId id de la categoría
+     * @param nombre nombre ingresado
+     * @param descripcion descripción; puede ser {@code null} o vacía
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo
+     */
     @PostMapping("/habilidades/categorias/editar")
     public String editarCategoria(@RequestParam Long categoriaId, @RequestParam String nombre,
                                    @RequestParam(required = false) String descripcion,
@@ -314,6 +450,15 @@ public class AdminViewController {
         return "redirect:/admin/habilidades";
     }
 
+    /**
+     * Desactiva una categoría que no tenga habilidades asociadas.
+     *
+     * @param categoriaId id de la categoría
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo
+     */
     @PostMapping("/habilidades/categorias/desactivar")
     public String desactivarCategoria(@RequestParam Long categoriaId,
                                        @AuthenticationPrincipal UsuarioDetails principal,
@@ -327,6 +472,15 @@ public class AdminViewController {
         return "redirect:/admin/habilidades";
     }
 
+    /**
+     * Reactiva una categoría.
+     *
+     * @param categoriaId id de la categoría
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo
+     */
     @PostMapping("/habilidades/categorias/reactivar")
     public String reactivarCategoria(@RequestParam Long categoriaId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
@@ -340,6 +494,16 @@ public class AdminViewController {
         return "redirect:/admin/habilidades";
     }
 
+    /**
+     * Crea una habilidad; su nombre no puede repetirse en el catálogo.
+     *
+     * @param nombre nombre ingresado
+     * @param categoriaId id de la categoría
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo
+     */
     @PostMapping("/habilidades")
     public String crearHabilidad(@RequestParam String nombre, @RequestParam Long categoriaId,
                                   @AuthenticationPrincipal UsuarioDetails principal,
@@ -353,6 +517,17 @@ public class AdminViewController {
         return "redirect:/admin/habilidades";
     }
 
+    /**
+     * Cambia el nombre o la categoría de una habilidad.
+     *
+     * @param habilidadId id de la habilidad
+     * @param nombre nombre ingresado
+     * @param categoriaId id de la categoría
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo
+     */
     @PostMapping("/habilidades/editar")
     public String editarHabilidad(@RequestParam Long habilidadId, @RequestParam String nombre,
                                    @RequestParam Long categoriaId,
@@ -367,6 +542,15 @@ public class AdminViewController {
         return "redirect:/admin/habilidades";
     }
 
+    /**
+     * Desactiva una habilidad: se conserva en los perfiles que ya la tienen.
+     *
+     * @param habilidadId id de la habilidad
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo
+     */
     @PostMapping("/habilidades/desactivar")
     public String desactivarHabilidad(@RequestParam Long habilidadId,
                                        @AuthenticationPrincipal UsuarioDetails principal,
@@ -380,6 +564,15 @@ public class AdminViewController {
         return "redirect:/admin/habilidades";
     }
 
+    /**
+     * Reactiva una habilidad.
+     *
+     * @param habilidadId id de la habilidad
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo
+     */
     @PostMapping("/habilidades/reactivar")
     public String reactivarHabilidad(@RequestParam Long habilidadId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
@@ -399,6 +592,18 @@ public class AdminViewController {
 
     private static final String REDIRECT_CARGOS = "redirect:/admin/habilidades?tab=cargos";
 
+    /**
+     * Crea un cargo con sus tres tarifas.
+     *
+     * @param nombre nombre ingresado
+     * @param sueldoJunior tarifa mensual del nivel Junior
+     * @param sueldoSemiSenior tarifa mensual del nivel Semi-Senior
+     * @param sueldoSenior tarifa mensual del nivel Senior
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la pestaña de cargos
+     */
     @PostMapping("/cargos/crear")
     public String crearCargo(@RequestParam String nombre,
                              @RequestParam(required = false) BigDecimal sueldoJunior,
@@ -415,6 +620,18 @@ public class AdminViewController {
         return REDIRECT_CARGOS;
     }
 
+    /**
+     * Cambia las tarifas de un cargo e informa a cuántos colaboradores se les recalculó el sueldo.
+     *
+     * @param id id del registro
+     * @param sueldoJunior tarifa mensual del nivel Junior
+     * @param sueldoSemiSenior tarifa mensual del nivel Semi-Senior
+     * @param sueldoSenior tarifa mensual del nivel Senior
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la pestaña de cargos
+     */
     @PostMapping("/cargos/editar")
     public String editarCargo(@RequestParam Long id,
                               @RequestParam(required = false) BigDecimal sueldoJunior,
@@ -433,6 +650,15 @@ public class AdminViewController {
         return REDIRECT_CARGOS;
     }
 
+    /**
+     * Activa o desactiva un cargo.
+     *
+     * @param id id del registro
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la pestaña de cargos
+     */
     @PostMapping("/cargos/alternar")
     public String alternarCargo(@RequestParam Long id,
                                 @AuthenticationPrincipal UsuarioDetails principal,
@@ -450,6 +676,12 @@ public class AdminViewController {
     // CONFIGURACIÓN (Épica 5, C10)
     // ============================================================
 
+    /**
+     * Muestra los parámetros globales y su historial de cambios.
+     *
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-configuracion}
+     */
     @GetMapping({"/configuracion", "/admin-configuracion.html"})
     public String configuration(Model model) {
         model.addAttribute("parametros", adminConfiguracionService.listar());
@@ -457,6 +689,17 @@ public class AdminViewController {
         return "admin/admin-configuracion";
     }
 
+    /**
+     * Crea un parámetro global.
+     *
+     * @param clave clave del parámetro
+     * @param descripcion descripción; puede ser {@code null} o vacía
+     * @param valor valor ingresado
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la configuración
+     */
     @PostMapping("/configuracion/crear")
     public String crearConfiguracion(@RequestParam String clave, @RequestParam(required = false) String descripcion,
                                       @RequestParam String valor,
@@ -471,6 +714,16 @@ public class AdminViewController {
         return "redirect:/admin/configuracion";
     }
 
+    /**
+     * Cambia el valor de un parámetro global.
+     *
+     * @param parametroId id del parámetro
+     * @param valor valor ingresado
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la configuración
+     */
     @PostMapping("/configuracion/editar")
     public String editarConfiguracion(@RequestParam Long parametroId, @RequestParam String valor,
                                        @AuthenticationPrincipal UsuarioDetails principal,
@@ -488,6 +741,18 @@ public class AdminViewController {
     // AUDITORÍA (Épica 5, solo lectura)
     // ============================================================
 
+    /**
+     * Muestra el log de auditoría, filtrado y paginado.
+     *
+     * @param texto nombre o correo a buscar; {@code null} para no filtrar
+     * @param rol etiqueta del rol; en los listados, {@code null} para no filtrar
+     * @param accion código de la acción auditada; {@code null} o {@code "all"} para no filtrar
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     * @param pagina número de página, desde 1
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-auditoria}
+     */
     @GetMapping({"/auditoria", "/admin-auditoria.html"})
     public String audit(@RequestParam(required = false) String texto,
                          @RequestParam(required = false) String rol,
@@ -514,6 +779,17 @@ public class AdminViewController {
         return "admin/admin-auditoria";
     }
 
+    /**
+     * Descarga en CSV (UTF-8 con BOM, para que Excel muestre las tildes) las acciones que cumplen los filtros.
+     *
+     * @param texto nombre o correo a buscar; {@code null} para no filtrar
+     * @param rol etiqueta del rol; en los listados, {@code null} para no filtrar
+     * @param accion código de la acción auditada; {@code null} o {@code "all"} para no filtrar
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     * @param response respuesta HTTP
+     * @throws IOException si falla la escritura de la respuesta
+     */
     @GetMapping("/auditoria/exportar")
     public void exportarAuditoria(@RequestParam(required = false) String texto,
                                    @RequestParam(required = false) String rol,
@@ -545,6 +821,17 @@ public class AdminViewController {
         out.flush();
     }
 
+    /**
+     * Descarga en Excel las acciones que cumplen los filtros.
+     *
+     * @param texto nombre o correo a buscar; {@code null} para no filtrar
+     * @param rol etiqueta del rol; en los listados, {@code null} para no filtrar
+     * @param accion código de la acción auditada; {@code null} o {@code "all"} para no filtrar
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     * @param response respuesta HTTP
+     * @throws IOException si falla la escritura de la respuesta
+     */
     @GetMapping("/auditoria/exportar-excel")
     public void exportarAuditoriaExcel(@RequestParam(required = false) String texto,
                                        @RequestParam(required = false) String rol,
@@ -579,6 +866,17 @@ public class AdminViewController {
     }
 
 
+    /**
+     * Descarga en PDF las acciones que cumplen los filtros.
+     *
+     * @param texto nombre o correo a buscar; {@code null} para no filtrar
+     * @param rol etiqueta del rol; en los listados, {@code null} para no filtrar
+     * @param accion código de la acción auditada; {@code null} o {@code "all"} para no filtrar
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     * @param response respuesta HTTP
+     * @throws IOException si falla la escritura de la respuesta
+     */
     @GetMapping("/auditoria/exportar-pdf")
     public void exportarAuditoriaPdf(@RequestParam(required = false) String texto,
                                      @RequestParam(required = false) String rol,
@@ -617,6 +915,17 @@ public class AdminViewController {
     // REPORTES: "Usuarios y accesos" (por mes) y "Actividad de auditoría" (por rango de fechas)
     // ============================================================
 
+    /**
+     * Muestra los reportes "Usuarios y accesos" y "Actividad de auditoría". Con un rango inválido avisa y
+     * muestra el mes actual.
+     *
+     * @param tab pestaña que se muestra
+     * @param mes mes del reporte (formato yyyy-MM); si no es válido se usa el actual
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-reportes}
+     */
     @GetMapping({"/reportes", "/admin-reportes.html"})
     public String reportes(@RequestParam(required = false) String tab,
                            @RequestParam(required = false) String mes,
@@ -647,6 +956,15 @@ public class AdminViewController {
         return "admin/admin-reportes";
     }
 
+    /**
+     * Descarga en Excel el reporte de la pestaña indicada.
+     *
+     * @param tab pestaña que se muestra
+     * @param mes mes del reporte (formato yyyy-MM); si no es válido se usa el actual
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     * @return archivo .xlsx
+     */
     @GetMapping("/reportes/excel")
     public org.springframework.http.ResponseEntity<byte[]> reportesExcel(@RequestParam(required = false) String tab,
                                                                          @RequestParam(required = false) String mes,
@@ -670,6 +988,15 @@ public class AdminViewController {
     }
 
 
+    /**
+     * Descarga en PDF el reporte de la pestaña indicada.
+     *
+     * @param tab pestaña que se muestra
+     * @param mes mes del reporte (formato yyyy-MM); si no es válido se usa el actual
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     * @return archivo .pdf
+     */
     @GetMapping("/reportes/pdf")
     public org.springframework.http.ResponseEntity<byte[]> reportesPdf(@RequestParam(required = false) String tab,
                                                                        @RequestParam(required = false) String mes,
@@ -692,8 +1019,16 @@ public class AdminViewController {
                 .body(contenido);
     }
 
-    // Rango del reporte de auditoría: por defecto, del 1 del mes actual a hoy. Una fecha mal escrita usa el
-    // valor por defecto (el formulario usa input type="date", así que solo pasa si se edita la URL).
+    /**
+     * Interpreta las fechas del reporte de auditoría.
+     * <p>
+     * Rango del reporte de auditoría: por defecto, del 1 del mes actual a hoy. Una fecha mal escrita usa el valor
+     * por defecto (el formulario usa input type="date", así que solo pasa si se edita la URL).
+     *
+     * @param desde fecha inicial del rango; {@code null} para no limitar
+     * @param hasta fecha final del rango; {@code null} para no limitar
+     * @return arreglo con la fecha inicial y la final
+     */
     private LocalDate[] leerRango(String desde, String hasta) {
         LocalDate fin = LocalDate.now();
         LocalDate inicio = fin.withDayOfMonth(1);
@@ -714,14 +1049,28 @@ public class AdminViewController {
     // PERFIL
     // ============================================================
 
+    /**
+     * Muestra el perfil del Administrador.
+     *
+     * @param principal usuario con la sesión iniciada
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-perfil}
+     */
     @GetMapping({"/perfil", "/admin-perfil.html"})
     public String perfil(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         completarModeloPerfil(model, principal);
         return "admin/admin-perfil";
     }
 
-    // Los dos formularios de la pantalla (teléfono y contraseña) necesitan su objeto en el modelo
-    // aunque se haya enviado solo uno; el que falló conserva lo escrito y sus errores.
+    /**
+     * Completa lo que necesita la vista del perfil y sincroniza el estado del DNI.
+     * <p>
+     * Los dos formularios de la pantalla (teléfono y contraseña) necesitan su objeto en el modelo aunque se haya
+     * enviado solo uno; el que falló conserva lo escrito y sus errores.
+     *
+     * @param model modelo con los datos de la vista
+     * @param principal usuario con la sesión iniciada
+     */
     private void completarModeloPerfil(Model model, UsuarioDetails principal) {
         // El DNI puede haberse verificado o quitado en segundo plano (DniReintentoScheduler).
         if (principal != null) {
@@ -735,6 +1084,17 @@ public class AdminViewController {
         }
     }
 
+    /**
+     * Actualiza el teléfono del Administrador.
+     *
+     * @param form datos del formulario
+     * @param result errores de validación del formulario
+     * @param model modelo con los datos de la vista
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al perfil, o la misma vista si hay errores
+     */
     @PostMapping("/perfil/telefono")
     public String actualizarTelefonoAdmin(@Valid @ModelAttribute("telefonoPerfilForm") TelefonoPerfilForm form,
                                            BindingResult result, Model model,
@@ -754,6 +1114,15 @@ public class AdminViewController {
         return "redirect:/admin/perfil";
     }
 
+    /**
+     * Cambia la foto de perfil del Administrador.
+     *
+     * @param foto imagen subida
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al perfil
+     */
     @PostMapping("/perfil/foto")
     public String actualizarFotoAdmin(@RequestParam("foto") MultipartFile foto,
                                        @AuthenticationPrincipal UsuarioDetails principal,
@@ -768,6 +1137,17 @@ public class AdminViewController {
         return "redirect:/admin/perfil";
     }
 
+    /**
+     * Cambia la contraseña del Administrador, previa comprobación de la actual.
+     *
+     * @param form datos del formulario
+     * @param result errores de validación del formulario
+     * @param model modelo con los datos de la vista
+     * @param principal usuario con la sesión iniciada
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al perfil, o la misma vista si hay errores
+     */
     @PostMapping("/perfil/password")
     public String actualizarPasswordAdmin(@Valid @ModelAttribute("passwordPerfilForm") PasswordPerfilForm form,
                                            BindingResult result, Model model,
@@ -787,19 +1167,40 @@ public class AdminViewController {
         return "redirect:/admin/perfil";
     }
 
-    // Valor que no se pudo convertir (p. ej. texto en un campo numérico): mensaje de messages.properties.
+    /**
+     * Devuelve el mensaje del primer error de conversión del formulario.
+     * <p>
+     * Valor que no se pudo convertir (p. ej. texto en un campo numérico): mensaje de messages.properties.
+     *
+     * @param resultado resultado de enlazar el formulario
+     * @return mensaje para el usuario
+     */
     private String primerErrorDeBinding(BindingResult resultado) {
         var error = resultado.getFieldError();
         return error == null ? "Revisa los datos ingresados."
                 : messageSource.getMessage(error, org.springframework.context.i18n.LocaleContextHolder.getLocale());
     }
 
+    /**
+     * Encierra un valor entre comillas y duplica las que contenga, para el CSV.
+     *
+     * @param valor valor ingresado
+     * @return texto listo para el CSV; vacío si es {@code null}
+     */
     private String csvEscapar(String valor) {
         if (valor == null) return "";
         return "\"" + valor.replace("\"", "\"\"") + "\"";
     }
 
     // ================== CURSOS ==================
+    /**
+     * Muestra el catálogo de cursos, separados en vigentes y caducados.
+     *
+     * @param paginaVigentes página de la tabla de cursos en curso
+     * @param paginaFinalizados página de la tabla de cursos caducados
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-cursos}
+     */
     @GetMapping({"/cursos", "/admin-cursos.html"})
     public String cursos(@RequestParam(required = false) Integer paginaVigentes,
                          @RequestParam(required = false) Integer paginaFinalizados,
@@ -815,6 +1216,16 @@ public class AdminViewController {
         return "admin/admin-cursos";
     }
 
+    /**
+     * Registra un curso.
+     *
+     * @param curso datos del curso
+     * @param bindingResult errores al convertir los datos del formulario
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo de cursos
+     */
     @PostMapping("/cursos/crear")
     public String crearCurso(@ModelAttribute Curso curso, BindingResult bindingResult,
                              @AuthenticationPrincipal UsuarioDetails principal,
@@ -832,6 +1243,17 @@ public class AdminViewController {
         return "redirect:/admin/cursos";
     }
 
+    /**
+     * Guarda los cambios de un curso.
+     *
+     * @param cursoId id del curso
+     * @param curso datos del curso
+     * @param bindingResult errores al convertir los datos del formulario
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo de cursos
+     */
     @PostMapping("/cursos/editar")
     public String editarCurso(@RequestParam("cursoId") Long cursoId,
                               @ModelAttribute Curso curso, BindingResult bindingResult,
@@ -850,6 +1272,15 @@ public class AdminViewController {
         return "redirect:/admin/cursos";
     }
 
+    /**
+     * Activa o desactiva un curso.
+     *
+     * @param cursoId id del curso
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al catálogo de cursos
+     */
     @PostMapping("/cursos/alternar")
     public String alternarEstadoCurso(@RequestParam("cursoId") Long cursoId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
@@ -867,6 +1298,16 @@ public class AdminViewController {
     // CV Y EXPERIENCIA PROFESIONAL DE COLABORADORES
     // ============================================================
 
+    /**
+     * Muestra los pre-registros en tres pestañas: pendientes, aprobados y rechazados.
+     *
+     * @param tab pestaña que se muestra
+     * @param paginaPendientes página de la pestaña de pendientes
+     * @param paginaRevisados página de la pestaña de aprobados
+     * @param paginaRechazados página de la pestaña de rechazados
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-experiencia}
+     */
     @GetMapping({"/experiencia", "/admin-experiencia.html"})
     public String experiencia(@RequestParam(required = false) String tab,
                               @RequestParam(required = false) Integer paginaPendientes,
@@ -887,11 +1328,20 @@ public class AdminViewController {
         return "admin/admin-experiencia";
     }
 
-    // Ojo: el path variable NO se llama "id" a propósito — @ModelAttribute
-    // ExperienciaProfesional también tiene un campo "id", y Spring Data Binder
-    // pisa ese campo con cualquier atributo implícito del modelo que se llame
-    // igual (incluidos los @PathVariable), hacendo que el repository intente
-    // actualizar una fila ajena en vez de crear una nueva.
+    /**
+     * Muestra el pre-registro de un colaborador con su experiencia y, solo para lectura, su formación y sus
+     * certificados.
+     * <p>
+     * Ojo: el path variable NO se llama "id" a propósito — {@literal @}ModelAttribute ExperienciaProfesional
+     * también tiene un campo "id", y Spring Data Binder pisa ese campo con cualquier atributo implícito del
+     * modelo que se llame igual (incluidos los {@literal @}PathVariable), hacendo que el repository intente
+     * actualizar una fila ajena en vez de crear una nueva.
+     *
+     * @param colaboradorId id del colaborador
+     * @param model modelo con los datos de la vista
+     * @param ra mensajes que se muestran después de redirigir
+     * @return vista {@code admin/admin-experiencia-detalle}, o redirección a la lista si no existe
+     */
     @GetMapping("/experiencia/{colaboradorId}")
     public String experienciaDetalle(@PathVariable Long colaboradorId, Model model, RedirectAttributes ra) {
         Usuario colaborador;
@@ -910,6 +1360,16 @@ public class AdminViewController {
         return "admin/admin-experiencia-detalle";
     }
 
+    /**
+     * Agrega al colaborador una experiencia que figura en su CV.
+     *
+     * @param colaboradorId id del colaborador
+     * @param exp datos de la experiencia profesional
+     * @param bindingResult errores al convertir los datos del formulario
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al detalle del pre-registro
+     */
     @PostMapping("/experiencia/{colaboradorId}/agregar")
     public String agregarExperiencia(@PathVariable Long colaboradorId,
                                      @ModelAttribute ExperienciaProfesional exp, BindingResult bindingResult,
@@ -928,7 +1388,17 @@ public class AdminViewController {
         return "redirect:/admin/experiencia/" + colaboradorId;
     }
 
-    // El Admin descarta una experiencia que no pudo verificar con el CV.
+    /**
+     * Descarta una experiencia del colaborador.
+     * <p>
+     * El Admin descarta una experiencia que no pudo verificar con el CV.
+     *
+     * @param colaboradorId id del colaborador
+     * @param experienciaId id de la experiencia profesional
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del pre-registro
+     */
     @PostMapping("/experiencia/{colaboradorId}/eliminar/{experienciaId}")
     public String eliminarExperiencia(@PathVariable Long colaboradorId, @PathVariable Long experienciaId,
                                       @AuthenticationPrincipal UsuarioDetails principal,
@@ -943,6 +1413,15 @@ public class AdminViewController {
         return "redirect:/admin/experiencia/" + colaboradorId;
     }
 
+    /**
+     * Aprueba el pre-registro o el CV de reemplazo del colaborador.
+     *
+     * @param colaboradorId id del colaborador
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la lista, o al detalle si no se pudo aprobar
+     */
     @PostMapping("/experiencia/{colaboradorId}/revisar")
     public String aprobarRegistro(@PathVariable Long colaboradorId,
                                   @AuthenticationPrincipal UsuarioDetails principal,
@@ -957,6 +1436,16 @@ public class AdminViewController {
         return "redirect:/admin/experiencia";
     }
 
+    /**
+     * Devuelve el pre-registro al colaborador con las observaciones.
+     *
+     * @param colaboradorId id del colaborador
+     * @param motivo motivo del rechazo, de hasta 500 caracteres
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la lista, o al detalle si falta el motivo
+     */
     @PostMapping("/experiencia/{colaboradorId}/rechazar")
     public String rechazarRegistro(@PathVariable Long colaboradorId,
                                    @RequestParam("motivo") String motivo,
@@ -976,12 +1465,28 @@ public class AdminViewController {
     // FOROS DE COMUNIDAD
     // ═══════════════════════════════════════════════════════════
 
+    /**
+     * Muestra los foros que administra: los de comunidad y los de anuncios.
+     *
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-foros}
+     */
     @GetMapping("/foros")
     public String foros(Model model) {
         model.addAttribute("foros", adminForoService.listarForosComunidad());
         return "admin/admin-foros";
     }
 
+    /**
+     * Crea un foro de comunidad o de anuncios.
+     *
+     * @param nombre nombre ingresado
+     * @param esPublico {@code true} para un foro de comunidad, {@code false} para uno de anuncios
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la lista de foros
+     */
     @PostMapping("/foros/crear")
     public String crearForo(@RequestParam String nombre,
                             @RequestParam(defaultValue = "true") boolean esPublico,
@@ -997,6 +1502,15 @@ public class AdminViewController {
         return "redirect:/admin/foros";
     }
 
+    /**
+     * Elimina un foro con todo su contenido.
+     *
+     * @param id id del registro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección a la lista de foros
+     */
     @PostMapping("/foros/{id}/eliminar")
     public String eliminarForo(@PathVariable Long id, @AuthenticationPrincipal UsuarioDetails principal,
                                RedirectAttributes ra, HttpServletRequest request) {
@@ -1010,6 +1524,15 @@ public class AdminViewController {
         return "redirect:/admin/foros";
     }
 
+    /**
+     * Muestra las publicaciones de un foro.
+     *
+     * @param id id del registro
+     * @param ordenar orden de las publicaciones: {@code "fecha"} o {@code "votos"}
+     * @param principal usuario con la sesión iniciada
+     * @param model modelo con los datos de la vista
+     * @return vista {@code admin/admin-foro-detalle}
+     */
     @GetMapping("/foros/{id}/publicaciones")
     public String foroDetalle(@PathVariable Long id,
                               @RequestParam(value = "ordenar", defaultValue = "fecha") String ordenar,
@@ -1021,6 +1544,17 @@ public class AdminViewController {
         return "admin/admin-foro-detalle";
     }
 
+    /**
+     * Publica en un foro.
+     *
+     * @param id id del registro
+     * @param titulo título de la publicación
+     * @param contenido contenido escrito por el usuario
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/foros/{id}/publicar")
     public String publicarEnForo(@PathVariable Long id,
                                  @RequestParam String titulo,
@@ -1037,6 +1571,16 @@ public class AdminViewController {
         return "redirect:/admin/foros/" + id + "/publicaciones";
     }
 
+    /**
+     * Elimina cualquier publicación del foro.
+     *
+     * @param pubId id de la publicación
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/foros/publicacion/{pubId}/eliminar")
     public String eliminarPublicacion(@PathVariable Long pubId,
                                       @RequestParam Long foroId,
@@ -1052,6 +1596,17 @@ public class AdminViewController {
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
 
+    /**
+     * Responde una publicación; en los foros de anuncios no se permite.
+     *
+     * @param publicacionId id de la publicación
+     * @param foroId id del foro
+     * @param contenido contenido escrito por el usuario
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/foros/responder")
     public String responderForo(@RequestParam("publicacionId") Long publicacionId,
                                 @RequestParam(value = "foroId", required = false) Long foroId,
@@ -1068,6 +1623,16 @@ public class AdminViewController {
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
 
+    /**
+     * Marca o desmarca una respuesta como solución.
+     *
+     * @param respuestaId id de la respuesta
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/foros/respuesta/{id}/marcar-solucion")
     public String marcarSolucionForo(@PathVariable("id") Long respuestaId,
                                      @RequestParam(value = "foroId", required = false) Long foroId,
@@ -1081,6 +1646,16 @@ public class AdminViewController {
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
 
+    /**
+     * Da o quita "me gusta" a una publicación.
+     *
+     * @param publicacionId id de la publicación
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/foros/publicacion/{publicacionId}/like")
     public String likePublicacion(@PathVariable Long publicacionId,
                                   @RequestParam(value = "foroId", required = false) Long foroId,
@@ -1094,6 +1669,16 @@ public class AdminViewController {
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
 
+    /**
+     * Da o quita "me gusta" a una respuesta.
+     *
+     * @param respuestaId id de la respuesta
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/foros/respuesta/{respuestaId}/like")
     public String likeRespuesta(@PathVariable Long respuestaId,
                                 @RequestParam(value = "foroId", required = false) Long foroId,
@@ -1107,6 +1692,16 @@ public class AdminViewController {
         return "redirect:/admin/foros/" + foroId + "/publicaciones";
     }
 
+    /**
+     * Elimina cualquier respuesta del foro.
+     *
+     * @param respuestaId id de la respuesta
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @param request petición HTTP
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/foros/respuesta/{respuestaId}/eliminar")
     public String eliminarRespuestaForo(@PathVariable Long respuestaId,
                                         @RequestParam(value = "foroId", required = false) Long foroId,

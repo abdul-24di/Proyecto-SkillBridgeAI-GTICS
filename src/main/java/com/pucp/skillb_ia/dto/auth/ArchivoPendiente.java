@@ -2,10 +2,17 @@ package com.pucp.skillb_ia.dto.auth;
 
 import java.io.Serializable;
 
-// Archivo válido del pre-registro que espera en una carpeta temporal a que el formulario se envíe sin
-// errores. Serializable porque se guarda en la sesión HTTP (Spring Session JDBC).
+/**
+ * Archivo válido del pre-registro que espera en una carpeta temporal a que el formulario se envíe sin
+ * errores. Serializable porque se guarda en la sesión HTTP (Spring Session JDBC).
+ */
 public record ArchivoPendiente(String id, String nombre, String tipo, long tamano) implements Serializable {
 
+    /**
+     * Devuelve el tamaño en KB o MB.
+     *
+     * @return tamaño para mostrar
+     */
     public String tamanoLegible() {
         return tamano < 1024 * 1024
                 ? Math.max(1, tamano / 1024) + " KB"

@@ -35,10 +35,20 @@ public class RmForoController {
 
     private final PmForoService pmForoService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RmForoController(PmForoService pmForoService) {
         this.pmForoService = pmForoService;
     }
 
+    /**
+     * Publica en un foro de comunidad. Con errores vuelve al modal y conserva lo escrito.
+     *
+     * @param form datos del formulario
+     * @param result errores de validación del formulario
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/publicar")
     public String publicar(@Valid @ModelAttribute("pmForoPublicacionForm") PmForoPublicacionForm form,
                            BindingResult result,
@@ -69,6 +79,15 @@ public class RmForoController {
         return detalle(form.getForoId());
     }
 
+    /**
+     * Responde una publicación de un foro de comunidad.
+     *
+     * @param form datos del formulario
+     * @param result errores de validación del formulario
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/responder")
     public String responder(@Valid @ModelAttribute("pmForoRespuestaForm") PmForoRespuestaForm form,
                             BindingResult result,
@@ -94,24 +113,60 @@ public class RmForoController {
         return detalle(form.getForoId());
     }
 
+    /**
+     * Da o quita "me gusta" a una publicación.
+     *
+     * @param id id de la publicación o respuesta
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/publicacion/{id}/like")
     public String likePublicacion(@PathVariable Long id, @RequestParam(required = false) Long foroId,
                                   @AuthenticationPrincipal UsuarioDetails principal, RedirectAttributes ra) {
         return ejecutar(() -> pmForoService.alternarLikePublicacion(principal.getUsuario(), id), null, foroId, ra);
     }
 
+    /**
+     * Da o quita "me gusta" a una respuesta.
+     *
+     * @param id id de la publicación o respuesta
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/respuesta/{id}/like")
     public String likeRespuesta(@PathVariable Long id, @RequestParam(required = false) Long foroId,
                                 @AuthenticationPrincipal UsuarioDetails principal, RedirectAttributes ra) {
         return ejecutar(() -> pmForoService.alternarLikeRespuesta(principal.getUsuario(), id), null, foroId, ra);
     }
 
+    /**
+     * Marca o desmarca la solución de una publicación propia.
+     *
+     * @param id id de la publicación o respuesta
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/respuesta/{id}/marcar-solucion")
     public String marcarSolucion(@PathVariable Long id, @RequestParam(required = false) Long foroId,
                                  @AuthenticationPrincipal UsuarioDetails principal, RedirectAttributes ra) {
         return ejecutar(() -> pmForoService.alternarSolucion(principal.getUsuario(), id), null, foroId, ra);
     }
 
+    /**
+     * Elimina una publicación propia.
+     *
+     * @param id id de la publicación o respuesta
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/publicacion/{id}/eliminar")
     public String eliminarPublicacion(@PathVariable Long id, @RequestParam(required = false) Long foroId,
                                       @AuthenticationPrincipal UsuarioDetails principal, RedirectAttributes ra) {
@@ -119,6 +174,15 @@ public class RmForoController {
                 "Publicación eliminada.", foroId, ra);
     }
 
+    /**
+     * Elimina una respuesta propia.
+     *
+     * @param id id de la publicación o respuesta
+     * @param foroId id del foro
+     * @param principal usuario con la sesión iniciada
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del foro
+     */
     @PostMapping("/respuesta/{id}/eliminar")
     public String eliminarRespuesta(@PathVariable Long id, @RequestParam(required = false) Long foroId,
                                     @AuthenticationPrincipal UsuarioDetails principal, RedirectAttributes ra) {
@@ -126,6 +190,13 @@ public class RmForoController {
                 "Respuesta eliminada.", foroId, ra);
     }
 
+    /**
+     * Sube una imagen del editor.
+     *
+     * @param image imagen que se insertará en el contenido
+     * @return JSON con la {@code url} de la imagen
+     * @throws ResponseStatusException (400) si el archivo no es válido
+     */
     @PostMapping("/upload-imagen")
     @ResponseBody
     public Map<String, String> subirImagen(@RequestParam("image") MultipartFile image) {
@@ -136,6 +207,15 @@ public class RmForoController {
         }
     }
 
+    /**
+     * Ejecuta una acción del foro y deja el mensaje de éxito o de error.
+     *
+     * @param accion operación a ejecutar
+     * @param mensajeExito mensaje si sale bien; {@code null} para no mostrar ninguno
+     * @param foroId id del foro
+     * @param ra mensajes que se muestran después de redirigir
+     * @return redirección al detalle del foro
+     */
     private String ejecutar(Runnable accion, String mensajeExito, Long foroId, RedirectAttributes ra) {
         try {
             accion.run();
@@ -148,6 +228,12 @@ public class RmForoController {
         return detalle(foroId);
     }
 
+    /**
+     * Arma la redirección al detalle de un foro, o a la lista si no se conoce el foro.
+     *
+     * @param foroId id del foro
+     * @return ruta de redirección
+     */
     private static String detalle(Long foroId) {
         return foroId == null ? "redirect:/rm/foros" : "redirect:/rm/foros/detalle?id=" + foroId;
     }

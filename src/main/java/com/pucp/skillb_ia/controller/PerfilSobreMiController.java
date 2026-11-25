@@ -11,17 +11,30 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-// "Sobre mí" en el perfil del Administrador, el PM y el RM. Cada ruta cuelga de /admin, /pm o /rm, así que
-// SecurityConfig ya exige el rol correspondiente.
+/**
+ * "Sobre mí" en el perfil del Administrador, el PM y el RM. Cada ruta cuelga de /admin, /pm o /rm, así que
+ * SecurityConfig ya exige el rol correspondiente.
+ */
 @Controller
 public class PerfilSobreMiController {
 
     private final PerfilSobreMiService perfilSobreMiService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public PerfilSobreMiController(PerfilSobreMiService perfilSobreMiService) {
         this.perfilSobreMiService = perfilSobreMiService;
     }
 
+    /**
+     * Guarda la descripción del perfil y actualiza la copia del usuario en la sesión.
+     *
+     * @param area área del rol: {@code admin}, {@code pm} o {@code rm}
+     * @param descripcion descripción; puede ser {@code null} o vacía
+     * @param principal usuario con la sesión iniciada
+     * @param request petición HTTP
+     * @param redirectAttributes mensajes que se muestran después de redirigir
+     * @return redirección a la sección "Sobre mí" del perfil
+     */
     @PostMapping("/{area:admin|pm|rm}/perfil/sobre-mi")
     public String actualizar(@PathVariable String area,
                              @RequestParam(value = "descripcion", required = false) String descripcion,

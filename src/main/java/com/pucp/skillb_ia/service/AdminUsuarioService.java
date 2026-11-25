@@ -35,10 +35,11 @@ import java.util.function.Predicate;
 import java.util.Map;
 import java.util.Set;
 
-// Épica 5 (Gestión de usuarios). Por decisión C1/C2 esta clase NO reimplementa
-// nada de tokens/activación — delega siempre a AuthService (ver comentario en
-// esa clase). Solo se encarga de: listar/filtrar el directorio, cambiar rol,
-// activar/desactivar y la carga masiva por CSV.
+/**
+ * Épica 5 (Gestión de usuarios). Por decisión C1/C2 esta clase NO reimplementa nada de tokens/activación
+ * — delega siempre a AuthService (ver comentario en esa clase). Solo se encarga de: listar/filtrar el
+ * directorio, cambiar rol, activar/desactivar y la carga masiva por CSV.
+ */
 @Service
 public class AdminUsuarioService {
 
@@ -76,6 +77,25 @@ public class AdminUsuarioService {
         NUMERO_A_ROL.forEach((numero, rol) -> ROL_A_NUMERO.put(rol, numero));
     }
 
+    /**
+     * Fila del directorio de usuarios, lista para la vista.
+     *
+     * @param id id del registro
+     * @param nombreCompleto nombre y apellido, o {@code null} si aún no activó su cuenta
+     * @param iniciales inicial para el avatar
+     * @param correo correo del usuario
+     * @param rolNombre nombre técnico del rol
+     * @param rolEtiqueta etiqueta o nombre técnico del rol
+     * @param rolBadgeClase clase CSS de la etiqueta del rol
+     * @param estado estado por el que se filtra; {@code null} para no filtrar
+     * @param estadoBadgeClase clase CSS de la etiqueta del estado
+     * @param estadoDot clase CSS del punto del estado
+     * @param pendiente {@code true} si aún no activó su cuenta
+     * @param activo {@code true} si la cuenta no está desactivada
+     * @param fechaCreacion fecha de creación, ya formateada
+     * @param cargoId id del cargo
+     * @param cargoNombre nombre del cargo
+     */
     public record UsuarioFila(Long id, String nombreCompleto, String iniciales, String correo,
                                String rolNombre, String rolEtiqueta, String rolBadgeClase,
                                String estado, String estadoBadgeClase, String estadoDot,
@@ -83,17 +103,52 @@ public class AdminUsuarioService {
                                Long cargoId, String cargoNombre) {
     }
 
+    /**
+     * Totales de las tarjetas del directorio de usuarios.
+     *
+     * @param total cantidad total
+     * @param pendientes cuentas sin activar
+     * @param activos cuentas activas
+     * @param inactivos cuentas desactivadas
+     */
     public record ResumenUsuarios(long total, long pendientes, long activos, long inactivos) {
     }
 
-    // Dashboard: usuarios activos de un rol y su porcentaje sobre el total, para dibujar la barra.
+    /**
+     * Usuarios activos de un rol, para el gráfico del dashboard.
+     * <p>
+     * Dashboard: usuarios activos de un rol y su porcentaje sobre el total, para dibujar la barra.
+     *
+     * @param rolEtiqueta etiqueta o nombre técnico del rol
+     * @param rolBadgeClase clase CSS de la etiqueta del rol
+     * @param barraClase clase CSS de la barra
+     * @param total cantidad total
+     * @param porcentaje porcentaje sobre el total
+     */
     public record RolConteo(String rolEtiqueta, String rolBadgeClase, String barraClase, long total, int porcentaje) {
     }
 
+    /**
+     * Resultado de una carga masiva.
+     *
+     * @param creados cuentas creadas
+     * @param errores errores por fila
+     * @param sinCorreo cuentas cuyo correo no se pudo enviar
+     */
     public record ResultadoCargaMasiva(int creados, List<String> errores, int sinCorreo) {
+        /** Indica si el archivo tuvo errores; en ese caso no se creó ninguna cuenta. */
         public boolean tieneErrores() { return !errores.isEmpty(); }
     }
 
+    /**
+     * Fila de la bandeja de pre-registros.
+     *
+     * @param id id del registro
+     * @param nombreCompleto nombre y apellido, o {@code null} si aún no activó su cuenta
+     * @param correo correo del usuario
+     * @param cvUrl ruta del CV
+     * @param fechaSubida fecha en que se subió el CV, ya formateada
+     */
     public record CvFila(Long id, String nombreCompleto, String correo, String cvUrl,
                           String fechaSubida) {
     }
@@ -107,6 +162,7 @@ public class AdminUsuarioService {
     private final EmailService emailService;
     private final com.pucp.skillb_ia.service.col.ColaboradorPerfilService colaboradorPerfilService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public AdminUsuarioService(UsuarioRepository usuarioRepository, RolRepository rolRepository,
                                 CargoRepository cargoRepository,
                                 AuthService authService, AuditoriaService auditoriaService,
@@ -122,15 +178,31 @@ public class AdminUsuarioService {
         this.colaboradorPerfilService = colaboradorPerfilService;
     }
 
+    /**
+     * Devuelve las etiquetas de todos los roles, para los filtros.
+     *
+     * @return lista de etiquetas
+     */
     public static List<String> etiquetasRoles() {
         return new ArrayList<>(ETIQUETA_A_ROL.keySet());
     }
 
-    // Para los <select> de "Nuevo usuario" y "Editar rol": excluye Administrador.
+    /**
+     * Devuelve los roles que el Administrador puede asignar.
+     * <p>
+     * Para los &lt;select&gt; de "Nuevo usuario" y "Editar rol": excluye Administrador.
+     *
+     * @return lista de etiquetas
+     */
     public static List<String> etiquetasRolesAsignables() {
         return ETIQUETA_A_ROL.keySet().stream().filter(e -> !e.equals("Administrador")).toList();
     }
 
+    /**
+     * Lista todos los usuarios con su rol y estado.
+     *
+     * @return filas del directorio
+     */
     @Transactional(readOnly = true)
     public List<UsuarioFila> listar() {
         return usuarioRepository.findAllWithRol().stream().map(this::aFila).toList();
@@ -147,6 +219,11 @@ public class AdminUsuarioService {
         return Paginador.paginar(filtradas, pagina);
     }
 
+    /**
+     * Cuenta los usuarios por estado.
+     *
+     * @return totales por estado
+     */
     @Transactional(readOnly = true)
     public ResumenUsuarios resumen() {
         List<UsuarioFila> filas = listar();
@@ -156,7 +233,13 @@ public class AdminUsuarioService {
         return new ResumenUsuarios(filas.size(), pendientes, activos, inactivos);
     }
 
-    // Usuarios activos (cuenta ya activada) por rol, en el orden de ROL_A_ETIQUETA.
+    /**
+     * Cuenta los usuarios activos de cada rol.
+     * <p>
+     * Usuarios activos (cuenta ya activada) por rol, en el orden de ROL_A_ETIQUETA.
+     *
+     * @return un conteo por rol
+     */
     @Transactional(readOnly = true)
     public List<RolConteo> usuariosPorRol() {
         List<UsuarioFila> activos = listar().stream().filter(f -> f.activo() && !f.pendiente()).toList();
@@ -172,13 +255,33 @@ public class AdminUsuarioService {
                 .toList();
     }
 
+    /**
+     * Crea una cuenta por invitación.
+     * <p>
+     * Devuelve si el correo de invitación salió (la cuenta se crea igual; el enlace se puede reenviar).
+     *
+     * @param correo correo del usuario
+     * @param rolEtiqueta etiqueta o nombre técnico del rol
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @return {@code true} si el correo de invitación se envió
+     * @throws IllegalArgumentException si el correo o el rol no son válidos, o el correo ya existe
+     */
     @Transactional
-    // Devuelve si el correo de invitación salió (la cuenta se crea igual; el enlace se puede reenviar).
     public boolean crear(String correo, String rolEtiqueta, Usuario admin) {
         String rolNombre = resolverRolAsignable(rolEtiqueta);
         return authService.invitar(correo.trim(), rolNombre, admin).correoEnviado();
     }
 
+    /**
+     * Cambia el rol de un usuario, cierra sus sesiones y lo registra en la auditoría. Si ya tenía ese rol no
+     * hace nada.
+     *
+     * @param usuarioId id del usuario
+     * @param nuevoRolEtiqueta etiqueta o nombre técnico del nuevo rol
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si el usuario o el rol no son válidos, o si dejaría al sistema sin un
+     *         Administrador activo
+     */
     @Transactional
     public void cambiarRol(Long usuarioId, String nuevoRolEtiqueta, Usuario admin) {
         String nuevoRolNombre = resolverRolAsignable(nuevoRolEtiqueta);
@@ -206,8 +309,17 @@ public class AdminUsuarioService {
                 "Cambió el rol de " + usuario.getCorreo() + ".", rolAnterior, nuevoRolNombre, null);
     }
 
-    // El cargo solo aplica a colaboradores. Al asignarlo se recalcula su sueldo
-    // base con la tarifa del cargo para su nivel de experiencia (si ya lo tiene).
+    /**
+     * Asigna un cargo a un colaborador y recalcula su sueldo base.
+     * <p>
+     * El cargo solo aplica a colaboradores. Al asignarlo se recalcula su sueldo base con la tarifa del cargo para
+     * su nivel de experiencia (si ya lo tiene).
+     *
+     * @param usuarioId id del usuario
+     * @param cargoId id del cargo
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si el usuario no es colaborador, o el cargo no existe o está desactivado
+     */
     @Transactional
     public void asignarCargo(Long usuarioId, Long cargoId, Usuario admin) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
@@ -231,6 +343,13 @@ public class AdminUsuarioService {
                 anterior, cargo.getNombre(), null);
     }
 
+    /**
+     * Desactiva una cuenta, cierra sus sesiones y lo registra en la auditoría.
+     *
+     * @param usuarioId id del usuario
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si el usuario no existe o es Administrador
+     */
     @Transactional
     public void desactivar(Long usuarioId, Usuario admin) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
@@ -246,6 +365,13 @@ public class AdminUsuarioService {
                 "Desactivó al usuario " + usuario.getCorreo() + ".");
     }
 
+    /**
+     * Reactiva una cuenta desactivada.
+     *
+     * @param usuarioId id del usuario
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si el usuario no existe
+     */
     @Transactional
     public void reactivar(Long usuarioId, Usuario admin) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
@@ -256,6 +382,14 @@ public class AdminUsuarioService {
                 "Reactivó al usuario " + usuario.getCorreo() + ".");
     }
 
+    /**
+     * Genera un nuevo enlace de activación; el anterior deja de servir.
+     *
+     * @param usuarioId id del usuario
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @return {@code true} si el correo se envió
+     * @throws IllegalArgumentException si el usuario no existe
+     */
     @Transactional
     public boolean reenviarActivacion(Long usuarioId, Usuario admin) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
@@ -263,15 +397,32 @@ public class AdminUsuarioService {
         return authService.reenviarActivacion(usuario, admin);
     }
 
-    // Fila cruda leída del archivo (CSV o Excel), antes de validar. `completa`
-    // indica si tiene correo Y rol no vacíos (si no, es un error de "fila incompleta").
+    /**
+     * Fila leída del archivo de carga masiva, antes de validarla.
+     * <p>
+     * Fila cruda leída del archivo (CSV o Excel), antes de validar. `completa` indica si tiene correo Y rol no
+     * vacíos (si no, es un error de "fila incompleta").
+     *
+     * @param numeroFila número de fila del archivo
+     * @param correo correo del usuario
+     * @param rol etiqueta del rol por el que se filtra; {@code null} para no filtrar
+     * @param completa {@code true} si tiene correo y rol
+     */
     private record FilaCruda(int numeroFila, String correo, String rol, boolean completa) {
     }
 
-    // Se valida TODO el archivo antes de crear un solo usuario: si hay al menos
-    // un error (correo duplicado, rol inválido, fila incompleta), no se crea
-    // nada — el admin corrige el archivo y vuelve a intentar. Evita cargas
-    // parciales confusas a mitad de archivo.
+    /**
+     * Crea cuentas desde un archivo CSV o Excel de hasta 200 filas.
+     * <p>
+     * Se valida TODO el archivo antes de crear un solo usuario: si hay al menos un error (correo duplicado, rol
+     * inválido, fila incompleta), no se crea nada — el admin corrige el archivo y vuelve a intentar. Evita
+     * cargas parciales confusas a mitad de archivo.
+     *
+     * @param archivo archivo subido
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @return cuentas creadas, o los errores por fila si no se creó ninguna
+     * @throws IOException si no se puede leer el archivo
+     */
     @Transactional
     public ResultadoCargaMasiva cargaMasiva(MultipartFile archivo, Usuario admin) throws IOException {
         List<FilaCruda> filasCrudas = leerFilas(archivo);
@@ -335,6 +486,13 @@ public class AdminUsuarioService {
         return new ResultadoCargaMasiva(filasValidas.size(), errores, sinCorreo);
     }
 
+    /**
+     * Lee el archivo como Excel o como CSV según su extensión.
+     *
+     * @param archivo archivo subido
+     * @return filas sin validar
+     * @throws IOException si no se puede leer el archivo
+     */
     private List<FilaCruda> leerFilas(MultipartFile archivo) throws IOException {
         String nombre = archivo.getOriginalFilename() != null ? archivo.getOriginalFilename().toLowerCase() : "";
         if (nombre.endsWith(".xlsx") || nombre.endsWith(".xls")) {
@@ -343,6 +501,13 @@ public class AdminUsuarioService {
         return leerFilasCsv(archivo);
     }
 
+    /**
+     * Lee las filas de un CSV; ignora la cabecera y las líneas vacías.
+     *
+     * @param archivo archivo subido
+     * @return filas sin validar
+     * @throws IOException si no se puede leer el archivo
+     */
     private List<FilaCruda> leerFilasCsv(MultipartFile archivo) throws IOException {
         List<FilaCruda> filas = new ArrayList<>();
         try (BufferedReader lector = new BufferedReader(
@@ -368,6 +533,13 @@ public class AdminUsuarioService {
         return filas;
     }
 
+    /**
+     * Lee las filas de la primera hoja de un Excel; ignora la cabecera y las filas vacías.
+     *
+     * @param archivo archivo subido
+     * @return filas sin validar
+     * @throws IOException si no se puede leer el archivo
+     */
     private List<FilaCruda> leerFilasExcel(MultipartFile archivo) throws IOException {
         List<FilaCruda> filas = new ArrayList<>();
         DataFormatter formateador = new DataFormatter();
@@ -390,9 +562,16 @@ public class AdminUsuarioService {
         return filas;
     }
 
-    // Acepta la etiqueta legible ("Colaborador") o el nombre técnico
-    // ("COLABORADOR"), pero SIEMPRE rechaza Administrador — ese rol no se
-    // asigna desde esta pantalla (solo existe por seed directo en la BD).
+    /**
+     * Convierte la etiqueta del rol en su nombre técnico.
+     * <p>
+     * Acepta la etiqueta legible ("Colaborador") o el nombre técnico ("COLABORADOR"), pero SIEMPRE rechaza
+     * Administrador — ese rol no se asigna desde esta pantalla (solo existe por seed directo en la BD).
+     *
+     * @param rolEtiquetaORol etiqueta o nombre técnico del rol
+     * @return nombre técnico del rol
+     * @throws IllegalArgumentException si el rol no existe o es Administrador
+     */
     private String resolverRolAsignable(String rolEtiquetaORol) {
         String rolNombre;
         if (ETIQUETA_A_ROL.containsKey(rolEtiquetaORol)) {
@@ -408,6 +587,12 @@ public class AdminUsuarioService {
         return rolNombre;
     }
 
+    /**
+     * Convierte un usuario en una fila del directorio.
+     *
+     * @param u usuario
+     * @return fila para la vista
+     */
     private UsuarioFila aFila(Usuario u) {
         String rolNombre = u.getRol().getNombre();
         String nombreCompleto = (u.getNombre() != null || u.getApellido() != null)
@@ -449,19 +634,37 @@ public class AdminUsuarioService {
     // CV DE COLABORADORES (revisión + experiencia profesional)
     // ============================================================
 
+    /**
+     * Busca un usuario por su id.
+     *
+     * @param id id del registro
+     * @return el usuario
+     * @throws IllegalArgumentException si no existe
+     */
     @Transactional(readOnly = true)
     public Usuario obtenerUsuario(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró el usuario."));
     }
 
+    /**
+     * Lista los colaboradores con el pre-registro o el CV pendiente de revisión.
+     *
+     * @return filas de la bandeja
+     */
     @Transactional(readOnly = true)
     public List<CvFila> listarCvsPendientes() {
         return listarCvs(u -> u.getRegistroEstado() == EstadoRegistro.PENDIENTE
                 || u.getCvEstado() == EstadoCv.PENDIENTE);
     }
 
-    // "Aprobados": el Admin ya revisó su CV (cv_estado REVISADO).
+    /**
+     * Lista los colaboradores con el registro aprobado.
+     * <p>
+     * "Aprobados": el Admin ya revisó su CV (cv_estado REVISADO).
+     *
+     * @return filas de la bandeja
+     */
     @Transactional(readOnly = true)
     public List<CvFila> listarCvsRevisados() {
         return listarCvs(u -> u.getCvEstado() == EstadoCv.REVISADO
@@ -469,12 +672,23 @@ public class AdminUsuarioService {
                 && u.getRegistroEstado() != EstadoRegistro.RECHAZADO);
     }
 
+    /**
+     * Lista los colaboradores con el registro devuelto con observaciones.
+     *
+     * @return filas de la bandeja
+     */
     @Transactional(readOnly = true)
     public List<CvFila> listarCvsRechazados() {
         return listarCvs(u -> u.getCvEstado() == EstadoCv.RECHAZADO
                 && u.getRegistroEstado() != EstadoRegistro.PENDIENTE);
     }
 
+    /**
+     * Lista los colaboradores activos que cumplen una condición.
+     *
+     * @param filtro condición que debe cumplir el colaborador
+     * @return filas de la bandeja
+     */
     private List<CvFila> listarCvs(Predicate<Usuario> filtro) {
         return usuarioRepository.findActivosByRolNombre("COLABORADOR").stream()
                 .filter(filtro)
@@ -483,8 +697,16 @@ public class AdminUsuarioService {
                 .toList();
     }
 
-    // Aprueba el pre-registro (o el CV de reemplazo) del colaborador. Los datos personales que escribió
-    // ya están en su perfil; lo que falta es la experiencia profesional, que el Admin completa antes.
+    /**
+     * Aprueba el registro, avisa al colaborador y, si venía de un pre-registro, también al Resource Manager.
+     * <p>
+     * Aprueba el pre-registro (o el CV de reemplazo) del colaborador. Los datos personales que escribió ya están
+     * en su perfil; lo que falta es la experiencia profesional, que el Admin completa antes.
+     *
+     * @param colaboradorId id del colaborador
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si el colaborador no existe o no subió su CV
+     */
     @Transactional
     public void aprobarRegistro(Long colaboradorId, Usuario admin) {
         Usuario colaborador = usuarioRepository.findById(colaboradorId)
@@ -515,7 +737,16 @@ public class AdminUsuarioService {
                 "USUARIO", colaborador.getId());
     }
 
-    // Rechazar = devolver con observaciones: no borra nada, el colaborador corrige y vuelve a subir su CV.
+    /**
+     * Devuelve el registro con un motivo y avisa al colaborador por correo y con una notificación.
+     * <p>
+     * Rechazar = devolver con observaciones: no borra nada, el colaborador corrige y vuelve a subir su CV.
+     *
+     * @param colaboradorId id del colaborador
+     * @param motivo motivo del rechazo, de hasta 500 caracteres
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si falta el motivo, es muy largo o el colaborador no existe
+     */
     @Transactional
     public void rechazarRegistro(Long colaboradorId, String motivo, Usuario admin) {
         if (motivo == null || motivo.isBlank()) {
@@ -543,6 +774,12 @@ public class AdminUsuarioService {
         emailService.enviarRechazoRegistro(colaborador.getCorreo(), motivoLimpio);
     }
 
+    /**
+     * Devuelve el nombre y apellido del usuario, o su correo si no los tiene.
+     *
+     * @param u usuario
+     * @return nombre para mostrar
+     */
     private String nombreCompletoCv(Usuario u) {
         String completo = ((u.getNombre() != null ? u.getNombre() : "") + " "
                 + (u.getApellido() != null ? u.getApellido() : "")).trim();

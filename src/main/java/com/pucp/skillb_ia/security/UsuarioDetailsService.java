@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// El "username" de Spring Security es el correo (C4: identificador de login).
+/** El "username" de Spring Security es el correo (C4: identificador de login). */
 @Service
 public class UsuarioDetailsService implements UserDetailsService {
 
@@ -23,14 +23,22 @@ public class UsuarioDetailsService implements UserDetailsService {
     private final UsuarioRepository usuarioRepository;
     private final LogAuditoriaRepository logAuditoriaRepository;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public UsuarioDetailsService(UsuarioRepository usuarioRepository, LogAuditoriaRepository logAuditoriaRepository) {
         this.usuarioRepository = usuarioRepository;
         this.logAuditoriaRepository = logAuditoriaRepository;
     }
 
-    // @Transactional mantiene la sesión de Hibernate abierta mientras se
-    // construye UsuarioDetails, para que la carga LAZY de usuario.getRol()
-    // (dentro del constructor de UsuarioDetails) no falle.
+    /**
+     * Carga el usuario por su correo e indica si está bloqueado por intentos fallidos.
+     * <p>
+     * {@literal @}Transactional mantiene la sesión de Hibernate abierta mientras se construye UsuarioDetails,
+     * para que la carga LAZY de usuario.getRol() (dentro del constructor de UsuarioDetails) no falle.
+     *
+     * @param correo correo del usuario
+     * @return datos de acceso del usuario
+     * @throws UsernameNotFoundException si no existe una cuenta con ese correo
+     */
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String correo) throws UsernameNotFoundException {
@@ -49,8 +57,15 @@ public class UsuarioDetailsService implements UserDetailsService {
         return new UsuarioDetails(usuario);
     }
 
-    // Bloqueada: MAX_INTENTOS_LOGIN contraseñas incorrectas en los últimos minutos, sin contar las anteriores
-    // a un inicio de sesión correcto o a un cambio de contraseña por recuperación.
+    /**
+     * Indica si la cuenta está bloqueada por contraseñas incorrectas.
+     * <p>
+     * Bloqueada: MAX_INTENTOS_LOGIN contraseñas incorrectas en los últimos minutos, sin contar las anteriores a
+     * un inicio de sesión correcto o a un cambio de contraseña por recuperación.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @return {@code true} si acumula cinco fallos en quince minutos
+     */
     private boolean estaBloqueada(Usuario usuario) {
         LocalDateTime desde = LocalDateTime.now().minusMinutes(MINUTOS_BLOQUEO);
         LocalDateTime ultimoCorrecto = logAuditoriaRepository

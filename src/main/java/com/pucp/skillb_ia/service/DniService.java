@@ -23,10 +23,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-// DNI de los usuarios: formato, que no se repita y consulta en la API de apisperu (clase 10.1, consumo de
-// servicios web con RestTemplate y Authorization: Bearer). Si la API no está configurada o no responde, el DNI se
-// guarda "sin verificar": una falla externa no debe impedir que alguien active su cuenta. Un DNI sin verificar se
-// puede corregir y se vuelve a consultar (DniVerificacionService); uno verificado ya no cambia.
+/**
+ * DNI de los usuarios: formato, que no se repita y consulta en la API de apisperu (clase 10.1, consumo de
+ * servicios web con RestTemplate y Authorization: Bearer). Si la API no está configurada o no responde, el
+ * DNI se guarda "sin verificar": una falla externa no debe impedir que alguien active su cuenta. Un DNI sin
+ * verificar se puede corregir y se vuelve a consultar (DniVerificacionService); uno verificado ya no cambia.
+ */
 @Service
 public class DniService {
 
@@ -36,9 +38,19 @@ public class DniService {
     public static final String MENSAJE_FORMATO = "El DNI debe tener exactamente 8 dígitos, sin espacios ni letras.";
     public static final String MENSAJE_YA_VERIFICADO = "Tu DNI ya está verificado y no se puede cambiar.";
 
-    // Resultado de consultar la API.
+    /**
+     * Resultado posible de una consulta de DNI.
+     * <p>
+     * Resultado de consultar la API.
+     */
     public enum EstadoConsulta { ENCONTRADO, NO_ENCONTRADO, NO_DISPONIBLE }
 
+    /**
+     * Respuesta de la consulta de un DNI.
+     *
+     * @param estado resultado de la consulta
+     * @param nombreCompleto nombre que figura en el DNI; {@code null} si no se encontró
+     */
     public record Consulta(EstadoConsulta estado, String nombreCompleto) {
     }
 
@@ -47,6 +59,7 @@ public class DniService {
     private final String apiKey;
     private final String url;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public DniService(UsuarioRepository usuarioRepository, RestTemplate restTemplate,
                       @Value("${app.dni.api-key:}") String apiKey,
                       @Value("${app.dni.url:https://dniruc.apisperu.com/api/v1/dni}") String url) {
@@ -220,6 +233,12 @@ public class DniService {
         return palabrasEscritas.size() >= 2 && palabrasOficiales.containsAll(palabrasEscritas);
     }
 
+    /**
+     * Separa un texto en palabras normalizadas, para comparar nombres.
+     *
+     * @param texto texto a separar
+     * @return palabras del texto
+     */
     private List<String> palabras(String texto) {
         if (texto == null) {
             return List.of();

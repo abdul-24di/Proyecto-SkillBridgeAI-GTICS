@@ -10,18 +10,30 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-// Mientras el pre-registro de un colaborador esté pendiente o rechazado, solo puede ver la
-// pantalla "Registro en revisión". Lee el estado de la BD en cada petición porque el usuario
-// guardado en la sesión no se entera cuando el Admin lo aprueba.
+/**
+ * Mientras el pre-registro de un colaborador esté pendiente o rechazado, solo puede ver la pantalla "Registro
+ * en revisión". Lee el estado de la BD en cada petición porque el usuario guardado en la sesión no se
+ * entera cuando el Admin lo aprueba.
+ */
 @Component
 public class RegistroPendienteInterceptor implements HandlerInterceptor {
 
     private final UsuarioRepository usuarioRepository;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public RegistroPendienteInterceptor(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
 
+    /**
+     * Redirige a "Registro en revisión" al colaborador que aún no está aprobado.
+     *
+     * @param request petición HTTP
+     * @param response respuesta HTTP
+     * @param handler controlador que atendería la petición
+     * @return {@code false} si se redirigió
+     * @throws Exception si falla la redirección
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {

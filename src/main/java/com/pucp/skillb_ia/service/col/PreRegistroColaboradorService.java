@@ -32,9 +32,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-// Pre-registro del colaborador (se completa al activar la cuenta): valida y guarda su CV, experiencia
-// profesional, certificados de habilidades y formación académica. Reutiliza los métodos que ya usa
-// su perfil, así que lo cargado aparece solo en "Mi perfil" y el Admin/RM no tienen que digitarlo.
+/**
+ * Pre-registro del colaborador (se completa al activar la cuenta): valida y guarda su CV, experiencia
+ * profesional, certificados de habilidades y formación académica. Reutiliza los métodos que ya usa su
+ * perfil, así que lo cargado aparece solo en "Mi perfil" y el Admin/RM no tienen que digitarlo.
+ */
 @Service
 public class PreRegistroColaboradorService {
 
@@ -48,6 +50,7 @@ public class PreRegistroColaboradorService {
     private final PreRegistroArchivosService archivosPendientes;
     private final MessageSource mensajes;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public PreRegistroColaboradorService(ColaboradorPerfilService colaboradorPerfilService,
                                          PreRegistroArchivosService archivosPendientes, MessageSource mensajes) {
         this.colaboradorPerfilService = colaboradorPerfilService;
@@ -59,7 +62,15 @@ public class PreRegistroColaboradorService {
     // VALIDACIÓN (antes de crear la cuenta)
     // ============================================================
 
-    // Solo se validan las filas que el usuario empezó a llenar; una fila en blanco se ignora.
+    /**
+     * Valida el pre-registro: CV, "Sobre ti", experiencia, certificados y formación.
+     * <p>
+     * Solo se validan las filas que el usuario empezó a llenar; una fila en blanco se ignora.
+     *
+     * @param form datos del formulario
+     * @param result errores de validación del formulario
+     * @param session sesión HTTP de quien completa el formulario
+     */
     public void validar(ActivarCuentaForm form, BindingResult result, HttpSession session) {
         // El teléfono (regla única de PoliticaTelefono) ya lo validó el formulario.
         form.setCvGuardado(resolverArchivo(form.getCv(), form.getCvGuardado(), colaboradorPerfilService::validarCv,
@@ -74,8 +85,21 @@ public class PreRegistroColaboradorService {
         validarEstudios(form.getEstudios(), form.isSinEstudios(), result, session);
     }
 
-    // Un archivo válido se guarda de inmediato, aunque otros campos tengan errores: así no hay que volver a
-    // adjuntarlo. Devuelve el id del archivo que vale para este campo, o null si todavía no hay ninguno.
+    /**
+     * Valida el archivo de un campo y lo guarda en espera.
+     * <p>
+     * Un archivo válido se guarda de inmediato, aunque otros campos tengan errores: así no hay que volver a
+     * adjuntarlo. Devuelve el id del archivo que vale para este campo, o null si todavía no hay ninguno.
+     *
+     * @param nuevo archivo recién subido
+     * @param idGuardado id de un archivo ya recibido
+     * @param validador regla que debe cumplir el archivo
+     * @param campo nombre del campo del formulario
+     * @param codigo código del error
+     * @param result errores de validación del formulario
+     * @param session sesión HTTP de quien completa el formulario
+     * @return id del archivo válido, o {@code null} si todavía no hay
+     */
     private String resolverArchivo(MultipartFile nuevo, String idGuardado, Consumer<MultipartFile> validador,
                                    String campo, String codigo, BindingResult result, HttpSession session) {
         boolean yaGuardado = idGuardado != null && archivosPendientes.archivos(session).containsKey(idGuardado);
@@ -95,6 +119,13 @@ public class PreRegistroColaboradorService {
         return yaGuardado ? idGuardado : null;
     }
 
+    /**
+     * Valida las experiencias: al menos una, salvo que marque que no tiene.
+     *
+     * @param filas filas de la sección
+     * @param sinExperiencia {@code true} si marcó que no tiene experiencia laboral
+     * @param result errores de validación del formulario
+     */
     private void validarExperiencias(List<ExperienciaForm> filas, boolean sinExperiencia, BindingResult result) {
         long llenas = filas.stream().filter(f -> !f.estaVacia()).count();
         if (excedeMaximo(llenas, "experiencias", "experiencias", result)) {
@@ -152,6 +183,13 @@ public class PreRegistroColaboradorService {
         }
     }
 
+    /**
+     * Valida los certificados, que son opcionales: habilidad del catálogo sin repetir, nivel y archivo.
+     *
+     * @param filas filas de la sección
+     * @param result errores de validación del formulario
+     * @param session sesión HTTP de quien completa el formulario
+     */
     private void validarCertificados(List<CertificadoPreRegistroForm> filas, BindingResult result, HttpSession session) {
         if (excedeMaximo(filas.stream().filter(f -> !f.estaVacia()).count(), "certificados", "certificados", result)) {
             return;
@@ -180,7 +218,17 @@ public class PreRegistroColaboradorService {
         }
     }
 
-    // Solo estudios concluidos, con su título o certificado: lo que se cursa todavía se agrega después desde el perfil.
+    /**
+     * Valida la formación: al menos una concluida, salvo que marque que aún no tiene.
+     * <p>
+     * Solo estudios concluidos, con su título o certificado: lo que se cursa todavía se agrega después desde el
+     * perfil.
+     *
+     * @param filas filas de la sección
+     * @param sinEstudios {@code true} si marcó que no tiene estudios concluidos
+     * @param result errores de validación del formulario
+     * @param session sesión HTTP de quien completa el formulario
+     */
     private void validarEstudios(List<EstudioPreRegistroForm> filas, boolean sinEstudios, BindingResult result,
                                  HttpSession session) {
         long llenos = filas.stream().filter(f -> !f.estaVacia()).count();
@@ -234,6 +282,15 @@ public class PreRegistroColaboradorService {
         }
     }
 
+    /**
+     * Agrega un error si la sección pasa de diez filas.
+     *
+     * @param usadas filas con datos
+     * @param campo nombre del campo del formulario
+     * @param codigo código del error
+     * @param result errores de validación del formulario
+     * @return {@code true} si se excedió
+     */
     private boolean excedeMaximo(long usadas, String campo, String codigo, BindingResult result) {
         if (usadas > MAX_FILAS) {
             result.rejectValue(campo, codigo + ".demasiadas",
@@ -243,6 +300,12 @@ public class PreRegistroColaboradorService {
         return false;
     }
 
+    /**
+     * Indica si un texto es nulo o está en blanco.
+     *
+     * @param valor texto a revisar
+     * @return {@code true} si no tiene contenido
+     */
     private static boolean vacio(String valor) {
         return valor == null || valor.isBlank();
     }
@@ -251,7 +314,14 @@ public class PreRegistroColaboradorService {
     // RESUMEN DE ERRORES (lista de la parte superior del formulario)
     // ============================================================
 
-    // Un error por campo, ordenados por paso, con el nombre que ve el usuario ("Certificado 2 · Nivel").
+    /**
+     * Arma la lista de errores que se muestra sobre el formulario.
+     * <p>
+     * Un error por campo, ordenados por paso, con el nombre que ve el usuario ("Certificado 2 · Nivel").
+     *
+     * @param result errores de validación del formulario
+     * @return errores ordenados por paso
+     */
     public List<ErrorPreRegistro> resumirErrores(BindingResult result) {
         Map<String, ErrorPreRegistro> porCampo = new LinkedHashMap<>();
         for (FieldError error : result.getFieldErrors()) {
@@ -263,6 +333,12 @@ public class PreRegistroColaboradorService {
         return porCampo.values().stream().sorted(Comparator.comparingInt(ErrorPreRegistro::paso)).toList();
     }
 
+    /**
+     * Indica en qué paso del formulario está un campo.
+     *
+     * @param campo nombre del campo del formulario
+     * @return número de paso, del 1 al 4
+     */
     private int pasoDe(String campo) {
         if (campo.equals("cv") || campo.startsWith("experiencias")) return 2;
         if (campo.startsWith("certificados") || campo.startsWith("estudios")) return 3;
@@ -271,6 +347,12 @@ public class PreRegistroColaboradorService {
         return 4;
     }
 
+    /**
+     * Devuelve el nombre visible de un campo.
+     *
+     * @param campo nombre del campo del formulario
+     * @return etiqueta del campo
+     */
     private String etiquetaDe(String campo) {
         Matcher fila = CAMPO_DE_FILA.matcher(campo);
         if (fila.matches()) {
@@ -297,6 +379,12 @@ public class PreRegistroColaboradorService {
         };
     }
 
+    /**
+     * Devuelve el nombre visible de una columna de una fila.
+     *
+     * @param columna columna de la fila
+     * @return etiqueta de la columna
+     */
     private String etiquetaDeColumna(String columna) {
         return switch (columna) {
             case "cargo" -> "Cargo";
@@ -317,9 +405,18 @@ public class PreRegistroColaboradorService {
     // GUARDADO (la cuenta ya está creada)
     // ============================================================
 
-    // Cada fila se guarda por separado: si una falla (p. ej. el almacenamiento), el resto sigue y el
-    // colaborador puede completarla después desde su perfil.
-    // Devuelve lo que no se pudo guardar (vacío si todo salió bien), para avisarle al colaborador.
+    /**
+     * Guarda el pre-registro en el perfil del colaborador ya creado.
+     * <p>
+     * Cada fila se guarda por separado: si una falla (p. ej. el almacenamiento), el resto sigue y el colaborador
+     * puede completarla después desde su perfil. Devuelve lo que no se pudo guardar (vacío si todo salió bien),
+     * para avisarle al colaborador.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @param form datos del formulario
+     * @param session sesión HTTP de quien completa el formulario
+     * @return lo que no se pudo guardar; vacío si todo salió bien
+     */
     public List<String> guardar(Usuario usuario, ActivarCuentaForm form, HttpSession session) {
         List<String> noGuardado = new ArrayList<>();
         intentar(noGuardado, usuario, "CV", () -> colaboradorPerfilService.actualizarCv(
@@ -355,8 +452,17 @@ public class PreRegistroColaboradorService {
         return noGuardado;
     }
 
-    // Si falla (p. ej. el almacenamiento de archivos no está configurado), se anota para avisarle al colaborador.
-    // Antes solo quedaba en el log y, al entrar, el sistema le volvía a pedir el CV sin decirle por qué.
+    /**
+     * Ejecuta un guardado y anota si falla.
+     * <p>
+     * Si falla (p. ej. el almacenamiento de archivos no está configurado), se anota para avisarle al colaborador.
+     * Antes solo quedaba en el log y, al entrar, el sistema le volvía a pedir el CV sin decirle por qué.
+     *
+     * @param noGuardado lista donde se anota lo que falla
+     * @param usuario usuario al que corresponde la operación
+     * @param que nombre de lo que se guarda
+     * @param accion operación que lo guarda
+     */
     private void intentar(List<String> noGuardado, Usuario usuario, String que, Runnable accion) {
         try {
             accion.run();

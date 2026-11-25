@@ -9,6 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.nio.file.Path;
 
+/** Configuración de Spring MVC: interceptor del pre-registro y carpeta de archivos subidos. */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
@@ -18,11 +19,18 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final RegistroPendienteInterceptor registroPendienteInterceptor;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public WebMvcConfig(RegistroPendienteInterceptor registroPendienteInterceptor) {
         this.registroPendienteInterceptor = registroPendienteInterceptor;
     }
 
-    // Un colaborador con el pre-registro pendiente o rechazado solo puede ver /colaborador/registro.
+    /**
+     * Registra el interceptor de los colaboradores sin aprobar.
+     * <p>
+     * Un colaborador con el pre-registro pendiente o rechazado solo puede ver /colaborador/registro.
+     *
+     * @param registry registro de Spring MVC
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(registroPendienteInterceptor)
@@ -30,6 +38,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/colaborador/registro", "/colaborador/registro/**");
     }
 
+    /**
+     * Publica en {@code /uploads/**} los archivos guardados en disco.
+     *
+     * @param registry registro de Spring MVC
+     */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
 

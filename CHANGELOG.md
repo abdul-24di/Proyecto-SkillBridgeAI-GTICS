@@ -13,6 +13,7 @@
 - **Revisión de asignación (RM):** sin sueldo base o sin fechas dice "No se puede calcular" en lugar de "Presupuesto insuficiente".
 - **Categorías de cursos:** el filtro del RM y del colaborador une las que solo difieren en la tilde. El script demo usa "Técnico" y "Certificación" y corrige las bases ya cargadas.
 - **Perfil del colaborador:** la tarjeta de Ajustes de Cuenta muestra la foto.
+- **Documentación:** JavaDoc en las clases del Administrador, autenticación, pre-registro, DNI, seguridad, auditoría y correos (sin cambios en el código), y sección Propósito en el README.
 - **Tests:** 1186 en verde (`RevisionNubeTests`).
 
 ---

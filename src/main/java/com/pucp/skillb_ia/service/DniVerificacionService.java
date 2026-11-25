@@ -10,9 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-// Un DNI "sin verificar" no se queda así: el usuario lo corrige o pulsa "Verificar ahora" en su perfil, y una tarea
-// programada (DniReintentoScheduler) lo vuelve a consultar. Cada vez que no se verifica, el usuario recibe una
-// notificación con el motivo. Un DNI verificado ya no cambia.
+/**
+ * Un DNI "sin verificar" no se queda así: el usuario lo corrige o pulsa "Verificar ahora" en su perfil, y una
+ * tarea programada (DniReintentoScheduler) lo vuelve a consultar. Cada vez que no se verifica, el usuario
+ * recibe una notificación con el motivo. Un DNI verificado ya no cambia.
+ */
 @Service
 public class DniVerificacionService {
 
@@ -26,6 +28,7 @@ public class DniVerificacionService {
     private final UsuarioRepository usuarioRepository;
     private final NotificacionService notificacionService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public DniVerificacionService(DniService dniService, UsuarioRepository usuarioRepository,
                                   NotificacionService notificacionService) {
         this.dniService = dniService;
@@ -142,6 +145,12 @@ public class DniVerificacionService {
         });
     }
 
+    /**
+     * Quita el DNI del usuario y le notifica el motivo.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @param motivo motivo que se le comunica al usuario
+     */
     private void rechazar(Usuario usuario, String motivo) {
         usuario.setDni(null);
         usuario.setDniVerificado(false);
@@ -150,6 +159,12 @@ public class DniVerificacionService {
                 "No pudimos verificar tu DNI", motivo, "USUARIO", usuario.getId());
     }
 
+    /**
+     * Une el nombre y el apellido del usuario.
+     *
+     * @param usuario usuario al que corresponde la operación
+     * @return nombre completo
+     */
     private String nombreCompleto(Usuario usuario) {
         String nombre = usuario.getNombre() == null ? "" : usuario.getNombre();
         String apellido = usuario.getApellido() == null ? "" : usuario.getApellido();

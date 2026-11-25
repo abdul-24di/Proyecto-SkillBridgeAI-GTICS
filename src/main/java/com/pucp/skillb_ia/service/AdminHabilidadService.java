@@ -15,8 +15,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-// Épica 5 (Catálogo de habilidades). El Admin administra tanto las
-// habilidades como sus categorías.
+/**
+ * Épica 5 (Catálogo de habilidades). El Admin administra tanto las habilidades como sus categorías.
+ */
 @Service
 public class AdminHabilidadService {
 
@@ -27,14 +28,44 @@ public class AdminHabilidadService {
             "Herramientas", "bg-secondary-lt text-secondary"
     );
 
+    /**
+     * Fila del catálogo de habilidades.
+     *
+     * @param id id del registro
+     * @param nombre nombre ingresado
+     * @param categoriaId id de la categoría
+     * @param categoriaNombre nombre de la categoría
+     * @param categoriaBadgeClase clase CSS de la etiqueta de la categoría
+     * @param colaboradores colaboradores que la registran
+     * @param activa {@code true} si está activa
+     */
     public record HabilidadFila(Long id, String nombre, String categoriaId, String categoriaNombre,
                                  String categoriaBadgeClase, long colaboradores, boolean activa) {
     }
 
+    /**
+     * Fila de la tabla de categorías.
+     *
+     * @param id id del registro
+     * @param nombre nombre ingresado
+     * @param descripcion descripción; puede ser {@code null} o vacía
+     * @param badgeClase clase CSS de la etiqueta
+     * @param habilidades habilidades de la categoría
+     * @param activa {@code true} si está activa
+     */
     public record CategoriaFila(Long id, String nombre, String descripcion, String badgeClase,
                                  long habilidades, boolean activa) {
     }
 
+    /**
+     * Totales de las tarjetas del catálogo.
+     *
+     * @param activas habilidades activas
+     * @param categorias categorías activas
+     * @param desactivadas habilidades desactivadas
+     * @param masSolicitadaNombre habilidad más registrada
+     * @param masSolicitadaCount colaboradores que registran la más solicitada
+     */
     public record ResumenHabilidades(long activas, long categorias, long desactivadas,
                                       String masSolicitadaNombre, long masSolicitadaCount) {
     }
@@ -44,6 +75,7 @@ public class AdminHabilidadService {
     private final ColaboradorHabilidadRepository colaboradorHabilidadRepository;
     private final AuditoriaService auditoriaService;
 
+    /** Crea el componente con sus dependencias, que Spring inyecta por el constructor. */
     public AdminHabilidadService(HabilidadRepository habilidadRepository,
                                   CategoriaHabilidadRepository categoriaHabilidadRepository,
                                   ColaboradorHabilidadRepository colaboradorHabilidadRepository,
@@ -54,6 +86,11 @@ public class AdminHabilidadService {
         this.auditoriaService = auditoriaService;
     }
 
+    /**
+     * Lista las categorías activas por nombre.
+     *
+     * @return categorías activas
+     */
     @Transactional(readOnly = true)
     public List<CategoriaHabilidad> listarCategoriasActivas() {
         return categoriaHabilidadRepository.findByActivaTrue().stream()
@@ -61,6 +98,11 @@ public class AdminHabilidadService {
                 .toList();
     }
 
+    /**
+     * Lista todas las categorías con la cantidad de habilidades de cada una.
+     *
+     * @return filas de categorías
+     */
     @Transactional(readOnly = true)
     public List<CategoriaFila> listarCategorias() {
         return categoriaHabilidadRepository.findAll().stream()
@@ -71,6 +113,14 @@ public class AdminHabilidadService {
                 .toList();
     }
 
+    /**
+     * Crea una categoría y la registra en la auditoría.
+     *
+     * @param nombre nombre ingresado
+     * @param descripcion descripción; puede ser {@code null} o vacía
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si el nombre está vacío o ya existe
+     */
     @Transactional
     public void crearCategoria(String nombre, String descripcion, Usuario admin) {
         String nombreLimpio = nombre != null ? nombre.trim() : "";
@@ -91,6 +141,15 @@ public class AdminHabilidadService {
                 "Creó la categoría \"" + nombreLimpio + "\".");
     }
 
+    /**
+     * Cambia el nombre y la descripción de una categoría.
+     *
+     * @param categoriaId id de la categoría
+     * @param nombre nombre ingresado
+     * @param descripcion descripción; puede ser {@code null} o vacía
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si no existe, o el nombre está vacío o repetido
+     */
     @Transactional
     public void editarCategoria(Long categoriaId, String nombre, String descripcion, Usuario admin) {
         String nombreLimpio = nombre != null ? nombre.trim() : "";
@@ -115,6 +174,13 @@ public class AdminHabilidadService {
                 "Editó la categoría.", nombreAnterior, nombreLimpio, null);
     }
 
+    /**
+     * Desactiva una categoría.
+     *
+     * @param categoriaId id de la categoría
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si no existe o todavía tiene habilidades
+     */
     @Transactional
     public void desactivarCategoria(Long categoriaId, Usuario admin) {
         CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
@@ -129,6 +195,13 @@ public class AdminHabilidadService {
                 "Desactivó la categoría \"" + categoria.getNombre() + "\".");
     }
 
+    /**
+     * Reactiva una categoría.
+     *
+     * @param categoriaId id de la categoría
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si no existe
+     */
     @Transactional
     public void reactivarCategoria(Long categoriaId, Usuario admin) {
         CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(categoriaId)
@@ -139,6 +212,11 @@ public class AdminHabilidadService {
                 "Reactivó la categoría \"" + categoria.getNombre() + "\".");
     }
 
+    /**
+     * Lista todas las habilidades por nombre.
+     *
+     * @return filas del catálogo
+     */
     @Transactional(readOnly = true)
     public List<HabilidadFila> listar() {
         return habilidadRepository.findAll().stream()
@@ -158,6 +236,11 @@ public class AdminHabilidadService {
         return Paginador.paginar(filtradas, pagina);
     }
 
+    /**
+     * Calcula los totales del catálogo y la habilidad más registrada.
+     *
+     * @return totales del catálogo
+     */
     @Transactional(readOnly = true)
     public ResumenHabilidades resumen() {
         List<HabilidadFila> filas = listar();
@@ -174,6 +257,15 @@ public class AdminHabilidadService {
                 masSolicitada != null ? masSolicitada.colaboradores() : 0);
     }
 
+    /**
+     * Crea una habilidad y la registra en la auditoría.
+     *
+     * @param nombre nombre ingresado
+     * @param categoriaId id de la categoría
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si el nombre está vacío, es muy largo o ya existe, o la categoría no es
+     *         válida
+     */
     @Transactional
     public void crear(String nombre, Long categoriaId, Usuario admin) {
         String nombreLimpio = nombre.trim();
@@ -198,6 +290,15 @@ public class AdminHabilidadService {
                 "Creó la habilidad \"" + nombreLimpio + "\" en la categoría " + categoria.getNombre() + ".");
     }
 
+    /**
+     * Cambia el nombre y la categoría de una habilidad.
+     *
+     * @param habilidadId id de la habilidad
+     * @param nombre nombre ingresado
+     * @param categoriaId id de la categoría
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si no existe, o el nombre está vacío, es muy largo o ya existe
+     */
     @Transactional
     public void editar(Long habilidadId, String nombre, Long categoriaId, Usuario admin) {
         String nombreLimpio = nombre.trim();
@@ -226,6 +327,13 @@ public class AdminHabilidadService {
                 "Editó la habilidad.", nombreAnterior, nombreLimpio, null);
     }
 
+    /**
+     * Desactiva una habilidad; se conserva en los perfiles que ya la tienen.
+     *
+     * @param habilidadId id de la habilidad
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si no existe
+     */
     @Transactional
     public void desactivar(Long habilidadId, Usuario admin) {
         Habilidad habilidad = habilidadRepository.findById(habilidadId)
@@ -236,6 +344,13 @@ public class AdminHabilidadService {
                 "Desactivó la habilidad \"" + habilidad.getNombre() + "\".");
     }
 
+    /**
+     * Reactiva una habilidad.
+     *
+     * @param habilidadId id de la habilidad
+     * @param admin Administrador que realiza la acción; queda en la auditoría
+     * @throws IllegalArgumentException si no existe
+     */
     @Transactional
     public void reactivar(Long habilidadId, Usuario admin) {
         Habilidad habilidad = habilidadRepository.findById(habilidadId)
@@ -246,13 +361,26 @@ public class AdminHabilidadService {
                 "Reactivó la habilidad \"" + habilidad.getNombre() + "\".");
     }
 
-    // La columna es VARCHAR(100): sin este control, un nombre largo terminaba en un error sin explicación.
+    /**
+     * Comprueba que el nombre no pase de 100 caracteres.
+     * <p>
+     * La columna es VARCHAR(100): sin este control, un nombre largo terminaba en un error sin explicación.
+     *
+     * @param nombre nombre ingresado
+     * @throws IllegalArgumentException si es más largo
+     */
     private static void validarLargo(String nombre) {
         if (nombre.length() > 100) {
             throw new IllegalArgumentException("El nombre de la habilidad no puede superar los 100 caracteres.");
         }
     }
 
+    /**
+     * Convierte una habilidad en una fila del catálogo.
+     *
+     * @param h habilidad
+     * @return fila para la vista
+     */
     private HabilidadFila aFila(Habilidad h) {
         String categoriaNombre = h.getCategoria().getNombre();
         long colaboradores = colaboradorHabilidadRepository.countByHabilidadAndActivoTrue(h);

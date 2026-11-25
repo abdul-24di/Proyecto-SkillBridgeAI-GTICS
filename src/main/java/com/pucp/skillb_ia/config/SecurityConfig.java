@@ -25,6 +25,10 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 
 
+/**
+ * Seguridad de la aplicación: rutas por rol, inicio y cierre de sesión, CSRF, cabeceras y límite de
+ * peticiones.
+ */
 @Configuration
 public class SecurityConfig {
 
@@ -46,13 +50,28 @@ public class SecurityConfig {
     private final AuthenticationEntryPoint sinSesionApi = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
     private final AuthenticationEntryPoint irAlLogin = new LoginUrlAuthenticationEntryPoint("/login");
 
-    // BCrypt para password_hash — lo usa AuthService al activar la cuenta (A6)
-    // y al restablecer la contraseña.
+    /**
+     * Define el cifrado de las contraseñas.
+     * <p>
+     * BCrypt para password_hash — lo usa AuthService al activar la cuenta (A6) y al restablecer la contraseña.
+     *
+     * @return codificador BCrypt
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Configura la cadena de filtros de seguridad.
+     *
+     * @param http configuración de seguridad
+     * @param successHandler qué hacer al iniciar sesión
+     * @param accesoDenegadoHandler qué hacer ante un rol incorrecto
+     * @param loginFallidoHandler qué hacer ante un inicio fallido
+     * @return cadena de filtros
+     * @throws Exception si la configuración no es válida
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, RoleRedirectSuccessHandler successHandler,
                                            RegistroAccesoDenegadoHandler accesoDenegadoHandler,

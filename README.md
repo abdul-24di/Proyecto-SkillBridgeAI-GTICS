@@ -150,10 +150,11 @@ pre-registro del colaborador (`usuario.cv_*`, `registro_estado`,
 `motivo_rechazo`) y la baja lógica de actividades y experiencia profesional
 (`activo`).
 
-Las fotos y los certificados que suben los colaboradores se guardan en la
-carpeta indicada por `UPLOAD_DIR`. En la nube esta variable debe apuntar a un
-directorio escribible y persistente; si se usa el almacenamiento temporal de
-la instancia, los archivos podrían perderse al reiniciar o volver a desplegar.
+Las fotos, los CV, los certificados y las evidencias se guardan en Amazon S3
+(`APP_STORAGE_TYPE=s3`, valor por defecto). Para desarrollo sin AWS se puede usar
+`APP_STORAGE_TYPE=local`, que los guarda en la carpeta `uploads/`; en la nube no
+conviene, porque esa carpeta vive dentro del contenedor y se pierde al volver a
+desplegar.
 
 Para cargar datos de demostración del RM, incluidas solicitudes de personal,
 certificados, foros, actividades para reportes y solicitudes de cursos, se
@@ -162,6 +163,59 @@ puede ejecutar después
 Para ver los reportes del RM con varios meses, estados y prioridades, ejecutar
 luego [`BDs_SQL/datos_demo_rm_reportes.sql`](BDs_SQL/datos_demo_rm_reportes.sql)
 (incluye escenarios sugeridos de filtros y exportación).
+
+## Despliegue y entorno
+
+| Componente | Servicio |
+|---|---|
+| Aplicación | Contenedor Docker (`eclipse-temurin:17-jdk-alpine`) en una instancia Amazon EC2, puerto 8080 |
+| Base de datos | Amazon RDS para MySQL (`skillbridge_db`), creada con `BDs_SQL/skillbridge_db_v4.sql` |
+| Archivos | Bucket de Amazon S3 en `us-east-1` |
+| Sesiones | Tabla de Spring Session en la misma base (se crea sola al arrancar) |
+
+**Requisitos:** JDK 17, Docker en la instancia EC2, una base MySQL accesible desde la
+instancia y un bucket S3. El Security Group de EC2 debe permitir el puerto 8080 (y 22 para
+SSH); el de RDS, solo el puerto 3306 desde el Security Group de la instancia.
+
+**Pasos:**
+
+1. Crear la base en RDS ejecutando `BDs_SQL/skillbridge_db_v4.sql` (y, si se quieren, los datos demo).
+2. Generar el WAR: `.\mvnw.cmd clean package -DskipTests` (queda en `target/skillb-ia-0.0.1-SNAPSHOT.war`).
+3. Copiar a la instancia el WAR (dentro de `target/`) y el `Dockerfile`.
+4. Construir la imagen: `docker build -t skillbridge .`
+5. Ejecutar el contenedor con las variables de entorno:
+
+```bash
+docker run -d --name skillbridge --restart unless-stopped -p 8080:8080 \
+  -e DB_URL=jdbc:mysql://<endpoint-rds>:3306/skillbridge_db \
+  -e DB_USERNAME=... -e DB_PASSWORD=... \
+  -e APP_BASE_URL=http://<ip-publica>:8080 \
+  -e AWS_ACCESS_KEY_ID=... -e AWS_SECRET_ACCESS_KEY=... -e AWS_SESSION_TOKEN=... \
+  -e AWS_S3_BUCKET=... \
+  -e MAIL_USERNAME=... -e MAIL_PASSWORD=... \
+  -e IA_PROVEEDOR=GEMINI -e IA_API_KEY=... -e DNI_API_KEY=... \
+  skillbridge
+```
+
+6. Revisar el arranque con `docker logs -f skillbridge` y entrar a `http://<ip-publica>:8080`.
+
+Para actualizar: generar el WAR nuevo, `docker stop skillbridge && docker rm skillbridge`,
+volver a construir la imagen y ejecutar el paso 5. Si cambió el esquema, recrear la base con v4.
+
+**Variables de entorno:**
+
+| Variable | Obligatoria | Uso |
+|---|---|---|
+| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | Sí | Conexión a MySQL |
+| `APP_BASE_URL` | Sí en la nube | URL pública para los enlaces de los correos |
+| `APP_STORAGE_TYPE` | No (`s3`) | `s3` o `local` |
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_S3_BUCKET` | Con S3 | Acceso al bucket; el token solo con credenciales temporales (AWS Academy), que caducan y hay que renovar |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | No | Gmail SMTP; sin ellas el correo solo se registra en el log |
+| `IA_PROVEEDOR`, `IA_API_KEY`, `IA_MODELO`, `IA_MAX_TOKENS`, `IA_MENSAJES_POR_MINUTO` | No | Asistentes de IA; sin clave funcionan sin IA |
+| `DNI_API_KEY`, `DNI_API_URL`, `DNI_REINTENTO_CRON` | No | Verificación de DNI; sin clave el DNI queda "sin verificar" |
+| `SHOW_SQL`, `THYMELEAF_CACHE` | No (`false`, `true`) | Depuración local |
+
+Ninguna credencial se escribe en `application.properties` ni se versiona.
 
 ### Reportes del RM
 

@@ -20,6 +20,7 @@ public class RmEducacionView {
     /** Total de formaciones aprobadas del colaborador. */
     private final long formacionesAprobadas;
 
+    /** Arma la vista de la formación académica con los datos del colaborador y el revisor. */
     public RmEducacionView(Educacion educacion, String colaboradorNombre,
                            String colaboradorIniciales, String cargo, String nivelGeneral,
                            String revisorNombre, long formacionesAprobadas) {

@@ -17,6 +17,7 @@ public class RmSolicitudPersonalView {
     private final String rmNombre;
     private final List<RmProyectoView.RequisitoTalento> requisitos;
 
+    /** Arma la vista de la solicitud con su proyecto, el PM, el RM responsable y los requisitos. */
     public RmSolicitudPersonalView(SolicitudPersonal solicitud, RmProyectoView proyecto,
                                    String pmNombre, String rmNombre,
                                    List<RmProyectoView.RequisitoTalento> requisitos) {

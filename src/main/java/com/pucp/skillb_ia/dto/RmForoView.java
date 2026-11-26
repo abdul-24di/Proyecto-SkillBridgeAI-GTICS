@@ -29,6 +29,7 @@ public class RmForoView {
     private final boolean anuncios;
     private final boolean participa;
 
+    /** Arma la vista del foro con los datos del proyecto, su actividad y sus publicaciones. */
     public RmForoView(Long id, String nombre, String tipo, boolean publico,
                       Long proyectoId, String proyectoNombre, String proyectoEstado,
                       String proyectoEstadoCodigo, String proyectoEstadoClase,

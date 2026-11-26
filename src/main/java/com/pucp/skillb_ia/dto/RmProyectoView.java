@@ -34,6 +34,7 @@ public class RmProyectoView {
     private final List<AsignacionProyecto> propuestas;
     private final List<AsignacionProyecto> participantes;
 
+    /** Vista para listados y revisión: sin propuestas ni participantes (listas vacías). */
     public RmProyectoView(Proyecto proyecto, String pmNombre, String estadoTexto, String prioridadTexto,
                           int integrantesActivos, int vacantes, int pendientesRm,
                           List<MiembroEquipo> equipo, List<RequisitoTalento> requisitos,
@@ -42,6 +43,7 @@ public class RmProyectoView {
                 equipo, requisitos, resumenPresupuesto, List.of(), List.of());
     }
 
+    /** Vista completa del detalle, con las propuestas y los participantes del proyecto (TASK-056). */
     public RmProyectoView(Proyecto proyecto, String pmNombre, String estadoTexto, String prioridadTexto,
                           int integrantesActivos, int vacantes, int pendientesRm,
                           List<MiembroEquipo> equipo, List<RequisitoTalento> requisitos,

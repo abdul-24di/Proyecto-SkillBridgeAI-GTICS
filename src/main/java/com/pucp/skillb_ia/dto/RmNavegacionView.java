@@ -14,6 +14,7 @@ public class RmNavegacionView {
     private final String volverUrl;
     private final String volverTexto;
 
+    /** Arma la navegación con el origen reconocido, las migas, el texto actual y el enlace de regreso. */
     public RmNavegacionView(String origen, List<Miga> migas, String actual, String volverUrl, String volverTexto) {
         this.origen = origen;
         this.migas = migas;

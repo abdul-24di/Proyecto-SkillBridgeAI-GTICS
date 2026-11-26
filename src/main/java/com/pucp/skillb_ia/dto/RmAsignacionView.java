@@ -33,6 +33,7 @@ public class RmAsignacionView {
     private final int vacantes;
     private final List<String> habilidades;
 
+    /** Arma la vista con la asignación y los datos ya calculados del colaborador, el PM y el proyecto. */
     public RmAsignacionView(
             Asignacion asignacion,
             String colaboradorNombre,

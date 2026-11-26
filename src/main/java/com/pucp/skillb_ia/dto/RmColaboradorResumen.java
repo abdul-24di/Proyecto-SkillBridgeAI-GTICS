@@ -28,6 +28,7 @@ public class RmColaboradorResumen {
     private final int maxAsignaciones;
     private final long certificadosAprobados;
 
+    /** Arma la tarjeta del colaborador con los datos ya calculados por el servicio. */
     public RmColaboradorResumen(
             Long id,
             String nombreCompleto,

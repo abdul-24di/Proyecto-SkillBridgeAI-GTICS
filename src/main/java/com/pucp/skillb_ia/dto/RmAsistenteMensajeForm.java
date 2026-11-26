@@ -19,18 +19,22 @@ public class RmAsistenteMensajeForm implements Serializable {
     /** Proyecto elegido como contexto de la consulta; opcional ({@code null} = sin proyecto). */
     private Long proyectoId;
 
+    /** @return la consulta escrita por el RM */
     public String getMensaje() {
         return mensaje;
     }
 
+    /** @param mensaje consulta escrita por el RM */
     public void setMensaje(String mensaje) {
         this.mensaje = mensaje;
     }
 
+    /** @return el id del proyecto de contexto, o {@code null} si no se eligió uno */
     public Long getProyectoId() {
         return proyectoId;
     }
 
+    /** @param proyectoId id del proyecto de contexto; {@code null} = sin proyecto */
     public void setProyectoId(Long proyectoId) {
         this.proyectoId = proyectoId;
     }

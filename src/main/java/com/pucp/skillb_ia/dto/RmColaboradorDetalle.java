@@ -22,6 +22,7 @@ public class RmColaboradorDetalle {
     private final List<ExperienciaDetalle> experiencias;
     private final List<EducacionDetalle> educacion;
 
+    /** Arma el perfil completo a partir del resumen y las listas de habilidades, asignaciones, experiencia y educación. */
     public RmColaboradorDetalle(
             RmColaboradorResumen resumen,
             String correo,

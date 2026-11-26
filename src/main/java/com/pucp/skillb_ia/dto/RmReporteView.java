@@ -35,6 +35,7 @@ public class RmReporteView {
     /** Colaboradores distintos que aparecen en el detalle. */
     private final long colaboradoresInvolucrados;
 
+    /** Reporte de un solo mes y sin filtro de prioridad. */
     public RmReporteView(YearMonth periodo, String periodoTexto,
                          Long proyectoSeleccionado, String estadoSeleccionado,
                          String proyectoSeleccionadoNombre, String estadoSeleccionadoTexto,
@@ -87,6 +88,7 @@ public class RmReporteView {
     public boolean esRango() { return !periodoHasta.equals(periodo); }
     public String getPeriodoTexto() { return periodoTexto; }
     public Long getProyectoSeleccionado() { return proyectoSeleccionado; }
+    /** @return el id del proyecto filtrado como texto, o vacío si no hay filtro */
     public String getProyectoSeleccionadoValor() {
         return proyectoSeleccionado == null ? "" : proyectoSeleccionado.toString();
     }
@@ -98,11 +100,13 @@ public class RmReporteView {
         return proyectoSeleccionadoNombre == null
                 ? "No encontrado (ID " + proyectoSeleccionado + ")" : proyectoSeleccionadoNombre;
     }
+    /** @return el estado filtrado, o "Todos" si no se eligió */
     public String getEstadoFiltroTexto() {
         return estadoSeleccionadoTexto == null || estadoSeleccionadoTexto.isBlank()
                 ? "Todos" : estadoSeleccionadoTexto;
     }
     public String getPrioridadSeleccionada() { return prioridadSeleccionada; }
+    /** @return la prioridad filtrada, o "Todas" si no se eligió */
     public String getPrioridadFiltroTexto() {
         return prioridadSeleccionadaTexto == null || prioridadSeleccionadaTexto.isBlank()
                 ? "Todas" : prioridadSeleccionadaTexto;

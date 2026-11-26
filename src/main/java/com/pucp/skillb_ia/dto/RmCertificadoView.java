@@ -26,6 +26,7 @@ public class RmCertificadoView {
     private final long certificadosAprobados;
     private final List<String> habilidades;
 
+    /** Arma la vista del certificado con los datos del colaborador, su nivel y el revisor. */
     public RmCertificadoView(Certificado certificado, String colaboradorNombre,
                              String colaboradorIniciales, String cargo,
                              String nivelHabilidad, String nivelGeneral,

@@ -25,10 +25,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Bandeja de asignaciones del Resource Manager: lista las asignaciones de los proyectos que el RM
- * puede ver, propone colaboradores, aprueba o rechaza solicitudes y finaliza asignaciones activas.
- * Controla el límite de asignaciones activas por colaborador, los cupos del proyecto, las horas
- * disponibles y el presupuesto. La usan {@code RmViewController} y los servicios de matching.
+ * Lógica del Resource Manager sobre las asignaciones de colaboradores a proyectos: proponer,
+ * aprobar, rechazar y finalizar, además de la bandeja con filtros y paginación.
+ * <p>
+ * <b>Regla central (doble aprobación):</b> una asignación solo queda {@code ACTIVA} cuando la
+ * aprueban el PM del proyecto <b>y</b> el RM. Según quién la origina:
+ * <ul>
+ *   <li><b>Propuesta del RM:</b> nace {@code PENDIENTE} con la aprobación del RM ya registrada;
+ *       falta la del PM.</li>
+ *   <li><b>Propuesta del PM:</b> falta la aprobación del RM (este service la da con {@link #aprobar}).</li>
+ *   <li><b>Solicitud del colaborador:</b> faltan las dos.</li>
+ * </ul>
+ * Si cualquiera de los dos la rechaza, queda {@code RECHAZADA}. El colaborador no decide nada.
+ * <p>
+ * <b>Excepciones:</b> {@link IllegalArgumentException} para datos inválidos y
+ * {@link IllegalStateException} para acciones que no corresponden al estado actual.
+ * Cada acción importante registra auditoría y notifica a los involucrados.
+ *
+ * @see DisponibilidadService
+ * @see RmPresupuestoService
  */
 @Service
 public class RmAsignacionService {

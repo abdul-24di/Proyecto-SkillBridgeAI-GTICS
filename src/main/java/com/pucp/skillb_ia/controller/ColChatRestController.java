@@ -84,29 +84,27 @@ public class ColChatRestController {
      * @see ColChatService#obtenerMensajesPrivados
      */
     @GetMapping("/mensajes")
-    public ResponseEntity<?> getMensajes(
+    public ResponseEntity<List<PmMensajeView>> getMensajes(
             @RequestParam(value = "proyectoId", required = false) Long proyectoId,
             @RequestParam(value = "usuarioId", required = false) Long usuarioId,
             @AuthenticationPrincipal UsuarioDetails principal) {
-        try {
-            Usuario colaborador = principal.getUsuario();
-            List<PmMensajeView> mensajes;
+        Usuario colaborador = principal.getUsuario();
+        List<PmMensajeView> mensajes;
 
-            // Si no se recibe un usuarioId, obtenemos los mensajes del chat grupal
-            if (usuarioId == null) {
-                mensajes = colChatService.obtenerMensajes(proyectoId, colaborador);
-            } else {
-                // Si se recibe un usuarioId, obtenemos los mensajes privados con ese usuario
-                mensajes = colChatService.obtenerMensajesPrivados(proyectoId, usuarioId, colaborador);
-            }
-            return ResponseEntity.ok(mensajes);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", mensajeSeguro(e)));
+        // Si no se recibe un usuarioId, obtenemos los mensajes del chat grupal
+        if (usuarioId == null) {
+            mensajes = colChatService.obtenerMensajes(proyectoId, colaborador);
+        } else {
+            // Si se recibe un usuarioId, obtenemos los mensajes privados con ese usuario
+            mensajes = colChatService.obtenerMensajesPrivados(proyectoId, usuarioId, colaborador);
         }
+        return ResponseEntity.ok(mensajes);
     }
 
 
-    /**
+
+
+/**
      * Envía un mensaje ({@code POST /colaborador/api/chat/enviar}). Sin {@code usuarioId} va al chat
      * grupal; con {@code usuarioId}, al privado con ese usuario. El texto no puede estar vacío ni
      * superar 1000 caracteres.
@@ -120,22 +118,20 @@ public class ColChatRestController {
      * @see ColChatService#enviarMensajePrivado
      */
     @PostMapping("/enviar")
-    public ResponseEntity<?> enviarMensaje(
+    public ResponseEntity<PmMensajeView> enviarMensaje(
             @RequestParam(value = "proyectoId", required = false) Long proyectoId,
             @RequestParam(value = "usuarioId", required = false) Long usuarioId,
             @RequestParam(value = "contenido", required = false) String contenido,
             @AuthenticationPrincipal UsuarioDetails principal) {
-        try {
-            Usuario colaborador = principal.getUsuario();
-            PmMensajeView mensaje;
-            if (usuarioId == null) {
-                mensaje = colChatService.enviarMensaje(proyectoId, contenido, colaborador);
-            } else {
-                mensaje = colChatService.enviarMensajePrivado(proyectoId, usuarioId, contenido, colaborador);
-            }
-            return ResponseEntity.ok(mensaje);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", mensajeSeguro(e)));
+        Usuario colaborador = principal.getUsuario();
+        PmMensajeView mensaje;
+        if (usuarioId == null) {
+            mensaje = colChatService.enviarMensaje(proyectoId, contenido, colaborador);
+        } else {
+            mensaje = colChatService.enviarMensajePrivado(proyectoId, usuarioId, contenido, colaborador);
         }
+        return ResponseEntity.ok(mensaje);
+
     }
+
 }

@@ -36,6 +36,7 @@ public class PmChatService {
         this.chatBaseService = chatBaseService;
     }
 
+    /** Lista los proyectos que pertenecen al PM ordenados del más reciente al más antiguo. */
     public List<Proyecto> listarProyectosDelPm(Usuario pm) {
         return proyectoRepository.findByPmOrderByFechaCreacionDesc(pm);
     }
@@ -74,6 +75,7 @@ public class PmChatService {
 
     // ---------------- Contactos ----------------
 
+    /** Lista los contactos del chat de un proyecto: el RM revisor (si existe) y los colaboradores activos. */
     @Transactional(readOnly = true)
     public List<ChatContactoView> listarContactos(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoDelPm(proyectoId, pm);
@@ -92,7 +94,7 @@ public class PmChatService {
         return contactos;
     }
 
-    // ---------------- Chat grupal----------------
+    /** Obtiene los mensajes del chat grupal del proyecto y los marca como leídos para el PM. */
     @Transactional
     public List<PmMensajeView> obtenerMensajes(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoDelPm(proyectoId, pm);
@@ -101,6 +103,7 @@ public class PmChatService {
         return chatBaseService.listar(conversacion, pm.getId());
     }
 
+    /** Valida el texto y envía un mensaje en el chat grupal del proyecto del PM. */
     @Transactional
     public PmMensajeView enviarMensaje(Long proyectoId, String contenido, Usuario pm) {
         if (proyectoId == null) {
@@ -112,7 +115,7 @@ public class PmChatService {
         return chatBaseService.enviarGrupal(proyecto, pm, contenido.trim());
     }
 
-    // ---------------- Chat privado con un colaborador ----------------
+    /** Obtiene los mensajes del chat privado entre el PM y un colaborador activo o el RM del proyecto. */
     @Transactional
     public List<PmMensajeView> obtenerMensajesPrivados(Long proyectoId, Long colaboradorId, Usuario pm) {
         Proyecto proyecto = proyectoDelPm(proyectoId, pm);
@@ -126,6 +129,7 @@ public class PmChatService {
         return chatBaseService.listar(conversacion, pm.getId());
     }
 
+    /** Envía un mensaje privado desde el PM hacia un colaborador activo o el RM revisor del proyecto. */
     @Transactional
     public PmMensajeView enviarMensajePrivado(Long proyectoId, Long colaboradorId, String contenido, Usuario pm) {
         if (proyectoId == null) {
@@ -138,9 +142,7 @@ public class PmChatService {
         return chatBaseService.enviarPrivado(proyecto, pm, colaborador, contenido.trim());
     }
 
-
-    // ---------------- Mensajes no leídos ----------------
-
+    /** Cuenta los mensajes no leídos en el chat grupal y en cada conversación privada del proyecto. */
     @Transactional(readOnly = true)
     public Map<String, Long> obtenerNoLeidos(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoDelPm(proyectoId, pm);

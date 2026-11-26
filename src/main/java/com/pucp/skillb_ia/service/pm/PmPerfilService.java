@@ -45,11 +45,17 @@ public class PmPerfilService {
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
+    /** Construye la vista de perfil del PM autenticado. */
     @Transactional(readOnly = true)
     public PmPerfilView obtener(Usuario pm) {
         return new PmPerfilView(pm);
     }
 
+    /**
+     * Actualiza nombre, apellido y teléfono del PM (el cargo permanece en solo lectura) y audita el cambio.
+     *
+     * @throws IllegalArgumentException si el nombre está vacío
+     */
     @Transactional
     public void actualizarDatos(String nombre, String apellido, String cargo, String telefono, Usuario pm) {
         if (nombre == null || nombre.isBlank()) throw new IllegalArgumentException("El nombre no puede estar vacío.");
@@ -62,6 +68,11 @@ public class PmPerfilService {
                 "PM actualizó sus datos personales.");
     }
 
+    /**
+     * Valida y guarda una nueva foto de perfil (JPEG o PNG, máximo 2 MB) y registra auditoría.
+     *
+     * @throws IllegalArgumentException si el archivo está vacío, supera 2 MB o tiene formato inválido
+     */
     @Transactional
     public void actualizarFoto(MultipartFile foto, Usuario pm) {
         if (foto == null || foto.isEmpty()) {
@@ -84,6 +95,11 @@ public class PmPerfilService {
                 "PM actualizó su foto de perfil.");
     }
 
+    /**
+     * Verifica la contraseña actual, valida la política de seguridad de la nueva y actualiza el hash.
+     *
+     * @throws IllegalArgumentException si la contraseña actual no coincide o la nueva no cumple la política
+     */
     @Transactional
     public void actualizarPassword(String passwordActual, String passwordNueva, Usuario pm) {
         if (!passwordEncoder.matches(passwordActual, pm.getPasswordHash())) {

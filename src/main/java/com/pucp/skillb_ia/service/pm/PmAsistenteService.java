@@ -64,6 +64,10 @@ public class PmAsistenteService {
         this.seguridadService = seguridadService;
     }
 
+    /**
+     * Procesa una consulta del PM aplicando control de ritmo y defensa contra prompt injection,
+     * genera la respuesta (con IA o modo analítico local), convierte marcadores en tarjetas y actualiza la sesión.
+     */
     public PmAsistenteRespuesta responder(Long pmId, Long proyectoContextoId, String mensajeCrudo, HttpSession session) {
         String mensaje = seguridadService.limpiarEntradaUsuario(mensajeCrudo);
         if (mensaje.isEmpty()) {
@@ -132,6 +136,7 @@ public class PmAsistenteService {
         session.setAttribute(ATTR_TURNOS, new ArrayList<>(turnos));
     }
 
+    /** Devuelve los turnos de conversación guardados en la sesión del PM para renderizar el chat del asistente. */
     @SuppressWarnings("unchecked")
     public List<TurnoConversacion> obtenerTurnos(HttpSession session) {
         Object guardado = session.getAttribute(ATTR_TURNOS);
@@ -141,11 +146,13 @@ public class PmAsistenteService {
         return new ArrayList<>();
     }
 
+    /** Limpia el historial de mensajes y turnos visuales del asistente almacenados en sesión. */
     public void limpiarHistorial(HttpSession session) {
         session.removeAttribute(ATTR_HISTORIAL);
         session.removeAttribute(ATTR_TURNOS);
     }
 
+    /** Confirma desde el Asistente IA la propuesta de un candidato hacia el RM y registra auditoría específica. */
     @Transactional
     public Asignacion confirmarPropuestaCandidato(Long pmId, Long proyectoId, Long colaboradorId,
                                                   BigDecimal horasSemanales, String mensaje) {

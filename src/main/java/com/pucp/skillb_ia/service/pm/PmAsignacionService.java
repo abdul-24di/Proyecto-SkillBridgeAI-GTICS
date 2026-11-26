@@ -59,6 +59,7 @@ public class PmAsignacionService {
 
 
 
+    /** Lista todas las asignaciones de un proyecto del PM ordenadas por fecha de solicitud descendente. */
     @Transactional(readOnly = true)
     public List<PmAsignacionView> listarPorProyecto(Long proyectoId, Usuario pm) {
         Proyecto proyecto = obtenerProyectoDelPm(proyectoId, pm);
@@ -68,6 +69,7 @@ public class PmAsignacionService {
                 .toList();
     }
 
+    /** Lista las asignaciones propuestas por el RM o postulaciones que esperan decisión del PM. */
     @Transactional(readOnly = true)
     public List<PmAsignacionView> listarPendientesPm(Long proyectoId, Usuario pm) {
         Proyecto proyecto = obtenerProyectoDelPm(proyectoId, pm);
@@ -77,6 +79,7 @@ public class PmAsignacionService {
                 .toList();
     }
 
+    /** Propone a un colaborador activo para un proyecto del PM y notifica al RM para su aprobación. */
     @Transactional
     public Asignacion proponer(Long proyectoId, Long colaboradorId,
                                BigDecimal horasSemanales, String mensajeSolicitud,
@@ -123,6 +126,7 @@ public class PmAsignacionService {
         return saved;
     }
 
+    /** Aprueba una asignación pendiente del PM; si el RM ya aprobó, la activa y recalcula disponibilidad. */
     @Transactional
     public void aprobar(Long asignacionId, Usuario pm) {
         Asignacion asignacion = obtenerAsignacionDelPm(asignacionId, pm);
@@ -155,6 +159,7 @@ public class PmAsignacionService {
                 "PM aprobó la asignación propuesta por el RM.");
     }
 
+    /** Rechaza una asignación pendiente indicando un motivo obligatorio y notifica al colaborador. */
     @Transactional
     public void rechazar(Long asignacionId, String motivo, Usuario pm) {
         Asignacion asignacion = obtenerAsignacionDelPm(asignacionId, pm);
@@ -179,6 +184,7 @@ public class PmAsignacionService {
                 "PM rechazó la asignación. Motivo: " + motivoLimpio);
     }
 
+    /** Finaliza una asignación activa, guarda la evaluación opcional y recalcula la disponibilidad del colaborador. */
     @Transactional
     public void finalizar(Long asignacionId, Integer calificacion, String feedback, Usuario pm) {
         Asignacion asignacion = obtenerAsignacionDelPm(asignacionId, pm);

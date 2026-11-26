@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/** Vista de una actividad del proyecto para las pantallas del Project Manager. */
 public class PmActividadView {
 
     private final Actividad actividad;

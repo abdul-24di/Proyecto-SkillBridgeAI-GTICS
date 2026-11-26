@@ -103,6 +103,7 @@ public class PmReporteExportService {
         }
     }
 
+    /** Construye el nombre base de descarga del reporte consolidado incluyendo rango y filtros activos. */
     public String nombreArchivo(PmReporteConsolidadoView reporte) {
         StringBuilder nombre = new StringBuilder("reporte-pm-");
         if (reporte.isTodoPeriodo()) {
@@ -123,6 +124,7 @@ public class PmReporteExportService {
         return nombre.toString();
     }
 
+    /** Construye el nombre base de descarga del reporte detallado de un proyecto. */
     public String nombreArchivoDetalle(PmReporteView reporte, String mes) {
         String base = slug(reporte.getProyecto().getNombre());
         if (base.isEmpty()) base = "proyecto-" + reporte.getProyecto().getId();
@@ -130,10 +132,12 @@ public class PmReporteExportService {
         return "reporte-proyecto-" + base + sufijoMes;
     }
 
+    /** Genera el libro Excel (XLSX) completo del reporte consolidado del PM. */
     public byte[] crearExcel(PmReporteConsolidadoView reporte) {
         return crearExcel(reporte, OpcionesExcel.completo());
     }
 
+    /** Genera el libro Excel (XLSX) del reporte consolidado aplicando las hojas y columnas elegidas. */
     public byte[] crearExcel(PmReporteConsolidadoView reporte, OpcionesExcel opciones) {
         String generado = LocalDateTime.now().format(FORMATO_GENERACION);
         try (Workbook libro = new XSSFWorkbook();
@@ -205,10 +209,12 @@ public class PmReporteExportService {
     // EXPORTACIÓN PDF - REPORTE CONSOLIDADO DEL PM
     // ═══════════════════════════════════════════════════════════
 
+    /** Genera el documento PDF completo del reporte consolidado del PM. */
     public byte[] crearPdf(PmReporteConsolidadoView reporte) {
         return crearPdf(reporte, OpcionesExcel.completo());
     }
 
+    /** Genera el documento PDF del reporte consolidado aplicando la selección de resumen, secciones y columnas. */
     public byte[] crearPdf(PmReporteConsolidadoView reporte, OpcionesExcel opciones) {
         String generado = LocalDateTime.now().format(FORMATO_GENERACION);
         try (ByteArrayOutputStream salida = new ByteArrayOutputStream()) {
@@ -342,6 +348,7 @@ public class PmReporteExportService {
     // EXPORTACIÓN PDF - REPORTE DETALLADO DE UN PROYECTO
     // ═══════════════════════════════════════════════════════════
 
+    /** Genera el documento PDF del reporte individual y avance mensual de un proyecto del PM. */
     public byte[] crearPdfDetalle(PmReporteView reporte, PmReporteService.Avance avance) {
         String generado = LocalDateTime.now().format(FORMATO_GENERACION);
         Proyecto proy = reporte.getProyecto();

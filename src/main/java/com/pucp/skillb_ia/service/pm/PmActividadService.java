@@ -53,6 +53,7 @@ public class PmActividadService {
         this.notificacionService = notificacionService;
     }
 
+    /** Lista las actividades activas del proyecto revisando primero las vencidas sin entregar. */
     @Transactional
     public List<PmActividadView> listarPorProyecto(Long proyectoId, Usuario pm) {
         Proyecto proyecto = obtenerProyectoDelPm(proyectoId, pm);
@@ -63,6 +64,7 @@ public class PmActividadService {
                 .toList();
     }
 
+    /** Crea una nueva actividad para un colaborador con asignación activa en el proyecto, audita y notifica. */
     @Transactional
     public Actividad crear(Long proyectoId, Long colaboradorId,
                            String titulo, String descripcion,
@@ -130,6 +132,7 @@ public class PmActividadService {
         return saved;
     }
 
+    /** Confirma una actividad en estado EN_REVISION, calcula si fue a tiempo o tardía y aplica strike opcional. */
     @Transactional
     public void confirmar(Long actividadId, boolean aplicarStrike, Usuario pm) {
         Actividad actividad = obtenerActividadDelPm(actividadId, pm);
@@ -168,6 +171,7 @@ public class PmActividadService {
     }
 
 
+    /** Devuelve una actividad EN_REVISION a EN_PROGRESO con comentario obligatorio y strike opcional. */
     @Transactional
     public void devolver(Long actividadId, String comentario, boolean aplicarStrike, Usuario pm) {
         if (comentario == null || comentario.isBlank()) {
@@ -207,6 +211,7 @@ public class PmActividadService {
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
+    /** Edita los datos de una actividad que aún no haya sido completada, registra auditoría y notifica. */
     @Transactional
     public Actividad editar(Long actividadId, String titulo, String descripcion,
                             BigDecimal horasEstimadas, LocalDate fechaLimite,
@@ -256,6 +261,7 @@ public class PmActividadService {
         return saved;
     }
 
+    /** Elimina lógicamente una actividad pendiente o en progreso (no entregada ni completada). */
     @Transactional
     public void eliminar(Long actividadId, Usuario pm) {
         Actividad actividad = obtenerActividadDelPm(actividadId, pm);

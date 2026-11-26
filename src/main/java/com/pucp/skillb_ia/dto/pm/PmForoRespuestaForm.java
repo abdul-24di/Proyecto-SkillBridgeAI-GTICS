@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.dto.pm;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 
+/** Formulario para responder a una publicación existente en un foro. */
 public class PmForoRespuestaForm implements Serializable {
     @NotNull(message = "La publicación es obligatoria.")
     private Long publicacionId;

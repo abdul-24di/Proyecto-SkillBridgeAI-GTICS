@@ -7,6 +7,7 @@ import com.pucp.skillb_ia.model.enums.OrigenAsignacion;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/** Vista de una asignación del proyecto para la bandeja y detalle del Project Manager. */
 public class PmAsignacionView {
 
     private final Asignacion asignacion;

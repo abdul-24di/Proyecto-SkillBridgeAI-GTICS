@@ -90,6 +90,7 @@ public class PmReporteService {
     // REPORTE CONSOLIDADO DEL PM (MULTICRITERIO + RANGO DE MESES)
     // ═══════════════════════════════════════════════════════════
 
+    /** Normaliza y valida los parámetros de filtro del reporte consolidado (rango de meses, proyecto, estado y prioridad). */
     public FiltrosConsolidado normalizarFiltrosConsolidado(String periodo, String hasta, boolean todoPeriodo,
                                                            Long proyectoId, String estado, String prioridad) {
         YearMonth inicio = obtenerPeriodo(periodo);
@@ -105,6 +106,7 @@ public class PmReporteService {
                 prioridadValida == null ? null : prioridadValida.name());
     }
 
+    /** Genera el reporte consolidado del PM junto con las páginas solicitadas para proyectos y colaboradores. */
     @Transactional(readOnly = true)
     public PaginaConsolidado listarPaginaConsolidado(Usuario pm, FiltrosConsolidado filtros,
                                                      String paginaProyectos, String paginaColaboradores) {
@@ -117,6 +119,7 @@ public class PmReporteService {
                 paginar(reporte.getDetalles(), paginaColaboradores));
     }
 
+    /** Calcula las métricas consolidadas por proyecto y por colaborador según los filtros indicados. */
     @Transactional(readOnly = true)
     public PmReporteConsolidadoView generarConsolidado(Usuario pm, String periodoValor, String hastaValor,
                                                        boolean todoPeriodo, Long proyectoId,
@@ -236,6 +239,7 @@ public class PmReporteService {
         );
     }
 
+    /** Lista los proyectos del PM como opciones clave-etiqueta para el selector de filtros. */
     @Transactional(readOnly = true)
     public List<PmReporteConsolidadoView.Opcion> listarProyectos(Usuario pm) {
         return proyectoRepository.findByPmOrderByFechaCreacionDesc(pm).stream()
@@ -243,6 +247,7 @@ public class PmReporteService {
                 .toList();
     }
 
+    /** Compone una cadena {@code YYYY-MM} si año y mes son válidos, o devuelve el periodo original. */
     public String componerPeriodo(String anio, String mes, String periodo) {
         if (anio != null && mes != null && anio.trim().matches("\\d{4}")
                 && mes.trim().matches("0[1-9]|1[0-2]")) {
@@ -251,6 +256,7 @@ public class PmReporteService {
         return periodo;
     }
 
+    /** Devuelve los años disponibles para el selector de periodo incluyendo los del reporte actual. */
     public List<Integer> listarAnios(PmReporteConsolidadoView reporte) {
         TreeSet<Integer> anios = new TreeSet<>(Comparator.reverseOrder());
         int actual = YearMonth.now().getYear();
@@ -260,6 +266,7 @@ public class PmReporteService {
         return List.copyOf(anios);
     }
 
+    /** Devuelve los doce meses del año en español para los filtros de periodo. */
     public List<PmReporteConsolidadoView.Opcion> listarMeses() {
         return Arrays.stream(Month.values())
                 .map(mes -> {
@@ -270,12 +277,14 @@ public class PmReporteService {
                 .toList();
     }
 
+    /** Devuelve los estados de proyecto traducidos para el filtro del reporte consolidado. */
     public List<PmReporteConsolidadoView.Opcion> listarEstados() {
         return Arrays.stream(EstadoProyecto.values())
                 .map(e -> new PmReporteConsolidadoView.Opcion(e.name(), traducirEstado(e)))
                 .toList();
     }
 
+    /** Devuelve las prioridades de proyecto traducidas para el filtro del reporte consolidado. */
     public List<PmReporteConsolidadoView.Opcion> listarPrioridades() {
         return Arrays.stream(Prioridad.values())
                 .map(p -> new PmReporteConsolidadoView.Opcion(p.name(), textoPrioridad(p)))
@@ -286,6 +295,7 @@ public class PmReporteService {
     // REPORTE INDIVIDUAL DE UN PROYECTO (DETALLE)
     // ═══════════════════════════════════════════════════════════
 
+    /** Obtiene el reporte individual de un proyecto del PM con desglose de actividades y métricas por colaborador. */
     @Transactional(readOnly = true)
     public PmReporteView obtener(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)

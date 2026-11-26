@@ -66,6 +66,13 @@ public class PmSolicitudPersonalService {
                 .toList();
     }
 
+    /**
+     * Valida la cantidad total y el desglose por habilidad del proyecto, construye el texto de perfiles
+     * requeridos y delega la creación de la solicitud en {@link RmSolicitudPersonalService#crearDesdePm}.
+     *
+     * @throws SecurityException si el proyecto no pertenece al PM
+     * @throws IllegalArgumentException si alguna cantidad excede los cupos o faltan perfiles adicionales
+     */
     @Transactional
     public SolicitudPersonal solicitar(Long proyectoId, int cantidad, Map<Long, Integer> cantidadesPorHabilidad,
                                        String perfiles, String mensaje, Usuario pm) {

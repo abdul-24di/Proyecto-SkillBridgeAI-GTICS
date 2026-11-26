@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.dto.pm;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 
+/** Formulario para crear una publicación en un foro del Project Manager o de comunidad. */
 public class PmForoPublicacionForm implements Serializable {
     private Long proyectoId;
     private Long foroId;

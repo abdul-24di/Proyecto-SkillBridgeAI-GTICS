@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Respuesta estructurada del Asistente IA del Project Manager (texto, bloques, tarjetas y fuentes). */
 public record PmAsistenteRespuesta(
         String respuesta,
         List<BloqueTexto> bloques,

@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/** Formulario para editar los datos de una actividad pendiente o en progreso. */
 public class PmEditarActividadForm implements Serializable {
     @NotNull(message = "El proyecto es obligatorio.")
     private Long proyectoId;

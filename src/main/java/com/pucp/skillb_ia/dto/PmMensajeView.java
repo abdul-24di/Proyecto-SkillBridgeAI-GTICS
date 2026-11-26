@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.dto;
 import com.pucp.skillb_ia.model.Mensaje;
 import java.time.format.DateTimeFormatter;
 
+/** Vista de un mensaje del chat grupal o privado del Project Manager. */
 public class PmMensajeView {
     private final Long id;
     private final String autorNombre;

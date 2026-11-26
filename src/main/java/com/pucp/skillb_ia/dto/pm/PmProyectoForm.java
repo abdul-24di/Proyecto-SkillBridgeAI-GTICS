@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+/** Formulario de registro de un nuevo proyecto con habilidades requeridas y documento de contexto. */
 public class PmProyectoForm {
     @NotBlank(message = "El nombre del proyecto es obligatorio")
     @Size(max = 100, message = "El nombre no puede exceder los 100 caracteres")

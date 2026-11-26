@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+/** Vista detallada de un proyecto del Project Manager con métricas de equipo, actividades y requisitos. */
 public class PmProyectoView {
 
     private final Proyecto proyecto;

@@ -6,6 +6,7 @@ import java.util.Map;
 
 // Solicitud de personal del PM al RM (TASK-058). Serializable: vuelve como flash tras un error.
 // Los perfiles solo son obligatorios si el total supera la suma por habilidad (regla en PmSolicitudPersonalService).
+/** Formulario para enviar una solicitud de personal al Resource Manager con desglose por habilidad. */
 public class PmSolicitudPersonalForm implements Serializable {
     @NotNull(message = "La cantidad de colaboradores es obligatoria.")
     @Positive(message = "La cantidad solicitada debe ser mayor que cero.")

@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.dto.pm;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 
+/** Formulario para rechazar una propuesta o postulación de asignación indicando el motivo. */
 public class PmRechazarAsignacionForm implements Serializable {
     @NotNull(message = "El proyecto es obligatorio.")
     private Long proyectoId;

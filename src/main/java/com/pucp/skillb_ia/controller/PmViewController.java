@@ -96,6 +96,7 @@ public class PmViewController {
     }
 
     // Disponible en el modelo de todas las páginas de este controlador (topbar).
+    /** Expone el usuario PM autenticado en el modelo de todas las vistas del controlador. */
     @ModelAttribute("pm")
     public Usuario pm(@AuthenticationPrincipal UsuarioDetails principal) {
         return principal != null ? principal.getUsuario() : null;
@@ -105,6 +106,7 @@ public class PmViewController {
     // INDEX
     // ═══════════════════════════════════════════════════════════
 
+    /** Atiende la vista o descarga GET {"", "/", "/dashboard"} (dashboard) del módulo Project Manager. */
     @GetMapping({"", "/", "/dashboard"})
     public String dashboard(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         if (principal == null) return "redirect:/login";
@@ -126,6 +128,7 @@ public class PmViewController {
     // PROYECTOS
     // ═══════════════════════════════════════════════════════════
 
+    /** Atiende la vista o descarga GET {"/proyectos", "/pm-proyectos.html"} (proyectos) del módulo Project Manager. */
     @GetMapping({"/proyectos", "/pm-proyectos.html"})
     public String proyectos(@AuthenticationPrincipal UsuarioDetails principal,
                             @RequestParam(required = false) String busqueda,
@@ -154,6 +157,7 @@ public class PmViewController {
         return "pm/pm-proyectos";
     }
 
+    /** Atiende la vista o descarga GET {"/proyectos/detalle", "/pm-detalle-proyecto.html"} (detalleProyecto) del módulo Project Manager. */
     @GetMapping({"/proyectos/detalle", "/pm-detalle-proyecto.html"})
     public String detalleProyecto(@RequestParam("id") Long proyectoId,
                                   @AuthenticationPrincipal UsuarioDetails principal,
@@ -173,6 +177,7 @@ public class PmViewController {
 
     // TASK-058: el PM pide personal al RM, con desglose por habilidad del proyecto.
     // Las reglas están en PmSolicitudPersonalService y RmSolicitudPersonalService.crearDesdePm.
+    /** Procesa la acción POST "/proyectos/{id}/solicitudes-personal" (solicitarPersonal) del módulo Project Manager. */
     @PostMapping("/proyectos/{id}/solicitudes-personal")
     public String solicitarPersonal(@PathVariable("id") Long proyectoId,
                                     @Valid @ModelAttribute("pmSolicitudPersonalForm") PmSolicitudPersonalForm form,
@@ -228,6 +233,7 @@ public class PmViewController {
         return campo.equals("perfiles") ? 2 : 3;
     }
 
+    /** Atiende la vista o descarga GET {"/proyectos/crear", "/pm-crear-proyecto.html"} (crearProyectoForm) del módulo Project Manager. */
     @GetMapping({"/proyectos/crear", "/pm-crear-proyecto.html"})
     public String crearProyectoForm(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         if (!model.containsAttribute("pmProyectoForm")) {
@@ -238,6 +244,7 @@ public class PmViewController {
         return "pm/pm-crear-proyecto";
     }
 
+    /** Procesa la acción POST "/proyectos/crear" (crearProyecto) del módulo Project Manager. */
     @PostMapping("/proyectos/crear")
     public String crearProyecto(
             @Valid @ModelAttribute("pmProyectoForm") PmProyectoForm form,
@@ -307,6 +314,7 @@ public class PmViewController {
         }
     }
 
+    /** Procesa la acción POST "/proyectos/{id}/cancelar" (cancelarProyecto) del módulo Project Manager. */
     @PostMapping("/proyectos/{id}/cancelar")
     public String cancelarProyecto(@PathVariable("id") Long proyectoId,
                                    @RequestParam(value = "motivo", required = false) String motivo,
@@ -324,6 +332,7 @@ public class PmViewController {
         return "redirect:/pm/proyectos";
     }
 
+    /** Procesa la acción POST "/proyectos/cancelar" (cancelarProyectoDesdeDetalle) del módulo Project Manager. */
     @PostMapping("/proyectos/cancelar")
     public String cancelarProyectoDesdeDetalle(@RequestParam("proyectoId") Long proyectoId,
                                                @RequestParam(value = "motivo", required = false) String motivo,
@@ -336,6 +345,7 @@ public class PmViewController {
     // ASIGNACIONES
     // ═══════════════════════════════════════════════════════════
 
+    /** Atiende la vista o descarga GET {"/proyectos/asignaciones", "/pm-asignaciones-proyecto.html"} (asignaciones) del módulo Project Manager. */
     @GetMapping({"/proyectos/asignaciones", "/pm-asignaciones-proyecto.html"})
     public String asignaciones(@RequestParam("proyectoId") Long proyectoId,
                                @RequestParam(required = false) Integer paginaActivas,
@@ -378,6 +388,7 @@ public class PmViewController {
         return "pm/pm-asignaciones-proyecto";
     }
 
+    /** Procesa la acción POST "/asignaciones/proponer" (proponerAsignacion) del módulo Project Manager. */
     @PostMapping("/asignaciones/proponer")
     public String proponerAsignacion(
             @Valid @ModelAttribute("pmProponerAsignacionForm") PmProponerAsignacionForm form,
@@ -408,6 +419,7 @@ public class PmViewController {
         return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/asignaciones/{id}/aprobar" (aprobarAsignacion) del módulo Project Manager. */
     @PostMapping("/asignaciones/{id}/aprobar")
     public String aprobarAsignacion(@PathVariable("id") Long asignacionId,
                                     @RequestParam("proyectoId") Long proyectoId,
@@ -422,6 +434,7 @@ public class PmViewController {
         return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/asignaciones/{id}/rechazar" (rechazarAsignacion) del módulo Project Manager. */
     @PostMapping("/asignaciones/{id}/rechazar")
     public String rechazarAsignacion(@PathVariable("id") Long asignacionId,
                                      @Valid @ModelAttribute("pmRechazarAsignacionForm") PmRechazarAsignacionForm form,
@@ -447,6 +460,7 @@ public class PmViewController {
         return "redirect:/pm/proyectos/asignaciones?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/asignaciones/{id}/finalizar" (finalizarAsignacion) del módulo Project Manager. */
     @PostMapping("/asignaciones/{id}/finalizar")
     public String finalizarAsignacion(@PathVariable("id") Long asignacionId,
                                       @Valid @ModelAttribute("pmFinalizarAsignacionForm") PmFinalizarAsignacionForm form,
@@ -476,6 +490,7 @@ public class PmViewController {
     // ACTIVIDADES
     // ═══════════════════════════════════════════════════════════
 
+    /** Atiende la vista o descarga GET {"/actividades", "/pm-actividades.html"} (actividades) del módulo Project Manager. */
     @GetMapping({"/actividades", "/pm-actividades.html"})
     public String actividades(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
                               @RequestParam(required = false) Integer pagina,
@@ -517,6 +532,7 @@ public class PmViewController {
         return "pm/pm-actividades";
     }
 
+    /** Procesa la acción POST "/actividades/crear" (crearActividad) del módulo Project Manager. */
     @PostMapping("/actividades/crear")
     public String crearActividad(
             @Valid @ModelAttribute("pmActividadForm") PmActividadForm form,
@@ -547,6 +563,7 @@ public class PmViewController {
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/actividades/{id}/confirmar" (confirmarActividad) del módulo Project Manager. */
     @PostMapping("/actividades/{id}/confirmar")
     public String confirmarActividad(@PathVariable("id") Long actividadId,
                                      @RequestParam("proyectoId") Long proyectoId,
@@ -562,6 +579,7 @@ public class PmViewController {
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/actividades/{id}/devolver" (devolverActividad) del módulo Project Manager. */
     @PostMapping("/actividades/{id}/devolver")
     public String devolverActividad(@PathVariable("id") Long actividadId,
                                     @Valid @ModelAttribute("pmDevolverActividadForm") PmDevolverActividadForm form,
@@ -588,6 +606,7 @@ public class PmViewController {
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/actividades/{id}/editar" (editarActividad) del módulo Project Manager. */
     @PostMapping("/actividades/{id}/editar")
     public String editarActividad(@PathVariable("id") Long actividadId,
                                   @Valid @ModelAttribute("pmEditarActividadForm") PmEditarActividadForm form,
@@ -615,6 +634,7 @@ public class PmViewController {
         return "redirect:/pm/actividades?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/actividades/{id}/eliminar" (eliminarActividad) del módulo Project Manager. */
     @PostMapping("/actividades/{id}/eliminar")
     public String eliminarActividad(@PathVariable("id") Long actividadId,
                                     @RequestParam("proyectoId") Long proyectoId,
@@ -633,6 +653,7 @@ public class PmViewController {
     // FOROS
     // ═══════════════════════════════════════════════════════════
 
+    /** Atiende la vista o descarga GET {"/foros", "/pm-foros.html"} (foros) del módulo Project Manager. */
     @GetMapping({"/foros", "/pm-foros.html"})
     public String foros(@AuthenticationPrincipal UsuarioDetails principal,
                         @RequestParam(required = false) String tab,
@@ -652,6 +673,7 @@ public class PmViewController {
         return "pm/pm-foros";
     }
 
+    /** Atiende la vista o descarga GET {"/foro/detalle", "/pm-foro-detalle.html"} (foroDetalle) del módulo Project Manager. */
     @GetMapping({"/foro/detalle", "/pm-foro-detalle.html"})
     public String foroDetalle(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
                               @RequestParam(value = "foroId", required = false) Long foroId,
@@ -681,6 +703,7 @@ public class PmViewController {
         return "redirect:/pm/foros";
     }
 
+    /** Procesa la acción POST "/foro/publicar" (publicarForo) del módulo Project Manager. */
     @PostMapping("/foro/publicar")
     public String publicarForo(@Valid @ModelAttribute("pmForoPublicacionForm") PmForoPublicacionForm form,
                                BindingResult result,
@@ -719,6 +742,7 @@ public class PmViewController {
         return redirectUrl;
     }
 
+    /** Procesa la acción POST "/foro/responder" (responderForo) del módulo Project Manager. */
     @PostMapping("/foro/responder")
     public String responderForo(@Valid @ModelAttribute("pmForoRespuestaForm") PmForoRespuestaForm form,
                                 BindingResult result,
@@ -747,6 +771,7 @@ public class PmViewController {
         return redirectUrl;
     }
 
+    /** Procesa la acción POST "/foro/respuesta/{id}/marcar-solucion" (marcarSolucionForo) del módulo Project Manager. */
     @PostMapping("/foro/respuesta/{id}/marcar-solucion")
     public String marcarSolucionForo(@PathVariable("id") Long respuestaId,
                                      @RequestParam(value = "proyectoId", required = false) Long proyectoId,
@@ -763,6 +788,7 @@ public class PmViewController {
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/foro/publicacion/{publicacionId}/like" (likePublicacion) del módulo Project Manager. */
     @PostMapping("/foro/publicacion/{publicacionId}/like")
     public String likePublicacion(@PathVariable Long publicacionId,
                                   @RequestParam(value = "proyectoId", required = false) Long proyectoId,
@@ -778,6 +804,7 @@ public class PmViewController {
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/foro/respuesta/{respuestaId}/like" (likeRespuesta) del módulo Project Manager. */
     @PostMapping("/foro/respuesta/{respuestaId}/like")
     public String likeRespuesta(@PathVariable Long respuestaId,
                                 @RequestParam(value = "proyectoId", required = false) Long proyectoId,
@@ -793,6 +820,7 @@ public class PmViewController {
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/foro/publicacion/{publicacionId}/eliminar" (eliminarPublicacionForo) del módulo Project Manager. */
     @PostMapping("/foro/publicacion/{publicacionId}/eliminar")
     public String eliminarPublicacionForo(@PathVariable Long publicacionId,
                                           @RequestParam(value = "proyectoId", required = false) Long proyectoId,
@@ -809,6 +837,7 @@ public class PmViewController {
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/foro/respuesta/{respuestaId}/eliminar" (eliminarRespuestaForo) del módulo Project Manager. */
     @PostMapping("/foro/respuesta/{respuestaId}/eliminar")
     public String eliminarRespuestaForo(@PathVariable Long respuestaId,
                                         @RequestParam(value = "proyectoId", required = false) Long proyectoId,
@@ -825,6 +854,7 @@ public class PmViewController {
         return "redirect:/pm/foro/detalle?proyectoId=" + proyectoId;
     }
 
+    /** Procesa la acción POST "/foro/upload-imagen" (uploadImagenForo) del módulo Project Manager. */
     @PostMapping("/foro/upload-imagen")
     @org.springframework.web.bind.annotation.ResponseBody
     public java.util.Map<String, String> uploadImagenForo(@RequestParam("image") org.springframework.web.multipart.MultipartFile image) {
@@ -841,6 +871,7 @@ public class PmViewController {
     // REPORTES
     // ═══════════════════════════════════════════════════════════
 
+    /** Atiende la vista o descarga GET {"/reportes", "/pm-reportes.html"} (reportes) del módulo Project Manager. */
     @GetMapping({"/reportes", "/pm-reportes.html"})
     public String reportes(@AuthenticationPrincipal UsuarioDetails principal,
                            @RequestParam(required = false) String periodo,
@@ -885,6 +916,7 @@ public class PmViewController {
         return "pm/pm-reportes";
     }
 
+    /** Atiende la vista o descarga GET {"/reportes/consolidado/excel", "/reportes/consolidado/pdf", "/reportes/consolidado/exportar"} (exportarConsolidado) del módulo Project Manager. */
     @GetMapping({"/reportes/consolidado/excel", "/reportes/consolidado/pdf", "/reportes/consolidado/exportar"})
     public Object exportarConsolidado(
             @AuthenticationPrincipal UsuarioDetails principal,
@@ -940,6 +972,7 @@ public class PmViewController {
         }
     }
 
+    /** Atiende la vista o descarga GET "/reportes/excel" () del módulo Project Manager. */
     @GetMapping("/reportes/excel")
     public org.springframework.http.ResponseEntity<byte[]> reporteExcel(@RequestParam("proyectoId") Long proyectoId,
                                                                         @RequestParam(required = false) String mes,
@@ -956,6 +989,7 @@ public class PmViewController {
                 .body(contenido);
     }
 
+    /** Atiende la vista o descarga GET "/reportes/pdf" () del módulo Project Manager. */
     @GetMapping("/reportes/pdf")
     public org.springframework.http.ResponseEntity<byte[]> reportePdf(@RequestParam("proyectoId") Long proyectoId,
                                                                       @RequestParam(required = false) String mes,
@@ -972,6 +1006,7 @@ public class PmViewController {
                 .body(contenido);
     }
 
+    /** Atiende la vista o descarga GET {"/reportes/detalle", "/pm-reporte-detalle.html"} (reporteDetalle) del módulo Project Manager. */
     @GetMapping({"/reportes/detalle", "/pm-reporte-detalle.html"})
     public String reporteDetalle(@RequestParam("proyectoId") Long proyectoId,
                                  @RequestParam(required = false) Integer pagina,
@@ -996,6 +1031,7 @@ public class PmViewController {
     // PERFIL
     // ═══════════════════════════════════════════════════════════
 
+    /** Atiende la vista o descarga GET {"/perfil", "/pm-perfil.html"} (perfil) del módulo Project Manager. */
     @GetMapping({"/perfil", "/pm-perfil.html"})
     public String perfil(@AuthenticationPrincipal UsuarioDetails principal, Model model) {
         cargarVistaPerfil(principal, model);
@@ -1021,6 +1057,7 @@ public class PmViewController {
         if (!model.containsAttribute("pmPerfilPasswordForm")) model.addAttribute("pmPerfilPasswordForm", new PmPerfilPasswordForm());
     }
 
+    /** Procesa la acción POST "/perfil/datos" (actualizarDatos) del módulo Project Manager. */
     @PostMapping("/perfil/datos")
     public String actualizarDatos(
             @Valid @ModelAttribute("pmPerfilDatosForm") PmPerfilDatosForm form, BindingResult result,
@@ -1040,6 +1077,7 @@ public class PmViewController {
         return "redirect:/pm/perfil";
     }
 
+    /** Procesa la acción POST "/perfil/foto" (actualizarFoto) del módulo Project Manager. */
     @PostMapping("/perfil/foto")
     public String actualizarFoto(@RequestParam(value = "foto", required = false) MultipartFile foto,
                                  @AuthenticationPrincipal UsuarioDetails principal,
@@ -1054,6 +1092,7 @@ public class PmViewController {
         return "redirect:/pm/perfil";
     }
 
+    /** Procesa la acción POST "/perfil/password" (actualizarPassword) del módulo Project Manager. */
     @PostMapping("/perfil/password")
     public String actualizarPassword(
             @Valid @ModelAttribute("pmPerfilPasswordForm") PmPerfilPasswordForm form, BindingResult result,
@@ -1083,6 +1122,7 @@ public class PmViewController {
     // OTRAS VISTAS
     // ═══════════════════════════════════════════════════════════
 
+    /** Atiende la vista o descarga GET {"/chat", "/pm-chat.html"} (chat) del módulo Project Manager. */
     @GetMapping({"/chat", "/pm-chat.html"})
     public String chat(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
                        @RequestParam(value = "usuarioId", required = false) Long usuarioId,
@@ -1097,6 +1137,7 @@ public class PmViewController {
         return "pm/pm-chat";
     }
 
+    /** Atiende la vista o descarga GET {"/asistente", "/pm-asistente-ia.html"} (asistente) del módulo Project Manager. */
     @GetMapping({"/asistente", "/pm-asistente-ia.html"})
     public String asistente(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
                             @AuthenticationPrincipal UsuarioDetails principal,
@@ -1106,6 +1147,7 @@ public class PmViewController {
         return "pm/pm-asistente-ia";
     }
 
+    /** Procesa la acción POST "/asistente/mensaje" (enviarMensajeAsistente) del módulo Project Manager. */
     @PostMapping("/asistente/mensaje")
     public String enviarMensajeAsistente(
             @Valid @ModelAttribute("pmAsistenteMensajeForm") PmAsistenteMensajeForm form,
@@ -1129,6 +1171,7 @@ public class PmViewController {
                 : "redirect:/pm/asistente";
     }
 
+    /** Procesa la acción POST "/asistente/limpiar" (limpiarAsistente) del módulo Project Manager. */
     @PostMapping("/asistente/limpiar")
     public String limpiarAsistente(@RequestParam(value = "proyectoId", required = false) Long proyectoId,
                                    jakarta.servlet.http.HttpSession session,
@@ -1138,6 +1181,7 @@ public class PmViewController {
         return proyectoId != null ? "redirect:/pm/asistente?proyectoId=" + proyectoId : "redirect:/pm/asistente";
     }
 
+    /** Procesa la acción POST "/asistente/proponer" (proponerDesdeAsistente) del módulo Project Manager. */
     @PostMapping("/asistente/proponer")
     public String proponerDesdeAsistente(
             @Valid @ModelAttribute("pmProponerAsignacionForm") PmProponerAsignacionForm form,

@@ -82,6 +82,7 @@ public class PmAsistenteContextoService {
         this.rmTalentMatchingService = rmTalentMatchingService;
     }
 
+    /** Calcula los KPIs superiores del asistente del PM: proyectos, colaboradores únicos, vacantes y pendientes. */
     @Transactional(readOnly = true)
     public KpisAsistente obtenerKpis(Usuario pm) {
         List<Proyecto> misProyectos = proyectoRepository.findByPmOrderByFechaCreacionDesc(pm);
@@ -105,6 +106,7 @@ public class PmAsistenteContextoService {
         return new KpisAsistente(misProyectos.size(), colaboradoresUnicos.size(), vacantes, pendientesPm);
     }
 
+    /** Genera los botones de consultas rápidas del asistente, personalizados si hay un proyecto enfocado. */
     @Transactional(readOnly = true)
     public List<ConsultaRapida> listarConsultasRapidas(Usuario pm, Long proyectoId) {
         Proyecto enfocado = null;
@@ -134,6 +136,7 @@ public class PmAsistenteContextoService {
         );
     }
 
+    /** Construye el bloque de contexto completo (prompt, resumen local, tarjetas de proyectos/candidatos y fuentes de foros). */
     @Transactional(readOnly = true)
     public ContextoPm construir(Long pmId, Long proyectoContextoId, String mensaje) {
         Usuario pm = usuarioRepository.findById(pmId)

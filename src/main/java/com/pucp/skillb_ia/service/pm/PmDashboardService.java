@@ -50,33 +50,40 @@ public class PmDashboardService {
         this.asignacionRepository = asignacionRepository;
     }
 
+    /** Cuenta los proyectos en estado ACTIVO a cargo del PM. */
     @Transactional(readOnly = true)
     public long getCountProyectosActivos(Usuario pm) {
         return proyectoRepository.findByPmAndEstado(pm, EstadoProyecto.ACTIVO).size();
     }
 
+    /** Cuenta las actividades en estado EN_REVISION pendientes de respuesta del PM. */
     @Transactional(readOnly = true)
     public long getCountActividadesPendientes(Usuario pm) {
         return actividadRepository.countByPmAndEstado(pm, EstadoActividad.EN_REVISION);
     }
 
+    /** Cuenta los colaboradores únicos con asignación activa en los proyectos del PM. */
     @Transactional(readOnly = true)
     public long getCountColaboradoresEquipo(Usuario pm) {
         return asignacionRepository.countColaboradoresUnicosActivosPorPm(pm, com.pucp.skillb_ia.model.enums.EstadoAsignacion.ACTIVA);
     }
 
+    /** Cuenta las propuestas de asignación enviadas por el PM que aún esperan aprobación del RM. */
     @Transactional(readOnly = true)
     public long getCountAsignacionesEnRevision(Usuario pm) {
         return asignacionRepository.countPendientesRmByPm(pm, com.pucp.skillb_ia.model.enums.EstadoAsignacion.PENDIENTE, com.pucp.skillb_ia.model.enums.OrigenAsignacion.PROPUESTA_PM);
     }
 
+    /** Obtiene el detalle de las actividades en estado EN_REVISION del PM. */
     @Transactional(readOnly = true)
     public List<Actividad> getActividadesPendientes(Usuario pm) {
         return actividadRepository.findByPmAndEstadoConDetalle(pm, EstadoActividad.EN_REVISION);
     }
 
-    // Colaboradores activos de los proyectos del PM (activos o en espera) con al menos un strike en ese proyecto,
-    // de más a menos strikes. Un mismo colaborador aparece una vez por proyecto.
+    /**
+     * Lista los colaboradores activos de los proyectos del PM (activos o en espera) que acumulan
+     * al menos un strike, ordenados de mayor a menor cantidad de strikes.
+     */
     @Transactional(readOnly = true)
     public List<StrikeColaborador> getStrikesEquipo(Usuario pm) {
         List<Proyecto> proyectos = new ArrayList<>(proyectoRepository.findByPmAndEstado(pm, EstadoProyecto.ACTIVO));
@@ -105,6 +112,7 @@ public class PmDashboardService {
         return (n + a).toUpperCase();
     }
 
+    /** Devuelve hasta cinco proyectos activos del PM para el panel de atención rápida del dashboard. */
     @Transactional(readOnly = true)
     public List<Proyecto> getProyectosQueNecesitanAtencion(Usuario pm) {
         List<Proyecto> activos = proyectoRepository.findByPmAndEstado(pm, EstadoProyecto.ACTIVO);

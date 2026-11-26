@@ -2,6 +2,7 @@ package com.pucp.skillb_ia.dto;
 
 import com.pucp.skillb_ia.model.Usuario;
 
+/** Vista de solo lectura del perfil del Project Manager (nombre, iniciales, cargo y foto). */
 public class PmPerfilView {
 
     private final Usuario usuario;

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+/** Formulario para proponer a un colaborador a un proyecto del Project Manager. */
 public class PmProponerAsignacionForm implements Serializable {
     @NotNull(message = "El proyecto es obligatorio.")
     private Long proyectoId;

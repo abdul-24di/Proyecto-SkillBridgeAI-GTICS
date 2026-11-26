@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.dto.pm;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/** Formulario para enviar una consulta al Asistente IA del Project Manager. */
 public class PmAsistenteMensajeForm {
 
     @NotBlank(message = "Escribe tu consulta para el asistente.")

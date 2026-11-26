@@ -81,6 +81,7 @@ public class PmProyectoService {
         this.cierreAsignacionesService = cierreAsignacionesService;
     }
 
+    /** Lista todos los proyectos del PM con sus métricas resumidas de equipo y actividades. */
     @Transactional(readOnly = true)
     public List<PmProyectoView> listar(Usuario pm) {
         return proyectoRepository.findByPmOrderByFechaCreacionDesc(pm)
@@ -89,6 +90,7 @@ public class PmProyectoService {
                 .toList();
     }
 
+    /** Obtiene la vista detallada de un proyecto del PM verificando su propiedad. */
     @Transactional(readOnly = true)
     public PmProyectoView obtener(Long proyectoId, Usuario pm) {
         Proyecto proyecto = proyectoRepository.findByIdConPm(proyectoId)
@@ -97,6 +99,7 @@ public class PmProyectoService {
         return construirVista(proyecto, pm);
     }
 
+    /** Crea un proyecto en estado EN_REVISION, inicializa su chat grupal, asigna RM responsable y guarda habilidades requeridas. */
     @Transactional
     public Proyecto crear(String nombre, String descripcion,
                           LocalDate fechaInicio, LocalDate fechaFinEstimada,
@@ -180,11 +183,13 @@ public class PmProyectoService {
     //Cancelamos el proyecto y, en la misma transacción, cerramos sus asignaciones abiertas:
     //las PENDIENTE pasan a RECHAZADA y las ACTIVA a FINALIZADA (sin strike ni penalización).
     //Si algo falla, se revierte todo y el proyecto no queda cancelado.
+    /** Cancela un proyecto EN_REVISION o EN_ESPERA sin motivo explícito y cierra sus asignaciones abiertas. */
     @Transactional
     public CierreAsignacionesService.Resultado cancelar(Long proyectoId, Usuario pm) {
         return cancelar(proyectoId, null, pm);
     }
 
+    /** Cancela un proyecto EN_REVISION o EN_ESPERA guardando el motivo y cerrando sus asignaciones abiertas. */
     @Transactional
     public CierreAsignacionesService.Resultado cancelar(Long proyectoId, String motivo, Usuario pm) {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)

@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/** Formulario de creación de una nueva actividad asignada por el Project Manager. */
 public class PmActividadForm implements Serializable {
     @NotNull(message = "El proyecto es obligatorio.")
     private Long proyectoId;

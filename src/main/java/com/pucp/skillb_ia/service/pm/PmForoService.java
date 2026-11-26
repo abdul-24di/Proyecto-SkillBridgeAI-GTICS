@@ -91,6 +91,7 @@ public class PmForoService {
         this.archivoAlmacenamientoService = archivoAlmacenamientoService;
     }
 
+    /** Valida formato (JPEG, PNG, GIF o WEBP) y tamaño (máximo 5 MB) y almacena una imagen para publicaciones del foro. */
     public String subirImagen(MultipartFile foto) {
         if (foto == null || foto.isEmpty()) {
             throw new IllegalArgumentException("La imagen no puede estar vacía.");
@@ -161,6 +162,7 @@ public class PmForoService {
                 .orElse(java.util.Collections.emptyList());
     }
 
+    /** Obtiene las publicaciones de un foro específico validando permisos de acceso del usuario. */
     @Transactional(readOnly = true)
     public List<ForoPublicacionView> obtenerDetallePorForo(Long foroId, Usuario pm, String orden) {
         Foro foro = foroRepository.findById(foroId)
@@ -183,6 +185,7 @@ public class PmForoService {
                 && foro.getProyecto().getPm().getId().equals(pm.getId());
     }
 
+    /** Devuelve la entidad {@link Foro} por su identificador, o {@code null} si no existe. */
     @Transactional(readOnly = true)
     public Foro obtenerForoBase(Long foroId) {
         return foroRepository.findById(foroId).orElse(null);
@@ -198,6 +201,7 @@ public class PmForoService {
         return publicarInterno(foro, titulo, contenido, pm);
     }
 
+    /** Crea una publicación en un foro existente verificando que el usuario pueda participar (no anuncios). */
     @Transactional
     public PublicacionForo publicarEnForo(Long foroId, String titulo, String contenido, Usuario pm) {
         Foro foro = foroRepository.findById(foroId)
@@ -273,6 +277,7 @@ public class PmForoService {
         return guardada;
     }
 
+    /** Verifica si el contenido HTML de una publicación o respuesta carece de texto visible y de imágenes. */
     public static boolean contenidoForoVacio(String contenido) {
         if (contenido == null || contenido.isBlank()) {
             return true;
@@ -344,6 +349,7 @@ public class PmForoService {
         return proyecto;
     }
 
+    /** Alterna el voto positivo ("me gusta") del PM sobre una publicación accesible. */
     @Transactional
     public void alternarLikePublicacion(Usuario pm, Long publicacionId) {
         PublicacionForo publicacion = publicacionRepository.findById(publicacionId)
@@ -362,6 +368,7 @@ public class PmForoService {
         }
     }
 
+    /** Alterna el voto positivo ("me gusta") del PM sobre una respuesta accesible. */
     @Transactional
     public void alternarLikeRespuesta(Usuario pm, Long respuestaId) {
         RespuestaForo respuesta = respuestaRepository.findById(respuestaId)
@@ -380,6 +387,7 @@ public class PmForoService {
         }
     }
 
+    /** Elimina lógicamente una publicación del foro verificando que pertenezca al usuario autenticado. */
     @Transactional
     public void eliminarPublicacion(Usuario pm, Long publicacionId) {
         PublicacionForo publicacion = publicacionRepository.findById(publicacionId)
@@ -394,6 +402,7 @@ public class PmForoService {
                 "Eliminó la publicación \"" + publicacion.getTitulo() + "\".");
     }
 
+    /** Elimina lógicamente una respuesta del foro verificando que pertenezca al usuario autenticado. */
     @Transactional
     public void eliminarRespuesta(Usuario pm, Long respuestaId) {
         RespuestaForo respuesta = respuestaRepository.findById(respuestaId)

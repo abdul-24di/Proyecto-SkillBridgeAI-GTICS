@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.dto.pm;
 import com.pucp.skillb_ia.dto.auth.PoliticaPassword;
 import jakarta.validation.constraints.*;
 
+/** Formulario para cambiar la contraseña del Project Manager. */
 public class PmPerfilPasswordForm {
     @NotBlank(message = "La contraseña actual es obligatoria")
     private String passwordActual;

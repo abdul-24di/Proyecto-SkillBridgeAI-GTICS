@@ -3,6 +3,7 @@ package com.pucp.skillb_ia.dto.pm;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
 
+/** Formulario para devolver una actividad en revisión con comentario y strike opcional. */
 public class PmDevolverActividadForm implements Serializable {
     @NotNull(message = "El proyecto es obligatorio.")
     private Long proyectoId;

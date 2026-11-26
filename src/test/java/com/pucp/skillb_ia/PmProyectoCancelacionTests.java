@@ -371,6 +371,29 @@ class PmProyectoCancelacionTests {
         }
     }
 
+    @Test
+    void conFechasInvertidasElFormularioConservaLasFechasEscritas() throws Exception {
+        String inicio = LocalDate.now().plusMonths(2).toString();
+        String fin = LocalDate.now().plusMonths(1).toString();
+        autenticar(pm);
+        try {
+            mockMvc.perform(post("/pm/proyectos/crear")
+                            .param("nombre", "Proyecto con fechas invertidas")
+                            .param("descripcion", "Prueba del formulario")
+                            .param("fechaInicio", inicio)
+                            .param("fechaFinEstimada", fin)
+                            .param("prioridad", "ALTA"))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                    .andExpect(content().string(containsString(
+                            "La fecha de fin estimada no puede ser anterior a la fecha de inicio")))
+                    // El campo de fecha solo acepta el formato aaaa-mm-dd; con otro formato se vería vacío.
+                    .andExpect(content().string(containsString("value=\"" + inicio + "\"")))
+                    .andExpect(content().string(containsString("value=\"" + fin + "\"")));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
     private void autenticar(Usuario usuario) {
         // findActivosByRolNombre trae el rol cargado, necesario para las autoridades.
         UsuarioDetails details = new UsuarioDetails(usuarioRepository.findActivosByRolNombre("PROJECT_MANAGER")

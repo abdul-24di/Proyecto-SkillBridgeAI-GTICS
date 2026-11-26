@@ -1,6 +1,7 @@
 package com.pucp.skillb_ia.dto.pm;
 
 import jakarta.validation.constraints.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ public class PmActividadForm implements Serializable {
 
     @NotNull(message = "La fecha límite es obligatoria.")
     @FutureOrPresent(message = "La fecha límite no puede ser anterior a hoy.")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate fechaLimite;
 
     public Long getProyectoId() { return proyectoId; }

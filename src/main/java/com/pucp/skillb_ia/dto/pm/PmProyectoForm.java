@@ -1,6 +1,7 @@
 package com.pucp.skillb_ia.dto.pm;
 
 import jakarta.validation.constraints.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,9 +18,11 @@ public class PmProyectoForm {
 
     @NotNull(message = "La fecha de inicio es obligatoria")
     @FutureOrPresent(message = "La fecha de inicio no puede ser anterior a hoy")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate fechaInicio;
 
     @NotNull(message = "La fecha de fin estimada es obligatoria")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate fechaFinEstimada;
 
     @NotBlank(message = "La prioridad es obligatoria")

@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Reporte de recursos</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-reporte-recursos.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('reportes')}"></header>
+  <main class="page-wrap">
+    <div class="breadcrumb-wrap"><span class="text-secondary">Reportes</span></div>
+    <!-- "error" lo pone GlobalExceptionHandler (por ejemplo, exportar sin ninguna hoja). -->
+    <div th:if="${error}" class="alert alert-danger" role="alert" th:text="${error}"></div>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <h1 class="page-title">Reporte de recursos</h1>
+        <div class="text-secondary" th:text="|Resumen de proyectos para ${reporte.periodoTexto}.|">Resumen mensual.</div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap export-actions">
+        <a class="btn btn-outline-secondary"
+           th:href="@{/rm/reportes/horas-colaboradores(periodo=${reporte.periodoValor},proyecto=${reporte.proyectoSeleccionado})}">Horas por colaborador</a>
+        <button type="button" class="btn btn-primary" id="exportReportButton"
+                data-bs-toggle="modal" data-bs-target="#exportReportModal">Exportar</button>
+      </div>
+    </div>
+
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Periodo y alcance</h3>
+          <div class="section-description" id="reportHoursRule" th:text="|Regla de horas trabajadas: ${reporte.reglaHoras}|">Regla de horas trabajadas.</div>
+          <div class="section-description" id="reportAppliedFilters" th:text="|Filtros aplicados: ${reporte.filtrosTexto}|">Filtros aplicados.</div>
+        </div>
+      </div>
+      <form class="card-body report-filters" id="reportFiltersForm" method="get" th:action="@{/rm/reportes/recursos}">
+        <!-- Desde/Hasta: mes y año por separado; el servidor los une. "Hasta" no puede ser anterior a "Desde"
+             ni posterior al mes actual (rm-reporte-recursos.js desactiva esas opciones y el servidor lo normaliza). -->
+        <div class="row g-3 align-items-end"
+             th:with="mesDesde=${#strings.substring(reporte.periodoValor, 5)}, mesHasta=${#strings.substring(reporte.periodoHasta.toString(), 5)}">
+          <div class="col-md-6 col-xl-auto">
+            <label for="mesDesde" class="form-label">Desde</label>
+            <div class="input-group report-periodo">
+              <select id="mesDesde" name="mesDesde" class="form-select" aria-label="Mes desde">
+                <option th:each="mes : ${mesesFiltro}" th:value="${mes.valor}" th:text="${mes.texto}"
+                        th:selected="${mes.valor == mesDesde}"></option>
+              </select>
+              <select id="anioDesde" name="anioDesde" class="form-select report-anio" aria-label="Año desde">
+                <option th:each="anio : ${aniosFiltro}" th:value="${anio}" th:text="${anio}"
+                        th:selected="${anio == reporte.periodo.year}"></option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6 col-xl-auto">
+            <label for="mesHasta" class="form-label">Hasta <span class="text-secondary fw-normal" th:text="|(máx. ${maximoMesesRango} meses)|">(máx. 12 meses)</span></label>
+            <div class="input-group report-periodo" th:attr="data-maximo-meses=${maximoMesesRango},data-mes-actual=${mesActual}" id="reportHasta">
+              <select id="mesHasta" name="mesHasta" class="form-select" aria-label="Mes hasta">
+                <option th:each="mes : ${mesesFiltro}" th:value="${mes.valor}" th:text="${mes.texto}"
+                        th:selected="${mes.valor == mesHasta}"></option>
+              </select>
+              <select id="anioHasta" name="anioHasta" class="form-select report-anio" aria-label="Año hasta">
+                <option th:each="anio : ${aniosFiltro}" th:value="${anio}" th:text="${anio}"
+                        th:selected="${anio == reporte.periodoHasta.year}"></option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-6 col-xl">
+            <label for="proyecto" class="form-label">Proyecto</label>
+            <select id="proyecto" name="proyecto" class="form-select">
+              <option value="">Todos los proyectos</option>
+              <option th:each="proyecto : ${proyectosFiltro}" th:value="${proyecto.valor}"
+                      th:text="${proyecto.texto}" th:selected="${proyecto.valor == reporte.proyectoSeleccionadoValor}"></option>
+            </select>
+          </div>
+          <div class="col-md-3 col-xl-2">
+            <label for="estado" class="form-label">Estado del proyecto</label>
+            <select id="estado" name="estado" class="form-select">
+              <option value="">Todos</option>
+              <option th:each="opcion : ${estadosFiltro}" th:value="${opcion.valor}"
+                      th:text="${opcion.texto}" th:selected="${opcion.valor == reporte.estadoSeleccionado}"></option>
+            </select>
+          </div>
+          <div class="col-md-3 col-xl-2">
+            <label for="prioridad" class="form-label">Prioridad</label>
+            <select id="prioridad" name="prioridad" class="form-select">
+              <option value="">Todas</option>
+              <option th:each="opcion : ${prioridadesFiltro}" th:value="${opcion.valor}"
+                      th:text="${opcion.texto}" th:selected="${opcion.valor == reporte.prioridadSeleccionada}"></option>
+            </select>
+          </div>
+          <div class="col-12 col-xl-auto d-flex gap-2 justify-content-end">
+            <button type="submit" class="btn btn-primary">Aplicar</button>
+            <a class="btn btn-outline-secondary" th:href="@{/rm/reportes/recursos}">Limpiar</a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="metric-label">Proyectos incluidos</div><div class="metric-number" th:text="${reporte.totalProyectos}">0</div><div class="small text-secondary">Según filtros</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="metric-label">Presupuesto asignado</div><div class="metric-number metric-money" th:text="|S/ ${#numbers.formatDecimal(reporte.presupuestoTotal, 1, 'COMMA', 2, 'POINT')}|">S/ 0.00</div><div class="small text-secondary">Dato informativo</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="metric-label">Horas trabajadas</div><div class="metric-number" th:text="|${#numbers.formatDecimal(reporte.horasTotales, 1, 'COMMA', 2, 'POINT')} h|">0 h</div><div class="small text-secondary">Tareas completadas</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="metric-label">Colaboradores involucrados</div><div class="metric-number" th:text="${reporte.colaboradoresInvolucrados}">0</div><div class="small text-secondary">Con tareas completadas</div>
+      </div></div></div>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-lg-8">
+        <div class="card section-card h-100">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Comparación por proyecto</h3><div class="section-description">Presupuesto registrado y horas completadas en el periodo.</div></div></div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table mb-0">
+              <thead><tr><th th:each="columna : ${columnasProyecto}" th:text="${columna}">Proyecto</th><th class="text-end">Acción</th></tr></thead>
+              <tbody>
+              <tr th:each="item : ${paginaProyectos.filas}" class="proyecto-row">
+                <td class="fw-semibold" th:text="${item.nombre}">Proyecto</td>
+                <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Activo</span></td>
+                <td><span class="badge" th:classappend="${item.prioridadClase}" th:text="${item.prioridadTexto}">Alta</span></td>
+                <td th:text="|S/ ${#numbers.formatDecimal(item.presupuesto, 1, 'COMMA', 2, 'POINT')}|">S/ 0.00</td>
+                <td th:text="|${#numbers.formatDecimal(item.horas, 1, 'COMMA', 2, 'POINT')} h|">0 h</td>
+                <td th:text="${item.colaboradores}">0</td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" th:href="@{/rm/proyectos/detalle(id=${item.id})}">Ver proyecto</a></td>
+              </tr>
+              <th:block th:if="${#lists.isEmpty(reporte.proyectos)}"><tr th:replace="~{fragments/rm-empty-state :: fila(vacioColspan=7, vacioIcono='carpeta',
+                  vacioTitulo='Sin proyectos', vacioTexto='No hay proyectos que coincidan con los filtros.')}"></tr></th:block>
+              </tbody>
+            </table>
+          </div>
+          <!-- Paginación en el servidor: cada enlace conserva los filtros aplicados y la página de la otra tabla. -->
+          <div class="pagination-wrap" th:with="pagina=${paginaProyectos}">
+            <div id="paginationInfoProyectos" class="text-secondary small"
+                 th:with="desdeFila=${pagina.totalRegistros == 0 ? 0 : ((pagina.paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((pagina.paginaActual - 1) * tamanioPagina) + #lists.size(pagina.filas)}"
+                 th:text="|Mostrando ${desdeFila}-${hastaFila} de ${pagina.totalRegistros} proyectos|">Mostrando 0-0 de 0 proyectos</div>
+            <ul id="paginationProyectos" class="pagination pagination-sm m-0" th:if="${pagina.totalPaginas > 1}">
+              <li class="page-item" th:classappend="${pagina.paginaActual == 1} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, hasta=${reporte.periodoHastaValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, prioridad=${reporte.prioridadSeleccionada}, paginaProyectos=${pagina.paginaActual - 1}, paginaColaboradores=${paginaColaboradores.paginaActual})}">Anterior</a>
+              </li>
+              <li class="page-item" th:each="n : ${#numbers.sequence(1, pagina.totalPaginas)}"
+                  th:classappend="${n == pagina.paginaActual} ? 'active'">
+                <a class="page-link"
+                   th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, hasta=${reporte.periodoHastaValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, prioridad=${reporte.prioridadSeleccionada}, paginaProyectos=${n}, paginaColaboradores=${paginaColaboradores.paginaActual})}"
+                   th:text="${n}">1</a>
+              </li>
+              <li class="page-item" th:classappend="${pagina.paginaActual == pagina.totalPaginas} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, hasta=${reporte.periodoHastaValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, prioridad=${reporte.prioridadSeleccionada}, paginaProyectos=${pagina.paginaActual + 1}, paginaColaboradores=${paginaColaboradores.paginaActual})}">Siguiente</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card section-card h-100">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Distribución de horas</h3><div class="section-description">Participación respecto al proyecto con más horas.</div></div></div>
+          <div class="card-body chart-list">
+            <div class="mb-3" th:each="item : ${reporte.proyectos}">
+              <div class="d-flex justify-content-between mb-1"><span class="text-truncate" th:text="${item.nombre}">Proyecto</span><strong th:text="|${#numbers.formatDecimal(item.horas, 1, 'COMMA', 2, 'POINT')} h|">0 h</strong></div>
+              <div class="progress progress-sm"><div class="progress-bar bg-primary" th:style="|width: ${item.porcentajeHoras}%|"></div></div>
+            </div>
+            <th:block th:if="${#lists.isEmpty(reporte.proyectos)}">
+              <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='grafico', vacioTitulo='Sin información para graficar',
+                  vacioTexto='El gráfico se muestra cuando hay proyectos que coinciden con los filtros.')}"></div>
+            </th:block>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card section-card">
+      <div class="card-header section-header"><div><h3 class="card-title mb-1">Detalle por colaborador</h3><div class="section-description">Agrupación de tareas completadas por colaborador y proyecto.</div></div></div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead><tr><th th:each="columna : ${columnasDetalle}" th:text="${columna}">Colaborador</th></tr></thead>
+          <tbody>
+          <tr th:each="item : ${paginaColaboradores.filas}" class="detalle-row">
+            <td class="fw-semibold" th:text="${item.colaborador}">Colaborador</td><td th:text="${item.cargo}">Cargo</td><td th:text="${item.proyecto}">Proyecto</td>
+            <td th:text="|${#numbers.formatDecimal(item.horas, 1, 'COMMA', 2, 'POINT')} h|">0 h</td><td th:text="${item.tareas}">0</td>
+          </tr>
+          <th:block th:if="${#lists.isEmpty(reporte.detalles)}"><tr th:replace="~{fragments/rm-empty-state :: fila(vacioColspan=5, vacioIcono='lista',
+              vacioTitulo='Sin tareas completadas', vacioTexto='No hay tareas completadas en este periodo.')}"></tr></th:block>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-wrap" th:with="pagina=${paginaColaboradores}">
+        <div id="paginationInfoDetalles" class="text-secondary small"
+             th:with="desdeFila=${pagina.totalRegistros == 0 ? 0 : ((pagina.paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((pagina.paginaActual - 1) * tamanioPagina) + #lists.size(pagina.filas)}"
+             th:text="|Mostrando ${desdeFila}-${hastaFila} de ${pagina.totalRegistros} registros|">Mostrando 0-0 de 0 registros</div>
+        <ul id="paginationDetalles" class="pagination pagination-sm m-0" th:if="${pagina.totalPaginas > 1}">
+          <li class="page-item" th:classappend="${pagina.paginaActual == 1} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, hasta=${reporte.periodoHastaValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, prioridad=${reporte.prioridadSeleccionada}, paginaProyectos=${paginaProyectos.paginaActual}, paginaColaboradores=${pagina.paginaActual - 1})}">Anterior</a>
+          </li>
+          <li class="page-item" th:each="n : ${#numbers.sequence(1, pagina.totalPaginas)}"
+              th:classappend="${n == pagina.paginaActual} ? 'active'">
+            <a class="page-link"
+               th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, hasta=${reporte.periodoHastaValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, prioridad=${reporte.prioridadSeleccionada}, paginaProyectos=${paginaProyectos.paginaActual}, paginaColaboradores=${n})}"
+               th:text="${n}">1</a>
+          </li>
+          <li class="page-item" th:classappend="${pagina.paginaActual == pagina.totalPaginas} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/rm/reportes/recursos(periodo=${reporte.periodoValor}, hasta=${reporte.periodoHastaValor}, proyecto=${reporte.proyectoSeleccionadoValor}, estado=${reporte.estadoSeleccionado}, prioridad=${reporte.prioridadSeleccionada}, paginaProyectos=${paginaProyectos.paginaActual}, paginaColaboradores=${pagina.paginaActual + 1})}">Siguiente</a>
+          </li>
+        </ul>
+      </div>
+      <div class="report-note"><div class="small text-secondary"><strong>Importante:</strong> el presupuesto es información del proyecto. El reporte no incluye sueldos, bonos ni pagos mensuales.</div></div>
+    </div>
+  </main>
+</div>
+
+<!-- Exportación: un formulario GET con los filtros ya aplicados y las casillas de contenido; funciona sin JS. -->
+<div class="modal modal-blur fade rm-modal" id="exportReportModal" tabindex="-1" aria-labelledby="exportReportModalTitle" aria-hidden="true"
+     th:attr="data-applied-periodo=${reporte.periodoValor},data-applied-hasta=${reporte.periodoHastaValor},data-applied-proyecto=${reporte.proyectoSeleccionadoValor},data-applied-estado=${reporte.estadoSeleccionado},data-applied-prioridad=${reporte.prioridadSeleccionada}">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <form class="modal-content" id="exportReportForm" method="get" th:action="@{/rm/reportes/recursos/excel}">
+      <input type="hidden" name="periodo" th:value="${reporte.periodoValor}">
+      <input type="hidden" name="hasta" th:value="${reporte.periodoHastaValor}">
+      <input type="hidden" name="proyecto" th:value="${reporte.proyectoSeleccionadoValor}">
+      <input type="hidden" name="estado" th:value="${reporte.estadoSeleccionado}">
+      <input type="hidden" name="prioridad" th:value="${reporte.prioridadSeleccionada}">
+      <input type="hidden" name="personalizado" value="true">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exportReportModalTitle">Exportar reporte de recursos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning d-none" id="exportUnappliedAlert" role="alert">
+          <div>Cambiaste filtros sin aplicarlos. El archivo usará los filtros aplicados que se muestran abajo.</div>
+          <button type="submit" form="reportFiltersForm" class="btn btn-sm btn-warning mt-2">Aplicar filtros y volver</button>
+        </div>
+
+        <h4 class="export-step">1. Qué se exportará</h4>
+        <dl class="rm-modal-context export-scope" id="exportScope">
+          <div><dt>Periodo</dt><dd th:text="${reporte.periodoTexto}">Periodo</dd></div>
+          <div><dt>Registros</dt>
+            <dd id="exportRecordCount" th:text="|${reporte.totalProyectos} proyecto(s) y ${#lists.size(reporte.detalles)} registro(s) por colaborador|">0</dd></div>
+          <div class="export-scope-wide"><dt>Filtros aplicados</dt><dd th:text="${reporte.filtrosTexto}">Filtros</dd></div>
+        </dl>
+        <p class="small text-secondary mb-2">Se exportan todos los registros de estos filtros, aunque las tablas se muestren por páginas. Para cambiar el alcance, cierra esta ventana, ajusta los filtros y pulsa "Aplicar".</p>
+        <div class="alert alert-info py-2" id="exportEmptyNotice"
+             th:if="${#lists.isEmpty(reporte.proyectos) and #lists.isEmpty(reporte.detalles)}">
+          No hay registros para estos filtros: el archivo tendrá el encabezado y las secciones vacías.
+        </div>
+
+        <h4 class="export-step">2. Formato y contenido del reporte</h4>
+        <div class="d-flex gap-4 flex-wrap mb-3">
+          <label class="form-check form-check-inline mb-0 fw-semibold">
+            <input class="form-check-input export-formato" type="radio" name="formato" value="excel" id="exportFormatoExcel" checked>
+            <span class="form-check-label">Excel (.xlsx)</span>
+          </label>
+          <label class="form-check form-check-inline mb-0 fw-semibold">
+            <input class="form-check-input export-formato" type="radio" name="formato" value="pdf" id="exportFormatoPdf">
+            <span class="form-check-label">Documento PDF (.pdf)</span>
+          </label>
+        </div>
+        <p class="small text-secondary mb-2">El reporte lleva el encabezado: título, periodo, filtros aplicados, fecha de generación y regla de horas trabajadas. En PDF, cada hoja se convierte en una sección.</p>
+        <label class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="resumen" value="true" id="exportResumen" checked>
+          <span class="form-check-label">Incluir resumen (<span th:text="${#strings.listJoin(metricasResumen, ', ')}">métricas</span>) en la hoja Proyectos</span>
+        </label>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="export-format h-100">
+              <label class="form-check fw-semibold">
+                <input class="form-check-input export-hoja" type="checkbox" name="hojas" value="proyectos" id="exportHojaProyectos" checked>
+                <span class="form-check-label">Hoja "Proyectos"</span>
+              </label>
+              <fieldset class="export-columnas ms-4" data-hoja="exportHojaProyectos">
+                <legend class="small text-secondary mb-1">Columnas</legend>
+                <label class="form-check small" th:each="columna, iter : ${columnasProyecto}">
+                  <input class="form-check-input" type="checkbox" name="colProyecto" th:value="${iter.index}" checked
+                         th:disabled="${iter.index == 0}">
+                  <span class="form-check-label" th:text="${iter.index == 0 ? columna + ' (siempre)' : columna}">Columna</span>
+                </label>
+              </fieldset>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="export-format h-100">
+              <label class="form-check fw-semibold">
+                <input class="form-check-input export-hoja" type="checkbox" name="hojas" value="colaboradores" id="exportHojaColaboradores" checked>
+                <span class="form-check-label">Hoja "Colaboradores"</span>
+              </label>
+              <fieldset class="export-columnas ms-4" data-hoja="exportHojaColaboradores">
+                <legend class="small text-secondary mb-1">Columnas</legend>
+                <label class="form-check small" th:each="columna, iter : ${columnasDetalle}">
+                  <input class="form-check-input" type="checkbox" name="colDetalle" th:value="${iter.index}" checked
+                         th:disabled="${iter.index == 0}">
+                  <span class="form-check-label" th:text="${iter.index == 0 ? columna + ' (siempre)' : columna}">Columna</span>
+                </label>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-danger py-2 mt-3 d-none" id="exportSinHojas" role="alert">Selecciona al menos una hoja para exportar.</div>
+        <p class="small text-secondary mt-3 mb-1">Montos y horas se guardan como números, para filtrar o calcular en Excel.</p>
+        <p class="small text-secondary" th:text="|Regla de horas trabajadas: ${reporte.reglaHoras}|">Regla de horas.</p>
+
+        <h4 class="export-step">3. Archivo</h4>
+        <code class="export-file" id="exportExcelFile" th:text="${archivoExportacion + '.xlsx'}">reporte.xlsx</code>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="exportExcelButton">Descargar Excel</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/rm-js/rm-reporte-recursos.js}"></script>
+</body>
+</html>

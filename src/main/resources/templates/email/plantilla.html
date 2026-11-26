@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<!--
+  Partes comunes de los correos de SkillBridge AI.
+  Los estilos van en línea (style="...") porque Gmail y Outlook ignoran las hojas de estilo de un correo.
+-->
+<body>
+
+<!-- Encabezado azul con el nombre del sistema -->
+<table th:fragment="encabezado" role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background:#206bc4;border-radius:8px 8px 0 0;">
+  <tr>
+    <td style="padding:24px 32px;font-family:Arial,Helvetica,sans-serif;color:#ffffff;">
+      <div style="font-size:22px;font-weight:bold;">SkillBridge AI</div>
+      <div style="font-size:13px;opacity:0.85;margin-top:4px;">Gestión de talento y proyectos</div>
+    </td>
+  </tr>
+</table>
+
+<!-- Pie con el aviso de correo automático -->
+<table th:fragment="pie" role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background:#f1f5f9;border-radius:0 0 8px 8px;">
+  <tr>
+    <td style="padding:16px 32px;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#64748b;line-height:1.5;">
+      Este es un correo automático de SkillBridge AI; no respondas a este mensaje.<br>
+      Si no esperabas este correo, puedes ignorarlo.
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

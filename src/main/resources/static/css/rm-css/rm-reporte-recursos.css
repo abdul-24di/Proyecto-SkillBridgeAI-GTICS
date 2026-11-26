@@ -1,0 +1,158 @@
+/* =========================================================
+   REPORTE DE RECURSOS - RESOURCE MANAGER
+   ========================================================= */
+
+.report-filters {
+  padding: 1rem 1.15rem;
+}
+
+.export-actions {
+  justify-content: flex-end;
+}
+
+.metric-card {
+  min-height: 108px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.table > :not(caption) > * > * {
+  vertical-align: middle;
+}
+
+.table thead th {
+  color: #4f5d6b;
+  background: #f7f9fc;
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.report-footer {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid #edf0f4;
+}
+
+.chart-list {
+  display: grid;
+  gap: .95rem;
+  padding: 1rem 1.15rem;
+}
+
+.chart-item {
+  display: grid;
+  gap: .35rem;
+}
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: .83rem;
+}
+
+.chart-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf2f7;
+}
+
+.chart-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #206bc4;
+}
+
+.report-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .65rem;
+  padding: .85rem 1rem;
+  border-top: 1px solid #edf0f4;
+  background: #f8fafc;
+}
+
+@media (max-width: 767px) {
+  .export-actions {
+    width: 100%;
+  }
+
+  .export-actions .btn {
+    flex: 1;
+  }
+}
+
+/* Modal de exportación: base compartida .rm-modal (rm-common.css); aquí solo su contenido. */
+.rm-modal#exportReportModal .modal-dialog {
+  max-width: 760px;
+}
+
+.export-step {
+  margin: 1.1rem 0 .55rem;
+  color: #24547d;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.export-step:first-of-type {
+  margin-top: 0;
+}
+
+.export-scope {
+  margin-bottom: .6rem;
+}
+
+.export-scope dt {
+  color: #4f5d6b;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.export-scope dd {
+  margin: .15rem 0 0;
+  color: #182433;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.export-scope-wide {
+  grid-column: 1 / -1;
+}
+
+.export-content {
+  padding-left: 1.1rem;
+  margin-bottom: .5rem;
+}
+
+.export-format {
+  display: grid;
+  gap: .35rem;
+  padding: .85rem 1rem;
+  border: 1px solid #dbe5ef;
+  border-left: 4px solid #2565a5;
+  border-radius: 9px;
+  background: #f6f9fc;
+}
+
+.export-file {
+  overflow-wrap: anywhere;
+  font-size: .75rem;
+}
+
+/* Desde/Hasta: mes y año en un solo grupo; el año ocupa solo lo necesario. */
+.report-periodo {
+  flex-wrap: nowrap;
+  min-width: 15rem;
+}
+
+.report-periodo .report-anio {
+  flex: 0 0 6.5rem;
+}

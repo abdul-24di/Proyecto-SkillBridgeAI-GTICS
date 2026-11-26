@@ -1,0 +1,242 @@
+/* =========================================================
+   SKILLBRIDGE AI
+   DASHBOARD RESOURCE MANAGER
+   ========================================================= */
+
+/* =========================================================
+   GENERAL
+   ========================================================= */
+
+/* =========================================================
+   PAGE
+   ========================================================= */
+
+/* =========================================================
+   SUMMARY CARDS
+   ========================================================= */
+
+.summary-card {
+  width: 100%;
+
+  border:
+    1px solid #e3e7ee;
+
+  box-shadow:
+    0 2px 7px rgba(24, 36, 51, .035);
+}
+
+.summary-cards > [class*="col-"] {
+  display: flex;
+}
+
+.summary-card .card-body {
+  width: 100%;
+  padding: .85rem 1rem;
+}
+
+.summary-content {
+  min-width: 0;
+  align-self: stretch;
+}
+
+.summary-icon {
+  width: 44px;
+  height: 44px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  border-radius: 11px;
+}
+
+.summary-label {
+  min-height: 2.5em;
+
+  display: flex;
+  align-items: flex-end;
+
+  color: #64748b;
+
+  font-size: .73rem;
+  font-weight: 700;
+
+  line-height: 1.25;
+
+  letter-spacing: .025em;
+
+  text-transform: uppercase;
+}
+
+.summary-description {
+  min-height: 2.5em;
+}
+
+.summary-number {
+  margin-top: .18rem;
+
+  color: #182433;
+
+  font-size: 1.75rem;
+  font-weight: 700;
+
+  line-height: 1.05;
+}
+
+/* =========================================================
+   SECTION CARDS
+   ========================================================= */
+
+.section-description {
+  max-width: none;
+  color:
+    rgba(255, 255, 255, .72);
+
+  font-size: .8rem;
+
+  line-height: 1.45;
+}
+
+.section-action {
+  flex-shrink: 0;
+
+  border-color:
+    rgba(255, 255, 255, .25);
+
+  color: #1c4d86;
+}
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+.table > :not(caption) > * > * {
+  vertical-align: middle;
+}
+
+.table thead th {
+  color: #4f5d6b;
+
+  background: #f7f9fc;
+
+  font-size: .75rem;
+
+  font-weight: 700;
+
+  letter-spacing: .02em;
+
+  text-transform: uppercase;
+}
+
+.table tbody tr {
+  transition:
+    background-color .15s ease;
+}
+
+.table tbody tr:hover {
+  background:
+    #f8fbff;
+}
+
+.table-footer {
+  min-height: 58px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1rem;
+
+  padding:
+    12px 18px;
+
+  background: #ffffff;
+}
+
+/* =========================================================
+   ATTENTION PANEL
+   ========================================================= */
+
+.attention-item {
+  padding:
+    .25rem 0 .25rem .9rem;
+
+  border-left:
+    3px solid #e5e7eb;
+}
+
+.attention-item + .attention-item {
+  margin-top: 1.2rem;
+}
+
+.attention-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color .15s ease;
+}
+
+.attention-link:hover {
+  background: #f8fbff;
+  color: inherit;
+}
+
+.empty-attention {
+  padding: 1.5rem .5rem;
+}
+
+/* Muestra 3 alertas (rm-dashboard.js ajusta la altura exacta); el resto se ve con el scroll propio de la tarjeta */
+.attention-scroll {
+  position: relative;
+  flex: 0 1 auto;
+  max-height: 24rem;
+  overflow-y: auto;
+  padding-right: .75rem;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 991px) {
+
+  .page-head {
+    align-items: flex-start;
+  }
+
+  .section-header {
+    align-items: flex-start;
+  }
+
+}
+
+@media (max-width: 767px) {
+  .section-header {
+    flex-direction: column;
+
+    align-items: stretch;
+  }
+
+  .section-action {
+    width: 100%;
+  }
+
+  .table-footer {
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+}
+
+@media (max-width: 480px) {
+
+  .pagination {
+    flex-wrap: wrap;
+  }
+
+}

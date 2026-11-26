@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Solicitudes de cursos</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-asignacion-modales.css}">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('cursos')}"></header>
+<main class="page-wrap">
+  <div class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/cursos}">Cursos</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Solicitudes</span></div>
+  <div class="page-head page-head-stack-mobile page-head-button-mobile">
+    <div><h1 class="page-title">Solicitudes de cursos</h1><div class="text-secondary">Aprueba o rechaza solicitudes y consulta el historial de inscripciones.</div></div>
+    <div class="d-flex gap-2"><a class="btn btn-outline-secondary" th:href="@{/rm/cursos}">Ver catálogo</a><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#asignarCursoModal" data-origen="solicitudes">Asignar curso</button></div>
+  </div>
+
+  <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+  <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+
+  <div class="row row-cards mb-4">
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-yellow-lt text-yellow"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div><div class="metric-label">Solicitudes pendientes</div><div class="metric-number" th:text="${bandeja.pendientes}">0</div></div>
+    </div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-azure-lt text-azure"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M9 14.2 8 21l4-2 4 2-1-6.8"/></svg></div>
+      <div><div class="metric-label">Evidencias por revisar</div><div id="evidenciasPorRevisar" class="metric-number" th:text="${bandeja.evidenciasPorRevisar}">0</div></div>
+    </div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-green-lt text-green"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <div><div class="metric-label">Aprobadas este mes</div><div class="metric-number" th:text="${bandeja.aprobadasEsteMes}">0</div></div>
+    </div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-red-lt text-red"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>
+      <div><div class="metric-label">Solicitudes rechazadas este mes</div><div class="metric-number" th:text="${bandeja.rechazadasEsteMes}">0</div></div>
+    </div></div></div>
+    <div class="col-sm-6 col-xl"><div class="card metric-card"><div class="card-body d-flex align-items-center gap-3">
+      <div class="metric-icon bg-blue-lt text-blue"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div><div class="metric-label">En curso</div><div class="metric-number" th:text="${bandeja.enCurso}">0</div></div>
+    </div></div></div>
+  </div>
+
+  <div class="card section-card mb-4">
+    <form class="card-body" method="get" th:action="@{/rm/cursos/solicitudes}"><div class="row g-3 align-items-end">
+      <div class="col-xl-4 col-md-6"><label class="form-label" for="busqueda">Buscar colaborador o curso</label><input id="busqueda" name="busqueda" class="form-control" th:value="${busqueda}" placeholder="Nombre, cargo, curso o categoría"></div>
+      <div class="col-xl-3 col-md-6"><label class="form-label" for="estado">Estado</label><select id="estado" name="estado" class="form-select"><option value="" th:selected="${estadoSeleccionado == ''}">Todos</option><option value="SOLICITADO" th:selected="${estadoSeleccionado == 'SOLICITADO'}">Pendientes</option><option value="EVIDENCIA_PENDIENTE" th:selected="${estadoSeleccionado == 'EVIDENCIA_PENDIENTE'}">Evidencia en revisión</option><option value="EN_CURSO" th:selected="${estadoSeleccionado == 'EN_CURSO'}">En curso</option><option value="COMPLETADO" th:selected="${estadoSeleccionado == 'COMPLETADO'}">Completados</option>
+
+        <option value="RECHAZADO" th:selected="${estadoSeleccionado == 'RECHAZADO'}">Rechazados (solicitud o evidencia)</option><option value="SOLICITUD_RECHAZADA" th:selected="${estadoSeleccionado == 'SOLICITUD_RECHAZADA'}">Solicitud rechazada</option><option value="EVIDENCIA_RECHAZADA" th:selected="${estadoSeleccionado == 'EVIDENCIA_RECHAZADA'}">Evidencia rechazada</option><option value="NO_COMPLETADO" th:selected="${estadoSeleccionado == 'NO_COMPLETADO'}">No completados</option></select></div>
+
+      <div class="col-xl-3 col-md-6"><label class="form-label" for="origen">Origen</label><select id="origen" name="origen" class="form-select"><option value="">Todos</option><option value="SOLICITUD_COLABORADOR" th:selected="${origenSeleccionado == 'SOLICITUD_COLABORADOR'}">Solicitud del colaborador</option><option value="ASIGNADO_POR_RM" th:selected="${origenSeleccionado == 'ASIGNADO_POR_RM'}">Asignado por RM</option></select></div>
+      <div class="col-xl-2 col-md-6 d-flex gap-2"><button class="btn btn-primary flex-fill" type="submit">Aplicar</button><a class="btn btn-outline-secondary" th:href="@{/rm/cursos/solicitudes}">Limpiar</a></div>
+    </div></form>
+  </div>
+
+  <div class="card section-card">
+    <div class="card-header section-header"><div><h3 class="card-title mb-1">Inscripciones y solicitudes</h3><div class="section-description">Solo las solicitudes pendientes enviadas por colaboradores y las evidencias de finalización en revisión pueden aprobarse o rechazarse.</div></div></div>
+    <div class="table-responsive"><table class="table table-vcenter card-table mb-0">
+      <thead><tr><th>Colaborador</th><th>Curso</th><th>Origen</th><th>Estado</th><th>Fecha</th><th>Motivo/justificación</th><th class="text-end">Acciones</th></tr></thead>
+      <tbody>
+      <tr th:each="item : ${bandeja.inscripciones}" class="solicitud-row">
+        <td><div class="d-flex align-items-center gap-2"><span class="avatar avatar-sm bg-blue-lt text-blue" th:text="${item.iniciales}">CO</span><div><div class="fw-semibold" th:text="${item.colaborador}">Colaborador</div><div class="text-secondary small" th:text="${item.cargo}">Cargo</div></div></div></td>
+
+        <td>
+          <div class="fw-semibold" th:text="${item.curso}">Curso</div>
+          <div class="small text-secondary"
+               th:text="${item.categoria + ' · ' + #numbers.formatDecimal(item.horas, 1, 2) + ' h'}">
+            Categoría
+          </div>
+        </td>
+        <td><span class="badge bg-azure-lt" th:text="${item.origenTexto}">Origen</span></td>
+        <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
+        <td th:text="${#temporals.format(item.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
+
+        <td class="text-secondary small">
+          <th:block th:if="${item.pendienteGestionRm}"><span class="fw-semibold">Justificación:</span> <span th:text="${#strings.isEmpty(item.justificacion) ? 'Sin justificación' : item.justificacion}">—</span></th:block>
+          <th:block th:if="${!item.pendienteGestionRm and item.motivoEtiqueta != null}"><span class="fw-semibold" th:text="|${item.motivoEtiqueta}:|">Motivo:</span> <span th:text="${#strings.isEmpty(item.motivoRespuesta) ? '—' : item.motivoRespuesta}">—</span></th:block>
+          <span th:if="${item.situacion == 'EVIDENCIA_PENDIENTE'}" th:text="${item.fechaEvidencia != null} ? |Evidencia enviada el ${#temporals.format(item.fechaEvidencia, 'dd MMM yyyy HH:mm')}| : 'Evidencia enviada'">Evidencia enviada</span>
+          <span th:if="${item.situacion == 'COMPLETADO' and item.revisionTexto == null}">—</span>
+          <div th:if="${item.revisionTexto != null}" class="evidencia-revision mt-1"
+               th:text="|${item.revisionTexto} ${item.evidenciaRevisadaPor} · ${#temporals.format(item.fechaRevisionEvidencia, 'dd MMM yyyy HH:mm')}|">Evidencia revisada por</div></td>
+        <td class="text-end">
+          <div th:if="${item.pendienteGestionRm}" class="d-flex gap-2 justify-content-end">
+            <button type="button" class="btn btn-success btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#approveCourseModal"
+                    th:data-action="@{/rm/cursos/solicitudes/{id}/aprobar(id=${item.id})}"
+                    th:data-colaborador="${item.colaborador}" th:data-curso="${item.curso}">Aprobar</button>
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#rejectCourseModal"
+                    th:data-action="@{/rm/cursos/solicitudes/{id}/rechazar(id=${item.id})}"
+                    th:data-colaborador="${item.colaborador}" th:data-curso="${item.curso}">Rechazar</button>
+          </div>
+
+          <div th:if="${item.pendienteRevisionEvidencia}" class="d-flex flex-wrap gap-2 justify-content-end">
+            <a th:data-evidencia="${item.evidenciaUrl}" onclick="showEvidenciaModal(this.getAttribute('data-evidencia')); return false;" href="#" th:if="${!#strings.isEmpty(item.evidenciaUrl)}" class="btn btn-outline-primary btn-sm"
+               >Ver evidencia</a>
+            <button type="button" class="btn btn-success btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#approveEvidenceModal"
+                    th:data-action="@{/rm/cursos/solicitudes/{id}/evidencia/aprobar(id=${item.id})}"
+                    th:data-colaborador="${item.colaborador}" th:data-curso="${item.curso}">Validar evidencia</button>
+            <button type="button" class="btn btn-outline-danger btn-sm"
+                    data-bs-toggle="modal" data-bs-target="#rejectEvidenceModal"
+                    th:data-action="@{/rm/cursos/solicitudes/{id}/evidencia/rechazar(id=${item.id})}"
+                    th:data-colaborador="${item.colaborador}" th:data-curso="${item.curso}">Rechazar evidencia</button>
+          </div>
+
+          <a th:if="${item.situacion == 'EVIDENCIA_RECHAZADA' and !#strings.isEmpty(item.evidenciaUrl)}" th:data-evidencia="${item.evidenciaUrl}" onclick="showEvidenciaModal(this.getAttribute('data-evidencia')); return false;" href="#" class="btn btn-outline-primary btn-sm">Ver evidencia rechazada</a>
+          <a th:if="${!item.pendienteGestionRm and !item.pendienteRevisionEvidencia}" class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${item.colaboradorId})}">Ver perfil</a>
+        </td>
+      </tr>
+      <th:block th:if="${#lists.isEmpty(bandeja.inscripciones)}"><tr th:replace="~{fragments/rm-empty-state :: fila(vacioColspan=7, vacioIcono='bandeja',
+          vacioTitulo='Sin inscripciones', vacioTexto='No se encontraron inscripciones con estos filtros.')}"></tr></th:block>
+      </tbody>
+    </table></div>
+    <div class="pagination-wrap">
+      <div id="paginationInfo" class="text-secondary small"
+           th:with="desdeFila=${bandeja.totalRegistros == 0 ? 0 : ((bandeja.paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((bandeja.paginaActual - 1) * tamanioPagina) + #lists.size(bandeja.inscripciones)}"
+           th:text="|Mostrando ${desdeFila}-${hastaFila} de ${bandeja.totalRegistros} solicitudes|">Mostrando 0-0 de 0 solicitudes</div>
+      <ul id="pagination" class="pagination pagination-sm m-0" th:if="${bandeja.totalPaginas > 1}">
+        <li class="page-item" th:classappend="${bandeja.paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/cursos/solicitudes(busqueda=${busqueda}, estado=${estadoSeleccionado}, origen=${origenSeleccionado}, pagina=${bandeja.paginaActual - 1})}">Anterior</a></li>
+        <li class="page-item" th:each="n : ${#numbers.sequence(1, bandeja.totalPaginas)}" th:classappend="${n == bandeja.paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/cursos/solicitudes(busqueda=${busqueda}, estado=${estadoSeleccionado}, origen=${origenSeleccionado}, pagina=${n})}" th:text="${n}">1</a></li>
+        <li class="page-item" th:classappend="${bandeja.paginaActual == bandeja.totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/cursos/solicitudes(busqueda=${busqueda}, estado=${estadoSeleccionado}, origen=${origenSeleccionado}, pagina=${bandeja.paginaActual + 1})}">Siguiente</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="modal modal-blur fade rm-modal course-decision-modal" id="approveCourseModal" tabindex="-1" aria-labelledby="approveCourseModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="approveCourseModalTitle">Confirmar aprobación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form method="post" action="#">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+          <div class="modal-body">
+            <p class="mb-3">Vas a aprobar la solicitud de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El colaborador quedará inscrito y será notificado.</p>
+            <label for="courseApproveReason" class="form-label">Motivo de la aprobación</label>
+            <textarea id="courseApproveReason" name="motivo" maxlength="500" rows="4" class="form-control js-motivo" required placeholder="Explica por qué se aprueba la solicitud"></textarea>
+            <div class="form-hint">El motivo es obligatorio y puede tener hasta 500 caracteres.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success js-confirmar" disabled>Confirmar aprobación</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal modal-blur fade rm-modal course-decision-modal" id="rejectCourseModal" tabindex="-1" aria-labelledby="rejectCourseModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rejectCourseModalTitle">Confirmar rechazo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form method="post" action="#">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+          <div class="modal-body">
+            <p class="mb-3">Vas a rechazar la solicitud de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El colaborador verá el motivo.</p>
+            <label for="courseRejectReason" class="form-label">Motivo del rechazo</label>
+            <textarea id="courseRejectReason" name="motivo" maxlength="500" rows="4" class="form-control js-motivo" required placeholder="Explica al colaborador por qué se rechaza la solicitud"></textarea>
+            <div class="form-hint">El motivo es obligatorio y puede tener hasta 500 caracteres.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-danger js-confirmar" disabled>Confirmar rechazo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal modal-blur fade rm-modal course-decision-modal" id="approveEvidenceModal" tabindex="-1" aria-labelledby="approveEvidenceModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="approveEvidenceModalTitle">Validar evidencia</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form method="post" action="#">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+          <div class="modal-body">
+            <p class="mb-0">Vas a validar la evidencia de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. El curso quedará completado, sus horas se sumarán al mes y el colaborador será notificado.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success js-confirmar">Confirmar validación</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal modal-blur fade rm-modal course-decision-modal" id="rejectEvidenceModal" tabindex="-1" aria-labelledby="rejectEvidenceModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="rejectEvidenceModalTitle">Rechazar evidencia</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <form method="post" action="#">
+          <input type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+          <div class="modal-body">
+            <p class="mb-3">Vas a rechazar la evidencia de <strong class="js-colaborador">—</strong> para el curso <strong class="js-curso">—</strong>. La inscripción no se cancela: quedará como "Evidencia rechazada" y el colaborador podrá subir una nueva evidencia.</p>
+            <label for="evidenceRejectReason" class="form-label">Motivo del rechazo</label>
+            <textarea id="evidenceRejectReason" name="motivo" maxlength="500" rows="4" class="form-control js-motivo" required placeholder="Explica al colaborador qué debe corregir en la evidencia"></textarea>
+            <div class="form-hint">El motivo es obligatorio y puede tener hasta 500 caracteres. El colaborador lo verá y podrá volver a subir la evidencia.</div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-danger js-confirmar" disabled>Confirmar rechazo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</main></div>
+<div th:replace="~{fragments/rm-curso-modales :: modalAsignarCurso}"></div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/rm-js/rm-asignar-curso.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/rm-js/rm-solicitudes-cursos.js}"></script>
+
+
+<!-- Pure JS/CSS Lightbox -->
+<div id="pureLightboxOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 99999; justify-content: center; align-items: center; backdrop-filter: blur(5px);">
+    <button type="button" onclick="closeLightbox()" style="position: absolute; right: 20px; top: 20px; background: transparent; border: none; color: white; font-size: 40px; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+    <div id="pureLightboxContent" style="width: 90%; height: 90%; display: flex; justify-content: center; align-items: center;"></div>
+</div>
+
+<script>
+function showEvidenciaModal(url) {
+    var overlay = document.getElementById('pureLightboxOverlay');
+    var content = document.getElementById('pureLightboxContent');
+    if (!overlay || !content) return;
+    
+    // Solo las imágenes van en <img>; PDF, TXT y otros documentos se abren en un iframe
+    if (/\.(jpe?g|png|gif|webp)(\?|$)/i.test(url)) {
+        content.innerHTML = '<img src="' + url + '" style="max-width: 100%; max-height: 100%; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain;">';
+    } else {
+        content.innerHTML = '<iframe src="' + url + '" style="width: 100%; height: 100%; border: none; border-radius: 8px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.5);"></iframe>';
+    }
+    
+    overlay.style.display = 'flex';
+}
+
+function closeLightbox() {
+    var overlay = document.getElementById('pureLightboxOverlay');
+    var content = document.getElementById('pureLightboxContent');
+    if (overlay) overlay.style.display = 'none';
+    if (content) content.innerHTML = '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var overlay = document.getElementById('pureLightboxOverlay');
+    if(overlay) {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLightbox();
+            }
+        });
+    }
+});
+</script>
+
+
+</body></html>

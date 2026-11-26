@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Usuarios</title>
+
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-usuarios.css" th:href="@{/css/admin-css/admin-usuarios.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('usuarios')}">
+    <div class="container-xl">
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
+        <a href="admin-usuarios.html" class="active" th:href="@{/admin/usuarios}">Usuarios</a>
+        <a href="admin-habilidades.html" th:href="@{/admin/habilidades}">Habilidades</a>
+        <a href="admin-configuracion.html" th:href="@{/admin/configuracion}">Configuración</a>
+        <a href="admin-auditoria.html" th:href="@{/admin/auditoria}">Auditoría</a>
+      </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">SA</span>
+        <div class="user-meta">
+          <div class="fw-semibold">Sofía Alarcón</div>
+          <div class="small">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <span class="text-secondary">Usuarios</span>
+    </nav>
+
+    <div class="alert alert-success" th:if="${mensajeOk}" th:text="${mensajeOk}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+    <div class="alert alert-danger" th:if="${cargaErrores}">
+      <div class="fw-semibold mb-1">No se cargó ningún usuario. Corrige estos errores e inténtalo de nuevo:</div>
+      <ul class="mb-0">
+        <li th:each="err : ${cargaErrores}" th:text="${err}"></li>
+      </ul>
+    </div>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <h1 class="page-title">Gestión de Usuarios</h1>
+        <div class="text-secondary">
+          Crea cuentas asignando correo y rol. El nombre y la contraseña los define cada usuario al activar su cuenta.
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+          Carga masiva
+        </button>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newUserModal">
+          Nuevo usuario
+        </button>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-blue-lt text-blue">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Usuarios totales</div>
+              <div class="summary-number" th:text="${resumen.total()}">42</div>
+              <div class="small text-secondary">En toda la organización.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-yellow-lt text-yellow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Pendientes de activación</div>
+              <div class="summary-number" th:text="${resumen.pendientes()}">5</div>
+              <div class="small text-secondary">Aún no ingresan a la plataforma.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-green-lt text-green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Activos</div>
+              <div class="summary-number" th:text="${resumen.activos()}">35</div>
+              <div class="small text-secondary">Con acceso habilitado.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body d-flex align-items-center gap-3">
+            <div class="summary-icon bg-red-lt text-red">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            </div>
+            <div>
+              <div class="summary-label">Inactivos</div>
+              <div class="summary-number" th:text="${resumen.inactivos()}">2</div>
+              <div class="small text-secondary">Acceso deshabilitado.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIRECTORIO -->
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Directorio de usuarios</h3>
+          <div class="section-description">Administra roles, activación y estado de acceso de toda la organización.</div>
+        </div>
+      </div>
+
+      <!-- Filtros en el servidor: formulario GET (sin JavaScript). -->
+      <form id="filtrosUsuarios" class="card-body border-bottom" method="get" th:action="@{/admin/usuarios}">
+        <div class="row g-3 align-items-end">
+          <div class="col-xl-4 col-md-6">
+            <label for="userSearch" class="form-label">Buscar usuario</label>
+            <input id="userSearch" name="busqueda" class="form-control" type="text" placeholder="Nombre o correo" maxlength="100" th:value="${busqueda}">
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="userRoleFilter" class="form-label">Rol</label>
+            <select id="userRoleFilter" name="rol" class="form-select">
+              <option value="">Todos</option>
+              <option th:each="etiqueta : ${rolesDisponibles}" th:value="${etiqueta}" th:text="${etiqueta}" th:selected="${etiqueta == rolFiltro}"></option>
+            </select>
+          </div>
+          <div class="col-xl-2 col-md-6">
+            <label for="userStatusFilter" class="form-label">Estado</label>
+            <select id="userStatusFilter" name="estado" class="form-select">
+              <option value="">Todos</option>
+              <option value="Activo" th:selected="${estadoFiltro == 'Activo'}">Activo</option>
+              <option value="Pendiente" th:selected="${estadoFiltro == 'Pendiente'}">Pendiente de activación</option>
+              <option value="Inactivo" th:selected="${estadoFiltro == 'Inactivo'}">Inactivo</option>
+            </select>
+          </div>
+          <div class="col-xl-3 col-md-6 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Filtrar</button>
+            <a th:href="@{/admin/usuarios}" class="btn btn-outline-secondary flex-fill">Limpiar</a>
+          </div>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Correo</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Creado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="u : ${usuarios}"
+                th:classappend="${u.pendiente()} ? 'table-warning-row' : (${!u.activo()} ? 'opacity-75' : '')">
+              <td class="d-flex align-items-center gap-2" th:if="${!u.pendiente()}">
+                <span class="avatar avatar-sm bg-blue-lt text-blue" th:text="${u.iniciales()}">SA</span>
+                <span class="fw-semibold" th:text="${u.nombreCompleto()}">Sofía Alarcón</span>
+              </td>
+              <td class="text-secondary fst-italic" th:if="${u.pendiente()}">Pendiente de activación</td>
+              <td th:text="${u.correo()}">sofia.alarcon@skillbridge.com</td>
+              <td>
+                <span class="badge" th:classappend="${u.rolBadgeClase()}" th:text="${u.rolEtiqueta()}">Administrador</span>
+                <div th:if="${u.rolNombre() == 'COLABORADOR'}" class="small text-secondary mt-1"
+                     th:text="${u.cargoNombre() ?: 'Sin cargo asignado'}">Backend Developer</div>
+              </td>
+              <td>
+                <span class="badge" th:classappend="${u.estadoBadgeClase()}">
+                  <span class="status-dot" th:classappend="${u.estadoDot()}"></span><span th:text="${u.estado()}">Activo</span>
+                </span>
+              </td>
+              <td th:text="${u.fechaCreacion()}">02 mar 2026</td>
+              <td class="text-end">
+                <span th:if="${u.pendiente()}">
+                  <form th:action="@{/admin/usuarios/reenviar}" method="post" class="d-inline">
+                    <input type="hidden" name="usuarioId" th:value="${u.id()}">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">Reenviar enlace</button>
+                  </form>
+                </span>
+                <span th:if="${!u.activo()}">
+                  <form th:action="@{/admin/usuarios/reactivar}" method="post" class="d-inline">
+                    <input type="hidden" name="usuarioId" th:value="${u.id()}">
+                    <button type="submit" class="btn btn-outline-success btn-sm">Reactivar</button>
+                  </form>
+                </span>
+                <span th:if="${u.activo() and !u.pendiente() and u.rolNombre() == 'ADMINISTRADOR'}" class="text-secondary small">
+                  Gestionado en la BD
+                </span>
+                <span th:if="${u.activo() and !u.pendiente() and u.rolNombre() != 'ADMINISTRADOR'}">
+                  <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editRoleModal"
+                          th:attr="data-user-id=${u.id()},data-user-name=${u.nombreCompleto()},data-user-role=${u.rolEtiqueta()}">Editar rol</button>
+                  <button th:if="${u.rolNombre() == 'COLABORADOR'}" type="button" class="btn btn-outline-secondary btn-sm"
+                          data-bs-toggle="modal" data-bs-target="#editCargoModal"
+                          th:attr="data-user-id=${u.id()},data-user-name=${u.nombreCompleto()},data-user-cargo=${u.cargoId() != null ? u.cargoId() : ''}">Cargo</button>
+                  <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deactivateModal"
+                          th:attr="data-user-id=${u.id()},data-user-name=${u.nombreCompleto()}">Desactivar</button>
+                </span>
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(usuarios)}">
+              <td colspan="6" class="text-center text-secondary py-4"
+                  th:text="${busqueda != null or rolFiltro != null or estadoFiltro != null} ? 'Ningún usuario coincide con los filtros aplicados.' : 'No hay usuarios registrados todavía.'">No hay usuarios registrados todavía.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="px-3 pb-3" th:replace="~{fragments/paginacion :: paginacion(${paginaUsuarios}, 'filtrosUsuarios', 'usuario(s)', 'pagina')}"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL: NUEVO USUARIO -->
+<div class="modal modal-blur fade admin-modal" id="newUserModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Nuevo usuario</h5>
+          <div class="text-white-50 small">El sistema enviará el correo de activación automáticamente.</div>
+        </div>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/usuarios}" method="post">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label" for="newUserEmail">Correo electrónico</label>
+            <input id="newUserEmail" name="correo" type="email" class="form-control" placeholder="nombre@empresa.com" required>
+          </div>
+          <div class="mb-1">
+            <label class="form-label" for="newUserRole">Rol</label>
+            <select id="newUserRole" name="rol" class="form-select">
+              <option value="">Seleccionar rol</option>
+              <option th:each="etiqueta : ${rolesAsignables}" th:value="${etiqueta}" th:text="${etiqueta}"></option>
+            </select>
+          </div>
+          <div class="form-hint mt-2">El nombre completo y la contraseña los define el propio usuario al activar su cuenta desde el enlace enviado a su correo.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear y enviar invitación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CARGA MASIVA -->
+<div class="modal modal-blur fade admin-modal" id="bulkUploadModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title">Carga masiva de usuarios</h5>
+          <div class="text-white-50 small">Archivo CSV o Excel con columnas: correo, rol.</div>
+        </div>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/usuarios/carga-masiva}" method="post" enctype="multipart/form-data">
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="bulkFile">Archivo</label>
+          <input id="bulkFile" name="archivo" type="file" class="form-control" accept=".csv,.xlsx,.xls" required>
+          <div class="form-hint">Formatos aceptados: .csv, .xlsx. Columnas requeridas: <code>correo</code>, <code>rol</code> (el rol va como número, no como texto — ver tabla abajo).</div>
+        </div>
+        <div class="mb-3">
+          <div class="small text-secondary mb-2">El rol se indica con un número:</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered mb-0">
+              <thead>
+                <tr><th>Número</th><th>Rol</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="text-secondary">1</td><td class="text-secondary">Colaborador</td></tr>
+                <tr><td class="text-secondary">2</td><td class="text-secondary">Project Manager</td></tr>
+                <tr><td class="text-secondary">3</td><td class="text-secondary">Resource Manager</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="mb-3">
+          <div class="small text-secondary mb-2">Ejemplo del formato esperado:</div>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered mb-0">
+              <thead>
+                <tr><th>correo</th><th>rol</th></tr>
+              </thead>
+              <tbody>
+                <tr><td class="text-secondary">juan.perez@skillbridge.com</td><td class="text-secondary">1</td></tr>
+                <tr><td class="text-secondary">maria.lopez@skillbridge.com</td><td class="text-secondary">2</td></tr>
+                <tr><td class="text-secondary">carlos.diaz@skillbridge.com</td><td class="text-secondary">3</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <a href="../../static/plantillas/usuarios-plantilla.csv" th:href="@{/plantillas/usuarios-plantilla.csv}" download class="small">Descargar plantilla .csv</a>
+          &middot;
+          <a href="../../static/plantillas/usuarios-plantilla.xlsx" th:href="@{/plantillas/usuarios-plantilla.xlsx}" download class="small">Descargar plantilla .xlsx</a>
+        </div>
+        <div class="info-note-box mt-3">
+          <span class="info-note-icon">i</span>
+          <div class="small text-secondary">Se validarán correos duplicados (dentro del archivo y contra usuarios existentes), roles inválidos y filas incompletas antes de confirmar la carga. Si hay algún error, no se crea ningún usuario. El rol Administrador no puede asignarse por esta vía.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Confirmar carga</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR ROL -->
+<div class="modal modal-blur fade admin-modal" id="editCargoModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Asignar cargo</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/usuarios/cargo}" method="post">
+      <div class="modal-body">
+        <input type="hidden" name="usuarioId" data-admin-source="userId">
+        <div class="mb-3">
+          <label class="form-label">Colaborador</label>
+          <input type="text" class="form-control" data-admin-source="userName" readonly disabled>
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="editCargoSelect">Cargo</label>
+          <select id="editCargoSelect" name="cargoId" class="form-select" data-admin-source="userCargo" required>
+            <option value="" disabled selected>Selecciona un cargo</option>
+            <option th:each="cargo : ${cargosActivos}" th:value="${cargo.id}" th:text="${cargo.nombre}"></option>
+          </select>
+          <div class="form-hint">El sueldo base se recalcula con la tarifa del cargo según el nivel de experiencia del colaborador.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar cargo</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal modal-blur fade admin-modal" id="editRoleModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar rol</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/usuarios/cambiar-rol}" method="post">
+      <div class="modal-body">
+        <input type="hidden" name="usuarioId" data-admin-source="userId">
+        <div class="mb-3">
+          <label class="form-label">Usuario</label>
+          <input type="text" class="form-control" data-admin-source="userName" readonly disabled>
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="editRoleSelect">Nuevo rol</label>
+          <select id="editRoleSelect" name="rol" class="form-select" data-admin-source="userRole">
+            <option th:each="etiqueta : ${rolesAsignables}" th:value="${etiqueta}" th:text="${etiqueta}"></option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: DESACTIVAR -->
+<div class="modal modal-blur fade admin-modal" id="deactivateModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Desactivar usuario</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/usuarios/desactivar}" method="post">
+      <div class="modal-body">
+        <input type="hidden" name="usuarioId" data-admin-source="userId">
+        <p>¿Deseas desactivar a <strong data-admin-source="userName">este usuario</strong>? Perderá acceso inmediato a la plataforma, pero su historial se conserva.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-danger">Confirmar desactivación</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+<script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
+<script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
+</body>
+</html>

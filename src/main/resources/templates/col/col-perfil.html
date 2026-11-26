@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Perfil Profesional</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-perfil.css" th:href="@{/css/col-css/col-perfil.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('perfil')}">
+        <div class="container-xl">
+            <a href="col-dashboard.html" class="brand"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
+            <nav class="main-nav" aria-label="Navegación principal">
+                <a href="col-dashboard.html">Dashboard</a>
+                <a href="col-proyectos.html">Mis proyectos</a>
+                <a href="col-foros.html">Foros</a>
+                <a href="col-asistente.html">Asistente</a>
+                <a href="col-perfil.html" class="active">Perfil Profesional</a>
+                <a href="col-explorar.html">Explorar</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="page-wrap">
+
+        <div class="page-header mb-4">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h2 class="page-title">Mi Perfil</h2>
+                    <div class="text-secondary mt-1">Gestiona tu perfil profesional y tu cuenta</div>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+        <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+
+        <ul class="nav nav-pills mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" id="tabLinkProfesional" data-bs-toggle="tab" href="#tab-profesional" aria-selected="true" role="tab">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 13a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M8 21v-1a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v1" /><path d="M15 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M17 10h2a2 2 0 0 1 2 2v1" /><path d="M5 5a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M3 13v-1a2 2 0 0 1 2 -2h2" /></svg>
+                    Perfil Profesional
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="tabLinkCuenta" data-bs-toggle="tab" href="#tab-cuenta" aria-selected="false" role="tab" tabindex="-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 -.94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c.996 .608 2.296 .07 2.572 -1.065z" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>
+                    Ajustes de Cuenta
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- TAB 1: PROFESIONAL -->
+            <div class="tab-pane active show" id="tab-profesional" role="tabpanel">
+
+                <!-- HERO: datos básicos + progreso de perfil -->
+                <div class="card section-card profile-hero mb-4">
+                    <div class="card-body profile-hero-body">
+
+                        <div class="profile-hero-main">
+                            <div class="profile-photo-wrap">
+                                <img th:if="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                     th:src="@{${colaborador.fotoUrl}}" class="profile-photo" alt="Foto de perfil">
+                                <div th:unless="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                     class="profile-photo profile-photo-placeholder"
+                                     th:text="|${#strings.isEmpty(colaborador.nombre) ? '' : #strings.substring(colaborador.nombre,0,1)}${#strings.isEmpty(colaborador.apellido) ? '' : #strings.substring(colaborador.apellido,0,1)}|">PK</div>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap">
+                                    <h2 class="profile-name mb-0" th:text="|${colaborador.nombre} ${colaborador.apellido}|">Nombre Apellido</h2>
+                                    <span th:if="${colaborador.nivelExperiencia != null}" class="badge bg-secondary-lt" th:text="${colaborador.nivelExperiencia.name() == 'JUNIOR' ? 'Junior' : (colaborador.nivelExperiencia.name() == 'SEMI_SENIOR' ? 'Semi-Senior' : 'Senior')}">Junior</span>
+                                </div>
+                                <div class="profile-role" th:text="${colaborador.cargo?.nombre ?: 'Sin cargo asignado'}">Backend Developer</div>
+                                <div class="profile-status-row mt-2">
+                                    <span class="status-dot" th:classappend="${(colaborador.horasDisponibles == null or colaborador.horasDisponibles.signum() <= 0) ? 'offline' : ''}"></span>
+                                    <span class="fw-semibold" th:text="${(colaborador.horasDisponibles != null and colaborador.horasDisponibles.signum() > 0) ? 'Disponible' : 'No disponible'}">Disponible</span>
+                                    <span class="text-secondary" th:if="${colaborador.horasDisponibles != null}">· <span th:text="|${colaborador.horasDisponibles} horas/semana disponibles|">20 horas/semana disponibles</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-hero-progress">
+                            <div class="progress-ring" th:style="'--value:' + ${porcentajeCompletado}">
+                                <div class="progress-ring-value"><span th:text="|${porcentajeCompletado}%|">80%</span><small>Completado</small></div>
+                            </div>
+                            <div class="completion-hint">
+                                <div class="info-label mb-1" th:if="${!pendientesCompletar.isEmpty()}">Te falta completar</div>
+                                <div class="info-label mb-1" th:if="${pendientesCompletar.isEmpty()}">¡Tu perfil está completo!</div>
+                                <ul class="completion-checklist">
+                                    <li th:each="pendiente : ${pendientesCompletar}" th:text="${pendiente}"></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- SOBRE MÍ + HABILIDADES -->
+                <div class="row row-cards mb-4 g-3">
+                    <div class="col-lg-6">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header">
+                                <div>
+                                    <h3 class="card-title mb-1">Sobre mí</h3>
+                                    <div class="section-description">Cuenta brevemente tu experiencia, intereses y fortalezas profesionales.</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#editAboutModal">Editar</button>
+                            </div>
+
+                            <div class="card-body">
+                                <p class="profile-about-text mb-0" th:text="${(colaborador.descripcion != null and !colaborador.descripcion.isBlank()) ? colaborador.descripcion : 'Aún no has agregado una descripción de tu perfil.'}"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header">
+                                <div>
+                                    <h3 class="card-title mb-1">Habilidades</h3>
+                                    <div class="section-description">Destaca tus conocimientos y fortalezas profesionales.</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addSkillModal">+ Agregar habilidad</button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div th:if="${habilidadesColaborador.isEmpty()}" class="empty-state">Aún no has agregado habilidades a tu perfil.</div>
+                                <div th:each="ch : ${habilidadesColaborador}" class="skill-item">
+                                    <div>
+                                        <div class="skill-item-name" th:text="${ch.habilidad.nombre}">Java</div>
+
+
+                                        <div class="skill-item-cert" th:classappend="${ch.estadoValidacion.name() == 'VALIDADA' ? 'text-green' : (ch.estadoValidacion.name() == 'RECHAZADA' ? 'text-red' : '')}"
+                                             th:text="${ch.estadoValidacion.name() == 'VALIDADA' ? 'Validada por el RM' : (ch.estadoValidacion.name() == 'RECHAZADA' ? 'Rechazada por el RM' : 'Pendiente de validación')}">Pendiente de validación</div>
+                                        <div th:if="${ch.estadoValidacion.name() == 'RECHAZADA' and motivosRechazoPorHabilidad.get(ch.habilidad.id) != null}"
+                                             class="edu-rm-comment">
+                                            <div class="edu-rm-comment-label">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9h8M8 13h6"/><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-5l-5 3v-3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/></svg>
+                                                Comentario del RM
+                                            </div>
+                                            <div class="edu-rm-comment-text" th:text="${motivosRechazoPorHabilidad.get(ch.habilidad.id)}">Motivo del rechazo</div>
+                                        </div>
+                                        <a th:if="${certificadosPorHabilidad.get(ch.habilidad.id) != null}"
+                                           th:href="@{${certificadosPorHabilidad.get(ch.habilidad.id)}}"
+                                           target="_blank" rel="noopener" class="skill-item-doc-link">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                                            Ver certificado subido
+                                        </a>
+
+
+                                        <button type="button"
+                                                th:classappend="${ch.estadoValidacion.name() == 'RECHAZADA'} ? 'btn-outline-danger' : 'btn-outline-secondary'"
+                                                class="btn btn-sm mt-1" data-bs-toggle="modal"
+                                                th:attr="data-bs-target='#retryCertModal-' + ${ch.habilidad.id}"
+                                                th:text="${ch.estadoValidacion.name() == 'RECHAZADA'} ? 'Volver a subir certificado' : 'Certificar un nivel superior'">
+                                            Certificar un nivel superior
+                                        </button>
+
+
+                                    </div>
+
+
+
+
+                                    <div class="skill-item-actions">
+                                <span class="badge"
+                                      th:classappend="${ch.nivelDominio.name() == 'AVANZADO' ? 'bg-green-lt' : (ch.nivelDominio.name() == 'INTERMEDIO' ? 'bg-blue-lt' : 'bg-secondary-lt')}"
+                                      th:text="${ch.nivelDominio.name() == 'AVANZADO' ? 'Avanzado' : (ch.nivelDominio.name() == 'INTERMEDIO' ? 'Intermedio' : 'Básico')}">Avanzado</span>
+
+                                        <button type="button" class="skill-remove-btn" aria-label="Quitar habilidad"
+                                                data-bs-toggle="modal" th:attr="data-bs-target='#deleteSkillModal-' + ${ch.habilidad.id}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                                        </button>
+
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- EXPERIENCIA + EDUCACIÓN -->
+                <div class="row row-cards mb-4 g-3">
+
+
+
+
+                    <div class="col-lg-6">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header">
+                                <div>
+                                    <h3 class="card-title mb-1">Experiencia profesional</h3>
+                                    <div class="section-description">Historial laboral fuera de SkillBridge AI. Lo completaste en tu pre-registro y el Administrador lo revisa junto con tu CV; si falta algo, sube un CV actualizado (sección "Mi CV" en Ajustes de cuenta).</div>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div th:if="${experienciaProfesional.isEmpty()}" class="empty-state">Aún no tienes experiencia profesional registrada.</div>
+                                <div th:each="exp : ${experienciaProfesional}" class="timeline-entry">
+                                    <div class="timeline-entry-title"
+                                         th:text="${exp.cargo != null and exp.empresa != null} ? (${exp.cargo} + ' — ' + ${exp.empresa}) : (${exp.cargo != null} ? ${exp.cargo} : ${exp.empresa})">Cargo — Empresa</div>
+                                    <div class="timeline-entry-meta">
+                                        <span th:text="${exp.fechaInicio != null ? #temporals.format(exp.fechaInicio, 'MM/yyyy') : '¿?'}">2022</span>
+                                        –
+                                        <span th:text="${exp.actual} ? 'Actualidad' : (${exp.fechaFin != null} ? ${#temporals.format(exp.fechaFin, 'MM/yyyy')} : '¿?')">Actualidad</span>
+                                    </div>
+                                    <div class="timeline-entry-desc" th:text="${exp.descripcion}">Descripción</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-lg-6">
+                        <div class="card section-card h-100">
+                            <div class="card-header section-header">
+                                <div>
+                                    <h3 class="card-title mb-1">Educación</h3>
+                                    <div class="section-description">Formación académica registrada. El Resource Manager la revisa antes de validarla.</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addEducationModal">+ Agregar formación</button>
+                            </div>
+                            <div class="card-body p-0">
+                                <div th:if="${educacionColaborador.isEmpty()}" class="empty-state">Aún no has registrado formación académica.</div>
+                                <div th:each="edu : ${educacionColaborador}" class="timeline-entry d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <div class="timeline-entry-title" th:text="${edu.titulo}">Ingeniería de Software</div>
+                                        <div class="timeline-entry-meta" th:text="${edu.institucion}">Universidad X</div>
+                                        <div class="timeline-entry-desc">
+                                            <span th:text="${edu.fechaInicio != null ? #temporals.format(edu.fechaInicio, 'dd/MM/yyyy') : '¿?'}">2022</span>
+                                            –
+                                            <span th:text="${edu.actual} ? 'Actualidad' : (${edu.fechaFin != null} ? ${#temporals.format(edu.fechaFin, 'dd/MM/yyyy')} : '¿?')">Actualidad</span>
+                                        </div>
+
+
+
+                                        <span class="badge mt-1"
+                                              th:classappend="${edu.estado.name() == 'APROBADO'} ? 'bg-green-lt' : (${edu.estado.name() == 'RECHAZADO'} ? 'bg-red-lt' : 'bg-yellow-lt')"
+                                              th:text="${edu.estado.name() == 'APROBADO'} ? 'Validada' : (${edu.estado.name() == 'RECHAZADO'} ? 'Rechazada' : 'Pendiente de revisión')">Pendiente de revisión</span>
+                                        <a th:if="${edu.archivoUrl != null and !edu.archivoUrl.isBlank()}"
+                                           th:href="@{${edu.archivoUrl}}"
+                                           target="_blank" rel="noopener" class="skill-item-doc-link">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                                            Ver certificado subido
+                                        </a>
+                                    </div>
+
+                                    <div th:if="${edu.estado.name() == 'RECHAZADO' and edu.motivoRechazo != null and !edu.motivoRechazo.isBlank()}"
+                                         class="edu-rm-comment">
+                                        <div class="edu-rm-comment-label">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9h8M8 13h6"/><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-5l-5 3v-3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/></svg>
+                                            Comentario del RM
+                                        </div>
+                                        <div class="edu-rm-comment-text" th:text="${edu.motivoRechazo}">Motivo del rechazo</div>
+                                    </div>
+
+                                    <button type="button" class="skill-remove-btn" aria-label="Quitar formación"
+                                            data-bs-toggle="modal" th:attr="data-bs-target='#deleteEduModal-' + ${edu.id}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FEEDBACK + MIS CURSOS -->
+                <div class="row row-cards mb-4 g-3">
+                    <div class="col-lg-6">
+                        <!-- Evaluaciones / Feedback -->
+                        <div class="card section-card h-100">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Feedback y Evaluaciones</h3>
+                            <div class="section-description">Comentarios sobre tu desempeño en proyectos finalizados.</div>
+                        </div>
+                    </div>
+
+
+
+
+
+                            <div class="card-body p-0">
+                                <div th:if="${#lists.isEmpty(evaluaciones)}" class="empty-state">
+                                    Aún no tienes evaluaciones registradas.
+                                </div>
+
+                                <div class="timeline-entry" th:each="evaluacion : ${evaluaciones}">
+                                    <div class="d-flex justify-content-between gap-2 flex-wrap">
+                                        <div class="fw-semibold">
+                                            <span th:if="${evaluacion.asignacion != null}" th:text="${evaluacion.asignacion.proyecto.nombre}">Proyecto</span>
+                                            <span th:if="${evaluacion.asignacion == null}">Actividad general</span>
+                                            <span class="ms-2 badge" th:classappend="${evaluacion.calificacion >= 4 ? 'bg-success-lt' : (evaluacion.calificacion == 3 ? 'bg-warning-lt' : 'bg-danger-lt')}">
+                                        <span th:text="${evaluacion.calificacion}">5</span> ⭐
+                                    </span>
+                                        </div>
+                                        <span class="small text-secondary" th:text="${#temporals.format(evaluacion.fechaCreacion, 'dd/MM/yyyy')}">Fecha</span>
+                                    </div>
+                                    <div class="text-secondary small mt-1">
+                                        Evaluado por: <span th:text="${evaluacion.evaluador.nombre + ' ' + evaluacion.evaluador.apellido}">Evaluador</span>
+                                    </div>
+                                    <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
+                                </div>
+                            </div>
+
+
+
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <!-- MIS CURSOS -->
+                        <div class="card section-card h-100" id="mis-cursos">
+
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Mis cursos</h3>
+
+                            <div class="section-description">Cursos que estás llevando o ya completaste. Todos piden subir evidencia antes de su fecha fin (si no tienen fecha fin, no hay plazo).</div>
+
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${misCursosEnCurso.isEmpty()}" class="empty-state">
+                            Aún no tienes cursos asignados. Puedes explorar el catálogo y solicitar uno desde la pestaña Explorar.
+                        </div>
+
+                        <div th:each="mc : ${misCursosEnCurso}" class="timeline-entry">
+                            <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+                                <div>
+                                    <div class="timeline-entry-title" th:text="${mc.curso.nombre}">Curso X</div>
+                                    <div class="timeline-entry-meta">
+                                        <span th:text="${mc.curso.categoria != null and !mc.curso.categoria.isBlank()} ? ${mc.curso.categoria} : 'Sin categoría'">Técnico</span>
+                                        &nbsp;·&nbsp;
+                                        <span th:text="|${mc.curso.horas} horas|">12 horas</span>
+                                    </div>
+                                </div>
+
+
+
+
+
+
+
+
+
+                                <span class="badge"
+                                      th:classappend="${mc.estado.name() == 'COMPLETADO'} ? 'bg-green-lt' : (${mc.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'bg-purple-lt' : (${mc.estado.name() == 'NO_COMPLETADO'} ? 'bg-secondary-lt' : 'bg-blue-lt'))"
+                                      th:text="${mc.estado.name() == 'COMPLETADO'} ? 'Completado' : (${mc.estado.name() == 'EVIDENCIA_PENDIENTE'} ? 'Evidencia en revisión' : (${mc.estado.name() == 'NO_COMPLETADO'} ? 'No completado' : 'En curso'))">En curso</span>
+                            </div>
+
+                            <th:block th:if="${mc.estado.name() == 'EN_CURSO' and mc.evidenciaUrl != null}">
+                                <div th:replace="~{fragments/comentario-rechazo :: comentario('El RM rechazó tu evidencia', ${mc.motivoRespuesta != null ? mc.motivoRespuesta : 'Sin motivo especificado.'}, 'Puedes volver a subirla cuando quieras, sin límite de fecha.')}"></div>
+                            </th:block>
+
+                            <div class="form-hint mt-1" th:if="${mc.estado.name() == 'EVIDENCIA_PENDIENTE'}">
+                                Evidencia enviada el <span th:text="${#temporals.format(mc.fechaEvidencia, 'dd/MM/yyyy')}">01/01/2026</span>, esperando revisión del Resource Manager.
+                            </div>
+
+                            <!-- "En curso" sin evidencia todavía: le recordamos el plazo, si tiene -->
+                            <div class="form-hint mt-1" th:if="${mc.estado.name() == 'EN_CURSO' and mc.evidenciaUrl == null and mc.curso.fechaFin != null}">
+                                Debes subir tu evidencia antes del <span th:text="${#temporals.format(mc.curso.fechaFin, 'dd/MM/yyyy')}">01/01/2026</span>.
+                            </div>
+
+                            <!-- No completado: venció la fecha fin sin evidencia aprobada. Sin penalización, solo no cuentan las horas. -->
+                            <div class="form-hint mt-1" th:if="${mc.estado.name() == 'NO_COMPLETADO'}">
+                                El plazo venció el <span th:text="${#temporals.format(mc.curso.fechaFin, 'dd/MM/yyyy')}">01/01/2026</span> sin una evidencia aprobada. No se te aplicó ninguna penalización, pero las horas de este curso no se contaron.
+                            </div>
+
+                            <div class="mt-2 d-flex align-items-center gap-3 flex-wrap">
+                                <a th:if="${mc.evidenciaUrl != null}"
+                                   th:href="@{${mc.evidenciaUrl}}" target="_blank" rel="noopener" class="skill-item-doc-link">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                                    Ver evidencia subida
+                                </a>
+
+                                <button th:if="${mc.estado.name() == 'EN_CURSO'}" type="button"
+                                        class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                        th:attr="data-bs-target='#evidenciaCursoModal-' + ${mc.id}">
+                                    <span th:text="${mc.evidenciaUrl != null} ? 'Volver a subir evidencia' : 'Subir evidencia de finalización'">Subir evidencia de finalización</span>
+                                </button>
+                            </div>
+
+
+
+
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HISTORIAL DE PROYECTOS -->
+                <div class="card section-card">
+                    <div class="card-header section-header">
+                        <div>
+                            <h3 class="card-title mb-1">Historial de proyectos</h3>
+                            <div class="section-description">Participación registrada en proyectos de la organización.</div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${historialProyectos.isEmpty()}" class="empty-state">Aún no participaste en proyectos finalizados.</div>
+                        <div th:each="item : ${historialProyectos}" class="project-history-item">
+                            <div>
+                                <div class="fw-semibold" th:text="${item.proyecto.nombre}">Proyecto X</div>
+                                <div class="project-history-role"
+                                     th:text="${item.asignacion.fechaFinalizacion != null} ? ('Finalizado el ' + ${#temporals.format(item.asignacion.fechaFinalizacion, 'dd/MM/yyyy')}) : 'Finalizado'">Finalizado el 01/01/2026</div>
+                                <div class="project-history-tags">
+                                    <span th:each="tag : ${item.habilidadesRequeridas}" class="badge bg-blue-lt" th:text="${tag}">Java</span>
+                                </div>
+                            </div>
+                            <span class="badge bg-secondary-lt">Finalizado</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: CUENTA -->
+            <div class="tab-pane" id="tab-cuenta" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4 col-lg-3 mb-4">
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <img th:if="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                     th:src="@{${colaborador.fotoUrl}}" class="avatar avatar-xl mb-4 rounded" alt="Foto de perfil">
+                                <span th:unless="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                      class="avatar avatar-xl mb-4 rounded" style="font-size: 1.5rem;"
+                                      th:text="|${#strings.isEmpty(colaborador.nombre) ? '' : #strings.substring(colaborador.nombre,0,1)}${#strings.isEmpty(colaborador.apellido) ? '' : #strings.substring(colaborador.apellido,0,1)}|">PK</span>
+                                <h3 class="m-0 mb-1" th:text="|${colaborador.nombre} ${colaborador.apellido}|">Nombre Apellido</h3>
+                                <div class="text-secondary mb-4" th:text="${colaborador.rol.nombre == 'COLABORADOR' ? 'Colaborador' : colaborador.rol.nombre}">Colaborador</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8 col-lg-9">
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Datos Personales</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Nombres</label>
+                                        <input type="text" class="form-control" th:value="${colaborador.nombre}" readonly disabled>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Apellidos</label>
+                                        <input type="text" class="form-control" th:value="${colaborador.apellido}" readonly disabled>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <label class="form-label">Correo electrónico</label>
+                                        <input type="email" class="form-control" th:value="${colaborador.correo}" readonly disabled>
+                                        <div class="form-hint">Solo el Administrador puede cambiar tu correo</div>
+                                    </div>
+
+
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">Cargo / puesto</label>
+                                        <input type="text" class="form-control" th:value="${colaborador.cargo?.nombre}" readonly disabled>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Horas disponibles por semana</label>
+                                        <input type="text" class="form-control" th:value="${colaborador.horasDisponibles}" readonly disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div th:replace="~{fragments/dni-perfil :: dni(${colaborador})}"></div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Teléfono</h3>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/colaborador/perfil/telefono}" method="post">
+                                    <div class="row g-3">
+
+
+
+                                        <div class="col-md-6">
+                                            <label class="form-label">Número de celular</label>
+                                            <input type="tel" inputmode="tel" name="telefono" class="form-control"
+                                                   required maxlength="20" pattern="[0-9]{7,20}|\+[0-9]{7,19}"
+                                                   title="Solo dígitos y un + inicial opcional, entre 7 y 20 caracteres." data-entrada="telefono"
+                                                   th:value="${colaborador.telefono}" placeholder="Ej. 987654321 o +51987654321">
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-primary">Guardar teléfono</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Foto de perfil</h3>
+                            </div>
+                            <div class="card-body">
+                                <form th:action="@{/colaborador/perfil/foto}" method="post" enctype="multipart/form-data">
+                                    <div class="d-flex gap-3 align-items-center">
+                                        <img th:if="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                             th:src="@{${colaborador.fotoUrl}}" class="profile-photo js-foto-actual" alt="Foto de perfil">
+                                        <div th:unless="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}"
+                                             class="profile-photo profile-photo-placeholder js-foto-actual"
+                                             th:text="|${#strings.isEmpty(colaborador.nombre) ? '' : #strings.substring(colaborador.nombre,0,1)}${#strings.isEmpty(colaborador.apellido) ? '' : #strings.substring(colaborador.apellido,0,1)}|">PK</div>
+                                        <img id="fotoPreview" class="profile-photo d-none" alt="Vista previa de la foto">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex gap-2 align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <input type="file" id="editPhotoInput" name="foto" class="form-control" accept="image/png, image/jpeg"
+                                                           data-foto-preview="#fotoPreview" data-foto-actual=".js-foto-actual" data-foto-aviso="#fotoAviso">
+                                                </div>
+                                                <button type="submit" class="btn btn-primary">Guardar foto</button>
+                                            </div>
+                                            <div class="form-hint">Formatos JPG o PNG, máximo 2MB. Se recomienda una imagen cuadrada (por ejemplo, 400×400 px) para una correcta visualización.</div>
+                                            <div id="fotoAviso" class="small text-warning mt-2 d-none"></div>
+                                        </div>
+                                    </div>
+                                </form>
+                                <div th:if="${colaborador.fotoUrl != null and !colaborador.fotoUrl.isBlank()}" class="mt-2 text-end">
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFotoModal">Eliminar foto</button>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="card mb-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Mi CV (hoja de vida)</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-hint mb-3">Sube tu CV para que el Administrador registre tu experiencia profesional en tu perfil.</div>
+
+                                <div th:if="${colaborador.cvUrl != null and !colaborador.cvUrl.isBlank()}" class="mb-3">
+                                    <a th:href="@{${colaborador.cvUrl}}" target="_blank" rel="noopener" class="skill-item-doc-link">Ver CV actual</a>
+                                    <span class="badge ms-2" th:classappend="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'REVISADO'} ? 'bg-green-lt text-green' : 'bg-yellow-lt text-yellow'"
+                                          th:text="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'REVISADO'} ? 'Revisado' : 'Pendiente de revisión'">Pendiente de revisión</span>
+                                </div>
+
+                                <form th:action="@{/colaborador/perfil/cv}" method="post" enctype="multipart/form-data">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <input type="file" name="cv" class="form-control" accept="application/pdf" required>
+                                            <div class="form-hint">Solo PDF, máximo 5MB. Si ya tenías uno subido, lo reemplaza.</div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-primary">Subir CV</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+
+
+
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Seguridad — Cambiar contraseña</h3>
+                            </div>
+                            <div class="card-body">
+
+
+
+                                <form th:action="@{/colaborador/perfil/password}" method="post">
+                                    <div class="row g-3">
+                                        <div class="col-md-12">
+                                            <label class="form-label">Contraseña actual</label>
+                                            <input type="password" class="form-control" name="passwordActual" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Nueva contraseña</label>
+                                            <input type="password" class="form-control" name="passwordNueva" minlength="8" pattern="(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}" title="Debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." required>
+                                            <div class="form-hint">Mínimo 8 caracteres, con al menos una mayúscula, un número y un símbolo.</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Confirmar contraseña</label>
+                                            <input type="password" class="form-control" name="passwordConfirmar" minlength="8" required>
+                                        </div>
+                                    </div>
+
+
+
+
+
+                                    <div class="mt-3 d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL: EDITAR SOBRE MÍ -->
+<div class="modal modal-blur fade col-modal" id="editAboutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" id="editAboutModalDialog">
+
+
+        <form th:action="@{/colaborador/perfil/sobre-mi}" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar "Sobre mí"</h5>
+                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Descripción</label>
+                    <textarea name="descripcion" class="form-control about-textarea" rows="8"
+
+
+
+                              placeholder="Cuéntale a la organización sobre tu experiencia, intereses y lo que te apasiona como profesional..."
+                              th:text="${colaborador.descripcion}"></textarea>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- MODAL: AGREGAR HABILIDAD -->
+<div class="modal modal-blur fade col-modal" id="addSkillModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form th:action="@{/colaborador/perfil/habilidades}" method="post" enctype="multipart/form-data">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar habilidad</h5>
+                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+
+
+
+
+                    <div class="mb-3" id="skillCatalogWrap">
+                        <label class="form-label">Habilidad <span class="text-red">*</span></label>
+                        <select name="habilidadId" id="skillCatalogSelect" class="form-select">
+                            <option value="" selected>Seleccionar del catálogo...</option>
+                            <option th:each="h : ${habilidadesDisponibles}" th:value="${h.id}" th:text="${h.nombre}"></option>
+                        </select>
+                        <div class="form-hint">Solo puedes elegir habilidades del catálogo oficial de la organización, para mantener los términos estandarizados.</div>
+                    </div>
+                    <div class="mb-3" id="skillNewWrap" style="display:none;">
+                        <label class="form-label">Nombre de la nueva habilidad <span class="text-red">*</span></label>
+                        <input type="text" name="nuevaHabilidadNombre" id="skillNewNameInput" class="form-control" placeholder="Ej. Kotlin">
+                        <label class="form-label mt-2">Categoría <span class="text-red">*</span></label>
+                        <select name="categoriaId" id="skillNewCategorySelect" class="form-select">
+                            <option value="" selected>Seleccionar categoría...</option>
+                            <option th:each="c : ${categoriasHabilidad}" th:value="${c.id}" th:text="${c.nombre}"></option>
+                        </select>
+                    </div>
+                    <a href="#" id="toggleNewSkillLink" class="form-hint d-inline-block mb-3">¿No encuentras tu habilidad? Créala aquí</a>
+                    <div class="mb-3">
+                        <label class="form-label">Nivel <span class="text-red">*</span></label>
+                        <select name="nivel" class="form-select">
+                            <option value="" selected>Seleccionar nivel</option>
+                            <option value="BASICO">Básico</option>
+                            <option value="INTERMEDIO">Intermedio</option>
+                            <option value="AVANZADO">Avanzado</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Certificado <span class="text-red">*</span></label>
+                        <input type="file" name="certificado" class="form-control"
+                               accept="application/pdf,image/jpeg,image/png">
+                        <div class="form-hint">PDF, JPG o PNG; máximo 10MB. Quedará pendiente de revisión del Resource Manager.</div>
+                    </div>
+
+
+
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Agregar habilidad</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+<!-- MODALES: SUBIR UN NUEVO CERTIFICADO (RECHAZADA -> reintentar, o VALIDADA/PENDIENTE -> pedir nivel superior) -->
+<div th:each="ch : ${habilidadesColaborador}">
+    <div class="modal modal-blur fade col-modal" th:id="'retryCertModal-' + ${ch.habilidad.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form th:action="@{/colaborador/perfil/certificados}" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="habilidadId" th:value="${ch.habilidad.id}">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" th:text="|Certificar ${ch.habilidad.nombre}|">Certificar habilidad</h5>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">Nivel que quieres certificar</label>
+                        <select name="nivel" class="form-select mb-3">
+                            <option value="" selected>Mantener el nivel actual</option>
+                            <option value="BASICO" th:selected="${ch.nivelDominio.name() == 'BASICO'}">Básico</option>
+                            <option value="INTERMEDIO" th:selected="${ch.nivelDominio.name() == 'INTERMEDIO'}">Intermedio</option>
+                            <option value="AVANZADO" th:selected="${ch.nivelDominio.name() == 'AVANZADO'}">Avanzado</option>
+                        </select>
+                        <label class="form-label">Nuevo certificado</label>
+                        <input type="file" name="certificado" class="form-control" accept="application/pdf,image/jpeg,image/png">
+                        <div class="form-hint">PDF, JPG o PNG; máximo 10MB.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-primary" type="submit">Enviar a revisión</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODALES: CONFIRMAR ELIMINAR HABILIDAD -->
+<div th:each="ch : ${habilidadesColaborador}">
+    <div class="modal modal-blur fade col-modal" th:id="'deleteSkillModal-' + ${ch.habilidad.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form th:action="@{'/colaborador/perfil/habilidades/' + ${ch.habilidad.id} + '/eliminar'}" method="post">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Quitar habilidad</h5>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">¿Seguro que deseas quitar <strong th:text="${ch.habilidad.nombre}"></strong> de tu perfil?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-danger" type="submit">Sí, quitar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODALES: CONFIRMAR ELIMINAR FORMACIÓN ACADÉMICA -->
+<div th:each="edu : ${educacionColaborador}">
+    <div class="modal modal-blur fade col-modal" th:id="'deleteEduModal-' + ${edu.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form th:action="@{'/colaborador/perfil/educacion/' + ${edu.id} + '/eliminar'}" method="post">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Quitar formación académica</h5>
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">¿Seguro que deseas quitar <strong th:text="${edu.titulo}"></strong> de tu perfil?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-danger" type="submit">Sí, quitar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: CONFIRMAR ELIMINAR FOTO -->
+<div class="modal modal-blur fade col-modal" id="deleteFotoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form th:action="@{/colaborador/perfil/foto/eliminar}" method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Eliminar foto de perfil</h5>
+                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-0">¿Seguro que deseas eliminar tu foto de perfil actual?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-danger" type="submit">Sí, eliminar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+<!-- MODAL: AGREGAR FORMACIÓN  -->
+<div class="modal modal-blur fade col-modal" id="addEducationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form th:action="@{/colaborador/perfil/educacion}" method="post" id="addEducationForm" enctype="multipart/form-data">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar formación académica</h5>
+                    <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+
+
+
+                        <div class="col-md-6">
+                            <label class="form-label">Institución <span class="text-red">*</span></label>
+                            <input type="text" name="institucion" class="form-control" placeholder="Ej. Universidad X">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Título / carrera <span class="text-red">*</span></label>
+                            <input type="text" name="titulo" class="form-control" placeholder="Ej. Ingeniería de Software">
+                        </div>
+
+
+
+
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de inicio <span class="text-red">*</span></label>
+                            <input type="date" name="fechaInicio" id="eduStartInput" class="form-control" onchange="document.getElementById('eduEndInput').min = this.value;">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de fin <span class="text-red">*</span></label>
+                            <input type="date" name="fechaFin" id="eduEndInput" class="form-control" th:max="${T(java.time.LocalDate).now()}">
+                        </div>
+
+
+                        <div class="col-12">
+                            <label class="form-label">Certificado de estudios <span class="text-red">*</span></label>
+                            <input type="file" name="certificado" class="form-control"
+                                   accept="application/pdf,image/jpeg,image/png">
+                            <div class="form-hint">PDF, JPG o PNG; máximo 10MB.</div>
+                        </div>
+
+
+
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Agregar formación</button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- MODAL PARA SUBIR EVIDENCIA DE FINALIZACIÓN DE CURSO -->
+<div th:each="mc : ${misCursosEnCurso}">
+    <div th:if="${mc.estado.name() == 'EN_CURSO'}"
+
+         class="modal modal-blur fade col-modal" th:id="'evidenciaCursoModal-' + ${mc.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form th:action="@{'/colaborador/perfil/cursos/' + ${mc.id} + '/evidencia'}" method="post" enctype="multipart/form-data">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" th:text="|Subir evidencia - ${mc.curso.nombre}|">Subir evidencia</h5>
+
+                        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <label class="form-label">Evidencia de finalización</label>
+                        <input type="file" name="evidencia" class="form-control" accept="application/pdf,image/jpeg,image/png">
+                        <div class="form-hint">PDF, JPG o PNG; máximo 10MB. El Resource Manager la revisará antes de dar el curso por completado.</div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                        <button class="btn btn-primary" type="submit">Enviar evidencia</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
+<script th:src="@{/js/foto-perfil-preview.js}"></script>
+<script src="../../static/js/col-js/col-perfil.js" th:src="@{/js/col-js/col-perfil.js}"></script>
+<script th:src="@{/js/col-js/col-modal-subida.js}"></script>
+<script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+<script>
+    if (new URLSearchParams(location.search).get("tab") === "cuenta") {
+        document.addEventListener("DOMContentLoaded", () => {
+            new (window.bootstrap || window.tabler).Tab(document.getElementById("tabLinkCuenta")).show();
+        });
+    }
+</script>
+</body>
+</html>

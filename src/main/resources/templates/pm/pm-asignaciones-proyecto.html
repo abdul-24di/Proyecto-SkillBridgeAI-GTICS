@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Asignaciones del Proyecto</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-asignaciones-proyecto.css" th:href="@{/css/pm-css/pm-asignaciones-proyecto.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+
+<style>
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa;
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+</style>
+
+</head>
+<body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('proyectos')}"></header>
+<main class="page-wrap">
+<div class="breadcrumb-wrap">
+  <a th:href="@{/pm/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
+  <span class="breadcrumb-separator">›</span>
+  <a th:href="@{/pm/proyectos/detalle(id=${proyecto.proyecto.id})}" class="breadcrumb-link" th:text="${proyecto.proyecto.nombre}">Proyecto</a>
+  <span class="breadcrumb-separator">›</span>
+  <span class="text-secondary">Asignaciones</span>
+</div>
+
+<div class="page-head page-head-stack-mobile">
+  <div>
+    <h1 class="page-title">Asignaciones — <span th:text="${proyecto.proyecto.nombre}"></span></h1>
+    <div class="text-secondary">Gestiona el talento, solicitudes y propuestas para este proyecto.</div>
+  </div>
+  <a th:href="@{/pm/proyectos/detalle(id=${proyecto.proyecto.id})}" class="btn btn-outline-secondary">Volver al proyecto</a>
+</div>
+
+<div th:if="${success != null}" class="alert alert-success alert-dismissible" role="alert">
+  <div class="d-flex">
+    <div><h4 class="alert-title">¡Éxito!</h4><div class="text-secondary" th:text="${success}"></div></div>
+  </div>
+  <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+</div>
+
+<div th:if="${error != null}" class="alert alert-danger alert-dismissible" role="alert">
+  <div class="d-flex">
+    <div><h4 class="alert-title">Error</h4><div class="text-secondary" th:text="${error}"></div></div>
+  </div>
+  <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+</div>
+
+<div class="row row-cards mb-4">
+  <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+    <div class="metric-label">Integrantes activos</div>
+    <div class="metric-number"><span th:text="${proyecto.integrantesActivos}"></span> / <span th:text="${proyecto.proyecto.colaboradoresRequeridos}"></span></div>
+  </div></div></div>
+  <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+    <div class="metric-label">Pendientes de mi aprobación</div>
+    <div class="metric-number text-yellow" th:text="${proyecto.pendientesPm}">0</div>
+  </div></div></div>
+</div>
+
+<!-- Secciones siempre visibles — sin JavaScript -->
+
+<section class="mb-4">
+  <!-- COLABORADORES ACTIVOS -->
+  <div class="card section-card mb-4">
+    <div class="card-header section-header">
+      <div><h3 class="card-title mb-1">Colaboradores Activos</h3></div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table mb-0">
+        <thead>
+          <tr>
+            <th>Colaborador</th>
+            <th>Origen</th>
+            <th>Horas semanales</th>
+            <th>Fecha de inicio</th>
+            <th class="text-end">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="asig : ${paginaActivas.content}">
+            <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Nombre</td>
+            <td th:text="${asig.origenTexto}">Origen</td>
+            <td th:text="${asig.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
+            <td th:text="${#temporals.format(asig.asignacion.fechaActivacion, 'dd MMM yyyy')}">Fecha</td>
+            <td class="text-end">
+              <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" th:data-bs-target="|#modalFinalizarAsig${asig.asignacion.id}|">Finalizar</button>
+            </td>
+          </tr>
+          <tr th:if="${paginaActivas.totalElements == 0}">
+            <td colspan="5" class="text-center text-secondary py-3">No hay colaboradores activos en este proyecto.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación en el servidor: cada tabla tiene su formulario y conserva la página de las demás. -->
+    <form id="paginacionActivas" method="get" th:action="@{/pm/proyectos/asignaciones}">
+      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+      <input type="hidden" name="paginaPendientes" th:value="${paginaPendientes.number + 1}">
+      <input type="hidden" name="paginaTramite" th:value="${paginaTramite.number + 1}">
+      <input type="hidden" name="paginaHistorial" th:value="${paginaHistorial.number + 1}">
+    </form>
+    <th:block th:if="${paginaActivas.totalElements > 0}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaActivas}, 'paginacionActivas', 'colaborador(es)', 'paginaActivas')}"></div>
+    </th:block>
+  </div>
+
+  <!-- PROPUESTAS PENDIENTES DEL PM -->
+  <div class="card section-card mb-4">
+    <div class="card-header section-header">
+      <div><h3 class="card-title mb-1">Propuestas pendientes de tu aprobación</h3></div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table mb-0">
+        <thead>
+          <tr>
+            <th>Colaborador</th>
+            <th>Origen</th>
+            <th>Horas semanales</th>
+            <th>Mensaje / justificación</th>
+            <th class="text-end">Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="pend : ${paginaPendientes.content}">
+            <td class="fw-semibold" th:text="${pend.colaboradorNombre}">Nombre</td>
+            <td th:text="${pend.origenTexto}">Origen</td>
+            <td th:text="${pend.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
+            <td th:text="${pend.asignacion.mensajeSolicitud != null ? pend.asignacion.mensajeSolicitud : '-'}">Mensaje</td>
+            <td class="text-end">
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-success btn-sm"
+                        data-bs-toggle="modal"
+                        th:data-bs-target="'#approveModal' + ${pend.asignacion.id}">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                  Aprobar
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" th:data-bs-target="'#rejectModal' + ${pend.asignacion.id}">Rechazar</button>
+              </div>
+
+              <!-- MODAL APROBAR -->
+              <div class="modal modal-blur fade pm-modal" th:id="'approveModal' + ${pend.asignacion.id}" tabindex="-1" role="dialog">
+                <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">¿Aprobar esta asignación?</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <form method="POST" th:action="@{/pm/asignaciones/{id}/aprobar(id=${pend.asignacion.id})}" novalidate>
+                      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
+                      <div class="modal-body">
+                        <div class="text-secondary">
+                          El colaborador
+                          <strong th:text="${pend.colaboradorNombre}">Colaborador</strong>
+                          quedará asignado activamente al proyecto. Esta acción no se puede deshacer.
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><polyline points="20 6 9 17 4 12"/></svg>
+                          Sí, aprobar
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- MODAL RECHAZAR -->
+              <div class="modal modal-blur fade pm-modal" th:id="'rejectModal' + ${pend.asignacion.id}" tabindex="-1">
+                <div class="modal-dialog modal-md modal-dialog-centered">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title">Rechazar propuesta</h5>
+                      <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <form method="POST" th:action="@{/pm/asignaciones/{id}/rechazar(id=${pend.asignacion.id})}" novalidate>
+                      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
+                      <div class="modal-body text-start">
+                        <div th:if="${abrirModalRechazarId == pend.asignacion.id and error != null}" class="alert alert-danger" th:text="${error}"></div>
+                        <label class="form-label">Motivo del rechazo <span class="text-danger">*</span></label>
+                        <textarea name="motivo" class="form-control" rows="4" placeholder="Explica por qué esta propuesta no cubre la necesidad"></textarea>
+                        <div class="form-hint">El rechazo quedará registrado para el RM (máximo 300 caracteres).</div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar rechazo</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr th:if="${paginaPendientes.totalElements == 0}">
+            <td colspan="5" class="text-center text-secondary py-3">No tienes propuestas pendientes de revisión.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <form id="paginacionPendientes" method="get" th:action="@{/pm/proyectos/asignaciones}">
+      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+      <input type="hidden" name="paginaActivas" th:value="${paginaActivas.number + 1}">
+      <input type="hidden" name="paginaTramite" th:value="${paginaTramite.number + 1}">
+      <input type="hidden" name="paginaHistorial" th:value="${paginaHistorial.number + 1}">
+    </form>
+    <th:block th:if="${paginaPendientes.totalElements > 0}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaPendientes}, 'paginacionPendientes', 'propuesta(s)', 'paginaPendientes')}"></div>
+    </th:block>
+  </div>
+
+  <!-- PROPONER AL RM -->
+  <div class="request-more mt-4">
+    <div>
+      <div class="fw-semibold">¿Necesitas talento en el equipo?</div>
+      <div class="small text-secondary">Propón un colaborador específico al Resource Manager.</div>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#proposeCollaboratorModal">Proponer colaborador</button>
+  </div>
+</section>
+
+<section class="mb-4">
+  <div class="card section-card">
+    <div class="card-header section-header">
+      <div><h3 class="card-title mb-1">Todas las Asignaciones en Trámite</h3><div class="section-description">Muestra propuestas pendientes de aprobación del RM.</div></div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table mb-0">
+        <thead>
+          <tr>
+            <th>Colaborador</th>
+            <th>Origen</th>
+            <th>Horas semanales</th>
+            <th>Estado Actual</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="asig : ${paginaTramite.content}">
+            <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Nombre</td>
+            <td th:text="${asig.origenTexto}">Origen</td>
+            <td th:text="${asig.asignacion.horasSemanales + ' h/sem'}">0 h/sem</td>
+            <td><span class="badge" th:classappend="${asig.estadoClase}" th:text="${asig.estadoTexto}">Estado</span></td>
+          </tr>
+          <tr th:if="${paginaTramite.totalElements == 0}">
+            <td colspan="4" class="text-center text-secondary py-3">No hay asignaciones en trámite.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <form id="paginacionTramite" method="get" th:action="@{/pm/proyectos/asignaciones}">
+      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+      <input type="hidden" name="paginaActivas" th:value="${paginaActivas.number + 1}">
+      <input type="hidden" name="paginaPendientes" th:value="${paginaPendientes.number + 1}">
+      <input type="hidden" name="paginaHistorial" th:value="${paginaHistorial.number + 1}">
+    </form>
+    <th:block th:if="${paginaTramite.totalElements > 0}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaTramite}, 'paginacionTramite', 'asignación(es)', 'paginaTramite')}"></div>
+    </th:block>
+  </div>
+</section>
+
+<section class="mb-4">
+  <div class="card section-card">
+    <div class="card-header section-header">
+      <div><h3 class="card-title mb-1">Historial</h3><div class="section-description">Asignaciones finalizadas o rechazadas.</div></div>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-vcenter card-table mb-0">
+        <thead>
+          <tr>
+            <th>Colaborador</th>
+            <th>Origen</th>
+            <th>Resultado</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="asig : ${paginaHistorial.content}">
+            <td class="fw-semibold" th:text="${asig.colaboradorNombre}">Ana Torres</td>
+            <td th:text="${asig.origenTexto}">Origen</td>
+            <td><span class="badge" th:classappend="${asig.estadoClase}" th:text="${asig.estadoTexto}">Activa</span></td>
+            <td th:text="${#temporals.format(asig.asignacion.fechaActivacion != null ? asig.asignacion.fechaActivacion : asig.asignacion.fechaSolicitud, 'dd MMM yyyy')}">01 Sep 2026</td>
+          </tr>
+          <tr th:if="${paginaHistorial.totalElements == 0}">
+            <td colspan="4" class="text-center text-secondary py-3">El historial está vacío.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <form id="paginacionHistorial" method="get" th:action="@{/pm/proyectos/asignaciones}">
+      <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+      <input type="hidden" name="paginaActivas" th:value="${paginaActivas.number + 1}">
+      <input type="hidden" name="paginaPendientes" th:value="${paginaPendientes.number + 1}">
+      <input type="hidden" name="paginaTramite" th:value="${paginaTramite.number + 1}">
+    </form>
+    <th:block th:if="${paginaHistorial.totalElements > 0}">
+      <div th:replace="~{fragments/paginacion :: paginacion(${paginaHistorial}, 'paginacionHistorial', 'registro(s)', 'paginaHistorial')}"></div>
+    </th:block>
+  </div>
+</section>
+
+</main></div>
+
+<!-- MODAL PROPONER COLABORADOR -->
+<div class="modal modal-blur fade pm-modal" id="proposeCollaboratorModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><h5 class="modal-title">Proponer colaborador</h5><div class="text-secondary small">La propuesta se enviará al Resource Manager para su aprobación.</div></div>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="POST" th:action="@{/pm/asignaciones/proponer}" th:object="${pmProponerAsignacionForm}" novalidate>
+        <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
+        <div class="modal-body">
+          <div th:if="${abrirModalProponer != null and error != null}" class="alert alert-danger" th:text="${error}"></div>
+          <div class="row g-3">
+            <div class="col-md-7">
+              <label class="form-label" for="proposedCollaborator">Colaborador <span class="text-danger">*</span></label>
+              <select th:field="*{colaboradorId}" id="proposedCollaborator" class="form-select"
+                      th:classappend="${#fields.hasErrors('colaboradorId')} ? 'is-invalid' : ''">
+                <option value="">Seleccionar colaborador</option>
+                <option th:each="col : ${colaboradoresDisponibles}" th:value="${col.id}" th:text="${col.nombre + ' ' + col.apellido}"></option>
+              </select>
+              <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('colaboradorId')}" th:errors="*{colaboradorId}"></div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label" for="proposedHours">Horas semanales propuestas <span class="text-danger">*</span></label>
+              <input th:field="*{horasSemanales}" id="proposedHours" type="number" step="0.5" class="form-control"
+                     th:classappend="${#fields.hasErrors('horasSemanales')} ? 'is-invalid' : ''">
+              <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('horasSemanales')}" th:errors="*{horasSemanales}"></div>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="proposalReason">Justificación / Mensaje para RM</label>
+              <input th:field="*{mensajeSolicitud}" id="proposalReason" class="form-control" placeholder="Experiencia o habilidades relevantes"
+                     th:classappend="${#fields.hasErrors('mensajeSolicitud')} ? 'is-invalid' : ''">
+              <div class="invalid-feedback d-block" th:if="${#fields.hasErrors('mensajeSolicitud')}" th:errors="*{mensajeSolicitud}"></div>
+            </div>
+          </div>
+          <div class="form-hint mt-3">Proponer no activa la asignación: primero debe aprobarla el RM.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Proponer al RM</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modals Finalizar Asignación -->
+<th:block th:each="asig : ${asignaciones}" th:if="${asig.estadoTexto == 'Activa'}">
+    <div class="modal modal-blur fade pm-modal" th:id="|modalFinalizarAsig${asig.asignacion.id}|" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" th:action="@{/pm/asignaciones/{id}/finalizar(id=${asig.asignacion.id})}" novalidate>
+                    <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">Finalizar Asignación</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div th:if="${abrirModalFinalizarId == asig.asignacion.id and error != null}" class="alert alert-danger" th:text="${error}"></div>
+                        <p>¿Estás seguro que deseas finalizar la participación de <strong th:text="${asig.colaboradorNombre}"></strong> en este proyecto?</p>
+                        
+                        <label class="form-label mt-3">Calificación (Estrellas) <span class="text-secondary">(Opcional)</span></label>
+                        <select name="calificacion" class="form-select mb-2">
+                            <option value="">Sin calificar</option>
+                            <option value="5">5 - Excelente</option>
+                            <option value="4">4 - Bueno</option>
+                            <option value="3">3 - Regular</option>
+                            <option value="2">2 - Deficiente</option>
+                            <option value="1">1 - Muy deficiente</option>
+                        </select>
+                        <label class="form-label mt-2">Feedback de desempeño <span class="text-secondary">(Opcional)</span></label>
+                        <textarea name="feedback" rows="3" class="form-control" placeholder="Escribe un comentario sobre el desempeño del colaborador..."></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Confirmar finalización</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</th:block>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:if="${abrirModalProponer != null}">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("proposeCollaboratorModal");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+<script th:if="${abrirModalRechazarId != null}" th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("rejectModal" + /*[[${abrirModalRechazarId}]]*/ "");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+<script th:if="${abrirModalFinalizarId != null}" th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var modalEl = document.getElementById("modalFinalizarAsig" + /*[[${abrirModalFinalizarId}]]*/ "");
+    var Modal = (window.bootstrap && window.bootstrap.Modal) || (window.tabler && window.tabler.bootstrap && window.tabler.bootstrap.Modal);
+    if (modalEl && Modal) Modal.getOrCreateInstance(modalEl).show();
+  });
+</script>
+</body>
+</html>

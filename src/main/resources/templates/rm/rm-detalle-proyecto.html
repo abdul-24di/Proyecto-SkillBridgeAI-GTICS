@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Detalle del proyecto</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-detalle-proyecto.css" th:href="@{/css/rm-css/rm-detalle-proyecto.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('proyectos')}"></header>
+
+  <main class="page-wrap">
+    <div class="alert alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <a class="breadcrumb-link" th:href="@{/rm/proyectos}">Proyectos</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="text-secondary" th:text="${proyecto.proyecto.nombre}">Proyecto</span>
+    </nav>
+
+    <!-- Cabecera: el responsable de revisión y "Revisar ahora" van dentro de la misma card (antes eran una card
+         y un aviso aparte, casi vacíos a la derecha). La descripción se separa en sus secciones. -->
+    <div class="card project-header-card mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-start">
+          <div class="col-lg">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <h1 class="project-page-title mb-0" th:text="${proyecto.proyecto.nombre}">Proyecto</h1>
+              <span class="badge" th:classappend="${proyecto.estadoClase}" th:text="${proyecto.estadoTexto}">Activo</span>
+              <span class="badge" th:classappend="${proyecto.prioridadClase}" th:text="|Prioridad ${proyecto.prioridadTexto}|">Prioridad</span>
+            </div>
+            <div class="project-owner mt-2">Project Manager: <strong th:text="${proyecto.pmNombre}">PM</strong></div>
+          </div>
+          <div class="col-lg-auto">
+            <div class="d-flex gap-2 flex-wrap header-actions">
+              <a class="btn btn-primary" th:if="${proyecto.proyecto.estado.name() == 'EN_REVISION'}"
+                 th:href="@{/rm/proyectos/revision(id=${proyecto.proyecto.id})}">Revisar ahora</a>
+              <!-- TASK-023: solo en ACTIVO y EN_ESPERA (RmAsignacionService.esProyectoAsignable). -->
+              <a class="btn btn-outline-primary" id="projectSearchLink" th:if="${proyectoAsignable}"
+                 th:href="@{/rm/proyectos/buscar-colaboradores(proyectoId=${proyecto.proyecto.id})}">Buscar colaborador</a>
+              <a class="btn btn-outline-secondary" id="projectAssignmentsLink" th:if="${proyectoAsignable}"
+                 th:href="@{/rm/asignaciones(proyectoId=${proyecto.proyecto.id})}">Ver asignaciones</a>
+              <a class="btn btn-outline-secondary" id="projectForumLink" th:if="${foroId != null}"
+                 th:href="@{/rm/foros/detalle(id=${foroId})}">Ver foro</a>
+            </div>
+          </div>
+        </div>
+        <div class="project-description-grid mt-3" th:if="${!#lists.isEmpty(proyecto.descripcionSecciones)}">
+          <div class="project-description-block" th:each="seccion : ${proyecto.descripcionSecciones}">
+            <div class="info-label" th:text="${seccion.titulo}">Descripción</div>
+            <div class="project-description-text" th:text="${seccion.texto}">Texto</div>
+          </div>
+        </div>
+        <div class="text-secondary mt-3" th:if="${#lists.isEmpty(proyecto.descripcionSecciones)}">Sin descripción registrada.</div>
+      </div>
+      <!-- Responsable de revisión -->
+      <div class="card-footer project-responsable" th:if="${proyectoGestionable}">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="text-secondary small">Resource Manager responsable:</span>
+            <strong th:if="${responsableNombre != null}" th:text="${responsableNombre}">Nombre RM</strong>
+            <strong class="text-danger" th:if="${responsableNombre == null}">Sin asignar</strong>
+            <span class="badge bg-red-lt text-red" th:if="${motivoUrgencia != null}"
+                  th:text="|Urgente: ${motivoUrgencia}|">Urgente</span>
+          </div>
+          <div class="d-flex gap-2">
+            <form method="post" th:if="${responsableNombre == null}"
+                  th:action="@{/rm/proyectos/{id}/tomar(id=${proyecto.proyecto.id})}">
+              <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+              <button type="submit" class="btn btn-primary btn-sm">Tomar este proyecto</button>
+            </form>
+            <form method="post" th:if="${esResponsable and proyecto.proyecto.estado.name() == 'EN_REVISION'}"
+                  th:action="@{/rm/proyectos/{id}/liberar(id=${proyecto.proyecto.id})}">
+              <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+              <button type="submit" class="btn btn-outline-secondary btn-sm">Liberar proyecto</button>
+            </form>
+          </div>
+        </div>
+        <div class="text-secondary small mt-1" th:if="${responsableNombre != null and !esResponsable}">
+          Solo el RM responsable puede gestionar este proyecto. Tú lo ves en modo lectura.
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK-024: en EN_REVISION todavía no hay equipo aprobado; se muestran los presupuestos solicitado y asignado. -->
+    <div class="row row-cards mb-4" th:with="enRevision=${proyecto.proyecto.estado.name() == 'EN_REVISION'}">
+      <th:block th:unless="${enRevision}">
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="info-label">Equipo activo</div>
+        <div class="h2 mt-2 mb-1" th:text="|${proyecto.integrantesActivos}/${proyecto.proyecto.colaboradoresRequeridos}|">0/0</div>
+        <div class="small text-secondary">Integrantes actuales.</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="info-label">Vacantes</div>
+        <div class="h2 mt-2 mb-1" th:text="${proyecto.vacantes}">0</div>
+        <div class="small text-secondary">Posiciones por cubrir.</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="info-label">Pendientes del RM</div>
+        <div class="h2 mt-2 mb-1" th:text="${proyecto.pendientesRm}">0</div>
+        <div class="small text-secondary">Solicitudes por revisar.</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card metric-card"><div class="card-body">
+        <div class="info-label" th:text="${proyecto.presupuestoEtiqueta}">Presupuesto</div>
+        <div class="h3 mt-2 mb-1"
+             th:text="${proyecto.presupuestoVisible != null ? 'S/ ' + #numbers.formatDecimal(proyecto.presupuestoVisible, 1, 'COMMA', 2, 'POINT') : 'Sin definir'}">Sin definir</div>
+        <div class="small text-secondary">Monto registrado.</div>
+      </div></div></div>
+      </th:block>
+      <th:block th:if="${enRevision}">
+      <div class="col-sm-6"><div class="card metric-card"><div class="card-body">
+        <div class="info-label">Presupuesto solicitado</div>
+        <div class="h3 mt-2 mb-1" id="presupuestoSolicitadoRevision"
+             th:text="${proyecto.proyecto.presupuestoSolicitado != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuestoSolicitado, 1, 'COMMA', 2, 'POINT') : 'No solicitado'}">No solicitado</div>
+        <div class="small text-secondary">Monto pedido por el Project Manager.</div>
+      </div></div></div>
+      <div class="col-sm-6"><div class="card metric-card"><div class="card-body">
+        <div class="info-label">Presupuesto asignado</div>
+        <div class="h3 mt-2 mb-1" id="presupuestoAsignadoRevision"
+             th:text="${proyecto.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuesto, 1, 'COMMA', 2, 'POINT') : 'Sin asignar'}">Sin asignar</div>
+        <div class="small text-secondary">Definido por el Resource Manager.</div>
+      </div></div></div>
+      </th:block>
+    </div>
+
+    <!-- Resumen financiero y Administrar presupuesto comparten fila para no dejar espacios vacíos;
+         si solo se muestra una de las dos, ocupa todo el ancho. -->
+    <th:block th:with="conResumen=${proyecto.proyecto.presupuesto != null},
+                       conAdministrar=${proyecto.proyecto.estado.name() == 'ACTIVO' or proyecto.proyecto.estado.name() == 'EN_ESPERA'}">
+    <div class="row row-cards mb-4" th:if="${conResumen or conAdministrar}">
+    <div th:class="${conAdministrar ? 'col-lg-7' : 'col-12'}" th:if="${conResumen}">
+    <div class="card h-100">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Resumen financiero</h3>
+          <div class="section-description">Presupuesto total, comprometido, reservado y disponible del proyecto.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="project-info-grid budget-summary-grid mb-3">
+          <div><div class="info-label">Presupuesto total</div><div class="info-value" th:text="'S/ ' + ${#numbers.formatDecimal(resumen.total, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+          <div><div class="info-label">Comprometido (activas)</div><div class="info-value" th:text="'S/ ' + ${#numbers.formatDecimal(resumen.comprometido, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+          <div><div class="info-label">Reservado (pendientes RM)</div><div class="info-value" th:text="'S/ ' + ${#numbers.formatDecimal(resumen.reservado, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+          <div><div class="info-label">Disponible</div><div class="info-value text-success" th:text="'S/ ' + ${#numbers.formatDecimal(resumen.disponible, 1, 'COMMA', 2, 'POINT')}">S/ 0</div></div>
+        </div>
+        <div class="progress" style="height: 10px;">
+          <div class="progress-bar" role="progressbar" th:style="'width: ' + ${resumen.porcentajeConsumido} + '%'"
+               th:classappend="${resumen.porcentajeConsumido >= 90} ? 'bg-red' : (${resumen.porcentajeConsumido >= 70} ? 'bg-yellow' : 'bg-green')"></div>
+        </div>
+        <div class="small text-secondary mt-1" th:text="${resumen.porcentajeConsumido} + '% consumido'">0% consumido</div>
+      </div>
+    </div>
+    </div>
+
+    <div th:class="${conResumen ? 'col-lg-5' : 'col-12'}" th:if="${conAdministrar}">
+    <div class="card h-100">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Administrar presupuesto</h3>
+          <div class="section-description">Solo un Resource Manager puede asignar o actualizar este monto.</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- TASK-018: cambiar un presupuesto ya asignado se confirma en #budgetChangeModal. -->
+        <form method="post" class="row g-3"
+              th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}"
+              data-rm-budget-form
+              th:attr="data-presupuesto-anterior=${proyecto.proyecto.presupuesto != null ? proyecto.proyecto.presupuesto.toPlainString() : ''}">
+          <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+          <div class="col-12">
+            <label for="projectBudget" class="form-label">Presupuesto asignado (S/)</label>
+            <input id="projectBudget" name="presupuesto" data-entrada="monto" type="text" class="form-control"
+                   inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required aria-describedby="projectBudgetAyuda"
+                   th:value="${proyecto.proyecto.presupuesto}">
+            <div id="projectBudgetAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
+            <div class="form-hint">El sistema usa este monto para reservar el costo estimado de propuestas aprobadas por el RM y controlar que nuevas asignaciones tengan cobertura.</div>
+          </div>
+          <div class="col-12 d-grid">
+            <button type="submit" class="btn btn-primary"
+                    th:text="${proyecto.proyecto.presupuesto == null ? 'Asignar presupuesto' : 'Actualizar presupuesto'}">
+              Guardar presupuesto
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    </div>
+    </div>
+    </th:block>
+
+    <div class="card mb-4">
+      <div class="card-header section-header">
+        <div><h3 class="card-title mb-1">Información general del proyecto</h3>
+          <div class="section-description">Fechas, capacidad y justificaciones registradas por el Project Manager.</div></div>
+      </div>
+      <div class="card-body">
+        <div class="project-info-grid">
+          <div><div class="info-label">Fecha de creación</div><div class="info-value"
+               th:text="${proyecto.proyecto.fechaCreacion != null ? #temporals.format(proyecto.proyecto.fechaCreacion, 'dd/MM/yyyy') : 'Sin registrar'}">Sin registrar</div></div>
+          <div><div class="info-label">Fecha de inicio</div><div class="info-value"
+               th:text="${proyecto.proyecto.fechaInicio != null ? #temporals.format(proyecto.proyecto.fechaInicio, 'dd/MM/yyyy') : 'Sin definir'}">Sin definir</div></div>
+          <div><div class="info-label">Fin estimado</div><div class="info-value"
+               th:text="${proyecto.proyecto.fechaFinEstimada != null ? #temporals.format(proyecto.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : 'Sin definir'}">Sin definir</div></div>
+          <div><div class="info-label">Horas semanales requeridas</div><div class="info-value"
+               th:text="${proyecto.proyecto.horasSemanalesRequeridas != null ? proyecto.proyecto.horasSemanalesRequeridas + ' h' : 'Sin definir'}">0 h</div></div>
+          <div><div class="info-label">Colaboradores requeridos</div><div class="info-value"
+               th:text="${proyecto.proyecto.colaboradoresRequeridos}">0</div></div>
+          <div><div class="info-label">Estado</div><div class="info-value" th:text="${proyecto.estadoTexto}">Estado</div></div>
+          <div><div class="info-label">Prioridad</div><div class="info-value" th:text="${proyecto.prioridadTexto}">Prioridad</div></div>
+          <div><div class="info-label">Documento de contexto (PM)</div>
+            <div class="info-value">
+              <a th:if="${proyecto.proyecto.documentoContextoUrl != null}"
+                 th:href="${proyecto.proyecto.documentoContextoUrl}"
+                 target="_blank" class="btn btn-sm btn-outline-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Descargar / Ver documento
+              </a>
+              <span th:if="${proyecto.proyecto.documentoContextoUrl == null}" class="text-secondary fst-italic">Sin documento adjunto</span>
+            </div>
+          </div>
+        </div>
+        <!-- TASK-021: formulario compartido con la revisión (fragments/rm-proyecto-fechas). -->
+        <form th:replace="~{fragments/rm-proyecto-fechas :: formulario(${proyecto.proyecto}, 'detalle')}"></form>
+        <div class="priority-message mt-4">
+          <strong>Justificación de prioridad:</strong>
+          <span th:text="${proyecto.proyecto.justificacionPrioridad != null and !proyecto.proyecto.justificacionPrioridad.isBlank() ? proyecto.proyecto.justificacionPrioridad : 'Sin justificación registrada.'}">Sin justificación.</span>
+        </div>
+        <!-- TASK-024: en EN_REVISION se muestra siempre, con texto alternativo si el PM no la registró. -->
+        <div class="priority-message mt-3"
+             th:if="${proyecto.proyecto.estado.name() == 'EN_REVISION' or (proyecto.proyecto.justificacionPresupuesto != null and !proyecto.proyecto.justificacionPresupuesto.isBlank())}">
+          <strong>Justificación de presupuesto solicitado:</strong>
+          <span th:text="${proyecto.proyecto.justificacionPresupuesto != null and !proyecto.proyecto.justificacionPresupuesto.isBlank() ? proyecto.proyecto.justificacionPresupuesto : 'Sin justificación registrada.'}">Justificación.</span>
+        </div>
+        <th:block th:if="${proyecto.proyecto.motivoRechazo != null and !proyecto.proyecto.motivoRechazo.isBlank()}">
+          <div th:replace="~{fragments/comentario-rechazo :: comentario('Motivo de rechazo enviado al PM', ${proyecto.proyecto.motivoRechazo}, null)}"></div>
+        </th:block>
+        <!-- TASK-060: motivo registrado al cancelar o finalizar el proyecto. -->
+        <div class="alert mt-3 mb-0"
+             th:if="${(proyecto.proyecto.estado.name() == 'CANCELADO' or proyecto.proyecto.estado.name() == 'FINALIZADO') and proyecto.proyecto.motivoCierre != null and !proyecto.proyecto.motivoCierre.isBlank()}"
+             th:classappend="${proyecto.proyecto.estado.name() == 'CANCELADO'} ? 'alert-danger' : 'alert-secondary'">
+          <strong th:text="${proyecto.proyecto.estado.name() == 'CANCELADO'} ? 'Motivo de cancelación:' : 'Motivo de finalización:'">Motivo:</strong>
+          <span th:text="${proyecto.proyecto.motivoCierre}">Motivo.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK-024: en EN_REVISION se oculta el equipo y los requerimientos ocupan todo el ancho. -->
+    <div class="row row-cards mb-4" th:with="enRevision=${proyecto.proyecto.estado.name() == 'EN_REVISION'}">
+      <div class="col-lg-7" th:unless="${enRevision}">
+        <!-- TASK-056: en un proyecto cerrado las activas ya pasaron a FINALIZADA; se lista a quienes participaron. -->
+        <div class="card team-card h-100" th:if="${proyecto.cerrado}">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Equipo del proyecto</h3>
+            <div class="section-description">Colaboradores que participaron en el proyecto.</div></div></div>
+          <div class="table-responsive" th:if="${!#lists.isEmpty(proyecto.participantes)}">
+            <table class="table table-vcenter card-table" id="projectParticipantsTable">
+              <thead><tr><th>Colaborador</th><th>Horas/sem</th><th>Periodo</th><th>Estado</th><th></th></tr></thead>
+              <tbody><tr th:each="participante : ${proyecto.participantes}">
+                <td><div class="d-flex align-items-center gap-2"><span class="avatar team-avatar bg-blue-lt text-blue" th:text="${participante.iniciales}">CO</span>
+                  <div><div class="fw-semibold" th:text="${participante.colaboradorNombre}">Nombre</div><div class="small text-secondary" th:text="${participante.cargo}">Cargo</div></div></div></td>
+                <td th:text="|${participante.horasSemanales} h|">0 h</td>
+                <td class="text-nowrap"
+                    th:text="|${#temporals.format(participante.fechaActivacion, 'dd/MM/yyyy')} – ${participante.fechaFinalizacion != null ? #temporals.format(participante.fechaFinalizacion, 'dd/MM/yyyy') : 'actualidad'}|">01/01/2026 – 01/02/2026</td>
+                <td><span class="badge" th:classappend="${participante.estadoClase}" th:text="${participante.estadoTexto}">Finalizada</span></td>
+                <td class="text-nowrap">
+                  <a class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${participante.colaboradorId})}">Perfil</a>
+                  <a class="btn btn-outline-secondary btn-sm" th:href="@{/rm/asignaciones/activa(id=${participante.asignacionId}, origen='proyecto')}">Detalle</a>
+                </td>
+              </tr></tbody>
+            </table>
+          </div>
+          <th:block th:if="${#lists.isEmpty(proyecto.participantes)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='usuarios', vacioTitulo='Sin participantes registrados',
+                vacioTexto='Ningún colaborador llegó a tener una asignación activa en este proyecto.')}"></div>
+          </th:block>
+        </div>
+        <div class="card team-card h-100" th:unless="${proyecto.cerrado}">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Equipo del proyecto</h3>
+            <div class="section-description">Colaboradores con una asignación activa.</div></div></div>
+          <div class="table-responsive" th:if="${!#lists.isEmpty(proyecto.equipo)}">
+            <table class="table table-vcenter card-table">
+              <thead><tr><th>Colaborador</th><th>Nivel</th><th>Horas/sem</th><th>Costo/sem</th><th>Costo total</th><th></th></tr></thead>
+              <tbody><tr th:each="miembro : ${proyecto.equipo}">
+                <td><div class="d-flex align-items-center gap-2"><span class="avatar team-avatar bg-blue-lt text-blue" th:text="${miembro.iniciales}">CO</span>
+                  <div><div class="fw-semibold" th:text="${miembro.nombre}">Nombre</div><div class="small text-secondary" th:text="${miembro.cargo}">Cargo</div></div></div></td>
+                <td th:text="${miembro.nivel}">Nivel</td>
+                <td th:text="|${miembro.horasSemanales} h|">0 h</td>
+                <td th:text="${miembro.costoCalculable} ? ('S/ ' + ${#numbers.formatDecimal(miembro.costoSemanal, 1, 'COMMA', 2, 'POINT')}) : '—'">S/ 0</td>
+                <td th:text="${miembro.costoCalculable} ? ('S/ ' + ${#numbers.formatDecimal(miembro.costoTotal, 1, 'COMMA', 2, 'POINT')}) : '—'">S/ 0</td>
+                <td><a class="btn btn-outline-secondary btn-sm" th:href="@{/rm/colaboradores/perfil(id=${miembro.id})}">Ver</a></td>
+              </tr></tbody>
+            </table>
+          </div>
+          <th:block th:if="${#lists.isEmpty(proyecto.equipo)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='usuarios', vacioTitulo='Sin integrantes activos',
+                vacioTexto='El proyecto todavía no tiene integrantes activos.')}"></div>
+          </th:block>
+        </div>
+      </div>
+
+      <div th:class="${enRevision ? 'col-12' : 'col-lg-5'}">
+        <div class="card h-100">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3>
+            <div class="section-description">Habilidades solicitadas para el proyecto.</div></div></div>
+          <div class="requirement-grid" th:if="${!#lists.isEmpty(proyecto.requisitos)}">
+            <div class="requirement-row" th:each="requisito : ${proyecto.requisitos}">
+              <div class="d-flex justify-content-between gap-2"><div><div class="fw-semibold" th:text="${requisito.habilidad}">Habilidad</div>
+                <div class="small text-secondary" th:text="|Nivel ${requisito.nivel}|">Nivel</div></div>
+                <span class="badge bg-blue-lt" th:text="|${requisito.cantidadPersonas} persona(s)|">1 persona</span></div>
+            </div>
+          </div>
+          <th:block th:if="${#lists.isEmpty(proyecto.requisitos)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='lista', vacioTitulo='Sin habilidades requeridas',
+                vacioTexto='No se registraron habilidades requeridas.')}"></div>
+          </th:block>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK-056: todas las asignaciones del proyecto en cualquier estado. "Ver" entra por /rm/asignaciones/activa,
+         que redirige a revisión o pendiente PM según corresponda. -->
+    <div class="card mb-4" id="projectProposalsCard"
+         th:if="${proyecto.proyecto.estado.name() == 'ACTIVO' or proyecto.proyecto.estado.name() == 'EN_ESPERA'}">
+      <div class="card-header section-header"><div><h3 class="card-title mb-1">Colaboradores propuestos</h3>
+        <div class="section-description">Propuestas, solicitudes y asignaciones del proyecto en cualquier estado.</div></div></div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead><tr><th>Colaborador</th><th>Estado</th><th>Horas/sem</th><th>Origen</th><th>Fecha de solicitud</th><th class="text-end"></th></tr></thead>
+          <tbody>
+            <tr th:each="propuesta : ${proyecto.propuestas}">
+              <td><div class="d-flex align-items-center gap-2"><span class="avatar team-avatar bg-blue-lt text-blue" th:text="${propuesta.iniciales}">CO</span>
+                <div><div class="fw-semibold" th:text="${propuesta.colaboradorNombre}">Nombre</div><div class="small text-secondary" th:text="${propuesta.cargo}">Cargo</div></div></div></td>
+              <td><span class="badge" th:classappend="${propuesta.estadoClase}" th:text="${propuesta.estadoTexto}">Pendiente RM</span></td>
+              <td th:text="|${propuesta.horasSemanales} h|">0 h</td>
+              <td th:text="${propuesta.origenTexto}">Propuesta del PM</td>
+              <td class="text-nowrap" th:text="${propuesta.fechaSolicitud != null ? #temporals.format(propuesta.fechaSolicitud, 'dd/MM/yyyy') : '—'}">01/01/2026</td>
+              <td class="text-end"><a class="btn btn-outline-secondary btn-sm"
+                     th:href="@{/rm/asignaciones/activa(id=${propuesta.asignacionId}, origen='proyecto')}">Ver</a></td>
+            </tr>
+            <th:block th:if="${#lists.isEmpty(proyecto.propuestas)}">
+              <tr th:replace="~{fragments/rm-empty-state :: fila(vacioColspan=6, vacioIcono='bandeja', vacioTitulo='Sin propuestas',
+                  vacioTexto='Todavía no se ha propuesto ni solicitado ningún colaborador para este proyecto.')}"></tr>
+            </th:block>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Zona de riesgo: al final de la página, solo en ACTIVO/EN_ESPERA. Cada acción abre un modal que exige
+         motivo y el nombre exacto del proyecto; el servidor vuelve a validar todo. -->
+    <div class="card border-danger mb-4" id="projectDangerZone" th:if="${proyectoCerrable}">
+      <div class="card-header section-header"><div><h3 class="card-title mb-1 text-danger">Zona de riesgo</h3>
+        <div class="section-description">Acciones irreversibles: el proyecto se cierra y sus asignaciones pendientes y activas se cierran con él.</div></div></div>
+      <div class="card-body">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 pb-3 mb-3 border-bottom">
+          <div>
+            <div class="fw-semibold">Finalizar proyecto</div>
+            <div class="small text-secondary">Marca el proyecto como finalizado. Requiere que todas sus actividades estén completadas.</div>
+            <div class="small text-danger mt-1" id="finishProjectBlocked" th:if="${actividadesAbiertas > 0}"
+                 th:text="|No disponible: ${actividadesAbiertas} actividad(es) siguen pendientes, en progreso o en revisión.|">No disponible</div>
+          </div>
+          <button type="button" class="btn btn-outline-secondary" id="finishProjectButton"
+                  data-bs-toggle="modal" data-bs-target="#finishProjectModal"
+                  th:disabled="${actividadesAbiertas > 0}">Finalizar proyecto</button>
+        </div>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div>
+            <div class="fw-semibold">Cancelar proyecto</div>
+            <div class="small text-secondary">Detiene el proyecto de forma definitiva. Se notificará al Project Manager y a los colaboradores afectados.</div>
+          </div>
+          <button type="button" class="btn btn-outline-danger" id="cancelProjectButton"
+                  data-bs-toggle="modal" data-bs-target="#cancelProjectModal">Cancelar proyecto</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<th:block th:if="${proyectoCerrable}">
+  <div class="modal modal-blur fade rm-modal" th:each="cierre : ${#strings.listSplit('finalizar,cancelar', ',')}"
+     th:id="${cierre == 'finalizar'} ? 'finishProjectModal' : 'cancelProjectModal'"
+     tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" data-rm-cierre-form
+          th:action="@{/rm/proyectos/{id}/{accion}(id=${proyecto.proyecto.id}, accion=${cierre})}"
+          th:attr="data-nombre=${proyecto.proyecto.nombre}">
+      <div class="modal-header">
+        <h5 class="modal-title" th:text="${cierre == 'finalizar'} ? 'Finalizar proyecto' : 'Cancelar proyecto'">Cerrar proyecto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger" role="alert">
+          <div th:text="${cierre == 'finalizar'}
+                ? 'El proyecto pasará a FINALIZADO. Esta acción no se puede deshacer.'
+                : 'El proyecto pasará a CANCELADO. Esta acción no se puede deshacer.'">Aviso</div>
+          <div class="small mt-1">Las asignaciones pendientes se rechazarán y las activas se finalizarán, liberando las horas de los colaboradores (sin strikes).</div>
+        </div>
+        <label class="form-label required" th:for="|motivo-${cierre}|">Motivo</label>
+        <textarea class="form-control mb-3" name="motivo" rows="3" maxlength="500" required
+                  th:id="|motivo-${cierre}|" placeholder="Explica por qué se cierra el proyecto (máx. 500 caracteres)"></textarea>
+        <label class="form-label required" th:for="|confirmacion-${cierre}|">
+          Para confirmar, escribe el nombre del proyecto: <strong th:text="${proyecto.proyecto.nombre}">Proyecto</strong>
+        </label>
+        <input type="text" class="form-control" name="confirmacionNombre" autocomplete="off" required
+               th:id="|confirmacion-${cierre}|">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Volver</button>
+        <button type="submit" class="btn btn-danger" data-rm-cierre-confirmar disabled
+                th:text="${cierre == 'finalizar'} ? 'Finalizar proyecto' : 'Cancelar proyecto'">Confirmar</button>
+      </div>
+    </form>
+  </div>
+</div>
+</th:block>
+
+<div class="modal modal-blur fade rm-modal" id="budgetChangeModal" tabindex="-1"
+     aria-labelledby="budgetChangeModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="budgetChangeModalTitle">Confirmar cambio de presupuesto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="project-info-grid mb-3">
+          <div>
+            <div class="info-label">Presupuesto anterior</div>
+            <div class="info-value" data-budget-anterior>S/ 0.00</div>
+          </div>
+          <div>
+            <div class="info-label">Presupuesto nuevo</div>
+            <div class="info-value" data-budget-nuevo>S/ 0.00</div>
+          </div>
+        </div>
+        <div class="form-hint">El sistema volverá a validar el monto antes de guardarlo.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" data-budget-confirmar>Confirmar cambio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
+<script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
+<script src="../../static/js/rm-js/rm-presupuesto-confirmacion.js" th:src="@{/js/rm-js/rm-presupuesto-confirmacion.js}"></script>
+<script th:if="${proyectoCerrable}" src="../../static/js/rm-js/rm-proyecto-cierre.js" th:src="@{/js/rm-js/rm-proyecto-cierre.js}"></script>
+<script src="../../static/js/rm-js/rm-proyecto-fechas.js" th:src="@{/js/rm-js/rm-proyecto-fechas.js}"></script>
+</body>
+</html>

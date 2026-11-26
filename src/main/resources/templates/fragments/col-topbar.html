@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+
+<header class="topbar" th:fragment="topbar(activeSection)">
+  <meta name="_csrf" th:content="${_csrf?.token}">
+  <meta name="_csrf_header" th:content="${_csrf?.headerName}">
+    <div class="container-xl">
+        <a href="../col/col-dashboard.html" class="brand" th:href="@{/colaborador/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
+
+        <nav class="main-nav" aria-label="Navegacion principal" sec:authorize="hasRole('COLABORADOR')">
+            <a href="../col/col-dashboard.html" th:classappend="${activeSection == 'dashboard'} ? 'active' : ''" th:href="@{/colaborador/dashboard}">Dashboard</a>
+            <a href="../col/col-proyectos.html" th:classappend="${activeSection == 'proyectos'} ? 'active' : ''" th:href="@{/colaborador/proyectos}">Mis proyectos</a>
+            <a href="../col/col-foros.html" th:classappend="${activeSection == 'foros'} ? 'active' : ''" th:href="@{/colaborador/foros}">Foros</a>
+            <a href="../col/col-chat.html" th:classappend="${activeSection == 'chat'} ? 'active' : ''" th:href="@{/colaborador/chat}">Chat</a>
+            <a href="../col/col-asistente.html" th:classappend="${activeSection == 'asistente'} ? 'active' : ''" th:href="@{/colaborador/asistente}">Asistente</a>
+            <a href="../col/col-perfil.html" th:classappend="${activeSection == 'perfil'} ? 'active' : ''" th:href="@{/colaborador/perfil}">Perfil Profesional</a>
+            <a href="../col/col-desempeno.html" th:classappend="${activeSection == 'desempeno'} ? 'active' : ''" th:href="@{/colaborador/desempeno}">Mi desempeño</a>
+            <a href="../col/col-explorar.html" th:classappend="${activeSection == 'explorar'} ? 'active' : ''" th:href="@{/colaborador/explorar}">Explorar</a>
+        </nav>
+
+        <div class="user-area">
+
+            <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+                    <path d="M9 19a3 3 0 0 0 6 0"/>
+                </svg>
+                <span class="badge bg-red notification-dot"></span>
+            </a>
+            <a href="../col/col-perfil.html" th:href="@{/colaborador/perfil}" style="display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit;">
+                <span th:if="${usuarioActual != null and usuarioActual.fotoUrl != null and !#strings.isEmpty(usuarioActual.fotoUrl)}"
+                      class="avatar avatar-sm user-avatar"
+                      th:style="|background-image: url('@{${usuarioActual.fotoUrl}}')|">
+                </span>
+
+                <span th:unless="${usuarioActual?.fotoUrl != null and !usuarioActual.fotoUrl.isEmpty()}" class="avatar avatar-sm user-avatar"
+                      th:text="${usuarioActual != null ? ((#strings.isEmpty(usuarioActual.nombre) ? '' : #strings.substring(usuarioActual.nombre,0,1)) + (#strings.isEmpty(usuarioActual.apellido) ? '' : #strings.substring(usuarioActual.apellido,0,1))) : 'PK'}">PK</span>
+                <div class="user-meta">
+                    <div class="fw-semibold" th:text="${usuarioActual != null ? (usuarioActual.nombre + ' ' + usuarioActual.apellido) : 'Invitado'}">Paweł Kuna</div>
+                    <div class="small">Colaborador</div>
+                </div>
+            </a>
+            <form th:action="@{/logout}" method="post" class="m-0 d-flex"><button type="submit" class="btn btn-danger btn-sm ms-3" title="Cerrar sesión" style="padding: 4px 8px; display: flex; align-items: center; gap: 4px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"></path>
+                    <path d="M9 12h12l-3 -3"></path>
+                    <path d="M18 15l3 -3"></path>
+                </svg>
+                Salir
+            </button></form>
+        </div>  </div>
+    <script th:src="@{/js/csrf.js}" src="../static/js/csrf.js"></script>
+    <script th:src="@{/js/upload-guard.js}" src="../static/js/upload-guard.js"></script>
+    <script th:src="@{/js/notificaciones.js}" src="../static/js/notificaciones.js"></script>
+</header>
+
+</body>
+</html>

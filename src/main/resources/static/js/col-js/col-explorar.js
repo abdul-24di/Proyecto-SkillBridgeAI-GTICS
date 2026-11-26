@@ -1,0 +1,192 @@
+
+document.querySelectorAll("#projectAccordion [data-toggle-project]").forEach(header => {
+    header.addEventListener("click", () => header.closest(".project-accordion-item").classList.toggle("open"));
+});
+
+
+const applyModalEl = document.getElementById("applyModal");
+
+applyModalEl?.addEventListener("show.bs.modal", (event) => {
+    const btn = event.relatedTarget;
+    if (!btn) return;
+
+    document.getElementById("applyModalTitle").textContent = "Postulación al " + btn.dataset.projectName;
+    document.getElementById("applyProyectoId").value = btn.dataset.projectId;
+    document.getElementById("applyMessageInput").value = "";
+    document.getElementById("applyError").classList.add("d-none");
+    document.getElementById("applyPerfilSelect").classList.remove("is-invalid");
+
+
+
+    const item = btn.closest(".project-accordion-item");
+    const plantilla = item.querySelector(".perfil-options-template");
+    const select = document.getElementById("applyPerfilSelect");
+    select.innerHTML = '<option value="" selected disabled>Selecciona un perfil...</option>';
+    if (plantilla) {
+        select.append(plantilla.content.cloneNode(true));
+    }
+
+
+
+});
+
+
+/* ================= POSTULAR SIN RECARGAR ================= */
+const applyForm = document.getElementById("applyForm");
+const applyError = document.getElementById("applyError");
+
+document.getElementById("applyPerfilSelect")?.addEventListener("change", () => {
+    document.getElementById("applyPerfilSelect").classList.remove("is-invalid");
+});
+
+applyForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    applyError.classList.add("d-none");
+
+    const perfilSelect = document.getElementById("applyPerfilSelect");
+    if (!perfilSelect.value) {
+        perfilSelect.classList.add("is-invalid");
+        return;
+    }
+
+    const boton = applyForm.querySelector("button[type='submit']");
+    boton.disabled = true;
+
+    try {
+        const respuesta = await fetch(applyForm.action + "-ajax", {
+            method: "POST",
+            body: new URLSearchParams(new FormData(applyForm))
+        });
+
+        // Si la sesión expiró, el servidor redirige al login: recargamos para que te lleve allá.
+        if (respuesta.redirected) {
+            window.location.reload();
+            return;
+        }
+
+        const texto = await respuesta.text();
+        if (respuesta.ok) {
+            sessionStorage.setItem("mensajeExitoPostulacion", texto);
+            window.location.reload();
+        } else {
+            applyError.textContent = texto;
+            applyError.classList.remove("d-none");
+        }
+    } catch (e) {
+        applyError.textContent = "No se pudo enviar la solicitud. Inténtalo de nuevo.";
+        applyError.classList.remove("d-none");
+    }
+
+    boton.disabled = false;
+});
+
+// Muestra el mensaje de éxito después de recargar
+const mensajeExitoPostulacion = sessionStorage.getItem("mensajeExitoPostulacion");
+if (mensajeExitoPostulacion) {
+    sessionStorage.removeItem("mensajeExitoPostulacion");
+    const cajaExito = document.getElementById("alertaExitoJs");
+    if (cajaExito) {
+        cajaExito.className = "alert alert-success";
+        cajaExito.textContent = mensajeExitoPostulacion;
+    }
+}
+
+function mostrarPerfilColaborador(colaboradorId) {
+    document.querySelectorAll("#collabProfileDetail .collab-detail-card").forEach(card => {
+        card.classList.toggle("d-none", card.dataset.collabDetail !== colaboradorId);
+    });
+    document.getElementById("collabListView").classList.add("hide");
+    document.getElementById("collabProfileDetail").classList.add("show");
+}
+
+document.getElementById("backToCollabList")?.addEventListener("click", () => {
+    document.getElementById("collabProfileDetail").classList.remove("show");
+    document.getElementById("collabListView").classList.remove("hide");
+});
+
+
+
+
+/* ================= CURSOS ================= */
+document.querySelectorAll("#courseAccordion [data-toggle-course]").forEach(header => {
+    header.addEventListener("click", () => header.closest(".project-accordion-item").classList.toggle("open"));
+});
+
+const cursoDetalleModalEl = document.getElementById("cursoDetalleModal");
+
+cursoDetalleModalEl?.addEventListener("show.bs.modal", (event) => {
+    const btn = event.relatedTarget;
+    if (!btn) return;
+
+    document.getElementById("cursoDetalleTitulo").textContent = btn.dataset.courseName;
+    document.getElementById("cursoDetalleCategoria").textContent =
+        btn.dataset.courseCategoria && btn.dataset.courseCategoria !== "" ? btn.dataset.courseCategoria : "Sin categoría";
+
+    const nombresModalidad = { VIRTUAL: "Virtual", PRESENCIAL: "Presencial", HIBRIDO: "Híbrido" };
+    const modalidadBadge = document.getElementById("cursoDetalleModalidad");
+    if (btn.dataset.courseModalidad) {
+        modalidadBadge.textContent = nombresModalidad[btn.dataset.courseModalidad] || "No especificada";
+        modalidadBadge.style.display = "";
+    } else {
+        modalidadBadge.style.display = "none";
+    }
+
+    document.getElementById("cursoDetalleDescripcion").textContent =
+        btn.dataset.courseDescripcion && btn.dataset.courseDescripcion !== "" ? btn.dataset.courseDescripcion : "Sin descripción registrada.";
+
+    document.getElementById("cursoDetalleHoras").textContent = btn.dataset.courseHoras + " horas";
+
+    const esAutodidacta = btn.dataset.courseAutodidacta === "true";
+    document.getElementById("cursoDetalleRitmo").textContent = esAutodidacta ? "Autodidáctico (a tu ritmo)" : "Con horario fijo";
+
+    const diasWrap = document.getElementById("cursoDetalleDiasWrap");
+    if (!esAutodidacta && btn.dataset.courseDias) {
+        document.getElementById("cursoDetalleDias").textContent = btn.dataset.courseDias;
+        diasWrap.style.display = "";
+    } else {
+        diasWrap.style.display = "none";
+    }
+
+    const fechasEl = document.getElementById("cursoDetalleFechas");
+    if (esAutodidacta) {
+        fechasEl.textContent = "A tu ritmo, sin fecha fija de inicio ni fin";
+    } else if (btn.dataset.courseFechaInicio && btn.dataset.courseFechaFin) {
+        fechasEl.textContent = btn.dataset.courseFechaInicio + " – " + btn.dataset.courseFechaFin;
+    } else {
+        fechasEl.textContent = "Por definir";
+    }
+
+    document.getElementById("cursoDetalleCursoId").value = btn.dataset.courseId;
+
+    const puedeSolicitar = btn.dataset.coursePuedeSolicitar === "true";
+    const solicitarWrap = document.getElementById("cursoDetalleSolicitarWrap");
+    const submitBtn = document.getElementById("cursoDetalleSubmitBtn");
+    const estadoWrap = document.getElementById("cursoDetalleEstadoWrap");
+    const estadoBadge = document.getElementById("cursoDetalleEstadoBadge");
+
+    const motivoEl = document.getElementById("cursoDetalleMotivo");
+    const motivo = btn.dataset.courseMotivoBloqueo || "";
+
+    if (puedeSolicitar) {
+        solicitarWrap.style.display = "";
+        submitBtn.style.display = "";
+        estadoWrap.style.display = "none";
+        motivoEl.style.display = "none";
+        motivoEl.textContent = "";
+        document.getElementById("cursoDetalleForm").reset();
+    } else {
+        solicitarWrap.style.display = "none";
+        submitBtn.style.display = "none";
+        const estadoTexto = btn.dataset.courseEstadoTexto || "";
+        // Si hay un motivo general y el curso no tiene estado propio, mostramos solo el motivo.
+        if (estadoTexto || !motivo) {
+            estadoWrap.style.display = "";
+            estadoBadge.textContent = estadoTexto || "No disponible";
+            estadoBadge.className = "badge " + (btn.dataset.courseEstadoClase || "bg-secondary-lt");
+        } else {
+            estadoWrap.style.display = "none";
+        }
+        motivoEl.textContent = motivo;
+        motivoEl.style.display = motivo ? "" : "none";
+    }
+});

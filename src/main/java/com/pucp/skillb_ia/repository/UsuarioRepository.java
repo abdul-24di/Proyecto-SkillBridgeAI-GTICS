@@ -1,0 +1,72 @@
+package com.pucp.skillb_ia.repository;
+
+import com.pucp.skillb_ia.model.Cargo;
+import com.pucp.skillb_ia.model.Usuario;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
+    Optional<Usuario> findByCorreo(String correo);
+    boolean existsByCorreo(String correo);
+    boolean existsByDni(String dni);
+    boolean existsByDniAndIdNot(String dni, Long id);
+    // DNI guardados "sin verificar" que la tarea programada vuelve a consultar.
+    List<Usuario> findByDniIsNotNullAndDniVerificadoFalse();
+    List<Usuario> findByCargo(Cargo cargo);
+
+    @Query("""
+            select u
+            from Usuario u
+            join fetch u.rol r
+            where r.nombre = :rolNombre
+              and u.activo = true
+              and u.nombre is not null
+            order by u.nombre asc, u.apellido asc
+            """)
+    // Solo cuentas ya activadas: una invitación pendiente todavía no tiene nombre (se registra al activar la cuenta)
+    // y no debe recibir proyectos ni avisos. Antes un RM invitado que aún no activaba su cuenta podía quedar como
+    // responsable de un proyecto y la auditoría mostraba "asignado a null null".
+    List<Usuario> findActivosByRolNombre(@Param("rolNombre") String rolNombre);
+
+    // Cuántos usuarios activos tienen un rol (p. ej. para no dejar el sistema sin Administradores).
+    long countByRol_NombreAndActivoTrue(String rolNombre);
+
+    // Colaboradores que el RM puede ver y asignar (TASK-053): activos y con el pre-registro
+    // aprobado; NULL (anterior al pre-registro) cuenta como aprobado.
+    @Query("""
+            select u
+            from Usuario u
+            join fetch u.rol r
+            where r.nombre = 'COLABORADOR'
+              and u.activo = true
+              and (u.registroEstado is null
+                   or u.registroEstado = com.pucp.skillb_ia.model.enums.EstadoRegistro.APROBADO)
+            order by u.nombre asc, u.apellido asc
+            """)
+    List<Usuario> findColaboradoresVisiblesRm();
+
+    @Query("""
+            select u
+            from Usuario u
+            join fetch u.rol r
+            where u.id = :id
+              and r.nombre = 'COLABORADOR'
+              and u.activo = true
+              and (u.registroEstado is null
+                   or u.registroEstado = com.pucp.skillb_ia.model.enums.EstadoRegistro.APROBADO)
+            """)
+    Optional<Usuario> findColaboradorVisibleRmById(@Param("id") Long id);
+
+    @Query("""
+            select u
+            from Usuario u
+            join fetch u.rol r
+            left join fetch u.cargo
+            order by u.fechaCreacion desc
+            """)
+    List<Usuario> findAllWithRol();
+}

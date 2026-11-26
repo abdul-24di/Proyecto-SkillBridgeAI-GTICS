@@ -1,0 +1,43 @@
+/* =========================================================
+   CERTIFICADOS PENDIENTES - RESOURCE MANAGER
+   ========================================================= */
+
+.metric-card {
+  min-height: 110px;
+  border: 1px solid #e3e7ee;
+  box-shadow: 0 2px 8px rgba(24, 36, 51, .04);
+}
+
+.filters-panel {
+  padding: 1rem 1.15rem;
+}
+
+.table > :not(caption) > * > * {
+  vertical-align: middle;
+}
+
+.table thead th {
+  color: #4f5d6b;
+  background: #f7f9fc;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.person-avatar {
+  width: 34px;
+  height: 34px;
+  font-size: .72rem;
+}
+
+.document-title {
+  color: #2f3747;
+  font-weight: 700;
+}
+
+@media (max-width: 767px) {
+  .filters-panel {
+    padding: .9rem;
+  }
+}

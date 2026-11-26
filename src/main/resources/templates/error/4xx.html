@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Página no disponible | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/auth-css/auth.css}">
+</head>
+<!-- Spring Boot muestra esta página en los errores 4xx que no tienen una propia (404, 400, 405, 413...). -->
+<body class="auth-page">
+<div class="auth-shell">
+    <div class="auth-brand">
+        <img class="auth-logo-img" th:src="@{/img/skillbridge-logo.webp}" alt="SkillBridge AI">
+    </div>
+    <div class="auth-card auth-success-card">
+        <h2 class="auth-title centered" th:text="${status == 404 ? 'No encontramos esa página' : 'No pudimos procesar tu solicitud'}">No encontramos esa página</h2>
+        <p class="auth-subtitle centered" th:text="${status == 404 ? 'La dirección no existe o ya no está disponible.' : 'Los datos enviados no son válidos. Vuelve atrás e inténtalo de nuevo.'}">La dirección no existe.</p>
+        <a th:href="@{/}" class="auth-submit" style="text-decoration:none">Ir al inicio</a>
+    </div>
+    <div class="auth-copyright">© 2026 SkillBridge AI — TEL137 PUCP</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,166 @@
+package com.pucp.skillb_ia.service.pm;
+
+import com.pucp.skillb_ia.dto.ChatContactoView;
+import com.pucp.skillb_ia.dto.PmMensajeView;
+import com.pucp.skillb_ia.model.Asignacion;
+import com.pucp.skillb_ia.model.Conversacion;
+import com.pucp.skillb_ia.model.Proyecto;
+import com.pucp.skillb_ia.model.Usuario;
+import com.pucp.skillb_ia.model.enums.EstadoAsignacion;
+import com.pucp.skillb_ia.repository.AsignacionRepository;
+import com.pucp.skillb_ia.repository.ProyectoRepository;
+import com.pucp.skillb_ia.service.ChatBaseService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Servicio de mensajería del Project Manager: chat grupal de cada proyecto, chats privados
+ * con el Resource Manager revisor o colaboradores con asignación activa, y conteo de no leídos.
+ */
+@Service
+public class PmChatService {
+
+    private final ProyectoRepository proyectoRepository;
+    private final AsignacionRepository asignacionRepository;
+    private final ChatBaseService chatBaseService;
+
+    public PmChatService(ProyectoRepository proyectoRepository,
+                         AsignacionRepository asignacionRepository,
+                         ChatBaseService chatBaseService) {
+        this.proyectoRepository = proyectoRepository;
+        this.asignacionRepository = asignacionRepository;
+        this.chatBaseService = chatBaseService;
+    }
+
+    /** Lista los proyectos que pertenecen al PM ordenados del más reciente al más antiguo. */
+    public List<Proyecto> listarProyectosDelPm(Usuario pm) {
+        return proyectoRepository.findByPmOrderByFechaCreacionDesc(pm);
+    }
+
+    private Proyecto proyectoDelPm(Long proyectoId, Usuario pm) {
+        Proyecto proyecto = proyectoRepository.findByIdConPm(proyectoId)
+                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado."));
+
+        if (!proyecto.getPm().getId().equals(pm.getId())) {
+            throw new IllegalArgumentException("No eres el PM de este proyecto.");
+        }
+        return proyecto;
+    }
+
+    // El colaborador debe tener asignación activa en el proyecto
+    private Usuario validarColaborador(Proyecto proyecto, Long colaboradorId) {
+
+        if (colaboradorId == null) {
+            throw new IllegalArgumentException("Debes seleccionar con quién chatear.");
+        }
+
+        // El RM del proyecto también puede escribirle al PM, y el PM le responde
+        Usuario rm = proyecto.getRmRevisor();
+        if (rm != null && rm.getId().equals(colaboradorId)) {
+            return rm;
+        }
+
+        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        for (Asignacion a : activas) {
+            if (a.getColaborador().getId().equals(colaboradorId)) {
+                return a.getColaborador();
+            }
+        }
+        throw new IllegalArgumentException("Ese colaborador no está activo en este proyecto.");
+    }
+
+    // ---------------- Contactos ----------------
+
+    /** Lista los contactos del chat de un proyecto: el RM revisor (si existe) y los colaboradores activos. */
+    @Transactional(readOnly = true)
+    public List<ChatContactoView> listarContactos(Long proyectoId, Usuario pm) {
+        Proyecto proyecto = proyectoDelPm(proyectoId, pm);
+
+        List<ChatContactoView> contactos = new ArrayList<>();
+
+        Usuario rm = proyecto.getRmRevisor();
+        if (rm != null) {
+            contactos.add(new ChatContactoView(rm, "Resource Manager"));
+        }
+
+        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        for (Asignacion a : activas) {
+            contactos.add(new ChatContactoView(a.getColaborador(), "Colaborador"));
+        }
+        return contactos;
+    }
+
+    /** Obtiene los mensajes del chat grupal del proyecto y los marca como leídos para el PM. */
+    @Transactional
+    public List<PmMensajeView> obtenerMensajes(Long proyectoId, Usuario pm) {
+        Proyecto proyecto = proyectoDelPm(proyectoId, pm);
+        Conversacion conversacion = chatBaseService.obtenerOCrearGrupal(proyecto);
+        chatBaseService.marcarLeida(conversacion, pm);
+        return chatBaseService.listar(conversacion, pm.getId());
+    }
+
+    /** Valida el texto y envía un mensaje en el chat grupal del proyecto del PM. */
+    @Transactional
+    public PmMensajeView enviarMensaje(Long proyectoId, String contenido, Usuario pm) {
+        if (proyectoId == null) {
+            throw new IllegalArgumentException("Debes seleccionar un proyecto para enviar un mensaje.");
+        }
+        chatBaseService.validarTexto(contenido);
+        Proyecto proyecto = proyectoDelPm(proyectoId, pm);
+
+        return chatBaseService.enviarGrupal(proyecto, pm, contenido.trim());
+    }
+
+    /** Obtiene los mensajes del chat privado entre el PM y un colaborador activo o el RM del proyecto. */
+    @Transactional
+    public List<PmMensajeView> obtenerMensajesPrivados(Long proyectoId, Long colaboradorId, Usuario pm) {
+        Proyecto proyecto = proyectoDelPm(proyectoId, pm);
+        Usuario colaborador = validarColaborador(proyecto, colaboradorId);
+
+        Conversacion conversacion = chatBaseService.buscarPrivada(proyecto, pm, colaborador);
+        if (conversacion == null) {
+            return new ArrayList<>();
+        }
+        chatBaseService.marcarLeida(conversacion, pm);
+        return chatBaseService.listar(conversacion, pm.getId());
+    }
+
+    /** Envía un mensaje privado desde el PM hacia un colaborador activo o el RM revisor del proyecto. */
+    @Transactional
+    public PmMensajeView enviarMensajePrivado(Long proyectoId, Long colaboradorId, String contenido, Usuario pm) {
+        if (proyectoId == null) {
+            throw new IllegalArgumentException("Debes seleccionar un proyecto para enviar un mensaje.");
+        }
+        chatBaseService.validarTexto(contenido);
+        Proyecto proyecto = proyectoDelPm(proyectoId, pm);
+        Usuario colaborador = validarColaborador(proyecto, colaboradorId);
+
+        return chatBaseService.enviarPrivado(proyecto, pm, colaborador, contenido.trim());
+    }
+
+    /** Cuenta los mensajes no leídos en el chat grupal y en cada conversación privada del proyecto. */
+    @Transactional(readOnly = true)
+    public Map<String, Long> obtenerNoLeidos(Long proyectoId, Usuario pm) {
+        Proyecto proyecto = proyectoDelPm(proyectoId, pm);
+
+        List<Usuario> otros = new ArrayList<>();
+
+        if (proyecto.getRmRevisor() != null) {
+            otros.add(proyecto.getRmRevisor());
+        }
+
+        List<Asignacion> activas = asignacionRepository.findByProyectoAndEstado(proyecto, EstadoAsignacion.ACTIVA);
+        for (Asignacion a : activas) {
+            otros.add(a.getColaborador());
+        }
+        return chatBaseService.contarNoLeidosPorChat(proyecto, pm, otros);
+    }
+
+
+
+
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ocurrió un problema | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/auth-css/auth.css}">
+</head>
+<!-- Mensaje genérico a propósito: los detalles técnicos solo van al log del servidor. -->
+<body class="auth-page">
+<div class="auth-shell">
+    <div class="auth-brand">
+        <img class="auth-logo-img" th:src="@{/img/skillbridge-logo.webp}" alt="SkillBridge AI">
+    </div>
+    <div class="auth-card auth-success-card">
+        <h2 class="auth-title centered">Ocurrió un problema</h2>
+        <p class="auth-subtitle centered">No pudimos completar tu solicitud. Inténtalo de nuevo en unos minutos.</p>
+        <a th:href="@{/}" class="auth-submit" style="text-decoration:none">Ir al inicio</a>
+    </div>
+    <div class="auth-copyright">© 2026 SkillBridge AI — TEL137 PUCP</div>
+</div>
+</body>
+</html>

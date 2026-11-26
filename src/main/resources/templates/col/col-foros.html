@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Foros</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+    <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-foros.css" th:href="@{/css/col-css/col-foros.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('foros')}"></header>
+
+    <main class="page-wrap">
+        <div class="container-xl mt-4">
+
+            <div class="page-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h2 class="page-title">Foros</h2>
+                        <div class="text-secondary mt-1">Participa en foros de la comunidad o en los foros de los proyectos donde estás asignado.</div>
+                    </div>
+                    <div class="col-auto" th:if="${not #lists.isEmpty(forosParaPublicar)}">
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPostModalGlobal">+ Nueva publicación</button>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- Pestañas: Comunidad / Mis proyectos -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+                <li class="nav-item">
+                    <a href="#tab-comunidad" class="nav-link d-flex align-items-center gap-2" th:classappend="${tab == 'comunidad'} ? 'active'" data-bs-toggle="tab">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/>
+                        </svg>
+                        Comunidad
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#tab-mis-proyectos" class="nav-link d-flex align-items-center gap-2" th:classappend="${tab == 'mios'} ? 'active'" data-bs-toggle="tab">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+                        </svg>
+                        Mis proyectos
+                    </a>
+                </li>
+            </ul>
+
+
+            <div class="tab-content">
+
+                <!-- Búsqueda en el servidor: formulario GET (sin JavaScript). -->
+                <form id="filtrosForos" method="get" th:action="@{/colaborador/foros}" class="d-flex gap-2 mb-3" style="max-width: 520px;">
+                    <input type="hidden" name="tab" th:value="${tab}">
+                    <div class="input-icon flex-fill">
+                        <span class="input-icon-addon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg>
+                        </span>
+                        <input type="text" id="forumSearchInput" name="busqueda" class="form-control" placeholder="Buscar por nombre de foro o proyecto..." maxlength="100" th:value="${busqueda}">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Buscar</button>
+                    <a th:if="${busqueda != null and !busqueda.isBlank()}" th:href="@{/colaborador/foros(tab=${tab})}" class="btn btn-outline-secondary">Limpiar</a>
+                </form>
+
+                <!-- ===================== COMUNIDAD ===================== -->
+                <div class="tab-pane" th:classappend="${tab == 'comunidad'} ? 'active show'" id="tab-comunidad">
+                    <div class="row row-cards">
+                        <div th:each="foro : ${forosComunidad}" class="col-md-6 col-lg-4 forum-card-wrap">
+                            <div class="card project-forum-card card-link-pop">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="project-forum-icon avatar bg-blue-lt rounded"
+                                              th:text="${foro.nombre != null and foro.nombre.length() >= 2 ? foro.nombre.substring(0,2).toUpperCase() : 'FO'}">FO</span>
+                                        <h3 class="card-title m-0 ms-3" th:text="${foro.nombre}">Anuncios generales</h3>
+                                        <span th:if="${foro.anuncios}" class="badge bg-orange-lt text-orange ms-auto">Anuncios</span>
+                                    </div>
+                                    <div class="project-forum-meta" th:if="${foro.proyecto != null}">
+                                        Foro del proyecto <strong th:text="${foro.proyecto.nombre}">Proyecto X</strong> (compartido con la comunidad)
+                                    </div>
+                                    <div class="project-forum-meta" th:if="${foro.proyecto == null}">
+                                        <th:block th:text="${foro.anuncios} ? 'Anuncios del Administrador para toda la organización.' : 'Foro general, abierto a toda la organización.'">Foro general, abierto a toda la organización.</th:block>
+                                    </div>
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <a th:href="@{/colaborador/foros/detalle(foroId=${foro.id})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(forosComunidad)}" class="col-12 text-center text-secondary py-5 border rounded bg-white"
+                             th:text="${busqueda != null and !busqueda.isBlank()} ? 'Ningún foro coincide con la búsqueda.' : 'Todavía no hay foros de comunidad disponibles.'">
+                            Todavía no hay foros de comunidad disponibles.
+                        </div>
+                    </div>
+
+                    <form id="paginacionComunidad" method="get" th:action="@{/colaborador/foros}">
+                        <input type="hidden" name="tab" value="comunidad">
+                        <input type="hidden" name="busqueda" th:value="${busqueda}">
+                        <input type="hidden" name="paginaMios" th:value="${paginaMios.number + 1}">
+                    </form>
+                    <th:block th:if="${!#lists.isEmpty(forosComunidad)}">
+                        <div th:replace="~{fragments/paginacion :: paginacion(${paginaComunidad}, 'paginacionComunidad', 'foro(s)', 'paginaComunidad')}"></div>
+                    </th:block>
+                </div>
+
+                <!-- ===================== MIS PROYECTOS ===================== -->
+                <div class="tab-pane" th:classappend="${tab == 'mios'} ? 'active show'" id="tab-mis-proyectos">
+                    <div class="row row-cards">
+                        <div th:each="foro : ${forosMisProyectos}" class="col-md-6 col-lg-4 forum-card-wrap">
+
+                            <div class="card project-forum-card card-link-pop">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <span class="project-forum-icon avatar bg-green-lt rounded"
+                                              th:text="${foro.proyecto.nombre != null and foro.proyecto.nombre.length() >= 2 ? foro.proyecto.nombre.substring(0,2).toUpperCase() : 'PR'}">PR</span>
+                                        <div class="ms-3">
+                                            <h3 class="card-title m-0" th:text="${foro.proyecto.nombre}">Sistema de Inventario</h3>
+                                            <div class="text-secondary small" th:text="${foro.nombre}">Foro del proyecto</div>
+                                        </div>
+                                    </div>
+                                    <div class="project-forum-meta">Foro privado, solo para colaboradores con asignación activa en este proyecto.</div>
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <a th:href="@{/colaborador/foros/detalle(foroId=${foro.id})}" class="btn btn-outline-primary btn-sm">Entrar al foro</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(forosMisProyectos)}" class="col-12 text-center text-secondary py-5 border rounded bg-white"
+                             th:text="${busqueda != null and !busqueda.isBlank()} ? 'Ningún foro coincide con la búsqueda.' : 'No tienes asignaciones activas en proyectos con foro aún.'">
+                            No tienes asignaciones activas en proyectos con foro aún.
+                        </div>
+                    </div>
+
+                    <form id="paginacionMios" method="get" th:action="@{/colaborador/foros}">
+                        <input type="hidden" name="tab" value="mios">
+                        <input type="hidden" name="busqueda" th:value="${busqueda}">
+                        <input type="hidden" name="paginaComunidad" th:value="${paginaComunidad.number + 1}">
+                    </form>
+                    <th:block th:if="${!#lists.isEmpty(forosMisProyectos)}">
+                        <div th:replace="~{fragments/paginacion :: paginacion(${paginaMios}, 'paginacionMios', 'foro(s)', 'paginaMios')}"></div>
+                    </th:block>
+                </div>
+
+            </div>
+        </div>
+
+
+    </main>
+
+</div>
+
+<!-- MODAL NUEVA PUBLICACIÓN (elige a dónde publicar) -->
+<div class="modal modal-blur fade col-modal" id="newPostModalGlobal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nueva publicación</h5>
+                <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form method="POST" th:action="@{/colaborador/foro/publicar}" th:object="${colForoPublicacionForm}" novalidate>
+                <input type="hidden" name="origen" value="foros">
+                <div class="modal-body">
+                    <div class="alert alert-danger" th:if="${#fields.hasErrors('*')}">Revisa los campos marcados para publicar.</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Publicar en <span class="text-danger">*</span></label>
+                            <select th:field="*{foroId}" class="form-select" th:errorclass="is-invalid">
+                                <option value="">Selecciona un foro</option>
+                                <option th:each="foro : ${forosParaPublicar}"
+                                        th:value="${foro.id}"
+                                        th:text="${foro.proyecto == null ? foro.nombre + ' (Comunidad)' : foro.nombre + ' (' + foro.proyecto.nombre + ')'}"></option>
+                            </select>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('foroId')}" th:errors="*{foroId}"></div>
+                            <div class="form-hint">Solo se listan la comunidad general y los proyectos donde tienes una asignación activa.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Título <span class="text-danger">*</span></label>
+                            <input th:field="*{titulo}" class="form-control" th:errorclass="is-invalid" placeholder="Título de la publicación" maxlength="200">
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('titulo')}" th:errors="*{titulo}"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Etiqueta (opcional)</label>
+                            <select th:field="*{etiquetaId}" class="form-select">
+                                <option value="">Sin etiqueta</option>
+                                <option th:each="etiqueta : ${etiquetas}" th:value="${etiqueta.id}" th:text="${etiqueta.nombre}"></option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Contenido <span class="text-danger">*</span></label>
+                            <textarea th:field="*{contenido}" class="form-control" th:errorclass="is-invalid" rows="6" placeholder="Escribe tu pregunta o publicación..."></textarea>
+                            <div class="invalid-feedback" th:if="${#fields.hasErrors('contenido')}" th:errors="*{contenido}"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" type="submit">Publicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<!-- La publicación volvió con errores: se reabre el modal para corregirla (mismo patrón que el PM). -->
+<script th:if="${abrirModalNuevaPublicacion != null}">
+    document.addEventListener('DOMContentLoaded', function () {
+        new (window.bootstrap || window.tabler).Modal(document.getElementById('newPostModalGlobal')).show();
+    });
+</script>
+</body>
+</html>

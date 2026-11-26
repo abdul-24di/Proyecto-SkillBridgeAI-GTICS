@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Asistente IA (PM)</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-asistente-ia.css" th:href="@{/css/pm-css/pm-asistente-ia.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+  <style>
+    .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa;
+    }
+    span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('asistente-ia')}"></header>
+
+  <main class="page-wrap">
+    <div class="breadcrumb-wrap">
+      <a th:href="@{/pm/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="text-secondary">Asistente IA</span>
+    </div>
+
+    <div th:if="${success}" class="alert alert-success alert-dismissible mb-3" role="alert">
+      <div th:text="${success}">Operación exitosa</div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible mb-3" role="alert">
+      <div th:text="${error}">Error</div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+
+    <div class="ai-layout">
+      <!-- BARRA LATERAL: KPIS DINÁMICOS Y CONSULTAS RÁPIDAS EN JAVA -->
+      <aside class="ai-sidebar">
+        <div class="card section-card mb-3">
+          <div class="card-body assistant-card">
+            <div class="assistant-logo">AI</div>
+            <div>
+              <div class="fw-bold">SkillBridge IA</div>
+              <div class="small text-secondary">Asistente de gestión para PM</div>
+            </div>
+          </div>
+          <div class="card-body pt-0 text-secondary small">
+            Analiza en tiempo real tus proyectos, equipos, brechas de habilidades, carga de trabajo y riesgos.
+            Sus recomendaciones de talento requieren tu confirmación para proponerse al Resource Manager.
+          </div>
+        </div>
+
+        <div class="row row-cards mb-3" th:if="${kpis != null}">
+          <div class="col-6">
+            <div class="card mini-card">
+              <div class="card-body">
+                <div class="metric-label">Mis proyectos</div>
+                <div class="metric-number" th:text="${kpis.totalProyectos}">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="card mini-card">
+              <div class="card-body">
+                <div class="metric-label">Colaboradores</div>
+                <div class="metric-number" th:text="${kpis.totalColaboradores}">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="card mini-card">
+              <div class="card-body">
+                <div class="metric-label">Vacantes</div>
+                <div class="metric-number" th:text="${kpis.totalVacantes}">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="card mini-card">
+              <div class="card-body">
+                <div class="metric-label">Pendientes PM</div>
+                <div class="metric-number" th:text="${kpis.totalPendientesPm}">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="card-header section-header">
+            <div><h3 class="card-title mb-1">Consultas rápidas</h3></div>
+          </div>
+          <form method="post" th:action="@{/pm/asistente/mensaje}" class="card-body quick-list" novalidate>
+            <input type="hidden" name="proyectoId" th:value="${proyectoIdSeleccionado}">
+            <button th:each="c : ${consultasRapidas}"
+                    type="submit"
+                    name="mensaje"
+                    th:value="${c.prompt}"
+                    th:text="${c.etiqueta}">Consulta rápida</button>
+          </form>
+        </div>
+      </aside>
+
+      <!-- PANEL PRINCIPAL DE CONVERSACIÓN -->
+      <section class="card section-card ai-chat">
+        <div class="ai-chat-header">
+          <div>
+            <div class="fw-bold">Asistente IA</div>
+            <div class="small text-success">● Conectado a los datos de tus proyectos</div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- Selector de contexto procesado en servidor -->
+            <form method="get" th:action="@{/pm/asistente}" class="d-flex align-items-center gap-2 m-0" novalidate>
+              <select name="proyectoId" class="form-select form-select-sm context-select" aria-label="Contexto de proyecto">
+                <option value="" th:selected="${proyectoIdSeleccionado == null}">Contexto general (todos mis proyectos)</option>
+                <option th:each="p : ${proyectos}"
+                        th:value="${p.proyecto.id}"
+                        th:text="${p.proyecto.nombre}"
+                        th:selected="${proyectoIdSeleccionado != null and proyectoIdSeleccionado == p.proyecto.id}">Proyecto</option>
+              </select>
+              <button type="submit" class="btn btn-sm btn-outline-primary">Enfocar</button>
+            </form>
+
+            <!-- Reiniciar conversación en servidor -->
+            <form method="post" th:action="@{/pm/asistente/limpiar}" class="m-0" novalidate>
+              <input type="hidden" name="proyectoId" th:value="${proyectoIdSeleccionado}">
+              <button type="submit" class="btn btn-sm btn-outline-secondary">Reiniciar</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- MENSAJES RENDERIZADOS EN SERVIDOR -->
+        <div id="aiMessages" class="ai-messages">
+          <!-- Mensaje de bienvenida -->
+          <div class="ai-message">
+            <div class="assistant-logo small-logo">AI</div>
+            <div class="ai-bubble">
+              <p class="ai-par" th:text="|Hola ${pm?.nombre ?: 'PM'}. Soy tu asistente de gestión SkillBridge IA.|">Hola PM.</p>
+              <ul class="ai-list">
+                <li>Analizo en tiempo real tus proyectos, el avance de actividades, la carga horaria de tu equipo, las brechas de habilidades y los riesgos (vencimientos o strikes).</li>
+                <li>Cuando te recomiende candidatos con habilidades validadas por el RM y disponibilidad horaria, podrás enviarlos como propuesta formal al proyecto desde su tarjeta interactiva.</li>
+                <li>Por privacidad institucional, el asistente nunca muestra ni estima sueldos, bonos ni tarifas de colaboradores.</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Historial de turnos de la sesión -->
+          <th:block th:each="turno : ${turnos}">
+            <!-- Pregunta del PM -->
+            <div class="ai-message own">
+              <div class="ai-bubble" th:text="${turno.pregunta}">Consulta del PM</div>
+              <span class="avatar avatar-sm bg-blue text-white"
+                    th:text="|${#strings.isEmpty(pm?.nombre) ? 'P' : #strings.substring(pm.nombre, 0, 1)}${#strings.isEmpty(pm?.apellido) ? 'M' : #strings.substring(pm.apellido, 0, 1)}|">PM</span>
+            </div>
+
+            <!-- Respuesta estructurada del Asistente IA -->
+            <div class="ai-message">
+              <div class="assistant-logo small-logo">AI</div>
+              <div class="ai-bubble">
+                <th:block th:each="bloque : ${turno.respuesta.bloques}">
+                  <p th:if="${!bloque.esLista}" class="ai-par" th:text="${bloque.parrafo}">Párrafo</p>
+                  <ul th:if="${bloque.esLista}" class="ai-list">
+                    <li th:each="item : ${bloque.items}" th:text="${item}">Viñeta</li>
+                  </ul>
+                </th:block>
+
+                <div class="ai-origin"
+                     th:classappend="${!turno.respuesta.iaDisponible} ? 'ai-origin-local' : ''"
+                     th:text="${turno.respuesta.iaDisponible ? 'IA conectada · Datos reales de SkillBridge' : 'Análisis en tiempo real · Datos de SkillBridge'}">
+                  Origen
+                </div>
+
+                <!-- Tarjetas de Proyectos mencionados -->
+                <div class="ai-cards-grid" th:if="${!#lists.isEmpty(turno.respuesta.proyectos)}">
+                  <div class="ai-card" th:each="proy : ${turno.respuesta.proyectos}">
+                    <div class="ai-card-title">
+                      <span th:text="${proy.nombre}">Proyecto</span>
+                      <span class="badge bg-blue-lt text-blue" th:text="${proy.estado}">ACTIVO</span>
+                    </div>
+                    <div class="ai-card-meta"
+                         th:text="|Prioridad: ${proy.prioridad} · Equipo: ${proy.equipoTexto} · Vacantes: ${proy.vacantes} · Avance: ${proy.progresoPorc}%|">
+                      Meta
+                    </div>
+                    <div class="ai-card-meta" th:if="${proy.pendientesRevision > 0}"
+                         th:text="|Pendientes de atención del PM: ${proy.pendientesRevision}|">Pendientes</div>
+                    <div class="ai-card-links">
+                      <a class="btn btn-sm btn-outline-primary" th:href="@{${proy.urlDetalle}}">Ver proyecto</a>
+                      <a class="btn btn-sm btn-outline-secondary" th:href="@{${proy.urlActividades}}">Actividades</a>
+                      <a class="btn btn-sm btn-outline-success" th:href="@{${proy.urlReporte}}">Reporte</a>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tarjetas de Candidatos Recomendados con confirmación en servidor -->
+                <div class="ai-cards-grid" th:if="${!#lists.isEmpty(turno.respuesta.candidatos)}">
+                  <div class="ai-card" th:each="cand : ${turno.respuesta.candidatos}">
+                    <div class="ai-card-title">
+                      <span th:text="${cand.nombre}">Colaborador</span>
+                      <span class="badge bg-green-lt text-green" th:text="|Afinidad ${cand.puntajeAfinidad}%|">Afinidad</span>
+                    </div>
+                    <div class="ai-card-meta"
+                         th:text="|${cand.cargo} · Nivel: ${cand.nivelExperiencia} · Disponibilidad: ${cand.horasDisponibles} h/sem|">
+                      Perfil
+                    </div>
+                    <div class="ai-card-meta"
+                         th:text="|Habilidades validadas para ${cand.proyectoNombre}: ${cand.habilidadesMatch}|">
+                      Habilidades
+                    </div>
+
+                    <details class="ai-action-details" th:if="${cand.puedeProponer}">
+                      <summary class="btn btn-sm btn-primary">
+                        Proponer a <span class="ms-1" th:text="${cand.proyectoNombre}">Proyecto</span>
+                      </summary>
+                      <form method="post" th:action="@{/pm/asistente/proponer}" class="ai-confirm-box" novalidate>
+                        <input type="hidden" name="proyectoId" th:value="${cand.proyectoId}">
+                        <input type="hidden" name="colaboradorId" th:value="${cand.colaboradorId}">
+                        <input type="hidden" name="contextoProyectoId" th:value="${proyectoIdSeleccionado}">
+                        <div class="small fw-semibold mb-2"
+                             th:text="|Confirmar propuesta de ${cand.nombre} para ${cand.proyectoNombre} (pasará a revisión del RM):|">
+                          Confirmar
+                        </div>
+                        <div class="row g-2 align-items-end">
+                          <div class="col-sm-4">
+                            <label class="form-label small mb-1">Horas/semana</label>
+                            <input type="number" step="0.5" min="1" max="168" name="horasSemanales"
+                                   class="form-control form-control-sm" th:value="${cand.horasSugeridas}">
+                          </div>
+                          <div class="col-sm-8">
+                            <label class="form-label small mb-1">Mensaje para el RM (opcional)</label>
+                            <input type="text" name="mensajeSolicitud" maxlength="500"
+                                   class="form-control form-control-sm"
+                                   th:value="|Propuesto desde Asistente IA por afinidad en: ${cand.habilidadesMatch}|">
+                          </div>
+                        </div>
+                        <div class="mt-2">
+                          <button type="submit" class="btn btn-sm btn-success">Confirmar propuesta al RM</button>
+                        </div>
+                      </form>
+                    </details>
+                  </div>
+                </div>
+
+                <!-- Tarjetas de Fuentes de los Foros -->
+                <div class="ai-cards-grid" th:if="${!#lists.isEmpty(turno.respuesta.fuentes)}">
+                  <div class="ai-card">
+                    <div class="ai-card-title">Publicaciones relacionadas en los Foros</div>
+                    <div th:each="f : ${turno.respuesta.fuentes}" class="small mt-1">
+                      <a th:href="@{${f.url}}" th:text="${f.titulo}" class="fw-semibold">Título</a>
+                      <span class="text-secondary" th:text="| · ${f.foro}${f.resuelta ? ' · ✓ Con solución' : ''}|">Foro</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </th:block>
+        </div>
+
+        <!-- COMPOSITOR DE MENSAJES VALIDADO EN JAVA (@Valid PmAsistenteMensajeForm) -->
+        <form id="aiForm" class="ai-composer" method="post" th:action="@{/pm/asistente/mensaje}"
+              th:object="${pmAsistenteMensajeForm}" novalidate>
+          <input type="hidden" th:field="*{proyectoId}">
+          <div>
+            <input id="aiInput" type="text" th:field="*{mensaje}"
+                   class="form-control"
+                   th:classappend="${#fields.hasErrors('mensaje')} ? 'is-invalid'"
+                   placeholder="Pregúntame sobre tus proyectos, equipo, habilidades faltantes, candidatos o pendientes...">
+            <div class="invalid-feedback" th:if="${#fields.hasErrors('mensaje')}" th:errors="*{mensaje}">Error</div>
+          </div>
+          <button type="submit" class="btn btn-primary">Enviar</button>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/ai-chat-ajax.js" th:src="@{/js/ai-chat-ajax.js}"></script>
+</body>
+</html>

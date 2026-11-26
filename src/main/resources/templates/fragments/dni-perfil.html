@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  DNI en el perfil de cualquier rol.
+  - Verificado: se muestra fijo (no se edita).
+  - Sin verificar: se puede corregir y volver a verificar ("Verificar ahora"); además se reintenta cada hora.
+  - Sin DNI (cuentas anteriores o DNI quitado porque no se pudo verificar): se registra.
+  Uso: <div th:replace="~{fragments/dni-perfil :: dni(${colaborador})}"></div>
+-->
+<div th:fragment="dni(usuario)" class="dni-perfil mb-3" id="dni"
+     th:with="tieneDni=${usuario.dni != null and !#strings.isEmpty(usuario.dni)}">
+  <div class="hr-text mt-2 mb-3">Documento de identidad</div>
+
+  <div class="alert alert-success py-2" th:if="${dniGuardado != null}" th:text="${dniGuardado}">DNI registrado.</div>
+
+  <div th:if="${tieneDni and usuario.dniVerificado}" class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label d-flex align-items-center gap-2">
+        DNI
+        <span class="badge bg-green-lt text-green">Verificado</span>
+      </label>
+      <input type="text" class="form-control" th:value="${usuario.dni}" readonly disabled>
+      <div class="form-hint">El DNI verificado no se puede modificar.</div>
+    </div>
+  </div>
+
+  <form th:unless="${tieneDni and usuario.dniVerificado}"
+        th:action="@{/perfil/dni}" method="post" class="row g-3" novalidate>
+    <div class="col-12">
+      <div class="alert alert-warning py-2 mb-0" th:if="${tieneDni}">
+        Tu DNI está sin verificar porque la consulta no estaba disponible. Lo volvemos a intentar automáticamente;
+        mientras tanto puedes corregirlo o pulsar "Verificar ahora".
+      </div>
+      <div class="alert alert-warning py-2 mb-0" th:unless="${tieneDni}">
+        Tu cuenta aún no tiene DNI registrado. Regístralo: una vez verificado ya no podrás cambiarlo.
+      </div>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label d-flex align-items-center gap-2" for="dniPerfil">
+        DNI
+        <span class="badge bg-yellow-lt text-yellow" th:if="${tieneDni}">Sin verificar</span>
+      </label>
+      <input id="dniPerfil" type="text" name="dni" inputmode="numeric" maxlength="8" class="form-control"
+             th:classappend="${dniError != null} ? 'is-invalid'"
+             th:value="${dniIngresado != null ? dniIngresado : usuario.dni}" placeholder="Ejemplo: 45678912">
+      <div class="invalid-feedback d-block" th:if="${dniError != null}" th:text="${dniError}"></div>
+      <div class="form-hint" th:if="${dniError == null}">Se comprueba con tu nombre registrado.</div>
+    </div>
+    <div class="col-md-6 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary" th:text="${tieneDni} ? 'Verificar ahora' : 'Registrar DNI'">Registrar DNI</button>
+    </div>
+  </form>
+</div>
+</body>
+</html>

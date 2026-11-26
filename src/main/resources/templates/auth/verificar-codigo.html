@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verificar código | SkillBridge AI</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/auth-css/auth.css" th:href="@{/css/auth-css/auth.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body class="auth-page">
+<div class="auth-shell">
+
+    <div class="auth-brand">
+        <img class="auth-logo-img" src="../../static/img/skillbridge-logo.webp" th:src="@{/img/skillbridge-logo.webp}" alt="SkillBridge AI">
+        <p>Gestión inteligente de talento y proyectos</p>
+    </div>
+
+    <div class="auth-card">
+
+        <a href="recuperar-contrasena.html" class="auth-back" th:href="@{/recuperar}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+            Volver
+        </a>
+
+        <div class="auth-icon-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11z"/></svg>
+        </div>
+
+        <h2 class="auth-title">Verifica tu identidad</h2>
+        <p class="auth-subtitle">Hemos enviado un código de 6 dígitos a <strong th:text="${correo}">tu correo</strong>.</p>
+
+        <div class="auth-alert error" th:if="${param.error}">Código incorrecto o expirado. Tras 5 intentos fallidos el código se anula y debes solicitar uno nuevo.</div>
+
+        <form class="auth-form" id="verifyForm" th:action="@{/verificar-codigo}" method="post">
+            <input type="hidden" name="correo" th:value="${correo}">
+            <input type="hidden" name="codigo" id="codigoCompleto">
+
+            <div class="auth-code-row" id="codeRow">
+                <input type="text" class="auth-code-input" inputmode="numeric" maxlength="1" autocomplete="one-time-code">
+                <input type="text" class="auth-code-input" inputmode="numeric" maxlength="1">
+                <input type="text" class="auth-code-input" inputmode="numeric" maxlength="1">
+                <input type="text" class="auth-code-input" inputmode="numeric" maxlength="1">
+                <input type="text" class="auth-code-input" inputmode="numeric" maxlength="1">
+                <input type="text" class="auth-code-input" inputmode="numeric" maxlength="1">
+            </div>
+
+            <button type="submit" class="auth-submit" style="margin-top:18px;">
+                Verificar código
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+            </button>
+        </form>
+
+        <form class="auth-footer-line" style="margin-top:18px;" th:action="@{/recuperar}" method="post">
+            <input type="hidden" name="correo" th:value="${correo}">
+            ¿No recibiste el código? <button type="submit" class="auth-link" style="background:none;border:none;padding:0;cursor:pointer;">Reenviar código</button>
+        </form>
+
+    </div>
+
+    <div class="auth-copyright">© 2026 SkillBridge AI — TEL137 PUCP</div>
+
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/auth-js/auth.js" th:src="@{/js/auth-js/auth.js}"></script>
+</body>
+</html>

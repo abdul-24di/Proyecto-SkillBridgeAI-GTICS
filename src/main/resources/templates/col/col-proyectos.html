@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI — Mis Proyectos</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-common.css" th:href="@{/css/col-css/col-common.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-proyectos.css" th:href="@{/css/col-css/col-proyectos.css}">
+    <link rel="stylesheet" href="../../static/css/col-css/col-topbar.css" th:href="@{/css/col-css/col-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+
+    <header class="topbar" th:replace="~{fragments/col-topbar :: topbar('proyectos')}">
+        <div class="container-xl">
+            <a href="col-dashboard.html" class="brand"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
+            <nav class="main-nav" aria-label="Navegación principal">
+                <a href="col-dashboard.html">Dashboard</a>
+                <a href="col-proyectos.html" class="active">Mis proyectos</a>
+                <a href="col-foros.html">Foros</a>
+                <a href="col-asistente.html">Asistente</a>
+                <a href="col-perfil.html">Perfil Profesional</a>
+                <a href="col-explorar.html">Explorar</a>
+            </nav>
+
+            <div class="user-area">
+
+                <div class="notification-wrap">
+                    <button type="button" class="notification-link position-relative" id="notifBellBtn" aria-label="Notificaciones">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/>
+                            <path d="M9 19a3 3 0 0 0 6 0"/>
+                        </svg>
+                        <span class="badge bg-red notification-dot" id="notifDot"></span>
+                    </button>
+
+                    <div class="notification-panel" id="notifPanel">
+                        <div class="notification-panel-header">
+                            <span>Notificaciones</span>
+                            <button type="button" class="notification-panel-close" id="notifCloseBtn" aria-label="Cerrar">&times;</button>
+                        </div>
+                        <div class="notification-panel-list">
+                            <a href="../col/col-proyectos.html" class="notification-item" th:href="@{/colaborador/proyectos}">
+                                <span class="notification-item-dot bg-red"></span>
+                                <div><div class="notification-item-title">Asignación a nuevo proyecto</div><div class="notification-item-sub">Proyecto A</div></div>
+                            </a>
+                            <a href="../col/col-foros.html" class="notification-item" th:href="@{/colaborador/foros}">
+                                <span class="notification-item-dot bg-secondary"></span>
+                                <div><div class="notification-item-title">Respuesta en el foro</div><div class="notification-item-sub">Respondieron tu publicación sobre autenticación</div></div>
+                            </a>
+                            <a href="../col/col-perfil.html" class="notification-item" th:href="@{/colaborador/perfil}">
+                                <span class="notification-item-dot bg-secondary"></span>
+                                <div><div class="notification-item-title">Certificado revisado</div><div class="notification-item-sub">Tu certificado de Java fue aprobado</div></div>
+                            </a>
+                            <a href="../col/col-explorar.html" class="notification-item" th:href="@{/colaborador/explorar}">
+                                <span class="notification-item-dot bg-green"></span>
+                                <div><div class="notification-item-title">Curso disponible</div><div class="notification-item-sub">El RM te recomienda el curso "Spring Security"</div></div>
+                            </a>
+                        </div>
+                        <div class="notification-panel-footer">
+                            <button type="button" class="btn btn-link btn-sm p-0" id="notifMarkAllBtn">Marcar todas como leídas</button>
+                        </div>
+                    </div>
+                </div>
+
+                <span class="avatar avatar-sm user-avatar">PK</span>
+                <div class="user-meta">
+                    <div class="fw-semibold">Paweł Kuna</div>
+                    <div class="small">Colaborador</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+
+    <main class="page-wrap">
+
+        <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+        <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+
+        <div class="page-head page-head-stack-mobile">
+            <div>
+                <h1 class="page-title">Mis proyectos</h1>
+                <div class="text-secondary">Consulta los proyectos en los que participas y el estado de tus asignaciones.</div>
+            </div>
+        </div>
+
+
+
+
+
+
+
+        <!-- Búsqueda y pestañas en el servidor: formulario GET (sin JavaScript). -->
+        <form id="filtrosProyectos" class="card section-card mb-4" method="get" th:action="@{/colaborador/proyectos}">
+            <div class="search-bar-wrap d-flex gap-2">
+                <div class="input-icon flex-fill">
+          <span class="input-icon-addon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="7"/><path d="M21 21l-6-6"/></svg>
+          </span>
+                    <input id="searchInput" name="busqueda" type="text" class="form-control" placeholder="Buscar proyecto..." maxlength="100" th:value="${busqueda}">
+                </div>
+                <input type="hidden" name="estado" th:value="${estadoFiltro}">
+                <button type="submit" class="btn btn-primary">Buscar</button>
+            </div>
+
+            <!-- Cada pestaña envía el formulario con su estado (el botón pisa al hidden). -->
+            <div class="filter-tabs">
+                <button type="submit" name="estado" value="Todos" class="filter-tab" th:classappend="${estadoFiltro == 'Todos'} ? 'active'">Todos</button>
+                <button type="submit" name="estado" value="ACTIVA" class="filter-tab" th:classappend="${estadoFiltro == 'ACTIVA'} ? 'active'">Activos</button>
+                <button type="submit" name="estado" value="PENDIENTE" class="filter-tab" th:classappend="${estadoFiltro == 'PENDIENTE'} ? 'active'">Pendientes</button>
+                <button type="submit" name="estado" value="FINALIZADA" class="filter-tab" th:classappend="${estadoFiltro == 'FINALIZADA'} ? 'active'">Finalizados</button>
+                <button type="submit" name="estado" value="RECHAZADA" class="filter-tab" th:classappend="${estadoFiltro == 'RECHAZADA'} ? 'active'">Rechazados</button>
+            </div>
+        </form>
+
+
+        <div class="row row-cards">
+            <div th:if="${totalAsignaciones == 0}" class="col-12">
+                <div class="card"><div class="empty-state">Aún no tienes proyectos ni solicitudes registradas.</div></div>
+            </div>
+            <div th:if="${totalAsignaciones > 0 and misAsignaciones.isEmpty()}" class="col-12">
+                <div class="card"><div class="empty-state">No tienes proyectos que coincidan con la búsqueda o la pestaña elegida.</div></div>
+            </div>
+
+            <div th:each="asig : ${misAsignaciones}" class="col-sm-6 col-xl-4 project-card-wrap">
+                <div class="card project-card">
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div class="project-title" th:text="${asig.proyecto.nombre}">Proyecto</div>
+
+                            <span th:if="${asig.estado.name() == 'ACTIVA'}" class="badge bg-green-lt">Activa</span>
+                            <span th:if="${asig.estado.name() == 'PENDIENTE'}" class="badge bg-yellow-lt">Pendiente</span>
+                            <span th:if="${asig.estado.name() == 'FINALIZADA'}" class="badge bg-blue-lt">Finalizada</span>
+                            <span th:if="${asig.estado.name() == 'RECHAZADA'}" class="badge bg-red-lt">Rechazada</span>
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'ACTIVA'}" class="text-secondary small mt-1"
+                             th:text="${asig.horasSemanales} + ' hrs/semana'">40 hrs/semana</div>
+
+                        <div th:if="${asig.estado.name() == 'PENDIENTE'}" class="text-secondary small mt-1"
+                             th:text="${asig.aprobadoPorPm} ? 'Falta aprobación del RM' : (${asig.aprobadoPorRm} ? 'Falta aprobación del PM' : 'Falta aprobación de PM y RM')">
+                            Falta aprobación
+                        </div>
+
+                        <th:block th:if="${asig.estado.name() == 'RECHAZADA'}">
+                            <div th:replace="~{fragments/comentario-rechazo :: comentario('Motivo del rechazo', ${asig.motivoRechazo != null ? asig.motivoRechazo : 'Sin motivo especificado.'}, null)}"></div>
+                        </th:block>
+                        <div class="project-description mt-2" th:unless="${asig.estado.name() == 'RECHAZADA'}"
+                             th:text="${asig.proyecto.descripcion}">
+                            Descripción
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'ACTIVA'}" class="project-meta">
+                            <div><div class="info-label">Inicio</div><div class="info-value" th:text="${asig.proyecto.fechaInicio != null ? #temporals.format(asig.proyecto.fechaInicio, 'dd/MM/yyyy') : '—'}">—</div></div>
+                            <div><div class="info-label">Fin estimado</div><div class="info-value" th:text="${asig.proyecto.fechaFinEstimada != null ? #temporals.format(asig.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : '—'}">—</div></div>
+                            <div><div class="info-label">Desde</div><div class="info-value" th:text="${asig.fechaActivacion != null ? #temporals.format(asig.fechaActivacion, 'dd/MM/yyyy') : '—'}">—</div></div>
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'PENDIENTE'}" class="project-meta">
+                            <div><div class="info-label">Solicitada el</div><div class="info-value" th:text="${#temporals.format(asig.fechaSolicitud, 'dd/MM/yyyy')}">—</div></div>
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'FINALIZADA'}" class="project-meta">
+                            <div><div class="info-label">Finalizó el</div><div class="info-value" th:text="${asig.fechaFinalizacion != null ? #temporals.format(asig.fechaFinalizacion, 'dd/MM/yyyy') : '—'}">—</div></div>
+                            <div><div class="info-label">Motivo</div><div class="info-value" th:text="${asig.motivoFinalizacion != null ? asig.motivoFinalizacion : '—'}">—</div></div>
+                        </div>
+
+                        <div th:if="${asig.estado.name() == 'ACTIVA' or asig.estado.name() == 'FINALIZADA'}" class="project-actions">
+                            <a th:href="@{/colaborador/proyectos/detalle(asignacionId=${asig.id})}" class="btn btn-outline-primary btn-sm">Ver proyecto</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <th:block th:if="${!misAsignaciones.isEmpty()}">
+            <div th:replace="~{fragments/paginacion :: paginacion(${paginaProyectos}, 'filtrosProyectos', 'proyecto(s)', 'pagina')}"></div>
+        </th:block>
+
+    </main>
+
+
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/col-js/col-common.js" th:src="@{/js/col-js/col-common.js}"></script>
+</body>
+</html>

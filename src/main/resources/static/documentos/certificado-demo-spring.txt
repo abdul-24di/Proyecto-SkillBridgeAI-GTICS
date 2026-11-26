@@ -1,0 +1,4 @@
+CERTIFICADO DE DEMOSTRACION - SPRING BOOT
+
+Documento ficticio utilizado exclusivamente para probar el historial de
+certificados aprobados. No tiene validez academica ni profesional.

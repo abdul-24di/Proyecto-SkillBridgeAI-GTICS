@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Solicitudes de colaboradores</title>
+  <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}" href="../../static/tabler/css/tabler.min.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-common.css}" href="../../static/css/rm-css/rm-common.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-solicitudes-colaboradores.css}" href="../../static/css/rm-css/rm-solicitudes-colaboradores.css">
+  <link rel="stylesheet" th:href="@{/css/rm-css/rm-topbar.css}" href="../../static/css/rm-css/rm-topbar.css">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body><div class="app-shell">
+<header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('asignaciones')}"></header>
+<main class="page-wrap">
+  <nav class="breadcrumb-wrap"><a class="breadcrumb-link" th:href="@{/rm/asignaciones}">Asignaciones</a><span class="breadcrumb-separator">›</span><span class="text-secondary">Solicitudes de colaboradores</span></nav>
+  <div class="page-head"><div><h1 class="page-title">Solicitudes de colaboradores</h1><div class="text-secondary">Requerimientos de personal enviados por los Project Managers para completar sus equipos.</div></div></div>
+  <div th:if="${solicitudNoEncontrada}" class="alert alert-warning">La solicitud indicada no existe.</div>
+  <div class="row row-cards mb-4">
+    <div class="col-sm-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="summary-label">Pendientes</div><div class="summary-number" th:text="${pendientes}">0</div><div class="small text-secondary">Aún no iniciadas</div></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="summary-label">En atención</div><div class="summary-number" th:text="${enAtencion}">0</div><div class="small text-secondary">RM buscando candidatos</div></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="summary-label">Atendidas</div><div class="summary-number" th:text="${atendidas}">0</div><div class="small text-secondary">Requerimientos gestionados</div></div></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card summary-card"><div class="card-body"><div class="summary-label">Colaboradores solicitados</div><div class="summary-number" th:text="${totalSolicitados}">0</div><div class="small text-secondary">En todas las solicitudes</div></div></div></div>
+  </div>
+  <div class="card section-card">
+    <div class="card-header section-header"><div><h3 class="card-title mb-1">Todas las solicitudes</h3><div class="section-description">Una solicitud pide cupos; una asignación posterior selecciona a una persona concreta.</div></div></div>
+    <form id="filtersForm" method="get" th:action="@{/rm/asignaciones/solicitudes-colaboradores}" class="card-body border-bottom"><div class="row g-3 align-items-end">
+      <div class="col-lg-4"><label for="searchInput" class="form-label">Buscar</label><input id="searchInput" name="busqueda" type="text" maxlength="100" class="form-control" th:value="${busqueda}" placeholder="Proyecto, PM o habilidad"></div>
+      <div class="col-lg-2"><label for="statusFilter" class="form-label">Estado</label><select id="statusFilter" name="estado" class="form-select"><option value="all">Todos</option><option value="PENDIENTE" th:selected="${estado == 'PENDIENTE'}">Pendiente</option><option value="EN_ATENCION" th:selected="${estado == 'EN_ATENCION'}">En atención</option><option value="ATENDIDA" th:selected="${estado == 'ATENDIDA'}">Atendida</option><option value="CANCELADA" th:selected="${estado == 'CANCELADA'}">Cancelada</option></select></div>
+      <div class="col-lg-2"><label for="priorityFilter" class="form-label">Prioridad</label><select id="priorityFilter" name="prioridad" class="form-select"><option value="all">Todas</option><option value="ALTA" th:selected="${prioridad == 'ALTA'}">Alta</option><option value="MEDIA" th:selected="${prioridad == 'MEDIA'}">Media</option><option value="BAJA" th:selected="${prioridad == 'BAJA'}">Baja</option></select></div>
+      <div class="col-lg-4 d-flex gap-2"><button type="submit" class="btn btn-primary flex-fill">Filtrar</button><a id="clearFilters" class="btn btn-outline-secondary flex-fill" th:href="@{/rm/asignaciones/solicitudes-colaboradores}">Limpiar</a></div>
+    </div></form>
+    <div class="table-responsive"><table class="table table-vcenter card-table mb-0"><thead><tr><th>Proyecto</th><th>Prioridad</th><th>Project Manager</th><th>Solicitados</th><th>Habilidades requeridas</th><th>Estado</th><th>Fecha</th><th class="text-end">Acción</th></tr></thead>
+      <tbody id="requestsBody">
+      <tr th:each="item : ${solicitudes}" class="request-row">
+        <td class="fw-semibold" th:text="${item.solicitud.proyecto.nombre}">Proyecto</td>
+        <td><span class="badge" th:classappend="${item.proyecto.prioridadClase}" th:text="${item.proyecto.prioridadTexto}">Prioridad</span></td>
+        <td th:text="${item.pmNombre}">PM</td>
+        <td><span class="badge bg-blue-lt" th:text="|${item.solicitud.cantidadColaboradores} colaborador(es)|">0</span></td>
+        <td><span th:each="req, stat : ${item.requisitos}" th:if="${stat.index < 3}" class="badge bg-secondary-lt skill-chip" th:text="${req.habilidad}">Habilidad</span><span th:if="${#lists.size(item.requisitos) > 3}" class="text-secondary small" th:text="|+${#lists.size(item.requisitos) - 3}|">+0</span><span th:if="${#lists.isEmpty(item.requisitos)}" class="text-secondary small">Sin requisitos registrados</span></td>
+        <td><span class="badge" th:classappend="${item.estadoClase}" th:text="${item.estadoTexto}">Estado</span></td>
+        <td th:text="${#temporals.format(item.solicitud.fechaSolicitud, 'dd MMM yyyy')}">Fecha</td>
+        <td class="text-end"><a class="btn btn-sm" th:classappend="${item.pendiente ? 'btn-primary' : (item.enAtencion ? 'btn-outline-primary' : 'btn-outline-secondary')}" th:href="@{/rm/asignaciones/solicitudes-colaboradores/detalle(id=${item.solicitud.id})}" th:text="${item.accionTexto}">Ver</a></td>
+      </tr>
+      <tr th:replace="~{fragments/rm-empty-state :: fila(vacioId='emptyRequests', vacioFilaClase=${#lists.isEmpty(solicitudes) ? null : 'd-none'}, vacioColspan=8,
+          vacioIcono='bandeja', vacioTitulo='Sin solicitudes', vacioTexto='No se encontraron solicitudes.')}"></tr>
+      </tbody>
+    </table></div>
+    <div class="pagination-wrap">
+      <div id="paginationInfo" class="text-secondary small" th:with="desdeFila=${totalRegistros == 0 ? 0 : ((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(solicitudes)}" th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} solicitudes|">Mostrando 0-0 de 0 solicitudes</div>
+      <ul id="pagination" class="pagination pagination-sm m-0" th:if="${totalPaginas > 1}">
+        <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'"><a class="page-link" th:href="@{/rm/asignaciones/solicitudes-colaboradores(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, pagina=${paginaActual - 1})}">Anterior</a></li>
+        <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'"><a class="page-link" th:href="@{/rm/asignaciones/solicitudes-colaboradores(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, pagina=${n})}" th:text="${n}">1</a></li>
+        <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'"><a class="page-link" th:href="@{/rm/asignaciones/solicitudes-colaboradores(busqueda=${busqueda}, estado=${estado}, prioridad=${prioridad}, pagina=${paginaActual + 1})}">Siguiente</a></li>
+      </ul>
+    </div>
+  </div>
+</main></div>
+<script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
+</body></html>

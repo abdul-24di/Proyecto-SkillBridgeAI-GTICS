@@ -1,0 +1,56 @@
+/* Comentario de rechazo o devolución (fragments/comentario-rechazo.html). Mismo tono rojo que los
+   comentarios del RM en el perfil del colaborador, para que todos los rechazos se vean iguales. */
+.comentario-rechazo {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin: 0.75rem 0;
+    padding: 0.85rem 1rem;
+    background: #fff5f5;
+    border: 1px solid #f5c2c2;
+    border-left: 4px solid #d63939;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.comentario-rechazo-icono {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #fde2e2;
+    color: #d63939;
+}
+
+.comentario-rechazo-cuerpo {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.comentario-rechazo-autor {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #b42318;
+}
+
+.comentario-rechazo-texto {
+    margin: 0.3rem 0 0;
+    padding: 0;
+    border: 0;
+    font-size: 0.9rem;
+    font-style: italic;
+    color: #3f4651;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.comentario-rechazo-paso {
+    margin-top: 0.45rem;
+    font-size: 0.8rem;
+    color: #6c7a89;
+}

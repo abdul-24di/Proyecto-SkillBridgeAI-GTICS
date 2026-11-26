@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Perfil de colaborador</title>
+
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css"
+        th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css"
+        th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-perfil-colaborador.css"
+        th:href="@{/css/rm-css/rm-perfil-colaborador.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-asignacion-modales.css"
+        th:href="@{/css/rm-css/rm-asignacion-modales.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css"
+        th:href="@{/css/rm-css/rm-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('colaboradores')}"></header>
+
+  <main class="page-wrap">
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <a class="breadcrumb-link" th:href="@{/rm/colaboradores}">Colaboradores</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="text-secondary" th:text="${colaborador.resumen.nombreCompleto}">Colaborador</span>
+    </nav>
+
+    <div class="card section-card profile-header mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-start">
+          <div class="col-lg">
+            <div class="d-flex align-items-start gap-3">
+              <img th:if="${colaborador.resumen.fotoUrl != null and !colaborador.resumen.fotoUrl.isBlank()}"
+                   th:src="${colaborador.resumen.fotoUrl}"
+                   class="avatar profile-avatar"
+                   alt="Foto del colaborador">
+              <span th:unless="${colaborador.resumen.fotoUrl != null and !colaborador.resumen.fotoUrl.isBlank()}"
+                    class="avatar profile-avatar bg-blue-lt text-blue"
+                    th:text="${colaborador.resumen.iniciales}">CO</span>
+
+              <div class="flex-fill">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <h1 class="profile-name mb-0" th:text="${colaborador.resumen.nombreCompleto}">
+                    Nombre del colaborador
+                  </h1>
+                  <span class="badge bg-secondary-lt" th:text="${colaborador.resumen.nivel}">Senior</span>
+                  <span class="badge"
+                        th:classappend="${colaborador.resumen.disponibilidadClase}"
+                        th:text="|${colaborador.resumen.horasDisponiblesTexto} h/sem disponibles|">
+                    16 h/sem disponibles
+                  </span>
+                </div>
+
+                <div class="text-secondary mt-1" th:text="${colaborador.resumen.cargo}">Cargo</div>
+
+                <div class="mt-2">
+                  <span class="badge bg-blue-lt skill-badge"
+                        th:each="habilidad : ${colaborador.resumen.habilidades}"
+                        th:text="${habilidad}">Java</span>
+                  <span class="small text-secondary"
+                        th:if="${#lists.isEmpty(colaborador.resumen.habilidades)}">
+                    Sin habilidades registradas.
+                  </span>
+                </div>
+
+                <div class="small text-secondary mt-2">
+                  Perfil profesional consultado por el Resource Manager.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-auto">
+            <div class="d-flex flex-wrap gap-2 header-actions">
+              <a class="btn btn-outline-primary"
+                 th:href="@{/rm/colaboradores/historial-validaciones(id=${colaborador.resumen.id})}">
+                Historial de certificados
+              </a>
+              <a class="btn btn-outline-secondary"
+                 th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id})}">
+                Ver asignaciones
+              </a>
+              <button type="button" class="btn btn-outline-primary"
+                      data-bs-toggle="modal" data-bs-target="#asignarCursoModal"
+                      data-origen="perfil" data-colaborador-fijo="true"
+                      th:data-colaborador-id="${colaborador.resumen.id}">
+                Asignar curso
+              </button>
+              <button type="button" class="btn btn-primary"
+                      data-bs-toggle="modal" data-bs-target="#proyectosModal">
+                Proponer asignación
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div th:if="${mensajeExito}" class="alert alert-success" th:text="${mensajeExito}"></div>
+    <div th:if="${mensajeError}" class="alert alert-danger" th:text="${mensajeError}"></div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body">
+            <div class="summary-label">Disponibilidad</div>
+            <div class="summary-number"
+                 th:text="|${colaborador.resumen.horasDisponiblesTexto} h|">0 h</div>
+            <div class="small text-secondary">Horas libres por semana.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body">
+            <div class="summary-label">Carga activa</div>
+            <div class="summary-number"
+                 th:text="|${colaborador.resumen.asignacionesActivas} / ${colaborador.resumen.maxAsignaciones}|">
+              0 / 3
+            </div>
+            <div class="small text-secondary">Asignaciones sobre el límite.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body">
+            <div class="summary-label">Certificados aprobados</div>
+            <div class="summary-number" th:text="${colaborador.resumen.certificadosAprobados}">0</div>
+            <div class="small text-secondary">Validaciones completadas.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card summary-card">
+          <div class="card-body">
+            <div class="summary-label">Experiencia</div>
+            <div class="summary-number" th:text="${colaborador.resumen.experienciaTexto}">Sin registrar</div>
+            <div class="small text-secondary">Experiencia profesional declarada.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Información general a todo el ancho con el nivel general dentro (TASK-053): sin card suelta ni huecos. -->
+        <div class="card section-card mb-4">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Información general</h3>
+              <div class="section-description">Datos laborales visibles para el Resource Manager.</div>
+            </div>
+          </div>
+          <div class="card-body compact-card-body">
+            <!-- Cuatro columnas (TASK-053): la descripción ocupa dos celdas junto a cargo y nivel. -->
+            <div class="info-grid info-grid-four">
+              <div>
+                <div class="info-label">Correo</div>
+                <div class="info-value" th:text="${colaborador.correo}">correo@empresa.com</div>
+              </div>
+              <div>
+                <div class="info-label">Teléfono</div>
+                <div class="info-value"
+                     th:text="${colaborador.telefono != null and !colaborador.telefono.isBlank() ? colaborador.telefono : 'Sin registrar'}">
+                  Sin registrar
+                </div>
+              </div>
+              <div>
+                <div class="info-label">Fecha de contratación</div>
+                <div class="info-value"
+                     th:text="${colaborador.fechaContratacion != null ? #temporals.format(colaborador.fechaContratacion, 'dd/MM/yyyy') : 'Sin registrar'}">
+                  Sin registrar
+                </div>
+              </div>
+              <div>
+                <div class="info-label">Jornada contratada</div>
+                <div class="info-value" th:text="${colaborador.horasContratadasTexto}">Sin registrar</div>
+              </div>
+              <div>
+                <div class="info-label">Cargo</div>
+                <div class="info-value" th:text="${colaborador.resumen.cargo}">Cargo</div>
+              </div>
+              <!-- Nivel general editable en su propia celda (TASK-053): sin card ni fila aparte. -->
+              <div class="nivel-general">
+                <label for="nivelExperiencia" class="info-label d-block">Nivel general</label>
+                <form id="nivelExperienciaForm" method="post"
+                      th:action="@{/rm/colaboradores/{id}/nivel-experiencia(id=${colaborador.resumen.id})}">
+                  <div class="input-group input-group-sm"><select id="nivelExperiencia" name="nivel" class="form-select"><option value="JUNIOR" th:unless="${colaborador.resumen.nivelCodigo == 'SEMI_SENIOR' or colaborador.resumen.nivelCodigo == 'SENIOR'}" th:selected="${colaborador.resumen.nivelCodigo == 'JUNIOR'}">Junior</option><option value="SEMI_SENIOR" th:unless="${colaborador.resumen.nivelCodigo == 'SENIOR'}" th:selected="${colaborador.resumen.nivelCodigo == 'SEMI_SENIOR'}">Semi Senior</option><option value="SENIOR" th:selected="${colaborador.resumen.nivelCodigo == 'SENIOR'}">Senior</option></select><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nivelExperienciaModal">Guardar nivel</button></div>
+                  <div class="form-hint">Solo se puede mantener o subir; nunca bajar.</div>
+                </form>
+              </div>
+              <div class="info-span-2">
+                <div class="info-label">Descripción profesional</div>
+                <div class="text-secondary mt-1"
+                     th:text="${colaborador.descripcion != null and !colaborador.descripcion.isBlank() ? colaborador.descripcion : 'El colaborador aún no ha registrado una descripción profesional.'}">
+                  Sin descripción profesional.
+                </div>
+              </div>
+            </div>
+
+            <!-- Habilidades dentro de la misma card (TASK-053): etiquetas compactas, sin card ni filas estiradas. -->
+            <div class="profile-summary mt-3">
+              <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                <div>
+                  <h4 class="info-label mb-0">Habilidades</h4>
+                  <div class="small text-secondary">Dominio y estado de validación; solo las validadas cuentan para búsquedas y asignaciones.</div>
+                </div>
+                <a class="btn btn-outline-primary btn-sm" th:if="${colaborador.tieneCertificadosPendientes}"
+                   th:href="@{/rm/colaboradores/certificados(busqueda=${colaborador.resumen.nombreCompleto})}">Certificados pendientes</a>
+              </div>
+              <div class="skill-chips" th:if="${!#lists.isEmpty(colaborador.habilidades)}">
+                <div class="skill-chip" th:each="habilidad : ${colaborador.habilidades}">
+                  <span class="fw-semibold" th:text="${habilidad.nombre}">Habilidad</span>
+                  <span class="small text-secondary" th:text="${habilidad.nivel}">Dominio</span>
+                  <span class="badge" th:classappend="${habilidad.estadoClase}"
+                        th:attr="data-estado-habilidad=${habilidad.estadoCodigo}"
+                        th:text="${habilidad.estadoValidacion}">Pendiente</span>
+                  <a class="btn btn-primary btn-sm" th:if="${habilidad.certificadoPendienteId != null}"
+                     th:href="@{/rm/colaboradores/certificados/revision(id=${habilidad.certificadoPendienteId},origen='perfil')}">Revisar</a>
+                </div>
+              </div>
+              <th:block th:if="${#lists.isEmpty(colaborador.habilidades)}">
+                <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='insignia', vacioTitulo='Sin habilidades registradas',
+                    vacioTexto='Este colaborador todavía no registró habilidades.')}"></div>
+              </th:block>
+            </div>
+          </div>
+        </div>
+
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Asignaciones activas</h3>
+          <div class="section-description">Proyectos en los que participa actualmente.</div>
+        </div>
+        <a class="btn btn-light btn-sm"
+           th:href="@{/rm/colaboradores/asignaciones(id=${colaborador.resumen.id})}">Ver historial</a>
+      </div>
+      <div class="table-responsive" th:if="${!#lists.isEmpty(colaborador.asignaciones)}">
+        <table class="table table-vcenter compact-table card-table">
+          <thead>
+          <tr>
+            <th>Proyecto</th>
+            <th>Horas semanales</th>
+            <th>Periodo</th>
+            <th>Estado</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr th:each="asignacion : ${colaborador.asignaciones}" class="asignacion-row">
+            <td class="fw-semibold" th:text="${asignacion.proyecto}">Proyecto</td>
+            <td th:text="|${asignacion.horasSemanales} h|">0 h</td>
+            <td>
+              <span th:text="${asignacion.fechaInicio != null ? #temporals.format(asignacion.fechaInicio, 'dd/MM/yyyy') : 'Sin fecha'}">Inicio</span>
+              <span> — </span>
+              <span th:text="${asignacion.fechaFin != null ? #temporals.format(asignacion.fechaFin, 'dd/MM/yyyy') : 'Sin fecha'}">Fin</span>
+            </td>
+            <td><span class="badge bg-green-lt" th:text="${asignacion.estado}">Activa</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <th:block th:if="${#lists.isEmpty(colaborador.asignaciones)}">
+        <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='carpeta', vacioTitulo='Sin asignaciones activas',
+            vacioTexto='Este colaborador no tiene asignaciones activas.')}"></div>
+      </th:block>
+    </div>
+
+    <!-- Experiencia y Educación apiladas a todo el ancho (TASK-053): ninguna deja espacio vacío. -->
+        <div class="card section-card mb-4">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Experiencia profesional</h3>
+              <div class="section-description">Trayectoria declarada por el colaborador.</div>
+            </div>
+          </div>
+          <div class="timeline-grid" th:if="${!#lists.isEmpty(colaborador.experiencias)}">
+            <div class="timeline-item" th:each="experiencia : ${colaborador.experiencias}">
+              <div class="d-flex justify-content-between gap-2 flex-wrap">
+                <div class="fw-semibold" th:text="${experiencia.cargo}">Cargo</div>
+                <span class="small text-secondary">
+                  <span th:text="${experiencia.fechaInicio != null ? #temporals.format(experiencia.fechaInicio, 'MM/yyyy') : 'Sin fecha'}">Inicio</span>
+                  <span> — </span>
+                  <span th:text="${experiencia.actual ? 'Actualidad' : (experiencia.fechaFin != null ? #temporals.format(experiencia.fechaFin, 'MM/yyyy') : 'Sin fecha')}">Fin</span>
+                </span>
+              </div>
+              <div class="text-secondary" th:text="${experiencia.empresa}">Empresa</div>
+              <div class="small text-secondary mt-2" th:text="${experiencia.descripcion}">Descripción</div>
+            </div>
+          </div>
+          <th:block th:if="${#lists.isEmpty(colaborador.experiencias)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='maletin', vacioTitulo='Sin experiencia profesional',
+                vacioTexto='No hay experiencia profesional registrada.')}"></div>
+          </th:block>
+        </div>
+
+        <div class="card section-card mb-4">
+          <div class="card-header section-header">
+            <div>
+              <h3 class="card-title mb-1">Educación</h3>
+              <div class="section-description">Formación académica activa en el perfil.</div>
+            </div>
+            <div class="section-actions">
+              <a class="btn btn-light btn-sm" th:if="${colaborador.tieneEducacionPendiente}"
+                 th:href="@{/rm/colaboradores/educacion(busqueda=${colaborador.resumen.nombreCompleto})}">Pendientes</a>
+              <a class="btn btn-light btn-sm"
+                 th:href="@{/rm/colaboradores/educacion/historial(colaborador=${colaborador.resumen.id})}">Historial de revisiones</a>
+            </div>
+          </div>
+          <div class="timeline-grid" th:if="${!#lists.isEmpty(colaborador.educacion)}">
+            <div class="timeline-item" th:each="estudio : ${colaborador.educacion}">
+              <div class="d-flex justify-content-between gap-2 flex-wrap">
+                <div class="fw-semibold" th:text="${estudio.titulo}">Título</div>
+                <div class="skill-actions">
+                  <span class="badge bg-secondary-lt" th:text="${estudio.estado}">Pendiente</span>
+                  <a class="btn btn-primary btn-sm" th:if="${estudio.revisionId != null}"
+                     th:href="@{/rm/colaboradores/educacion/revision(id=${estudio.revisionId},origen='perfil')}">Revisar</a>
+                </div>
+              </div>
+              <div class="text-secondary" th:text="${estudio.institucion}">Institución</div>
+              <div class="small text-secondary mt-1">
+                <span th:text="${estudio.fechaInicio != null ? #temporals.format(estudio.fechaInicio, 'MM/yyyy') : 'Sin fecha'}">Inicio</span>
+                <span> — </span>
+                <span th:text="${estudio.actual ? 'Actualidad' : (estudio.fechaFin != null ? #temporals.format(estudio.fechaFin, 'MM/yyyy') : 'Sin fecha')}">Fin</span>
+              </div>
+              <a th:if="${estudio.archivoUrl != null and !estudio.archivoUrl.isBlank()}"
+                 th:href="@{${estudio.archivoUrl}}" target="_blank" rel="noopener"
+                 class="small d-inline-block mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>
+                Ver documento
+              </a>
+            </div>
+          </div>
+          <th:block th:if="${#lists.isEmpty(colaborador.educacion)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='birrete', vacioTitulo='Sin estudios registrados',
+                vacioTexto='No hay estudios registrados.')}"></div>
+          </th:block>
+        </div>
+
+    <!-- Evaluaciones / Feedback -->
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Historial de Desempeño (Evaluaciones)</h3>
+          <div class="section-description">Calificaciones y feedback recibidos al finalizar proyectos.</div>
+        </div>
+      </div>
+      <div th:if="${!#lists.isEmpty(evaluaciones)}">
+        <div class="timeline-item" th:each="evaluacion : ${evaluaciones}">
+          <div class="d-flex justify-content-between gap-2 flex-wrap">
+            <div class="fw-semibold">
+              <span th:if="${evaluacion.asignacion != null}" th:text="${evaluacion.asignacion.proyecto.nombre}">Proyecto</span>
+              <span th:if="${evaluacion.asignacion == null}">Actividad general</span>
+              <span class="ms-2 badge" th:classappend="${evaluacion.calificacion >= 4 ? 'bg-success-lt' : (evaluacion.calificacion == 3 ? 'bg-warning-lt' : 'bg-danger-lt')}">
+                <span th:text="${evaluacion.calificacion}">5</span> ⭐
+              </span>
+            </div>
+            <span class="small text-secondary" th:text="${#temporals.format(evaluacion.fechaCreacion, 'dd/MM/yyyy')}">Fecha</span>
+          </div>
+          <div class="text-secondary small mt-1">
+            Evaluado por: <span th:text="${evaluacion.evaluador.nombre + ' ' + evaluacion.evaluador.apellido + ' (' + evaluacion.evaluador.rol.nombre + ')'}">Evaluador</span>
+          </div>
+          <div class="small text-dark mt-2 p-2 bg-light rounded" th:text="${evaluacion.comentarios != null and !evaluacion.comentarios.isEmpty() ? evaluacion.comentarios : 'Sin comentarios'}">Comentario</div>
+        </div>
+      </div>
+      <th:block th:if="${#lists.isEmpty(evaluaciones)}">
+        <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='estrella', vacioTitulo='Sin evaluaciones',
+            vacioTexto='El colaborador aún no tiene evaluaciones registradas.')}"></div>
+      </th:block>
+    </div>
+  </main>
+</div>
+
+<!-- Datos fijos del colaborador para el modal de propuesta -->
+<div id="propuestaContexto" class="d-none" data-origen="perfil"
+     th:attr="data-colaborador-id=${colaborador.resumen.id},data-colaborador-nombre=${colaborador.resumen.nombreCompleto},data-colaborador-cargo=${colaborador.resumen.cargo},data-colaborador-nivel=${colaborador.resumen.nivel},data-colaborador-horas=${colaborador.resumen.horasDisponibles},data-colaborador-carga=${colaborador.resumen.asignacionesActivas},data-colaborador-max=${colaborador.resumen.maxAsignaciones},data-colaborador-sueldo=${sueldoColaborador}"></div>
+
+<!-- MODAL: SELECCIONAR PROYECTO (fragmento compartido, TASK-034) -->
+<div th:replace="~{fragments/rm-asignacion-modales :: modalProyectos(false)}"></div>
+
+<div th:replace="~{fragments/rm-asignacion-modales :: modalPropuesta}"></div>
+
+<!-- MODAL: ASIGNAR CURSO con el colaborador fijo (TASK-047) -->
+<div th:replace="~{fragments/rm-curso-modales :: modalAsignarCurso}"></div>
+
+<!-- MODAL: CONFIRMAR NIVEL GENERAL (TASK-036); envía #nivelExperienciaForm -->
+<div class="modal modal-blur fade rm-modal" id="nivelExperienciaModal" tabindex="-1" aria-labelledby="nivelExperienciaModalTitle" aria-hidden="true" data-nivel-select="nivelExperiencia">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="nivelExperienciaModalTitle">Confirmar nivel general</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Nivel general de <strong th:text="${colaborador.resumen.nombreCompleto}">Colaborador</strong>:</p>
+        <ul class="mb-3">
+          <li>Nivel actual: <strong th:text="${colaborador.resumen.nivel}">Nivel</strong></li>
+          <li>Nivel seleccionado: <strong data-nivel-seleccionado th:text="${colaborador.resumen.nivel}">Nivel</strong></li>
+        </ul>
+        <p class="text-secondary small mb-0">Si el nivel sube, se recalculará el sueldo según el cargo. Mantener el mismo nivel no cambia el sueldo; no se permite bajarlo.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="nivelExperienciaForm" class="btn btn-primary">Confirmar nivel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/rm-js/rm-nivel-general.js" th:src="@{/js/rm-js/rm-nivel-general.js}"></script>
+<script src="../../static/js/rm-js/rm-propuesta-asignacion.js" th:src="@{/js/rm-js/rm-propuesta-asignacion.js}"></script>
+<script src="../../static/js/rm-js/rm-asignar-curso.js" th:src="@{/js/rm-js/rm-asignar-curso.js}"></script>
+<script src="../../static/js/rm-js/rm-navigation.js" th:src="@{/js/rm-js/rm-navigation.js}"></script>
+</body>
+</html>

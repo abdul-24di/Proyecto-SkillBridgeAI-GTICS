@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Detalle del Proyecto</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-common.css" th:href="@{/css/pm-css/pm-common.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-detalle-proyecto.css" th:href="@{/css/pm-css/pm-detalle-proyecto.css}">
+  <link rel="stylesheet" href="../../static/css/pm-css/pm-topbar.css" th:href="@{/css/pm-css/pm-topbar.css}">
+
+<style>
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa;
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/pm-topbar :: topbar('proyectos')}"></header>
+
+  <main class="page-wrap">
+    <div class="breadcrumb-wrap">
+      <a th:href="@{/pm/proyectos}" class="breadcrumb-link">Mis Proyectos</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="text-secondary" th:text="${proyecto.proyecto.nombre}">Sistema de Inventario</span>
+    </div>
+
+    <div th:if="${success != null}" class="alert alert-success alert-dismissible" role="alert">
+      <div class="d-flex"><div><h4 class="alert-title">¡Éxito!</h4><div class="text-secondary" th:text="${success}"></div></div></div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+    <div th:if="${error != null}" class="alert alert-danger alert-dismissible" role="alert">
+      <div class="d-flex"><div><h4 class="alert-title">Error</h4><div class="text-secondary" th:text="${error}"></div></div></div>
+      <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+    </div>
+
+    <div class="page-head page-head-stack-mobile">
+      <div>
+        <h1 class="page-title" th:text="${proyecto.proyecto.nombre}">Sistema de Inventario</h1>
+        <div class="text-secondary" th:text="${proyecto.proyecto.descripcion != null ? proyecto.proyecto.descripcion : 'Sin descripción'}">Descripción</div>
+      </div>
+      <div class="project-hero-actions">
+        <a th:href="@{/pm/proyectos}" class="btn btn-outline-secondary">Volver</a>
+        <a th:href="@{/pm/foro/detalle(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Foro</a>
+        <a th:href="@{/pm/actividades(proyectoId=${proyecto.proyecto.id})}" th:if="${proyecto.puedeCrearActividades}" class="btn btn-outline-primary">Actividades</a>
+        <a th:href="@{/pm/chat(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Chat</a>
+        <a th:href="@{/pm/reportes/detalle(proyectoId=${proyecto.proyecto.id})}" class="btn btn-outline-primary">Ver reporte</a>
+        <a th:href="@{/pm/proyectos/asignaciones(proyectoId=${proyecto.proyecto.id})}" class="btn btn-primary">Gestionar asignaciones</a>
+        <a th:if="${proyecto.proyecto.estado.name() == 'ACTIVO' or proyecto.proyecto.estado.name() == 'EN_ESPERA'}" href="#requestStaffModal" data-bs-toggle="modal" data-bs-target="#requestStaffModal" class="btn btn-outline-primary">Solicitar personal</a>
+        <a th:if="${proyecto.puedeCancelar}" href="#" data-bs-toggle="modal" data-bs-target="#cancelProjectModal" class="btn btn-outline-danger">Cancelar proyecto</a>
+      </div>
+    </div>
+
+    <!-- Comentario del RM cuando rechazó la propuesta del proyecto. -->
+    <th:block th:if="${proyecto.proyecto.estado.name() == 'RECHAZADO' and proyecto.proyecto.motivoRechazo != null and !proyecto.proyecto.motivoRechazo.isBlank()}">
+      <div class="mb-4" th:insert="~{fragments/comentario-rechazo :: comentario('El RM rechazó este proyecto', ${proyecto.proyecto.motivoRechazo}, 'Revisa las observaciones y crea una nueva propuesta con los ajustes.')}"></div>
+    </th:block>
+
+    <!-- TASK-060: motivo registrado por el RM al cancelar o finalizar el proyecto. -->
+    <div class="alert mb-4"
+         th:if="${(proyecto.proyecto.estado.name() == 'CANCELADO' or proyecto.proyecto.estado.name() == 'FINALIZADO') and proyecto.proyecto.motivoCierre != null and !proyecto.proyecto.motivoCierre.isBlank()}"
+         th:classappend="${proyecto.proyecto.estado.name() == 'CANCELADO'} ? 'alert-danger' : 'alert-secondary'">
+      <strong th:text="${proyecto.proyecto.estado.name() == 'CANCELADO'} ? 'Motivo de cancelación:' : 'Motivo de finalización:'">Motivo:</strong>
+      <span th:text="${proyecto.proyecto.motivoCierre}">Motivo.</span>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card h-100">
+          <div class="card-body">
+            <div class="metric-label">Equipo actual</div>
+            <div class="metric-number"><span th:text="${proyecto.integrantesActivos}"></span><small class="text-secondary fw-normal"> / <span th:text="${proyecto.proyecto.colaboradoresRequeridos}"></span></small></div>
+            <div class="metric-trend mt-2" th:if="${proyecto.vacantes > 0}" th:text="${proyecto.vacantes} + ' vacantes'">3 vacantes</div>
+            <div class="metric-trend mt-2 text-green" th:unless="${proyecto.vacantes > 0}">Equipo completo</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card h-100">
+          <div class="card-body">
+            <div class="metric-label">Actividades</div>
+            <div class="metric-number"><span th:text="${proyecto.actividadesCompletadas}"></span><small class="text-secondary fw-normal"> / <span th:text="${proyecto.totalActividades}"></span></small></div>
+            <div class="progress progress-sm mt-3"><div class="progress-bar bg-primary" th:style="'width: ' + ${proyecto.progresoActividades} + '%'"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card h-100">
+          <div class="card-body">
+            <div class="metric-label">Estado</div>
+            <div class="mt-2 mb-1"><span class="badge" th:classappend="${proyecto.estadoClase}" th:text="${proyecto.estadoTexto}">Activo</span></div>
+            <div class="text-secondary small mt-2">Vence: <span th:text="${proyecto.proyecto.fechaFinEstimada != null ? #temporals.format(proyecto.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : 'N/A'}"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+        <div class="card metric-card h-100">
+          <div class="card-body">
+            <div class="metric-label">Presupuesto</div>
+            <div class="metric-number" th:text="|S/ ${#numbers.formatDecimal(proyecto.presupuestoVisible, 1, 'COMMA', 2, 'POINT')}|">S/ 10,000.00</div>
+            <div class="text-secondary small mt-2" th:text="${proyecto.presupuestoEtiqueta}">Presupuesto asignado</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-lg-5">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div><h3 class="card-title mb-1">Habilidades requeridas</h3><div class="section-description">Perfil técnico necesario.</div></div>
+          </div>
+          <div class="card-body">
+            <div class="d-flex flex-wrap gap-2">
+              <span th:each="req : ${proyecto.requisitos}" class="badge bg-blue-lt px-3 py-2">
+                <span th:text="${req.habilidad}"></span><span class="text-secondary ms-1 fw-normal" th:text="'(' + ${req.nivel} + ')'"></span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div class="card section-card h-100">
+          <div class="card-header section-header">
+            <div><h3 class="card-title mb-1">Alertas</h3><div class="section-description">Movimientos todavía no confirmados.</div></div>
+            <a th:href="@{/pm/proyectos/asignaciones(proyectoId=${proyecto.proyecto.id})}" class="btn btn-light btn-sm">Ver asignaciones</a>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-vcenter card-table mb-0">
+              <thead><tr><th>Colaborador</th><th>Origen</th><th>Estado</th><th class="text-end">Acción</th></tr></thead>
+              <tbody>
+                <tr th:if="${proyecto.pendientesPm > 0}">
+                  <td colspan="3">Hay <span th:text="${proyecto.pendientesPm}"></span> asignación(es) pendiente(s) de tu aprobación.</td>
+                  <td class="text-end"><a th:href="@{/pm/proyectos/asignaciones(proyectoId=${proyecto.proyecto.id})}" class="btn btn-primary btn-sm">Revisar</a></td>
+                </tr>
+                <tr th:if="${proyecto.pendientesPm == 0}">
+                  <td colspan="4" class="text-muted text-center py-3">No hay asignaciones pendientes.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal modal-blur fade pm-modal" id="cancelProjectModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-md modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><h5 class="modal-title">Cancelar proyecto</h5><div class="text-secondary small">Esta acción no se puede deshacer.</div></div>
+        <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="POST" th:action="@{/pm/proyectos/{id}/cancelar(id=${proyecto.proyecto.id})}" novalidate>
+        <input type="hidden" name="proyectoId" th:value="${proyecto.proyecto.id}">
+        <div class="modal-body">
+          <label class="form-label" for="cancelReason">Motivo de cancelación (opcional)</label>
+          <textarea id="cancelReason" name="motivo" class="form-control" rows="4"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cerrar</button>
+          <button class="btn btn-danger" type="submit">Confirmar cancelación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!--/* TASK-058: sin JavaScript, el enlace al fragmento lo abre con CSS :target y "Cerrar" vuelve a "#". */-->
+<div th:if="${proyecto.proyecto.estado.name() == 'ACTIVO' or proyecto.proyecto.estado.name() == 'EN_ESPERA'}"
+     class="modal modal-blur fade pm-modal" id="requestStaffModal" tabindex="-1" aria-hidden="true" aria-labelledby="requestStaffTitle">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><h5 class="modal-title" id="requestStaffTitle">Solicitar personal</h5><div class="text-secondary small">Los Resource Managers recibirán la solicitud.</div></div>
+        <a href="#" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></a>
+      </div>
+      <form method="POST" th:action="@{/pm/proyectos/{id}/solicitudes-personal(id=${proyecto.proyecto.id})}" th:object="${pmSolicitudPersonalForm}" novalidate>
+        <div class="modal-body">
+          <div th:if="${abrirSolicitudPersonal != null and error != null}" class="alert alert-danger" role="alert" th:text="${error}">Error</div>
+          <div class="mb-3">
+            <label class="form-label required" for="staffQuantity">Cantidad total de colaboradores</label>
+            <input id="staffQuantity" type="number" class="form-control" th:field="*{cantidad}" min="1" step="1" required
+                   th:max="${proyecto.proyecto.colaboradoresRequeridos}">
+            <div class="form-hint" th:text="|Máximo ${proyecto.proyecto.colaboradoresRequeridos} (colaboradores requeridos del proyecto). Incluye a los de las habilidades del proyecto y a los de otros perfiles.|">Máximo 3.</div>
+          </div>
+          <div class="mb-3">
+            <div class="form-label">Por habilidad del proyecto</div>
+            <div th:if="${#lists.isEmpty(cuposSolicitud)}" class="text-secondary small">El proyecto no tiene habilidades registradas. Describe lo que necesitas en Perfiles requeridos.</div>
+            <div th:unless="${#lists.isEmpty(cuposSolicitud)}" class="staff-skill-list">
+              <div th:each="cupo : ${cuposSolicitud}" class="staff-skill-row">
+                <div class="staff-skill-info">
+                  <div class="fw-medium"><span th:text="${cupo.habilidad}">Java</span> <span class="badge bg-blue-lt ms-1" th:text="${cupo.nivel}">Avanzado</span></div>
+                  <div class="text-secondary small" th:text="|Exigidos: ${cupo.exigidos} · Activos: ${cupo.ocupados} · Disponibles: ${cupo.disponibles}|">Exigidos: 2 · Activos: 0 · Disponibles: 2</div>
+                </div>
+                <input type="number" class="form-control staff-skill-input" min="0" step="1"
+                       th:id="|staffSkill${cupo.habilidadId}|"
+                       th:name="|cantidadesPorHabilidad[${cupo.habilidadId}]|"
+                       th:value="${pmSolicitudPersonalForm.cantidadPara(cupo.habilidadId)}"
+                       th:max="${cupo.disponibles}" th:readonly="${cupo.disponibles == 0}"
+                       th:aria-label="|Colaboradores de ${cupo.habilidad}|">
+              </div>
+            </div>
+            <div class="form-hint">Activos = colaboradores con asignación activa en esa habilidad. La suma no puede superar la cantidad total.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="staffProfiles">Perfiles requeridos (otras habilidades)</label>
+            <textarea id="staffProfiles" class="form-control" rows="3" th:field="*{perfiles}" maxlength="1000"
+                      placeholder="Ej.: 1 diseñador UX con experiencia en Figma"></textarea>
+            <div class="form-hint">Obligatorio si la cantidad total supera la suma por habilidad. Máximo 1000 caracteres.</div>
+          </div>
+          <div>
+            <label class="form-label" for="staffMessage">Mensaje para el RM (opcional)</label>
+            <textarea id="staffMessage" class="form-control" rows="3" th:field="*{mensaje}" maxlength="1000"></textarea>
+            <div class="form-hint">Máximo 1000 caracteres.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <a href="#" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</a>
+          <button class="btn btn-primary" type="submit">Enviar solicitud</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/pm-js/pm-detalle-proyecto.js" th:src="@{/js/pm-js/pm-detalle-proyecto.js}"></script>
+</body>
+</html>

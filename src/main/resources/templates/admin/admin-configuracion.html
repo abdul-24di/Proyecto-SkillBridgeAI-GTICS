@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Configuración</title>
+
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-configuracion.css" th:href="@{/css/admin-css/admin-configuracion.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('configuracion')}">
+    <div class="container-xl">
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
+        <a href="admin-usuarios.html" th:href="@{/admin/usuarios}">Usuarios</a>
+        <a href="admin-habilidades.html" th:href="@{/admin/habilidades}">Habilidades</a>
+        <a href="admin-configuracion.html" class="active" th:href="@{/admin/configuracion}">Configuración</a>
+        <a href="admin-auditoria.html" th:href="@{/admin/auditoria}">Auditoría</a>
+      </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">SA</span>
+        <div class="user-meta">
+          <div class="fw-semibold">Sofía Alarcón</div>
+          <div class="small">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <span class="text-secondary">Configuración</span>
+    </nav>
+
+    <div class="alert alert-success" th:if="${mensajeOk}" th:text="${mensajeOk}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
+    <div class="page-head page-head-stack-mobile">
+      <div>
+        <h1 class="page-title">Configuración de Parámetros Globales</h1>
+        <div class="text-secondary">
+          Estos valores afectan reglas de negocio en toda la organización. Todo cambio queda registrado en el log de auditoría.
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createParamModal">
+          Nuevo parámetro
+        </button>
+      </div>
+    </div>
+
+    <div class="card section-card mb-4">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Parámetros de asignaciones y recursos</h3>
+          <div class="section-description">Controlan los límites que usan el RM y el PM al proponer y aprobar asignaciones.</div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Parámetro</th>
+              <th>Descripción</th>
+              <th>Valor actual</th>
+              <th>Última modificación</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="p : ${parametros}">
+              <td class="fw-semibold" th:text="${p.clave()}">NOMBRE_ORGANIZACION</td>
+              <td class="text-secondary" th:text="${p.descripcion()}">Nombre de la organización...</td>
+              <td><span class="badge bg-blue-lt text-blue fs-5 px-3 py-2" th:text="${p.valor()}">SkillBridge AI</span></td>
+              <td th:text="${p.ultimaModificacion()}">—</td>
+              <td class="text-end">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editParamModal"
+                        th:attr="data-param-id=${p.id()},data-param-name=${p.clave()},data-param-desc=${p.descripcion()},data-param-value=${p.valor()}">
+                  Editar
+                </button>
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(parametros)}">
+              <td colspan="5" class="text-center text-secondary py-4">No hay parámetros configurados.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Historial reciente de cambios</h3>
+          <div class="section-description">Últimas modificaciones a los parámetros globales del sistema.</div>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Parámetro</th>
+              <th>Valor anterior</th>
+              <th>Valor nuevo</th>
+              <th>Modificado por</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="h : ${historial}">
+              <td th:text="${h.fecha()}">28 ago 2026, 10:14</td>
+              <td class="fw-semibold" th:text="${h.clave()}">MAX_ASIGNACIONES_POR_COLABORADOR</td>
+              <td th:text="${h.valorAnterior()}">2</td>
+              <td th:text="${h.valorNuevo()}">3</td>
+              <td th:text="${h.modificadoPor()}">Sofía Alarcón</td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(historial)}">
+              <td colspan="5" class="text-center text-secondary py-4">Todavía no hay cambios registrados.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL: CREAR PARÁMETRO -->
+<div class="modal modal-blur fade admin-modal" id="createParamModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Nuevo parámetro</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/configuracion/crear}" method="post">
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label" for="createParamClave">Clave</label>
+          <input id="createParamClave" name="clave" type="text" class="form-control" required maxlength="60"
+                 placeholder="Ejemplo: MAX_ASIGNACIONES_POR_COLABORADOR">
+          <div class="form-hint">Se guardará en mayúsculas, sin espacios.</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="createParamDesc">Descripción</label>
+          <textarea id="createParamDesc" name="descripcion" class="form-control" rows="2" maxlength="300"></textarea>
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="createParamValue">Valor inicial</label>
+          <input id="createParamValue" name="valor" type="text" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear parámetro</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR PARÁMETRO -->
+<div class="modal modal-blur fade admin-modal" id="editParamModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar parámetro</h5>
+        <button class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form th:action="@{/admin/configuracion/editar}" method="post">
+      <div class="modal-body">
+        <input type="hidden" name="parametroId" data-admin-source="paramId">
+        <div class="mb-3">
+          <label class="form-label">Parámetro</label>
+          <input type="text" class="form-control" data-admin-source="paramName" readonly disabled>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Descripción</label>
+          <textarea class="form-control" rows="2" data-admin-source="paramDesc" readonly disabled></textarea>
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="editParamValue">Nuevo valor</label>
+          <input id="editParamValue" name="valor" type="text" class="form-control" data-admin-source="paramValue">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar cambio</button>
+      </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+<script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
+<script src="../../static/js/admin-js/admin-modal-behavior.js" th:src="@{/js/admin-js/admin-modal-behavior.js}"></script>
+</body>
+</html>

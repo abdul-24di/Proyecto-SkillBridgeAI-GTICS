@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SkillBridge AI — Log de Auditoría</title>
+
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-auditoria.css" th:href="@{/css/admin-css/admin-auditoria.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+
+<body>
+<div class="app-shell">
+
+  <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('auditoria')}">
+    <div class="container-xl">
+      <a href="admin-dashboard.html" class="brand" th:href="@{/admin/dashboard}"><img class="brand-logo" src="../../static/img/skillbridge-icon.png" th:src="@{/img/skillbridge-icon.png}" alt="">SkillBridge AI</a>
+      <nav class="main-nav" aria-label="Navegación principal">
+        <a href="admin-dashboard.html" th:href="@{/admin/dashboard}">Dashboard</a>
+        <a href="admin-usuarios.html" th:href="@{/admin/usuarios}">Usuarios</a>
+        <a href="admin-habilidades.html" th:href="@{/admin/habilidades}">Habilidades</a>
+        <a href="admin-configuracion.html" th:href="@{/admin/configuracion}">Configuración</a>
+        <a href="admin-auditoria.html" class="active" th:href="@{/admin/auditoria}">Auditoría</a>
+      </nav>
+      <div class="user-area">
+        <a href="#" class="notification-link position-relative" aria-label="Notificaciones">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5a2 2 0 0 1 4 0 7 7 0 0 1 4 6v3l2 2H4l2-2v-3a7 7 0 0 1 4-6"/><path d="M9 19a3 3 0 0 0 6 0"/></svg>
+          <span class="badge bg-red notification-dot"></span>
+        </a>
+        <span class="avatar avatar-sm user-avatar">SA</span>
+        <div class="user-meta">
+          <div class="fw-semibold">Sofía Alarcón</div>
+          <div class="small">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <span class="text-secondary">Auditoría</span>
+    </nav>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <h1 class="page-title">Log de Auditoría</h1>
+        <div class="text-secondary">
+          Registro de acciones sensibles realizadas por cualquier rol de la organización.
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button type="submit" form="auditFiltersForm" formaction="/admin/auditoria/exportar" th:formaction="@{/admin/auditoria/exportar}" class="btn btn-outline-primary">Exportar CSV</button>
+        <button type="submit" form="auditFiltersForm" formaction="/admin/auditoria/exportar-excel" th:formaction="@{/admin/auditoria/exportar-excel}" class="btn btn-outline-primary">Exportar Excel</button>
+        <button type="submit" form="auditFiltersForm" formaction="/admin/auditoria/exportar-pdf" th:formaction="@{/admin/auditoria/exportar-pdf}" class="btn btn-outline-primary">Exportar PDF</button>
+      </div>
+    </div>
+
+    <div class="card section-card">
+      <div class="card-header section-header">
+        <div>
+          <h3 class="card-title mb-1">Acciones registradas</h3>
+          <div class="section-description">Incluye creación de usuarios, activación de cuentas, cambios de rol, aprobaciones/rechazos de asignaciones y certificados, y cambios de configuración.</div>
+        </div>
+      </div>
+
+      <div class="card-body border-bottom">
+        <form id="auditFiltersForm" method="get" th:action="@{/admin/auditoria}">
+        <div class="row g-3 align-items-end">
+          <div class="col-xl-5 col-md-6">
+            <label for="auditSearch" class="form-label">Buscar usuario</label>
+            <input id="auditSearch" name="texto" class="form-control" type="text" placeholder="Nombre o correo" th:value="${texto}">
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="auditRoleFilter" class="form-label">Rol</label>
+            <select id="auditRoleFilter" name="rol" class="form-select">
+              <option value="all">Todos</option>
+              <option th:each="r : ${rolesDisponibles}" th:value="${r}" th:text="${r}" th:selected="${r == rol}"></option>
+            </select>
+          </div>
+          <div class="col-xl-4 col-md-6">
+            <label for="auditActionFilter" class="form-label">Tipo de acción</label>
+            <select id="auditActionFilter" name="accion" class="form-select">
+              <option value="all">Todas</option>
+              <option th:each="t : ${tiposAccion}" th:value="${t.valor()}" th:text="${t.etiqueta()}" th:selected="${t.valor() == accion}"></option>
+            </select>
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="auditDateFrom" class="form-label">Desde</label>
+            <input id="auditDateFrom" name="desde" class="form-control" type="date" th:value="${desde}">
+          </div>
+          <div class="col-xl-3 col-md-6">
+            <label for="auditDateTo" class="form-label">Hasta</label>
+            <input id="auditDateTo" name="hasta" class="form-control" type="date" th:value="${hasta}">
+          </div>
+          <div class="col-xl-3 col-md-6 d-grid">
+            <button type="submit" class="btn btn-primary">Filtrar</button>
+          </div>
+          <div class="col-xl-3 col-md-6 d-grid">
+            <a class="btn btn-outline-secondary" th:href="@{/admin/auditoria}">Limpiar filtros</a>
+          </div>
+        </div>
+        </form>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table mb-0">
+          <thead>
+            <tr>
+              <th>Fecha y hora</th>
+              <th>Usuario</th>
+              <th>Rol</th>
+              <th>Acción</th>
+              <th>Detalle</th>
+              <th>IP</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="log : ${logs}">
+              <td class="text-secondary" th:text="${log.fecha()}">06 sep 2026, 09:12</td>
+              <td class="fw-semibold" th:text="${log.usuarioNombre()}">Sofía Alarcón</td>
+              <td><span class="badge" th:classappend="${log.rolBadgeClase()}" th:text="${log.rolEtiqueta()}">Administrador</span></td>
+              <td><span class="badge" th:classappend="${log.accionBadgeClase()}" th:text="${log.accionEtiqueta()}">Gestión de usuarios</span></td>
+              <td class="text-secondary" th:text="${log.detalle()}">Detalle...</td>
+              <td class="text-secondary small text-nowrap" th:text="${log.ip()}">190.12.34.56</td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(logs)}">
+              <td colspan="6" class="text-center text-secondary py-4">No hay acciones registradas con estos filtros.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-wrap">
+        <div class="text-secondary small" th:if="${#lists.isEmpty(logs)}">Sin resultados</div>
+        <div class="text-secondary small" th:unless="${#lists.isEmpty(logs)}"
+             th:with="desdeFila=${((paginaActual - 1) * tamanioPagina) + 1}, hastaFila=${((paginaActual - 1) * tamanioPagina) + #lists.size(logs)}"
+             th:text="|Mostrando ${desdeFila}-${hastaFila} de ${totalRegistros} acción(es)|">
+          Mostrando 1-15 de 214 acciones
+        </div>
+        <ul class="pagination pagination-sm m-0" th:if="${totalPaginas > 1}">
+          <li class="page-item" th:classappend="${paginaActual == 1} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/admin/auditoria(texto=${texto}, rol=${rol}, accion=${accion}, desde=${desde}, hasta=${hasta}, pagina=${paginaActual - 1})}">Anterior</a>
+          </li>
+          <li class="page-item" th:each="n : ${#numbers.sequence(1, totalPaginas)}" th:classappend="${n == paginaActual} ? 'active'">
+            <a class="page-link"
+               th:href="@{/admin/auditoria(texto=${texto}, rol=${rol}, accion=${accion}, desde=${desde}, hasta=${hasta}, pagina=${n})}"
+               th:text="${n}">1</a>
+          </li>
+          <li class="page-item" th:classappend="${paginaActual == totalPaginas} ? 'disabled'">
+            <a class="page-link"
+               th:href="@{/admin/auditoria(texto=${texto}, rol=${rol}, accion=${accion}, desde=${desde}, hasta=${hasta}, pagina=${paginaActual + 1})}">Siguiente</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script src="../../static/js/admin-js/admin-navigation.js" th:src="@{/js/admin-js/admin-navigation.js}"></script>
+<script th:inline="javascript">
+  document.addEventListener("DOMContentLoaded", function () {
+    var desde = document.getElementById("auditDateFrom");
+    var hasta = document.getElementById("auditDateTo");
+    if (!desde || !hasta) return;
+
+    function sincronizarRango() {
+      hasta.min = desde.value || "";
+      desde.max = hasta.value || "";
+    }
+    desde.addEventListener("change", sincronizarRango);
+    hasta.addEventListener("change", sincronizarRango);
+    sincronizarRango();
+  });
+</script>
+</body>
+</html>

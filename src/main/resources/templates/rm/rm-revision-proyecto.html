@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillBridge AI — Revisión de proyecto RM</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-revision-proyecto.css" th:href="@{/css/rm-css/rm-revision-proyecto.css}">
+  <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+  <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('proyectos')}"></header>
+
+  <main class="page-wrap review-project-page">
+    <nav class="breadcrumb-wrap" aria-label="Migas de pan">
+      <a class="breadcrumb-link" th:href="@{/rm/proyectos}">Proyectos</a>
+      <span class="breadcrumb-separator">›</span>
+      <span class="text-secondary">Revisar proyecto</span>
+    </nav>
+
+    <div class="alert alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+    <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h1 class="page-title mb-0">Revisar proyecto</h1>
+          <span class="badge bg-yellow-lt">En revisión</span>
+        </div>
+        <div class="text-secondary mt-2">Evalúa los datos, asigna el presupuesto y registra tu decisión.</div>
+      </div>
+    </div>
+
+    <div class="card section-card review-hero mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-start">
+          <div class="col-lg">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <h2 class="h2 mb-0" th:text="${proyecto.proyecto.nombre}">Proyecto</h2>
+              <span class="badge" th:classappend="${proyecto.prioridadClase}"
+                    th:text="|Prioridad ${proyecto.prioridadTexto}|">Prioridad</span>
+              <span class="badge bg-yellow-lt">En revisión</span>
+            </div>
+            <!-- La descripción y las habilidades ya se muestran abajo ("Información del proyecto" y
+                 "Requerimientos de talento"); aquí va el documento de contexto que adjunta el PM. -->
+            <div class="review-context mt-3">
+              <div class="info-label">Documento de contexto del PM</div>
+              <a th:if="${proyecto.proyecto.documentoContextoUrl != null}" th:href="${proyecto.proyecto.documentoContextoUrl}"
+                 target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary mt-2" id="projectContextDocument">Ver documento de contexto</a>
+              <div th:if="${proyecto.proyecto.documentoContextoUrl == null}" class="text-secondary small mt-1">
+                El Project Manager no adjuntó un documento de contexto.
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-auto">
+            <div class="review-request-meta">
+              <div class="info-label">Project Manager</div>
+              <div class="info-value" th:text="${proyecto.pmNombre}">PM</div>
+              <div class="small text-secondary mt-2"
+                   th:text="|Solicitud creada: ${#temporals.format(proyecto.proyecto.fechaCreacion, 'dd/MM/yyyy')}|">Fecha</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-sm-6 col-lg-3"><div class="card review-summary-card"><div class="card-body">
+        <div class="review-summary-label">Equipo requerido</div><div class="review-summary-value" th:text="${proyecto.proyecto.colaboradoresRequeridos}">0</div>
+        <div class="small text-secondary">Colaboradores objetivo</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card review-summary-card"><div class="card-body">
+        <div class="review-summary-label">Habilidades requeridas</div><div class="review-summary-value" th:text="${#lists.size(proyecto.requisitos)}">0</div>
+        <div class="small text-secondary">Requisitos registrados</div>
+      </div></div></div>
+      
+      <div class="col-sm-6 col-lg-3"><div class="card review-summary-card"><div class="card-body">
+        <div class="review-summary-label">Presupuesto asignado</div><div class="review-summary-value review-summary-text"
+          th:text="${proyecto.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuesto, 1, 'COMMA', 2, 'POINT') : 'Sin asignar'}">Sin asignar</div>
+        <div class="small text-secondary">Definido por el RM</div>
+      </div></div></div>
+      <div class="col-sm-6 col-lg-3"><div class="card review-summary-card"><div class="card-body">
+        <div class="review-summary-label">Duración estimada</div><div class="review-summary-value review-summary-text"
+          th:text="${proyecto.duracionTexto}">Sin definir</div>
+        <div class="small text-secondary">Según fechas propuestas</div>
+      </div></div></div>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-lg-7">
+        <div class="card section-card h-100">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Información del proyecto</h3>
+            <div class="section-description">Datos propuestos por el Project Manager.</div></div></div>
+          <div class="card-body">
+            <div class="info-grid review-info-grid">
+              <div><div class="info-label">Nombre</div><div class="info-value" th:text="${proyecto.proyecto.nombre}">Proyecto</div></div>
+              <div><div class="info-label">Project Manager</div><div class="info-value" th:text="${proyecto.pmNombre}">PM</div></div>
+              <div><div class="info-label">Inicio estimado</div><div class="info-value"
+                th:text="${proyecto.proyecto.fechaInicio != null ? #temporals.format(proyecto.proyecto.fechaInicio, 'dd/MM/yyyy') : 'Sin definir'}">Sin definir</div></div>
+              <div><div class="info-label">Fin estimado</div><div class="info-value"
+                th:text="${proyecto.proyecto.fechaFinEstimada != null ? #temporals.format(proyecto.proyecto.fechaFinEstimada, 'dd/MM/yyyy') : 'Sin definir'}">Sin definir</div></div>
+              <div><div class="info-label">Prioridad solicitada</div><div class="mt-1"><span class="badge"
+                th:classappend="${proyecto.prioridadClase}" th:text="${proyecto.prioridadTexto}">Prioridad</span></div></div>
+              <div><div class="info-label">Presupuesto solicitado</div><div class="info-value"
+                th:text="${proyecto.proyecto.presupuestoSolicitado != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuestoSolicitado, 1, 'COMMA', 2, 'POINT') : 'No solicitado'}">No solicitado</div></div>
+            </div>
+            <!-- TASK-021: mismo formulario que el detalle (fragments/rm-proyecto-fechas). -->
+            <form th:replace="~{fragments/rm-proyecto-fechas :: formulario(${proyecto.proyecto}, 'revision')}"></form>
+            <div class="review-text-block mt-3" th:each="seccion : ${proyecto.descripcionSecciones}">
+              <div class="info-label mb-2" th:text="${seccion.titulo}">Descripción</div>
+              <div class="text-secondary" style="white-space: pre-line" th:text="${seccion.texto}">Descripción</div></div>
+            <div class="review-text-block mt-3"><div class="info-label mb-2">Justificación de prioridad</div>
+              <div class="text-secondary" th:text="${proyecto.proyecto.justificacionPrioridad}">Justificación</div></div>
+            <div class="review-text-block mt-3" th:if="${proyecto.proyecto.justificacionPresupuesto != null and !proyecto.proyecto.justificacionPresupuesto.isBlank()}">
+              <div class="info-label mb-2">Justificación de presupuesto</div>
+              <div class="text-secondary" th:text="${proyecto.proyecto.justificacionPresupuesto}">Justificación</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TASK-055: Presupuesto y Decisión apilados; Decisión (flex-fill) completa la altura de "Información del proyecto". -->
+      <div class="col-lg-5 d-flex flex-column gap-3">
+        <div class="card section-card">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Presupuesto del proyecto</h3>
+            <div class="section-description">Campo administrado exclusivamente por el Resource Manager.</div></div></div>
+          <div class="card-body">
+            <div class="budget-state">
+              <div>
+                <div class="info-label">Presupuesto actual</div>
+                <div class="budget-value" th:text="${proyecto.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuesto, 1, 'COMMA', 2, 'POINT') : 'Sin asignar'}">Sin asignar</div>
+              </div>
+              <div class="text-end">
+                <div class="info-label">Presupuesto solicitado</div>
+                <div class="budget-value"
+                     th:text="${proyecto.proyecto.presupuestoSolicitado != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuestoSolicitado, 1, 'COMMA', 2, 'POINT') : 'No solicitado'}">
+                  No solicitado
+                </div>
+              </div>
+            </div>
+            <div class="budget-note mt-3">Debe ser mayor que cero y es obligatorio antes de aprobar.</div>
+            <!-- TASK-018: cambiar un presupuesto ya asignado se confirma en #budgetChangeModal. -->
+            <form class="mt-3" method="post" th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}"
+                  data-rm-budget-form
+                  th:attr="data-presupuesto-anterior=${proyecto.proyecto.presupuesto != null ? proyecto.proyecto.presupuesto.toPlainString() : ''}">
+              <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+              <label for="budgetInput" class="form-label">Presupuesto asignado (S/)</label>
+              <input id="budgetInput" name="presupuesto" data-entrada="monto" type="text" inputmode="decimal" pattern="\d{1,10}(\.\d{1,2})?" required
+                     aria-describedby="budgetInputAyuda" class="form-control" th:value="${proyecto.proyecto.presupuesto}">
+              <div id="budgetInputAyuda" class="form-hint">Ingresa el monto sin separador de miles y usa punto para los decimales.</div>
+              <button type="submit" class="btn btn-outline-primary w-100 mt-3">Guardar presupuesto</button>
+            </form>
+            <form id="useRequestedBudgetForm" class="mt-2" method="post"
+                  th:if="${proyecto.proyecto.presupuestoSolicitado != null and proyecto.proyecto.presupuestoSolicitado.signum() > 0
+                           and (proyecto.proyecto.presupuesto == null or proyecto.proyecto.presupuestoSolicitado.compareTo(proyecto.proyecto.presupuesto) != 0)}"
+                  th:action="@{/rm/proyectos/{id}/presupuesto(id=${proyecto.proyecto.id})}"
+                  data-rm-budget-form
+                  th:attr="data-presupuesto-anterior=${proyecto.proyecto.presupuesto != null ? proyecto.proyecto.presupuesto.toPlainString() : ''}">
+              <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+              <input type="hidden" name="presupuesto" th:value="${proyecto.proyecto.presupuestoSolicitado.toPlainString()}">
+              <button type="submit" class="btn btn-outline-secondary w-100">Usar presupuesto solicitado</button>
+            </form>
+          </div>
+        </div>
+        <div class="card section-card flex-fill">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Decisión del RM</h3>
+            <div class="section-description">Aprobar activa el proyecto; rechazar exige un motivo.</div></div></div>
+          <div class="card-body"
+               th:with="presupuestoValido=${proyecto.proyecto.presupuesto != null and proyecto.proyecto.presupuesto.signum() > 0}">
+            <div class="decision-note">
+              Revisa la información antes de continuar. La decisión quedará registrada y será visible para el Project Manager.
+            </div>
+            <div class="d-grid gap-2 mt-3">
+              <button type="button" class="btn btn-success" th:if="${presupuestoValido}"
+                      data-bs-toggle="modal" data-bs-target="#approveProjectModal">
+                Aprobar proyecto
+              </button>
+              <button type="button" class="btn btn-success" th:unless="${presupuestoValido}"
+                      disabled aria-describedby="approveProjectBloqueo">
+                Aprobar proyecto
+              </button>
+              <div id="approveProjectBloqueo" class="form-hint" th:unless="${presupuestoValido}">
+                Asigna un presupuesto mayor que cero para poder aprobar el proyecto.
+              </div>
+              <button type="button" class="btn btn-outline-danger"
+                      data-bs-toggle="modal" data-bs-target="#rejectProjectModal">
+                Rechazar proyecto
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row row-cards mb-4">
+      <div class="col-12">
+        <div class="card section-card">
+          <div class="card-header section-header"><div><h3 class="card-title mb-1">Requerimientos de talento</h3>
+            <div class="section-description">Habilidades y niveles solicitados.</div></div></div>
+          <div class="requirement-grid" th:if="${!#lists.isEmpty(proyecto.requisitos)}">
+            <div class="requirement-tile" th:each="requisito : ${proyecto.requisitos}">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div class="fw-semibold" th:text="${requisito.habilidad}">Habilidad</div>
+                <span class="badge bg-blue-lt" th:text="|${requisito.cantidadPersonas} persona(s)|">1 persona</span>
+              </div>
+              <div class="requirement-tags mt-2">
+                <span class="badge bg-azure-lt" th:text="|Nivel ${requisito.nivel}|">Nivel</span>
+                <span class="badge bg-purple-lt" th:if="${requisito.horasSemanales != null}" th:text="|${requisito.horasSemanales} hrs/sem|">Horas</span>
+              </div>
+            </div>
+          </div>
+          <th:block th:if="${#lists.isEmpty(proyecto.requisitos)}">
+            <div th:replace="~{fragments/rm-empty-state :: bloque(vacioIcono='lista', vacioTitulo='Sin habilidades requeridas',
+                vacioTexto='No hay habilidades requeridas registradas.')}"></div>
+          </th:block>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-bar"><a class="btn btn-outline-secondary" th:href="@{/rm/proyectos}">Cancelar revisión</a></div>
+  </main>
+</div>
+
+<div class="modal modal-blur fade rm-modal" id="approveProjectModal" tabindex="-1"
+     th:if="${proyecto.proyecto.presupuesto != null and proyecto.proyecto.presupuesto.signum() > 0}"
+     aria-labelledby="approveProjectModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="approveProjectModalTitle">Confirmar aprobación del proyecto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" th:action="@{/rm/proyectos/{id}/aprobar(id=${proyecto.proyecto.id})}">
+        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+        <div class="modal-body">
+          <div class="rm-modal-context">
+            <div>
+              <div class="info-label">Proyecto</div>
+              <div class="info-value" th:text="${proyecto.proyecto.nombre}">Proyecto</div>
+            </div>
+            <div>
+              <div class="info-label">Presupuesto asignado</div>
+              <div class="info-value"
+                   th:text="${proyecto.proyecto.presupuesto != null ? 'S/ ' + #numbers.formatDecimal(proyecto.proyecto.presupuesto, 1, 'COMMA', 2, 'POINT') : 'Sin asignar'}">
+                Sin asignar
+              </div>
+            </div>
+          </div>
+          <div class="rm-state-transition" aria-label="Cambio de estado">
+            <span class="badge bg-yellow-lt">En revisión</span>
+            <span class="rm-state-transition-arrow" aria-hidden="true">&rarr;</span>
+            <span class="badge bg-green-lt">Activo</span>
+          </div>
+          <div class="form-hint">Al confirmar, el proyecto quedará activo.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success">Confirmar aprobación</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal modal-blur fade rm-modal" id="rejectProjectModal" tabindex="-1"
+     aria-labelledby="rejectProjectModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="rejectProjectModalTitle">Confirmar rechazo del proyecto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form method="post" th:action="@{/rm/proyectos/{id}/rechazar(id=${proyecto.proyecto.id})}">
+        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf?.parameterName}" th:value="${_csrf?.token}">
+        <div class="modal-body">
+          <div class="rm-modal-context">
+            <div>
+              <div class="info-label">Proyecto</div>
+              <div class="info-value" th:text="${proyecto.proyecto.nombre}">Proyecto</div>
+            </div>
+            <div>
+              <div class="info-label">Project Manager</div>
+              <div class="info-value" th:text="${proyecto.pmNombre}">Project Manager</div>
+            </div>
+          </div>
+          <div class="rm-state-transition" aria-label="Cambio de estado">
+            <span class="badge bg-yellow-lt">En revisión</span>
+            <span class="rm-state-transition-arrow" aria-hidden="true">&rarr;</span>
+            <span class="badge bg-red-lt text-red">Rechazado</span>
+          </div>
+          <label for="projectRejectReason" class="form-label">Motivo del rechazo</label>
+          <textarea id="projectRejectReason" name="motivo" class="form-control" rows="4" maxlength="500"
+                    placeholder="Explica el motivo para que quede registrado."></textarea>
+          <div class="form-hint">El Project Manager podrá consultar este motivo.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Confirmar rechazo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal modal-blur fade rm-modal" id="budgetChangeModal" tabindex="-1"
+     aria-labelledby="budgetChangeModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="budgetChangeModalTitle">Confirmar cambio de presupuesto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="rm-modal-context">
+          <div>
+            <div class="info-label">Presupuesto anterior</div>
+            <div class="info-value" data-budget-anterior>S/ 0.00</div>
+          </div>
+          <div>
+            <div class="info-label">Presupuesto nuevo</div>
+            <div class="info-value" data-budget-nuevo>S/ 0.00</div>
+          </div>
+        </div>
+        <div class="form-hint">El sistema volverá a validar el monto antes de guardarlo.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" data-budget-confirmar>Confirmar cambio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
+<script src="../../static/js/rm-js/rm-presupuesto-confirmacion.js" th:src="@{/js/rm-js/rm-presupuesto-confirmacion.js}"></script>
+<script src="../../static/js/rm-js/rm-proyecto-fechas.js" th:src="@{/js/rm-js/rm-proyecto-fechas.js}"></script>
+</body>
+</html>

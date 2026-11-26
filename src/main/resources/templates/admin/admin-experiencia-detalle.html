@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Revisar Experiencia</title>
+    <link rel="stylesheet" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" th:href="@{/css/comentario-rechazo.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-css/admin-common.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-css/admin-topbar.css}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('experiencia')}"></header>
+
+    <main class="page-wrap">
+        <div class="breadcrumb-wrap">
+            <span class="text-secondary">Sistema</span> &nbsp;/&nbsp;
+            <a th:href="@{/admin/experiencia}" class="text-secondary">Experiencia Profesional</a> &nbsp;/&nbsp;
+            <span class="text-dark fw-medium" th:text="${colaborador.nombre} + ' ' + ${colaborador.apellido}">Colaborador</span>
+        </div>
+
+        <div class="page-head page-head-stack-mobile">
+            <div>
+                <h1 class="page-title" th:text="|${colaborador.nombre} ${colaborador.apellido}|">Colaborador</h1>
+                <div class="text-secondary" th:text="${colaborador.correo}">correo@skillbridge.com</div>
+            </div>
+            <div>
+                <a th:if="${colaborador.cvUrl != null}" th:href="@{${colaborador.cvUrl}}" target="_blank" rel="noopener" class="btn btn-outline-primary">Ver CV</a>
+                <span th:if="${colaborador.cvUrl == null}" class="badge bg-yellow-lt text-yellow">Sin CV subido</span>
+                <th:block th:if="${colaborador.cvUrl != null and (colaborador.cvEstado == null or colaborador.cvEstado.name() == 'PENDIENTE')}">
+                    <form th:action="@{/admin/experiencia/{id}/revisar(id=${colaborador.id})}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-success">Aprobar</button>
+                    </form>
+                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalRechazar">Rechazar</button>
+                </th:block>
+                <span th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'REVISADO'}" class="badge bg-green-lt text-green">Aprobado</span>
+                <span th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'RECHAZADO'}" class="badge bg-red-lt text-red">Rechazado</span>
+            </div>
+        </div>
+
+        <div th:if="${mensajeOk}" class="alert alert-success alert-dismissible" role="alert">
+            <div class="d-flex"><div><i class="bi bi-check-circle me-2"></i></div><div th:text="${mensajeOk}"></div></div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+        <div th:if="${mensajeError}" class="alert alert-danger alert-dismissible" role="alert">
+            <div class="d-flex"><div><i class="bi bi-exclamation-triangle me-2"></i></div><div th:text="${mensajeError}"></div></div>
+            <a class="btn-close" data-bs-dismiss="alert" aria-label="close"></a>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title">Datos del pre-registro</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="text-secondary small">Nombre</div>
+                                <div th:text="|${colaborador.nombre} ${colaborador.apellido}|">Nombre</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-secondary small">Correo</div>
+                                <div th:text="${colaborador.correo}">correo</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-secondary small">Teléfono</div>
+                                <div th:text="${colaborador.telefono != null ? colaborador.telefono : 'No indicado'}">999999999</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="text-secondary small">DNI</div>
+                                <div>
+                                    <span th:text="${colaborador.dni != null ? colaborador.dni : 'No registrado'}">45678912</span>
+                                    <span class="badge bg-green-lt text-green ms-1" th:if="${colaborador.dni != null and colaborador.dniVerificado}">Verificado</span>
+                                    <span class="badge bg-yellow-lt text-yellow ms-1" th:if="${colaborador.dni != null and !colaborador.dniVerificado}">Sin verificar</span>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="text-secondary small">Sobre sí mismo</div>
+                                <div th:text="${colaborador.descripcion != null ? colaborador.descripcion : 'No indicado'}">Descripción</div>
+                            </div>
+                        </div>
+                        <div class="form-hint mt-3">Al aprobar el registro, estos datos quedan en el perfil del colaborador.</div>
+                        <th:block th:if="${colaborador.cvEstado != null and colaborador.cvEstado.name() == 'RECHAZADO' and colaborador.motivoRechazo != null}">
+                            <div th:replace="~{fragments/comentario-rechazo :: comentario('Motivo del rechazo enviado al colaborador', ${colaborador.motivoRechazo}, null)}"></div>
+                        </th:block>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <h3 class="card-title mb-0">Experiencia profesional registrada</h3>
+                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarExperiencia">+ Agregar experiencia</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(experiencias)}" class="empty-state p-4 text-center text-muted">
+                            Este colaborador no registró experiencia profesional.
+                        </div>
+                        <div th:each="exp : ${experiencias}" class="timeline-entry p-3 border-bottom">
+                            <div class="fw-bold" th:text="${exp.cargo} + ' — ' + ${exp.empresa}">Cargo — Empresa</div>
+                            <div class="text-secondary small">
+                                <span th:text="${exp.fechaInicio != null ? #temporals.format(exp.fechaInicio, 'MM/yyyy') : '¿?'}">2022</span>
+                                –
+                                <span th:text="${exp.actual} ? 'Actualidad' : (${exp.fechaFin != null} ? ${#temporals.format(exp.fechaFin, 'MM/yyyy')} : '¿?')">Actualidad</span>
+                            </div>
+                            <div th:text="${exp.descripcion}">Descripción</div>
+                            <form th:action="@{/admin/experiencia/{cid}/eliminar/{eid}(cid=${colaborador.id}, eid=${exp.id})}" method="post"
+                                  class="mt-2" onsubmit="return confirm('¿Eliminar esta experiencia?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mt-3 mt-lg-0">
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Formación académica</h3>
+                            <div class="text-secondary small">Solo lectura: la valida el Resource Manager.</div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(estudios)}" class="empty-state p-4 text-center text-muted">
+                            Este colaborador aún no registra estudios concluidos.
+                        </div>
+                        <div th:each="est : ${estudios}" class="timeline-entry p-3 border-bottom">
+                            <div class="fw-bold" th:text="${est.titulo} + ' — ' + ${est.institucion}">Título — Institución</div>
+                            <div class="text-secondary small">
+                                <span th:text="${est.fechaInicio != null ? #temporals.format(est.fechaInicio, 'MM/yyyy') : '¿?'}">2018</span>
+                                –
+                                <span th:text="${est.actual} ? 'Actualidad' : (${est.fechaFin != null} ? ${#temporals.format(est.fechaFin, 'MM/yyyy')} : '¿?')">2022</span>
+                            </div>
+                            <a th:if="${!#strings.isEmpty(est.archivoUrl)}" th:href="@{${est.archivoUrl}}" target="_blank" rel="noopener">Ver título o certificado</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Habilidades y certificados</h3>
+                            <div class="text-secondary small">Solo lectura: los valida el Resource Manager.</div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(habilidades)}" class="empty-state p-4 text-center text-muted">
+                            Este colaborador no registró certificados.
+                        </div>
+                        <div th:each="ch : ${habilidades}" class="timeline-entry p-3 border-bottom">
+                            <span class="fw-bold" th:text="${ch.habilidad.nombre}">Java</span>
+                            <span class="badge bg-blue-lt ms-1" th:text="${ch.nivelDominio.name() == 'AVANZADO' ? 'Avanzado' : (ch.nivelDominio.name() == 'INTERMEDIO' ? 'Intermedio' : 'Básico')}">Avanzado</span>
+                            <div th:if="${certificadosPorHabilidad.get(ch.habilidad.id) != null}">
+                                <a th:href="@{${certificadosPorHabilidad.get(ch.habilidad.id)}}" target="_blank" rel="noopener">Ver certificado</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+<div class="modal modal-blur fade admin-modal" id="modalAgregarExperiencia" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form th:action="@{/admin/experiencia/{id}/agregar(id=${colaborador.id})}" method="post">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">Agregar experiencia profesional</h5>
+                        <div class="text-white-50 small">Opcional: solo si falta algo que sí figura en el CV.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Cargo <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="cargo" required maxlength="100">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Empresa <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="empresa" required maxlength="150">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha inicio</label>
+                            <input type="date" class="form-control" name="fechaInicio" id="expFechaInicio"
+                                   onchange="document.getElementById('expFechaFin').min = this.value;">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha fin</label>
+                            <input type="date" class="form-control" name="fechaFin" id="expFechaFin">
+                        </div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="actual" id="expActual"
+                               onchange="document.getElementById('expFechaFin').disabled = this.checked; if(this.checked) document.getElementById('expFechaFin').value = '';">
+                        <label class="form-check-label" for="expActual">Trabaja aquí actualmente</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                        <textarea class="form-control" name="descripcion" rows="3" required maxlength="500"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Agregar experiencia</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal modal-blur fade admin-modal" id="modalRechazar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form th:action="@{/admin/experiencia/{id}/rechazar(id=${colaborador.id})}" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rechazar registro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label" for="motivoRechazo">Motivo <span class="text-danger">*</span></label>
+                    <textarea id="motivoRechazo" name="motivo" class="form-control" rows="4" maxlength="500" required
+                              placeholder="Explica qué debe corregir el colaborador (se le enviará por correo)"></textarea>
+                    <div class="form-hint mt-2">No se borra nada: el colaborador corrige y vuelve a subir su CV.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Rechazar y notificar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+</body>
+</html>

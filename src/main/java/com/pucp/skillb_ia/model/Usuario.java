@@ -1,0 +1,200 @@
+package com.pucp.skillb_ia.model;
+
+import com.pucp.skillb_ia.model.enums.EstadoCv;
+import com.pucp.skillb_ia.model.enums.EstadoRegistro;
+import com.pucp.skillb_ia.model.enums.NivelExperiencia;
+import jakarta.persistence.*;
+
+import java.io.Serializable;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+
+@Entity
+@Table(name = "usuario")
+// Serializable: lo exige Spring Session para poder guardar el
+// Usuario autenticado dentro de la sesión HTTP persistida en MySQL.
+public class Usuario implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 150)
+    private String correo;
+
+    // NULL hasta que el usuario activa su cuenta (Historia A6) y define su propia
+    // contraseña — al crearlo, el Admin solo asigna correo y rol (A5).
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
+
+    @Column(length = 150)
+    private String nombre;
+
+    @Column(length = 150)
+    private String apellido;
+
+    @Column(length = 20)
+    private String telefono;
+
+    // DNI peruano (8 dígitos). Se registra una sola vez y no se edita.
+    @Column(length = 8, unique = true)
+    private String dni;
+
+    // true si el DNI se confirmó con la API de consulta; false si se guardó "sin verificar".
+    @Column(name = "dni_verificado", nullable = false)
+    private boolean dniVerificado = false;
+
+    @Column(name = "foto_url", length = 500)
+    private String fotoUrl;
+
+    @Column(name = "descripcion", length = 500)
+    private String descripcion;
+
+    // CV del colaborador (sube uno solo, cada subida reemplaza al anterior).
+    // El Admin lo revisa y recién ahí llena su experiencia profesional.
+    @Column(name = "cv_url", length = 500)
+    private String cvUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cv_estado", length = 20)
+    private EstadoCv cvEstado;
+
+    @Column(name = "cv_fecha_subida")
+    private LocalDateTime cvFechaSubida;
+
+    // Pre-registro del colaborador invitado: lo aprueba o rechaza el Admin (ver EstadoRegistro).
+    @Enumerated(EnumType.STRING)
+    @Column(name = "registro_estado", length = 20)
+    private EstadoRegistro registroEstado;
+
+    @Column(name = "motivo_rechazo", length = 500)
+    private String motivoRechazo;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "rol_id", nullable = false)
+    private Rol rol;
+
+    @Column(nullable = false)
+    private boolean activo = true;
+
+    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    // --- Campos exclusivos de colaborador (NULL para los demás roles) ---
+
+    // Catálogo administrado por el Admin (sin cascade: guardar un usuario nunca
+    // debe crear ni modificar un cargo). El sueldo_base se deriva de cargo + nivel.
+    // EAGER porque las vistas leen el cargo del usuario de la sesión (fuera de la
+    // sesión de Hibernate) y el catálogo es pequeño.
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "cargo_id")
+    private Cargo cargo;
+
+    @Column(name = "horas_contratadas_semana", precision = 5, scale = 2)
+    private BigDecimal horasContratadasSemana;
+
+    @Column(name = "horas_disponibles", precision = 5, scale = 2)
+    private BigDecimal horasDisponibles;
+
+    @Column(name = "anios_experiencia", precision = 4, scale = 1)
+    private BigDecimal aniosExperiencia;
+
+    // Solo el propio colaborador y el Administrador pueden ver este campo (C7) —
+    // esa restricción se aplica en el service/controller, no aquí.
+    @Column(name = "sueldo_base", precision = 10, scale = 2)
+    private BigDecimal sueldoBase;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_experiencia", length = 20)
+    private NivelExperiencia nivelExperiencia;
+
+    @Column(name = "fecha_contratacion")
+    private LocalDate fechaContratacion;
+
+    @PrePersist
+    protected void onCreate() {
+        if (fechaCreacion == null) fechaCreacion = LocalDateTime.now();
+    }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getCorreo() { return correo; }
+    public void setCorreo(String correo) { this.correo = correo; }
+
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
+
+    public String getApellido() { return apellido; }
+    public void setApellido(String apellido) { this.apellido = apellido; }
+
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+    public String getDni() { return dni; }
+    public void setDni(String dni) { this.dni = dni; }
+    public boolean isDniVerificado() { return dniVerificado; }
+    public void setDniVerificado(boolean dniVerificado) { this.dniVerificado = dniVerificado; }
+
+    public String getFotoUrl() { return fotoUrl; }
+    public void setFotoUrl(String fotoUrl) { this.fotoUrl = fotoUrl; }
+
+    public String getCvUrl() { return cvUrl; }
+    public void setCvUrl(String cvUrl) { this.cvUrl = cvUrl; }
+
+    public EstadoCv getCvEstado() { return cvEstado; }
+    public void setCvEstado(EstadoCv cvEstado) { this.cvEstado = cvEstado; }
+
+    public LocalDateTime getCvFechaSubida() { return cvFechaSubida; }
+    public void setCvFechaSubida(LocalDateTime cvFechaSubida) { this.cvFechaSubida = cvFechaSubida; }
+
+    public EstadoRegistro getRegistroEstado() { return registroEstado; }
+    public void setRegistroEstado(EstadoRegistro registroEstado) { this.registroEstado = registroEstado; }
+
+    public String getMotivoRechazo() { return motivoRechazo; }
+    public void setMotivoRechazo(String motivoRechazo) { this.motivoRechazo = motivoRechazo; }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public Rol getRol() { return rol; }
+    public void setRol(Rol rol) { this.rol = rol; }
+
+    public boolean isActivo() { return activo; }
+    public void setActivo(boolean activo) { this.activo = activo; }
+
+    public LocalDateTime getFechaCreacion() { return fechaCreacion; }
+    public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+
+    public Cargo getCargo() { return cargo; }
+    public void setCargo(Cargo cargo) { this.cargo = cargo; }
+
+    public BigDecimal getHorasContratadasSemana() { return horasContratadasSemana; }
+    public void setHorasContratadasSemana(BigDecimal horasContratadasSemana) { this.horasContratadasSemana = horasContratadasSemana; }
+
+    public BigDecimal getHorasDisponibles() { return horasDisponibles; }
+    public void setHorasDisponibles(BigDecimal horasDisponibles) { this.horasDisponibles = horasDisponibles; }
+
+    public BigDecimal getAniosExperiencia() { return aniosExperiencia; }
+    public void setAniosExperiencia(BigDecimal aniosExperiencia) { this.aniosExperiencia = aniosExperiencia; }
+
+    public BigDecimal getSueldoBase() { return sueldoBase; }
+    public void setSueldoBase(BigDecimal sueldoBase) { this.sueldoBase = sueldoBase; }
+
+    public NivelExperiencia getNivelExperiencia() { return nivelExperiencia; }
+    public void setNivelExperiencia(NivelExperiencia nivelExperiencia) { this.nivelExperiencia = nivelExperiencia; }
+
+    public LocalDate getFechaContratacion() { return fechaContratacion; }
+    public void setFechaContratacion(LocalDate fechaContratacion) { this.fechaContratacion = fechaContratacion; }
+}
+
+

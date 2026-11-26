@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SkillBridge AI - Mi Perfil</title>
+    <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+    <link rel="stylesheet" href="../../static/css/rm-css/rm-common.css" th:href="@{/css/rm-css/rm-common.css}">
+    <link rel="stylesheet" href="../../static/css/rm-css/rm-topbar.css" th:href="@{/css/rm-css/rm-topbar.css}">
+
+<style>
+  /* Fix para que la foto de perfil no se vea cortada ni con zoom excesivo */
+  .avatar {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar" th:replace="~{fragments/rm-topbar :: topbar('perfil')}"></header>
+
+    <main class="page-wrap">
+        <div class="container-xl mt-4">
+            <div class="page-header mb-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h2 class="page-title">Configuración de Perfil</h2>
+                        <div class="text-secondary mt-1">Administra tu información personal y de seguridad</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="alert alert-danger" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
+            <div class="row">
+                <div class="col-md-4 col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-body text-center py-5">
+
+                            <img th:if="${rm.fotoUrl != null and !rm.fotoUrl.isBlank()}"
+                                 th:src="@{${rm.fotoUrl}}"
+                                 class="avatar avatar-xl mb-4 rounded js-foto-actual"
+                                 alt="Foto de perfil">
+
+                            <span th:unless="${rm.fotoUrl != null and !rm.fotoUrl.isBlank()}"
+                                  class="avatar avatar-xl mb-4 rounded js-foto-actual"
+                                  style="font-size: 1.5rem;"
+                                  th:text="|${#strings.isEmpty(rm.nombre) ? '' : #strings.substring(rm.nombre, 0, 1)}${#strings.isEmpty(rm.apellido) ? '' : #strings.substring(rm.apellido, 0, 1)}|">
+                                RM
+                            </span>
+
+                            <img id="fotoPreview" class="avatar avatar-xl mb-4 rounded d-none" alt="Vista previa de la foto">
+
+                            <h3 class="m-o mb-1"
+                                th:text="|${rm.nombre != null ? rm.nombre : ''} ${rm.apellido != null ? rm.apellido : ''}|">
+                                Nombre del RM
+                            </h3>
+                            
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-8 col-lg-9">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Datos de la Cuenta</h3>
+                        </div>
+                        <div class="card-body">
+                            <form th:action="@{/rm/perfil/foto}" method="post" enctype="multipart/form-data">
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <label class="form-label">Foto de perfil</label>
+                                        <div class="d-flex gap-2 align-items-start">
+                                            <div class="flex-grow-1">
+                                                <input type="file" id="editPhotoInput" class="form-control" name="foto" accept="image/png, image/jpeg" required
+                                                       data-foto-preview="#fotoPreview" data-foto-actual=".js-foto-actual" data-foto-aviso="#fotoAviso">
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">Guardar foto</button>
+                                        </div>
+                                        <div class="form-hint">Formatos JPG o PNG, máximo 2MB. Se recomienda una imagen cuadrada (por ejemplo, 400×400 px) para una correcta visualización.</div>
+                                        <div id="fotoAviso" class="small text-warning mt-2 d-none"></div>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <hr>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nombres</label>
+                                    <input type="text" class="form-control" th:value="${rm.nombre}" readonly disabled>
+                                    <div class="form-hint">Solo el Administrador puede modificar los nombres.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Apellidos</label>
+                                    <input type="text" class="form-control" th:value="${rm.apellido}" readonly disabled>
+                                    <div class="form-hint">Solo el Administrador puede modificar los apellidos.</div>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Correo electrónico</label>
+                                    <input type="email" class="form-control" th:value="${rm.correo}" readonly disabled>
+                                    <div class="form-hint">
+                                        El correo es tu identificador de acceso. Solo el Administrador puede modificarlo.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div th:replace="~{fragments/dni-perfil :: dni(${rm})}"></div>
+                            <form th:action="@{/rm/perfil/telefono}" method="post" class="row g-3 mt-1">
+                                <div class="col-md-12">
+                                    <label class="form-label">Teléfono</label>
+                                    <input type="tel" inputmode="tel" class="form-control" name="telefono" data-entrada="telefono"
+                                           th:value="${telefonoIngresado != null ? telefonoIngresado : rm.telefono}"
+                                           required minlength="7" maxlength="20" pattern="[0-9]{7,20}|\+[0-9]{7,19}"
+                                           title="Solo dígitos y un + inicial opcional, entre 7 y 20 caracteres."
+                                           placeholder="Ejemplo: 987654321 o +51987654321">
+                                    <div class="form-hint">Solo dígitos y, opcionalmente, un + al inicio (7 a 20 caracteres, sin espacios ni guiones).</div>
+                                </div>
+                                <div class="col-12 d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">Guardar teléfono</button>
+                                </div>
+                            </form>
+
+                            <div th:replace="~{fragments/sobre-mi-perfil :: sobreMi(${rm}, '/rm/perfil/sobre-mi')}"></div>
+
+                            <div class="col-12 mt-4">
+                                <h4 class="form-label">Seguridad</h4>
+                                <div class="hr-text mt-0 mb-3">Cambiar contraseña</div>
+                            </div>
+
+                            <form th:action="@{/rm/perfil/password}" method="post" class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Contraseña actual</label>
+                                    <input type="password" class="form-control" name="passwordActual" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Nueva Contraseña</label>
+                                    <input type="password" class="form-control" name="passwordNueva" minlength="8" pattern="(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s]).{8,}" title="Debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo." required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Confirmar Contraseña</label>
+                                    <input type="password" class="form-control" name="passwordConfirm" minlength="8" required>
+                                </div>
+                                <div class="col-12 d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+<script th:src="@{/js/entrada-numerica.js}"></script>
+<script th:src="@{/js/foto-perfil-preview.js}"></script>
+</body>
+</html>

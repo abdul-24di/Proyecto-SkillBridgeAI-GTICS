@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+    <link rel="icon" type="image/png" href="../../static/img/skillbridge-icon.png" th:href="@{/img/skillbridge-icon.png}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="'SkillBridge AI — ' + ${foro.nombre}">Foro</title>
+  <link rel="stylesheet" href="../../static/tabler/css/tabler.min.css" th:href="@{/tabler/css/tabler.min.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-common.css" th:href="@{/css/admin-css/admin-common.css}">
+  <link rel="stylesheet" href="../../static/css/foro-detalle.css" th:href="@{/css/foro-detalle.css}">
+  <link rel="stylesheet" href="../../static/css/admin-css/admin-topbar.css" th:href="@{/css/admin-css/admin-topbar.css}">
+
+<style>
+   {
+      object-fit: contain !important;
+      object-position: center !important;
+      background-color: #f8f9fa; /* Fondo claro para espacios vacíos */
+  }
+  span.avatar {
+      background-size: contain !important;
+      background-position: center !important;
+      background-repeat: no-repeat !important;
+      background-color: #f8f9fa;
+  }
+  
+  /* Si prefieren ver la foto completa sin ningun corte, descomentar contain: */
+  /*
+  .avatar {
+      object-fit: contain !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+  }
+  */
+</style>
+
+</head>
+<body>
+<div class="app-shell">
+
+  <header class="topbar" th:replace="~{fragments/admin-topbar :: topbar('foros')}"></header>
+
+  <main class="page-wrap">
+    <div class="page-head page-head-stack-mobile page-head-button-mobile">
+      <div>
+        <div class="text-secondary mb-1">
+          <a th:href="@{/admin/foros}" class="text-secondary">← Foros de comunidad</a>
+        </div>
+        <h1 class="page-title" th:text="${foro.nombre}">Nombre del Foro</h1>
+        <div class="text-secondary d-flex align-items-center gap-2">
+          <span th:unless="${foro.anuncios}" class="badge bg-green-lt text-green">Comunidad</span>
+          <span th:if="${foro.anuncios}" class="badge bg-orange-lt text-orange">Anuncios</span>
+          <span th:text="${foro.anuncios} ? 'Solo publica el Administrador; los demás leen y reaccionan.' : 'Todos publican, responden y reaccionan.'">Foro</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPublicar">
+        <th:block th:text="${foro.anuncios} ? '+ Nuevo anuncio' : '+ Nueva publicación'">+ Nueva publicación</th:block>
+      </button>
+    </div>
+
+    <!-- Alertas -->
+    <div th:if="${success}" class="alert alert-success alert-dismissible" role="alert">
+      <div th:text="${success}"></div>
+      <a class="btn-close" data-bs-dismiss="alert"></a>
+    </div>
+    <div th:if="${error}" class="alert alert-danger alert-dismissible" role="alert">
+      <div th:text="${error}"></div>
+      <a class="btn-close" data-bs-dismiss="alert"></a>
+    </div>
+
+    <!-- Publicaciones (fragmento común a los 4 roles, TASK-046) -->
+    <div th:if="${#lists.isEmpty(publicaciones)}" class="card">
+      <div class="card-body text-center py-5 text-secondary">
+        Aún no hay publicaciones en este foro. ¡Sé el primero en publicar!
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end mb-3" th:unless="${#lists.isEmpty(publicaciones)}">
+      <form th:replace="~{fragments/foro-publicacion :: orden(|/admin/foros/${foro.id}/publicaciones|, ${ordenActual}, null, null)}"></form>
+    </div>
+
+    <th:block th:each="pub : ${publicaciones}">
+      <article th:replace="~{fragments/foro-publicacion :: publicacion(${pub}, '/admin/foros', ${foro.id}, null)}"></article>
+
+    
+      <th:block th:each="resp : ${pub.respuestas}">
+        <div th:replace="~{fragments/foro-publicacion :: modalEliminarRespuesta(${resp}, '/admin/foros', ${foro.id}, null, 'admin-modal')}"></div>
+      </th:block>
+
+      <!-- Modal eliminar publicación -->
+      <div th:if="${pub.puedeEliminar}" class="modal modal-blur fade admin-modal" th:id="'deletePostModal-' + ${pub.id}" tabindex="-1">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">¿Eliminar publicación?</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form th:action="@{/admin/foros/publicacion/{id}/eliminar(id=${pub.id})}" method="POST">
+              <input type="hidden" name="foroId" th:value="${foro.id}">
+              <div class="modal-body">
+                <div class="text-secondary">Esta acción no se puede deshacer.</div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal responder -->
+      <div th:if="${pub.puedeResponder}" class="modal modal-blur fade admin-modal" th:id="'replyModal' + ${pub.id}" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Responder a: <span th:text="${pub.titulo}"></span></h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form method="POST" th:action="@{/admin/foros/responder}">
+              <input type="hidden" name="foroId" th:value="${foro.id}" />
+              <input type="hidden" name="publicacionId" th:value="${pub.id}" />
+              <div class="modal-body">
+                <textarea name="contenido" class="form-control" rows="5" placeholder="Escribe tu respuesta..." required></textarea>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Publicar Respuesta</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </th:block>
+  </main>
+</div>
+
+<!-- Modal Publicar Anuncio -->
+<div class="modal modal-blur fade admin-modal" id="modalPublicar" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form th:action="@{/admin/foros/{id}/publicar(id=${foro.id})}" method="POST">
+        <div class="modal-header">
+          <h5 class="modal-title">Publicar en "<span th:text="${foro.nombre}"></span>"</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label required">Título</label>
+            <input type="text" name="titulo" class="form-control" placeholder="Título claro y descriptivo" required maxlength="200">
+          </div>
+          <div class="mb-3">
+            <label class="form-label required">Contenido</label>
+            <textarea name="contenido" class="form-control" rows="6" placeholder="Escribe el contenido..." required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Publicar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="../../static/tabler/js/tabler.min.js" th:src="@{/tabler/js/tabler.min.js}"></script>
+<script th:src="@{/js/validacion-formularios.js}"></script>
+</body>
+</html>

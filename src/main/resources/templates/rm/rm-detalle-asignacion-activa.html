@@ -183,7 +183,7 @@
   </div>
 </main></div>
 
-<!-- TASK-057: finalizar desde un modal (mismo POST, mismos campos; th:action agrega el token CSRF) -->
+<!-- TASK-057: finalizar desde un modal; th:action agrega el token CSRF -->
 <div th:if="${asignacion.activa}" class="modal modal-blur fade rm-modal" id="finalizarAsignacionModal" tabindex="-1"
      aria-labelledby="finalizarAsignacionModalTitle" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -192,7 +192,7 @@
         <h5 class="modal-title" id="finalizarAsignacionModalTitle">Finalizar asignación</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <form method="post" th:action="@{/rm/asignaciones/{id}/finalizar(id=${asignacion.asignacion.id})}">
+      <form id="finalizarAsignacionForm" method="post" th:action="@{/rm/asignaciones/{id}/finalizar(id=${asignacion.asignacion.id})}">
         <input th:if="${navegacion.origen != null}" type="hidden" name="origen" th:value="${navegacion.origen}"><input th:each="filtro : ${filtrosBandeja}" type="hidden" th:name="${filtro.key}" th:value="${filtro.value}">
         <div class="modal-body">
           <div class="rm-modal-context">
@@ -202,26 +202,28 @@
           <p class="text-secondary small">El RM puede desasignar directamente; el registro permanece en el historial.</p>
           <label for="motivo" class="form-label">Motivo</label>
           <select id="motivo" name="motivo" class="form-select" required><option value="">Selecciona un motivo</option><option value="BAJO_DESEMPENO">Bajo desempeño</option><option value="PROYECTO_CANCELADO">Proyecto cancelado</option><option value="OTRO">Otro</option></select>
-          <label for="calificacion" class="form-label mt-3">Calificación (Estrellas) <span class="text-secondary">(Opcional)</span></label>
-          <select id="calificacion" name="calificacion" class="form-select">
-            <option value="">Sin calificar</option>
+          <label for="calificacion" class="form-label mt-3">Calificación (Estrellas)</label>
+          <select id="calificacion" name="calificacion" class="form-select" required>
+            <option value="">Selecciona una calificación</option>
             <option value="5">5 - Excelente</option>
             <option value="4">4 - Bueno</option>
             <option value="3">3 - Regular</option>
             <option value="2">2 - Deficiente</option>
             <option value="1">1 - Muy deficiente</option>
           </select>
-          <label for="feedback" class="form-label mt-3">Feedback de desempeño <span class="text-secondary">(Opcional)</span></label>
-          <textarea id="feedback" name="feedback" maxlength="500" rows="3" class="form-control" placeholder="Escribe un comentario sobre el desempeño del colaborador..."></textarea>
+          <label for="feedback" class="form-label mt-3">Feedback de desempeño</label>
+          <textarea id="feedback" name="feedback" maxlength="500" rows="3" class="form-control" required placeholder="Escribe un comentario sobre el desempeño del colaborador..."></textarea>
           <label for="observacion" class="form-label mt-3">Observación Interna (RM)</label>
-          <textarea id="observacion" name="observacion" maxlength="220" rows="3" class="form-control"></textarea>
+          <textarea id="observacion" name="observacion" maxlength="220" rows="3" class="form-control" required></textarea>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-danger">Confirmar finalización</button>
+          <button type="submit" class="btn btn-danger" disabled>Confirmar finalización</button>
         </div>
       </form>
     </div>
   </div>
 </div>
-<script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script></body></html>
+<script th:src="@{/tabler/js/tabler.min.js}" src="../../static/tabler/js/tabler.min.js"></script>
+<script th:if="${asignacion.activa}" th:src="@{/js/rm-js/rm-finalizar-asignacion.js}" src="../../static/js/rm-js/rm-finalizar-asignacion.js"></script>
+</body></html>

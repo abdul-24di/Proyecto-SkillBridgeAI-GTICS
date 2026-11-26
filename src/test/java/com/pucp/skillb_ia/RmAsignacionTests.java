@@ -841,6 +841,39 @@ class RmAsignacionTests {
     }
 
     @Test
+    @Transactional
+    void finalizacionRequiereCalificacionFeedbackYObservacion() throws Exception {
+        Asignacion asignacion = guardarPendiente(OrigenAsignacion.PROPUESTA_PM, true, false, "12");
+        asignacionService.aprobar(asignacion.getId(), null, rm.getId());
+        autenticarRm();
+        try {
+            String ruta = "/rm/asignaciones/" + asignacion.getId() + "/finalizar";
+            for (String campoVacio : List.of("calificacion", "feedback", "observacion")) {
+                mockMvc.perform(post(ruta)
+                                .param("motivo", "BAJO_DESEMPENO")
+                                .param("calificacion", campoVacio.equals("calificacion") ? "" : "3")
+                                .param("feedback", campoVacio.equals("feedback") ? "   " : "Feedback del cierre")
+                                .param("observacion", campoVacio.equals("observacion") ? "   " : "Observación interna"))
+                        .andExpect(redirectedUrl("/rm/asignaciones"))
+                        .andExpect(flash().attribute("mensajeError",
+                                "Completa la calificación, el feedback y la observación interna."));
+                assertEquals(EstadoAsignacion.ACTIVA,
+                        asignacionRepository.findById(asignacion.getId()).orElseThrow().getEstado());
+            }
+
+            mockMvc.perform(post(ruta)
+                            .param("motivo", "BAJO_DESEMPENO").param("calificacion", "3")
+                            .param("feedback", "Feedback del cierre").param("observacion", "Observación interna"))
+                    .andExpect(redirectedUrl("/rm/asignaciones"))
+                    .andExpect(flash().attribute("mensajeExito", "Asignación finalizada correctamente."));
+            assertEquals(EstadoAsignacion.FINALIZADA,
+                    asignacionRepository.findById(asignacion.getId()).orElseThrow().getEstado());
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    @Test
     void renderizaPropuestaPendientePmActivaEHistorialDelColaborador() throws Exception {
         mockMvc.perform(get("/rm/proyectos/buscar-colaboradores")
                         .param("proyectoId", proyecto.getId().toString()))

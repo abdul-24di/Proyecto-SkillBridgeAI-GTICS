@@ -2057,8 +2057,8 @@ public class RmViewController {
     }
 
     /**
-     * Finaliza una asignación activa con un motivo y, opcionalmente, una calificación y retroalimentación
-     * ({@link RmAsignacionService#finalizar}). Un motivo que no sea un {@link MotivoFinalizacion} se rechaza.
+     * Finaliza una asignación activa con motivo, observación interna, calificación y retroalimentación
+     * ({@link RmAsignacionService#finalizar}).
      * Vuelve a la vista desde la que se abrió.
      *
      * @param asignacionId asignación
@@ -2096,6 +2096,13 @@ public class RmViewController {
         try {
             MotivoFinalizacion motivo = convertirEnum(
                     MotivoFinalizacion.class, motivoTexto, "Selecciona un motivo de finalización válido.");
+            if (motivo == null) {
+                throw new IllegalArgumentException("Selecciona un motivo de finalización.");
+            }
+            if (calificacion == null || feedback == null || feedback.isBlank()
+                    || observacion == null || observacion.isBlank()) {
+                throw new IllegalArgumentException("Completa la calificación, el feedback y la observación interna.");
+            }
             rmAsignacionService.finalizar(
                     asignacionId, motivo, observacion, calificacion, feedback, principal.getUsuario().getId());
             request.getSession().setAttribute("SPRING_SECURITY_CONTEXT", SecurityContextHolder.getContext());

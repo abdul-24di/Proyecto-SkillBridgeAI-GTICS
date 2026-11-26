@@ -560,7 +560,7 @@ class RmNavegacionTests {
         assertTrue(detalle.contains("Backend Developer"));
         assertTrue(detalle.contains("En curso"));
 
-        // Finalizar vive en un modal con el mismo POST, el motivo obligatorio y los filtros de la bandeja.
+        // El modal exige los cuatro campos y mantiene los filtros de la bandeja.
         assertTrue(detalle.contains("data-bs-target=\"#finalizarAsignacionModal\""));
         Matcher modal = Pattern.compile("<div class=\"modal modal-blur fade rm-modal\" id=\"finalizarAsignacionModal\".*?</form>",
                 Pattern.DOTALL).matcher(detalle);
@@ -568,6 +568,10 @@ class RmNavegacionTests {
         String formulario = modal.group();
         assertTrue(formulario.contains("action=\"/rm/asignaciones/" + activa.getId() + "/finalizar\""));
         assertTrue(formulario.contains("name=\"motivo\" class=\"form-select\" required"));
+        assertTrue(formulario.contains("name=\"calificacion\" class=\"form-select\" required"));
+        assertTrue(formulario.contains("name=\"feedback\" maxlength=\"500\" rows=\"3\" class=\"form-control\" required"));
+        assertTrue(formulario.contains("name=\"observacion\" maxlength=\"220\" rows=\"3\" class=\"form-control\" required"));
+        assertTrue(formulario.contains("class=\"btn btn-danger\" disabled>Confirmar finalización"));
         assertTrue(formulario.contains("name=\"origen\" value=\"colaborador\""));
         assertTrue(formulario.contains("name=\"grupo\" value=\"active\""));
     }
